@@ -10,6 +10,22 @@
 </head>
 
 <body>
+  
+  <!-- Welcome Modal -->
+  <div class="backdrop" id="welcome-modal"
+    style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+    <div id="mbox" style="max-width: 400px; padding: 24px;">
+      <h3 style="margin-top: 0;">Welcome to OpenExpense</h3>
+      <p style="color: var(--text2); line-height: 1.6;">
+        A private, offline-first financial tracker. Your data lives only on your machine.
+        Start by clicking on any date in the calendar to log an expense.
+      </p>
+      <button class="btn-primary" onclick="closeWelcomeModal()" style="width: 100%; padding: 10px; cursor: pointer;">
+        Get Started
+      </button>
+    </div>
+  </div>
+
   <div id="mobile-overlay" class="mobile-overlay">
     <div class="overlay-content">
       <i class="ti ti-device-mobile-off" style="font-size: 48px; margin-bottom: 16px;"></i>
@@ -37,19 +53,19 @@
         <div style="display: flex; flex-direction: column;">
           <span class="brand-name">openexpense.org</span>
           <span class="brand-description" style="font-size: 10px; color: var(--text2);">
-            Your unlocked digital expense tracker
+            An unlocked tool for your wallet.
           </span>
         </div>
       </div>
 
-      <div class="header-actions">
-        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" class="header-repo-link"
-          aria-label="Source Repository">
-          <span class="brand-badge">
-            <i class="ti ti-brand-github" style="font-size: 10px; padding-right: 3px;"></i>Open Source
-          </span>
+      <div class="header-actions" style="display: flex; gap: 8px;">
+        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" class="header-btn">
+          <i class="ti ti-brand-github" style="font-size: 12px; margin-right: 4px;"></i>
+          Open Source
         </a>
-        <div id="theme-toggle-slot" class="brand-badge" style="padding: 0;"></div>
+
+        <div id="theme-toggle-slot" class="header-btn" style="min-width: 28px; padding: 0 6px;">
+        </div>
       </div>
     </header>
 

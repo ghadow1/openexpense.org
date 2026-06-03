@@ -309,7 +309,17 @@ function renderSidebar() {
     sideTitle.style.cssText = `color:${c.textStrong}; font-weight: 600; font-size: 14px; display:flex; align-items:center; gap:8px; height:34px;`;
     sideTitle.innerHTML = `<i class="ti ti-chart-pie" style="color:${c.accent}"></i> Monthly Summary`;
 
-    const printBtn = UI.createButton('', () => window.print(), { icon: 'printer', iconOnly: true });
+    // Update the print button logic to ensure DOM is ready
+    const printBtn = UI.createButton('', () => {
+        // Explicitly re-render or update title to ensure text exists
+        render();
+
+        // Give the browser a tiny fraction of a second to render the text
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    }, { icon: 'printer', iconOnly: true });
+
     // Minimal styling adjustment for the print button
     printBtn.style.height = '28px';
     printBtn.style.padding = '0 8px';
@@ -749,6 +759,20 @@ function exportJSON() {
     URL.revokeObjectURL(a.href);
 }
 
+// Function to show welcome modal
+function showWelcome() {
+    const modal = document.getElementById('welcome-modal');
+    if (!localStorage.getItem('hasVisited')) {
+        modal.style.display = 'flex';
+        localStorage.setItem('hasVisited', 'true');
+    }
+}
+
+// Function to close it
+function closeWelcomeModal() {
+    document.getElementById('welcome-modal').style.display = 'none';
+}
+
 // --- Initialization ---
 function initApplication() {
     const versionBadge = document.getElementById('app-version');
@@ -800,3 +824,4 @@ window.switchDocTab = switchDocTab;
 window.dismissBanner = () => document.getElementById('top-banner')?.remove();
 
 document.addEventListener('DOMContentLoaded', initApplication);
+document.addEventListener('DOMContentLoaded', showWelcome);
