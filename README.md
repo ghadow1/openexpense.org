@@ -8,6 +8,8 @@
 ## Overview
 **OpenExpense** is a lightweight, local-first expense tracker designed for those who value data sovereignty. Unlike standard platforms that rely on cloud synchronization and data mining, OpenExpense runs entirely on your local machine. Your financial history never leaves your browser.
 
+![Alt Text](https://i.ibb.co/35rj0v7b/Screenshot-2026-06-03-at-4-46-03-PM.png)
+
 ## Features
 * **Zero-Server Architecture:** No backend, no databases, and no API calls to third-party servers.
 * **Privacy by Design:** Your data resides strictly in your browser's memory. It is immune to data breaches or corporate profiling.
