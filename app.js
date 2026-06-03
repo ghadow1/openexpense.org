@@ -302,10 +302,21 @@ function renderSidebar() {
     const fragment = document.createDocumentFragment();
     const c = AppState.getColors();
 
+    const sideHeader = document.createElement('div');
+    sideHeader.style.cssText = `display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;`;
+
     const sideTitle = document.createElement('h3');
-    sideTitle.style.cssText = `color:${c.textStrong}; margin-bottom: 20px; font-weight: 600; font-size: 14px; display:flex; align-items:center; gap:8px; height:34px;`;
+    sideTitle.style.cssText = `color:${c.textStrong}; font-weight: 600; font-size: 14px; display:flex; align-items:center; gap:8px; height:34px;`;
     sideTitle.innerHTML = `<i class="ti ti-chart-pie" style="color:${c.accent}"></i> Monthly Summary`;
-    fragment.appendChild(sideTitle);
+
+    const printBtn = UI.createButton('', () => window.print(), { icon: 'printer', iconOnly: true });
+    // Minimal styling adjustment for the print button
+    printBtn.style.height = '28px';
+    printBtn.style.padding = '0 8px';
+
+    sideHeader.appendChild(sideTitle);
+    sideHeader.appendChild(printBtn);
+    fragment.appendChild(sideHeader);
 
     const y = AppState.currentDate.getFullYear();
     const m = AppState.currentDate.getMonth();

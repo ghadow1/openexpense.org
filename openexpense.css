@@ -1068,4 +1068,54 @@
         margin-top: 8px;
         /* Pushes checkboxes down to align with the Cost input */
     }
+
+    @media print {
+
+        /* 1. Hide ONLY the interface elements you don't want */
+        .site-header,
+        .nav-group,
+        .row-actions,
+        .btn-icon-edit,
+        .btn-icon-delete,
+        .print-button-class,
+        /* Add the specific class for your print button */
+        .top-banner {
+            display: none !important;
+        }
+
+        /* 2. Ensure your Calendar Header specifically remains visible */
+        .calendar-header,
+        .calendar-title,
+        .calendar-nav {
+            display: flex !important;
+            /* Force visibility */
+            visibility: visible !important;
+        }
+
+        /* Force the header container to be visible and have size */
+        .calendar-header,
+        .month-selector,
+        .current-month-display {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+        }
+
+        /* Ensure text color is forced black for printers */
+        .calendar-header * {
+            color: #000 !important;
+        }
+
+        /* 3. Keep layout intact */
+        .app-container,
+        .layout-wrapper {
+            display: block !important;
+        }
+
+        .sidebar {
+            break-before: page;
+            margin-top: 20px;
+        }
+    }
 }
