@@ -245,8 +245,21 @@ async function performOCR(imageFile) {
 }
 
 function parseReceiptText(text) {
-    // Extract key information from receipt
     const lines = text.split('\n').filter(l => l.trim());
+    let receiptDate = null;
+    
+    // Extract date from receipt
+    const datePatterns = [
+        /\d{1,2}\/\d{1,2}\/\d{2,4}/,
+        /\d{1,2}-\d{1,2}-\d{2,4}/,
+        /\d{4}-\d{1,2}-\d{1,2}/,
+        /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i,
+    ];
+    for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) { receiptDate = match[0]; break; }
+    }
+    
     
     // Look for store name (usually first meaningful line)
     let storeName = '';
@@ -276,6 +289,7 @@ function parseReceiptText(text) {
         store: storeName,
         amount: totalAmount,
         items: items,
+        date: receiptDate,
         rawText: text
     };
 }
@@ -318,10 +332,17 @@ function showOCRPreviewModal(parsed, rawText) {
                 style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
         </div>
         
-        <div style="margin-bottom: 16px;">
-            <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Amount ($):</label>
-            <input type="number" id="ocr-amount-input" value="${parsed.amount || ''}" step="0.01"
-                style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+            <div>
+                <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Amount ($):</label>
+                <input type="number" id="ocr-amount-input" value="${parsed.amount || ''}" step="0.01"
+                    style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+            </div>
+            <div>
+                <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Date:</label>
+                <input type="date" id="ocr-date-input" value="${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}"
+                    style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+            </div>
         </div>
         
         <div style="margin-bottom: 20px;">
@@ -347,6 +368,7 @@ function closeOCRModal() {
 
 function applyOCRData() {
     const title = document.getElementById('ocr-title-input').value.trim();
+    const dateStr = document.getElementById('ocr-date-input').value;
     const amount = parseFloat(document.getElementById('ocr-amount-input').value);
     const note = document.getElementById('ocr-note-input').value.trim();
     
@@ -358,6 +380,12 @@ function applyOCRData() {
     if (titleEl) titleEl.value = title;
     if (priceEl) priceEl.value = amount || '';
     if (noteEl) noteEl.value = note;
+    
+    if (dateStr) {
+        const [y, m, d] = dateStr.split('-');
+        AppState.currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        render();
+    }
     
     closeOCRModal();
 }
