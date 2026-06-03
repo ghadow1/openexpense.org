@@ -30,9 +30,16 @@
 
     <header class="site-header">
       <div class="brand">
-        <i class="ti ti-wallet" style="font-size: 14px; padding-top: 3px;"></i>
-        <span class="brand-name">openexpense.org</span>
+        <i class="ti ti-wallet" style="font-size: 28px; padding-top: 3px;"></i>
+
+        <!-- Wrap the text in a new div set to column -->
+        <div style="display: flex; flex-direction: column;">
+          <span class="brand-name">openexpense.org</span>
+          <span class="brand-description" style="font-size: 10px; color: var(--text2);">Your unlocked digital expense
+            tracker</span>
+        </div>
       </div>
+
       <div class="header-actions">
         <a href="https://github.com/ghadow1/openexpense.org" target="_blank" class="header-repo-link"
           aria-label="Source Repository">
