@@ -373,6 +373,8 @@ function triggerOCRUpload() {
         }
     };
     input.click();
+}
+
 function render() {
     applyTheme();
     renderToolbar();
