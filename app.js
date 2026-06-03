@@ -500,6 +500,10 @@ function renderSidebar() {
     sideTitle.style.cssText = `color:${c.textStrong}; font-weight: 600; font-size: 14px; display:flex; align-items:center; gap:8px; height:34px;`;
     sideTitle.innerHTML = `<i class="ti ti-chart-pie" style="color:${c.accent}"></i> Monthly Summary`;
 
+    // Button container for both OCR and Print buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `display: flex; gap: 8px; align-items: center;`;
+
     // OCR Receipt Scanning Button
     const ocrBtn = UI.createButton('', () => {
         triggerOCRUpload();
@@ -509,8 +513,23 @@ function renderSidebar() {
     ocrBtn.style.padding = '0 8px';
     Utils.bindTooltip(ocrBtn, 'Scan receipt image with OCR');
 
+    // Print Button
+    const printBtn = UI.createButton('', () => {
+        render();
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    }, { icon: 'printer', iconOnly: true });
+
+    printBtn.style.height = '28px';
+    printBtn.style.padding = '0 8px';
+    Utils.bindTooltip(printBtn, 'Print monthly summary');
+
+    buttonContainer.appendChild(ocrBtn);
+    buttonContainer.appendChild(printBtn);
+
     sideHeader.appendChild(sideTitle);
-    sideHeader.appendChild(ocrBtn);
+    sideHeader.appendChild(buttonContainer);
     fragment.appendChild(sideHeader);
 
     const y = AppState.currentDate.getFullYear();
