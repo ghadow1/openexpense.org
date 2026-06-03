@@ -34,7 +34,8 @@
         <span class="brand-name">openexpense.org</span>
       </div>
       <div class="header-actions">
-        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" class="header-repo-link" aria-label="Source Repository">
+        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" class="header-repo-link"
+          aria-label="Source Repository">
           <span class="brand-badge">
             <i class="ti ti-brand-github" style="font-size: 10px; padding-right: 3px;"></i>Open Source
           </span>
@@ -74,7 +75,6 @@
 
           <!-- About & Privacy Pane -->
           <div id="pane-manual" class="docs-pane active">
-            <h2 class="docs-title">About OpenExpense</h2>
             <p class="docs-p">
               <strong>OpenExpense</strong> is a privacy-first, open-source financial management tool. Unlike standard
               platforms that monetize personal data, our offline-first architecture ensures your financial footprint
@@ -90,21 +90,6 @@
                 data-mining incentives.</li>
             </ul>
 
-            <!-- Data Warning -->
-            <div class="docs-note"
-              style="margin: 24px 0; padding: 20px; border-radius: 8px; background: var(--docs-note-bg); border-left: 5px solid #e05;">
-              <h4
-                style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-strong); display: flex; align-items: center;">
-                <i class="ti ti-alert-triangle" style="margin-right: 8px;"></i> Critical: Data Persistence
-              </h4>
-              <p style="font-size: 13px; line-height: 1.6; color: var(--text-muted); margin: 0;">
-                OpenExpense is an <strong>ephemeral application</strong>. Data resides strictly in your browser's
-                temporary memory. Refreshing your browser will purge your records. <strong>Use the "Export" feature
-                  regularly</strong> to secure your data as a local file.
-              </p>
-            </div>
-
-            <h2 class="docs-title" style="margin-top: 32px;">Privacy Strategy</h2>
             <p class="docs-p">
               Our architecture is built on <em>hostile-environment-ready</em> principles. We remove the network
               dependency entirely to ensure your financial habits remain private.
@@ -120,27 +105,59 @@
             </ul>
           </div>
 
-          <!-- Data Architecture Pane -->
+          <!-- Data Schema & Event System Pane -->
+          <!-- Data Architecture & Privacy Pane -->
           <div id="pane-schema" class="docs-pane">
-            <h2 class="docs-title">Data Architecture</h2>
+            <h2 class="docs-title">Data Sovereignty & Privacy</h2>
             <p class="docs-p">
-              OpenExpense utilizes a dictionary-based structure. Calendar dates serve as unique keys, mapping directly
-              to an array of expense objects within the <code>evs</code> runtime container.
+              OpenExpense is designed for <strong>total data ownership</strong>. Because this tool runs entirely in your
+              browser,
+              <strong>you are the only person who can access or view your financial records.</strong>
+            </p>
+
+            <!-- Refined, Low-Contrast Privacy Box -->
+            <div class="docs-note"
+              style="margin: 24px 0; padding: 20px; border-radius: 8px; background: var(--surface2); border-left: 3px solid var(--border-strong);">
+              <h4
+                style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-strong); display: flex; align-items: center; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="ti ti-database" style="margin-right: 8px; font-size: 16px; color: var(--text2);"></i> Your
+                Data File
+              </h4>
+              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0;"> Your data is stored locally.
+                When you click <strong>"Export"</strong>, you download a <code>.json</code>
+                file.
+                <strong>This file is your complete database.</strong> You can store it on your hard drive, a secure
+                encrypted folder, or a private flash drive.
+              </p>
+              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0;">
+                To pick up where you left off, simply click <strong>"Import"</strong> on the main calendar view and
+                select your <code>.json</code> file to restore your entire expense history instantly.
+              </p>
+            </div>
+
+            <h3
+              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
+              Technical Structure</h3>
+            <p class="docs-p" style="color: var(--text2);">
+              Your data uses a simple, readable dictionary structure. Calendar dates act as unique keys, mapping to your
+              expense objects.
             </p>
 
             <div class="docs-code-block"
-              style="background: var(--docs-code-bg); padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px;">
+              style="background: var(--surface2); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; border: 1px solid var(--border);">
               { "events": { "2026-06-03": [{ "title": "API Hosting", "price": 49.99, "recurring": true }] } }
             </div>
 
-            <h3 style="font-size:15px; font-weight:700; margin-top:24px; margin-bottom:12px;">System Mechanics</h3>
-            <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.6;">
-              <li style="margin-bottom: 8px;"><strong>Input Validation:</strong> Sanitizes strings and enforces numeric
-                values via <code>parseFloat()</code>.</li>
-              <li style="margin-bottom: 8px;"><strong>Recurrence Engine:</strong> Projects expenses across a 12-month
-                horizon dynamically.</li>
-              <li><strong>State Management:</strong> Uses direct array index references to maintain UI synchronization.
-              </li>
+            <h3
+              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
+              Security Instructions</h3>
+            <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.8; color: var(--text2);">
+              <li style="margin-bottom: 4px;">&bull; <strong>Backup Often:</strong> Export your data after every session
+                to ensure no progress is lost.</li>
+              <li style="margin-bottom: 4px;">&bull; <strong>Storage Safety:</strong> Keep your <code>.json</code> file
+                on encrypted storage if you require extra protection.</li>
+              <li>&bull; <strong>No Syncing:</strong> Since there is no cloud server, you must manually move your file
+                if you switch between computers.</li>
             </ul>
           </div>
 
@@ -161,8 +178,8 @@
 
               <div class="author-info" style="flex: 1; min-width: 300px;">
                 <h3 style="margin: 0 0 8px 0; font-size: 22px; color: var(--text-strong);">Gregory Medina</h3>
-                <p style="margin: 0 0 20px 0; font-size: 15px; color: var(--text-muted); line-height: 1.6;">
-                  Lead Software Developer specializing in Java-based game engine architecture. I build tools designed to
+                <p style="margin: 0 0 20px 0; font-size: 15px; color: var(--text-muted); line-height: 1.6;">I build
+                  tools designed to
                   provide total data sovereignty by removing reliance on cloud tracking.
                 </p>
                 <div style="display: flex; gap: 24px; border-top: 1px solid rgba(128,128,128,0.2); padding-top: 16px;">
@@ -200,7 +217,30 @@
   </div>
 
   <div class="backdrop" id="modal" onclick="bgClose(event)">
-    <div id="mbox"></div>
+    <div id="mbox">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-date-title">Date</h3>
+        <button class="close-modal" onclick="closeModal()" style="background:none; border:none; cursor:pointer;">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div class="modal-columns">
+
+        <div class="modal-panel">
+          <h4 class="panel-title">Existing Items</h4>
+          <div id="events-container">
+          </div>
+        </div>
+
+        <div class="modal-panel">
+          <h4 class="panel-title">Log New Item</h4>
+          <div id="form-container">
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <div id="global-tooltip"></div>

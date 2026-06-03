@@ -371,6 +371,43 @@
         text-decoration: line-through;
     }
 
+    /* Container for the 50/50 layout */
+    .modal-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        align-items: start;
+    }
+
+    /* Panel Styling */
+    .modal-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .panel-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Ensure the form doesn't exceed the panel width */
+    .form-panel .record-form {
+        margin-top: 0;
+    }
+
+    /* Responsive adjustment for smaller screens */
+    @media (max-width: 768px) {
+        .modal-columns {
+            grid-template-columns: 1fr;
+        }
+    }
+
     /* Simplified Documentation Area */
     .docs-container {
         display: grid;
@@ -549,8 +586,10 @@
         border: 1px solid var(--border-strong);
         border-radius: 12px;
         padding: 24px;
-        width: 500px;
-        max-width: 95vw;
+        width: 100%;
+        /* Changed from 500px */
+        max-width: 850px;
+        /* Replaces the 95vw to cap the expansion */
         max-height: 85vh;
         overflow-y: auto;
         box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
@@ -960,5 +999,65 @@
         .mobile-overlay {
             display: flex !important;
         }
+    }
+
+    /* =========================================
+   MODAL 50/50 LAYOUT FIXES
+   ========================================= */
+
+    /* 1. Widen the modal to support two columns */
+    .modal-content {
+        width: 100% !important;
+        max-width: 850px !important;
+        /* Increased from narrow default */
+    }
+
+    /* 2. Ensure the body uses a flex grid with a gap */
+    .modal-body {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+        padding: 24px 32px !important;
+    }
+
+    /* 3. Force both containers to share exactly 50% of the space */
+    #events-container,
+    #form-container {
+        flex: 1;
+        min-width: 0;
+        /* Crucial: prevents inputs from forcing the container to stretch */
+    }
+
+    /* 4. Add a dividing line between the two columns */
+    #events-container {
+        border-right: 1px solid var(--border);
+        padding-right: 32px;
+    }
+
+    /* 5. Fix the squished "Cost" and "Checkboxes" row from app.js */
+    .form-row-split {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        /* Aligns the Cost input and checkboxes neatly */
+        margin-bottom: 16px;
+        width: 100%;
+    }
+
+    .form-row-split .input-group {
+        margin-bottom: 0 !important;
+        /* Prevents misalignment */
+    }
+
+    /* 6. Clean up the custom checkbox layout to prevent wrapping */
+    .custom-cb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-strong);
+        white-space: nowrap;
+        margin-top: 8px;
+        /* Pushes checkboxes down to align with the Cost input */
     }
 }
