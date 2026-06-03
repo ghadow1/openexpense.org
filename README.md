@@ -1,4 +1,4 @@
-# openexpense.org
+# [https://www.openexpense.org](https://www.openexpense.org)
 
 **A privacy-first, offline-only financial management tool.**
 
