@@ -184,6 +184,225 @@ function applyTheme() {
     root.style.setProperty('--pill-bg', c.pillBg);
 }
 
+
+// --- OCR Receipt Scanning ---
+async function performOCR(imageFile) {
+    try {
+        const c = AppState.getColors();
+        const status = document.getElementById('ocr-status');
+        
+        if (!status) {
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'ocr-status';
+            statusDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: ${c.surface};
+                padding: 24px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                z-index: 10000;
+                text-align: center;
+                border: 1px solid ${c.border};
+            `;
+            document.body.appendChild(statusDiv);
+        }
+        
+        const statusDiv = document.getElementById('ocr-status');
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = `<p style="color:${c.text}; margin:0;">Processing receipt with OCR...</p>`;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const imageData = e.target.result;
+            
+            // Use Tesseract for OCR
+            const result = await Tesseract.recognize(imageData, 'eng', {
+                logger: (m) => {
+                    if (m.status === 'recognizing') {
+                        const progress = Math.round(m.progress * 100);
+                        statusDiv.innerHTML = `<p style="color:${c.text}; margin:0;">Processing: ${progress}%</p>`;
+                    }
+                }
+            });
+            
+            const text = result.data.text;
+            statusDiv.style.display = 'none';
+            
+            // Parse receipt text
+            const parsed = parseReceiptText(text);
+            showOCRPreviewModal(parsed, text);
+        };
+        reader.readAsDataURL(imageFile);
+    } catch (error) {
+        console.error('OCR Error:', error);
+        alert('OCR processing failed. Please try another image.');
+        const statusDiv = document.getElementById('ocr-status');
+        if (statusDiv) statusDiv.style.display = 'none';
+    }
+}
+
+function parseReceiptText(text) {
+    const lines = text.split('\n').filter(l => l.trim());
+    let receiptDate = null;
+    
+    // Extract date from receipt
+    const datePatterns = [
+        /\d{1,2}\/\d{1,2}\/\d{2,4}/,
+        /\d{1,2}-\d{1,2}-\d{2,4}/,
+        /\d{4}-\d{1,2}-\d{1,2}/,
+        /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i,
+    ];
+    for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) { receiptDate = match[0]; break; }
+    }
+    
+    
+    // Look for store name (usually first meaningful line)
+    let storeName = '';
+    let totalAmount = null;
+    let items = [];
+    
+    // Extract amounts - look for currency patterns
+    const amountRegex = /[\$]?\s?(\d+\.?\d{0,2})/g;
+    const amounts = [];
+    const matches = text.matchAll(amountRegex);
+    for (const match of matches) {
+        const amount = parseFloat(match[1]);
+        if (amount > 0 && amount < 10000) amounts.push(amount);
+    }
+    
+    // Largest amount is likely total
+    if (amounts.length > 0) {
+        amounts.sort((a, b) => b - a);
+        totalAmount = amounts[0];
+    }
+    
+    // Get first few meaningful lines for store name and items
+    storeName = lines.slice(0, 2).join(' ').substring(0, 50);
+    items = lines.slice(2, 5);
+    
+    return {
+        store: storeName,
+        amount: totalAmount,
+        items: items,
+        date: receiptDate,
+        rawText: text
+    };
+}
+
+function showOCRPreviewModal(parsed, rawText) {
+    const c = AppState.getColors();
+    const modal = document.createElement('div');
+    modal.id = 'ocr-preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: ${c.overlay};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: ${c.surface};
+        border: 1px solid ${c.border};
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    `;
+    
+    content.innerHTML = `
+        <h3 style="color:${c.textStrong}; margin-top:0; margin-bottom:16px;">Receipt Data Extracted</h3>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Title/Store:</label>
+            <input type="text" id="ocr-title-input" value="${(parsed.store || '').replace(/"/g, '&quot;')}" 
+                style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+        </div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+            <div>
+                <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Amount ($):</label>
+                <input type="number" id="ocr-amount-input" value="${parsed.amount || ''}" step="0.01"
+                    style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+            </div>
+            <div>
+                <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Date:</label>
+                <input type="date" id="ocr-date-input" value="${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}"
+                    style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px;">
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="color:${c.text}; font-size:12px; font-weight:500; display:block; margin-bottom:6px;">Notes:</label>
+            <textarea id="ocr-note-input" placeholder="Additional details from receipt"
+                style="width:100%; padding:8px; border:1px solid ${c.border}; border-radius:4px; background:${c.inputBg}; color:${c.text}; box-sizing:border-box; font-size:13px; height:80px; resize:vertical;">${(parsed.items || []).join(', ')}</textarea>
+        </div>
+        
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button onclick="closeOCRModal()" style="padding:8px 16px; border:1px solid ${c.border}; background:${c.btnBg}; color:${c.btnText}; border-radius:4px; cursor:pointer; font-size:13px;">Cancel</button>
+            <button onclick="applyOCRData()" style="padding:8px 16px; border:none; background:${c.accent}; color:#fff; border-radius:4px; cursor:pointer; font-size:13px; font-weight:500;">Apply to Expense</button>
+        </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+}
+
+function closeOCRModal() {
+    const modal = document.getElementById('ocr-preview-modal');
+    if (modal) modal.remove();
+}
+
+function applyOCRData() {
+    const title = document.getElementById('ocr-title-input').value.trim();
+    const dateStr = document.getElementById('ocr-date-input').value;
+    const amount = parseFloat(document.getElementById('ocr-amount-input').value);
+    const note = document.getElementById('ocr-note-input').value.trim();
+    
+    // Set form fields
+    const titleEl = document.getElementById('et');
+    const priceEl = document.getElementById('ep');
+    const noteEl = document.getElementById('en');
+    
+    if (titleEl) titleEl.value = title;
+    if (priceEl) priceEl.value = amount || '';
+    if (noteEl) noteEl.value = note;
+    
+    if (dateStr) {
+        const [y, m, d] = dateStr.split('-');
+        AppState.currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        render();
+    }
+    
+    closeOCRModal();
+}
+
+function triggerOCRUpload() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            performOCR(file);
+        }
+    };
+    input.click();
+}
+
 function render() {
     applyTheme();
     renderToolbar();
@@ -235,7 +454,9 @@ function renderCalendar() {
         Object.assign(document.createElement('div'), { style: `width:1px; height:16px; background:${c.border}; margin: 0 4px;` }),
         fileInput,
         UI.createButton('Import', () => fileInput.click(), { icon: 'upload' }),
-        UI.createButton('Export', exportJSON, { icon: 'download' })
+        UI.createButton('Export', exportJSON, { icon: 'download' }),
+        Object.assign(document.createElement('div'), { style: `width:1px; height:16px; background:${c.border}; margin: 0 4px;` }),
+        UI.createButton('Scan Receipt', () => triggerOCRUpload(), { icon: 'camera' })
     );
     hdr.append(nav, actions);
     fragment.appendChild(hdr);
@@ -309,23 +530,7 @@ function renderSidebar() {
     sideTitle.style.cssText = `color:${c.textStrong}; font-weight: 600; font-size: 14px; display:flex; align-items:center; gap:8px; height:34px;`;
     sideTitle.innerHTML = `<i class="ti ti-chart-pie" style="color:${c.accent}"></i> Monthly Summary`;
 
-    // Update the print button logic to ensure DOM is ready
-    const printBtn = UI.createButton('', () => {
-        // Explicitly re-render or update title to ensure text exists
-        render();
-
-        // Give the browser a tiny fraction of a second to render the text
-        setTimeout(() => {
-            window.print();
-        }, 100);
-    }, { icon: 'printer', iconOnly: true });
-
-    // Minimal styling adjustment for the print button
-    printBtn.style.height = '28px';
-    printBtn.style.padding = '0 8px';
-
     sideHeader.appendChild(sideTitle);
-    sideHeader.appendChild(printBtn);
     fragment.appendChild(sideHeader);
 
     const y = AppState.currentDate.getFullYear();

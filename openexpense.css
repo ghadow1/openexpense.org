@@ -146,15 +146,15 @@
     }
 
     .brand-name {
-        font-size: 15px;
-        font-weight: 700;
+        font-size: 17px;
+        font-weight: 650;
         color: var(--text-strong);
         letter-spacing: -0.02em;
     }
 
     .brand-description {
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 480;
         color: var(--text2);
         letter-spacing: 0.01em;
         line-height: 1.2;
