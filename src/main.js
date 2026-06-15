@@ -11,23 +11,25 @@ import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
 
 async function initApplication() {
+    const bootPatch = {};
+
     try {
         const storedTheme = localStorage.getItem(STORAGE_KEYS.theme);
-        if (storedTheme) patch({ isDark: storedTheme === 'dark' });
+        if (storedTheme) bootPatch.isDark = storedTheme === 'dark';
     } catch (_) { }
 
     const saved = await loadLedger();
     if (saved && typeof saved === 'object') {
-        patch({
-            ledgerName: saved.name ? Utils.sanitizeFilename(saved.name) : getState().ledgerName,
-            events: saved.events && typeof saved.events === 'object' ? saved.events : getState().events
-        });
+        if (saved.name) bootPatch.ledgerName = Utils.sanitizeFilename(saved.name);
+        if (saved.events && typeof saved.events === 'object') bootPatch.events = saved.events;
     } else {
         try {
             const storedName = localStorage.getItem(STORAGE_KEYS.ledgerName);
-            if (storedName) patch({ ledgerName: Utils.sanitizeFilename(storedName) });
+            if (storedName) bootPatch.ledgerName = Utils.sanitizeFilename(storedName);
         } catch (_) { }
     }
+
+    if (Object.keys(bootPatch).length) patch(bootPatch);
 
     initPersist(store);
 
@@ -93,10 +95,28 @@ function handleDelegatedClick(e) {
 
 document.addEventListener('click', handleDelegatedClick);
 
-subscribe(() => {
-    render();
-    if (getState().selectedKey) renderModal();
-});
+let pendingKeys = null;
+let renderFrame = 0;
+
+function queueRender(changedKeys) {
+    pendingKeys = pendingKeys ? { ...pendingKeys, ...changedKeys } : { ...changedKeys };
+    if (renderFrame) return;
+    renderFrame = requestAnimationFrame(() => {
+        renderFrame = 0;
+        const keys = pendingKeys;
+        pendingKeys = null;
+        const keyList = Object.keys(keys);
+        const needsApp = keyList.some(k => ['isDark', 'ledgerName', 'currentDate', 'events'].includes(k));
+        const needsModal = getState().selectedKey
+            && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark'].includes(k));
+
+        if (needsApp) render(keys);
+
+        if (needsModal) renderModal();
+    });
+}
+
+subscribe(queueRender);
 
 document.addEventListener('DOMContentLoaded', () => {
     initApplication().catch((err) => {

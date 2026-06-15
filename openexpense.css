@@ -483,6 +483,8 @@ a {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 6px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 520px;
 }
 
 .cal-day {
@@ -1849,15 +1851,30 @@ textarea.text-input {
     .site-header,
     .view-segment-bar,
     .nav-group,
+    .toolbar-actions,
     .row-actions,
     .btn-icon-edit,
-    .btn-icon-delete {
+    .btn-icon-delete,
+    .sidebar-print-btn,
+    .ledger-name-bar,
+    .welcome-modal,
+    #modal,
+    .boot-error {
         display: none !important;
     }
 
     .app-container,
-    .layout-wrapper {
+    .layout-wrapper,
+    .app-view {
         display: block !important;
+    }
+
+    .toolbar {
+        display: flex !important;
+    }
+
+    .month-title {
+        visibility: visible !important;
     }
 
     .sidebar {

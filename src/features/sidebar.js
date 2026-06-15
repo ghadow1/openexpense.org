@@ -1,7 +1,7 @@
 import { getState, patch, getColors } from '../core/store.js';
 import { Utils } from '../core/utils.js';
+import { UI } from '../ui/components.js';
 import { closeModal } from './modal.js';
-import { render } from '../app/render.js';
 
 export function renderSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -18,7 +18,15 @@ export function renderSidebar() {
     sideTitle.className = 'sidebar-title';
     sideTitle.innerHTML = `<i class="ti ti-chart-pie"></i> Monthly Summary`;
 
-    sideHeader.appendChild(sideTitle);
+    const printBtn = UI.createButton('', () => {
+        requestAnimationFrame(() => setTimeout(() => window.print(), 50));
+    }, { icon: 'printer', iconOnly: true });
+    printBtn.className = 'sidebar-print-btn';
+    printBtn.setAttribute('aria-label', 'Print monthly summary');
+    printBtn.title = 'Print';
+    Object.assign(printBtn.style, { height: '28px', padding: '0 8px' });
+
+    sideHeader.append(sideTitle, printBtn);
     fragment.appendChild(sideHeader);
 
     const y = currentDate.getFullYear();
@@ -124,7 +132,6 @@ export function renderSidebar() {
         bar.onclick = () => {
             patch({ currentDate: new Date(y, i, 1) });
             if (getState().selectedKey) closeModal();
-            render();
         };
 
         graphWrap.appendChild(bar);

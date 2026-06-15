@@ -1,7 +1,6 @@
 import { getState, patch, getColors } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
-import { render } from '../app/render.js';
 
 export function openModal(key) {
     patch({ selectedKey: key, editingIndex: null });
@@ -240,7 +239,6 @@ export function saveEdit(i) {
     patch({ events: nextEvents, editingIndex: null });
     if (isRecurring) propagateRecurring(updatedEv, selectedKey);
     renderModal();
-    render();
 }
 
 export function deleteEv(i) {
@@ -253,7 +251,6 @@ export function deleteEv(i) {
         if (!nextEvents[selectedKey].length) delete nextEvents[selectedKey];
         patch({ events: nextEvents, editingIndex: null });
         renderModal();
-        render();
     };
     if (row) { Object.assign(row.style, { opacity: '0', maxHeight: '0', padding: '0', overflow: 'hidden' }); setTimeout(go, 120); } else go();
 }
@@ -277,5 +274,4 @@ export function addEvent() {
     patch({ events: nextEvents });
     if (isRecurring) propagateRecurring(newEv, selectedKey);
     renderModal();
-    render();
 }

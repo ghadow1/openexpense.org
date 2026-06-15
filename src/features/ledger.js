@@ -1,13 +1,14 @@
+import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
-import { syncLedgerNameInput, render } from '../app/render.js';
+import { render } from '../app/render.js';
 
 export const Ledger = {
     setLedgerName(name) {
-        patch({ ledgerName: Utils.sanitizeFilename(name) });
-        syncLedgerNameInput();
+        const ledgerName = Utils.sanitizeFilename(name);
+        patch({ ledgerName });
+        try { localStorage.setItem(STORAGE_KEYS.ledgerName, ledgerName); } catch (_) { }
     },
 
     nameFromImport(filename, payload) {
@@ -107,7 +108,9 @@ export const Ledger = {
                     ledgerName: Ledger.nameFromImport(f.name, p),
                     events: importedEvents
                 });
-                render();
+                try {
+                    localStorage.setItem(STORAGE_KEYS.ledgerName, getState().ledgerName);
+                } catch (_) { }
                 const count = Object.values(importedEvents).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
                 Toast.show(`Imported ${count} item${count === 1 ? '' : 's'}.`, 'success');
             } catch {

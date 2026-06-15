@@ -4,11 +4,16 @@ const STORE_NAME = 'ledger';
 const KEY = 'current';
 
 let saveTimer = null;
+let dbPromise = null;
 
 function openDb() {
-    return new Promise((resolve, reject) => {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onerror = () => reject(req.error);
+        req.onerror = () => {
+            dbPromise = null;
+            reject(req.error);
+        };
         req.onupgradeneeded = () => {
             const db = req.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -17,6 +22,7 @@ function openDb() {
         };
         req.onsuccess = () => resolve(req.result);
     });
+    return dbPromise;
 }
 
 export async function loadLedger() {
@@ -27,9 +33,9 @@ export async function loadLedger() {
             const req = tx.objectStore(STORE_NAME).get(KEY);
             req.onerror = () => reject(req.error);
             req.onsuccess = () => resolve(req.result ?? null);
-            tx.oncomplete = () => db.close();
         });
     } catch {
+        dbPromise = null;
         return null;
     }
 }
@@ -41,10 +47,10 @@ export async function saveLedger(data) {
             const tx = db.transaction(STORE_NAME, 'readwrite');
             tx.objectStore(STORE_NAME).put(data, KEY);
             tx.onerror = () => reject(tx.error);
-            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.oncomplete = () => resolve();
         });
     } catch {
-        // IndexedDB unavailable — fail silently
+        dbPromise = null;
     }
 }
 

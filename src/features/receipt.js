@@ -1,7 +1,6 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
-import { render } from '../app/render.js';
 import { openModal } from './modal.js';
 
 export const Receipt = {
@@ -639,7 +638,6 @@ export const Receipt = {
         patch({ currentDate: new Date(y, m - 1, d) });
 
         Receipt.closePreview();
-        render();
         openModal(dateStr);
 
         const et = document.getElementById('et');

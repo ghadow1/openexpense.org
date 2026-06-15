@@ -21,7 +21,7 @@ export function getColors() {
 
 export function patch(partial) {
     Object.assign(state, partial);
-    listeners.forEach(fn => fn(state));
+    listeners.forEach(fn => fn(partial));
 }
 
 export function subscribe(fn) {

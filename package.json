@@ -2,7 +2,7 @@
   "name": "openexpense.org",
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=esm --outfile=app.js",
+    "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --outfile=app.js",
     "serve": "python3 -m http.server 8765"
   },
   "devDependencies": {
