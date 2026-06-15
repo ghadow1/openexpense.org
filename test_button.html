@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR Button Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+    <div id="test"></div>
+    
+    <script>
+        // Test button creation
+        function createTestButton() {
+            const btn = document.createElement('button');
+            btn.innerHTML = '<i class="ti ti-camera"></i>';
+            btn.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 6px;
+                height: 28px;
+                border: 1px solid #ccc;
+                background: white;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 15px;
+            `;
+            btn.title = 'Scan receipt image with OCR';
+            btn.onclick = () => alert('OCR button clicked!');
+            return btn;
+        }
+        
+        document.getElementById('test').appendChild(createTestButton());
+    </script>
+</body>
+</html>
