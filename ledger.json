@@ -1,0 +1,477 @@
+{
+  "events": {
+    "2026-06-02": [
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": true
+      },
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": true
+      },
+      {
+        "title": "Network Solutions",
+        "note": "Renewing ssl, email, and privacy subscriptions",
+        "price": 79.4,
+        "recurring": false,
+        "paid": true
+      }
+    ],
+    "2026-06-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-08-20": [
+      {
+        "title": "Mint Mobile",
+        "note": "Main line, 3 month reoccurring. ($125.00)"
+      }
+    ],
+    "2026-07-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-08-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-09-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-10-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-11-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-12-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-01-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-02-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-03-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-04-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-05-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-06-02": [
+      {
+        "title": "OVH Hosting",
+        "note": "Windows virtual computer that hosts https://greaterbostonassembly.com server",
+        "price": 30.75,
+        "recurring": true,
+        "paid": false
+      },
+      {
+        "title": "Zoom Phone",
+        "note": "https://greaterbostonassembly.com business phone line",
+        "price": 18.39,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-07-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-08-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-09-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-10-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-11-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-12-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-01-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-02-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-03-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-04-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-05-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-06-21": [
+      {
+        "title": "Oktay",
+        "note": "Monthly reoccurring payment",
+        "price": 100,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2026-06-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": false,
+        "paid": true
+      }
+    ],
+    "2026-07-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2026-08-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2026-09-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2026-10-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2026-11-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2026-12-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": false,
+        "paid": false
+      }
+    ],
+    "2027-01-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-02-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-03-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-04-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-05-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-06-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 189,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-07-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": true,
+        "paid": false
+      }
+    ],
+    "2027-08-01": [
+      {
+        "title": "Commuter Rail",
+        "note": "Travel pass monthly",
+        "price": 340,
+        "recurring": true,
+        "paid": false
+      }
+    ]
+  }
+}
