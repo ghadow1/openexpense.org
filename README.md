@@ -1,77 +1,74 @@
-# [https://www.openexpense.org](https://www.openexpense.org)
+# [openexpense.org](https://www.openexpense.org)
 
-**A privacy-first, offline-only financial management tool.**
+**A privacy-first, offline-only expense tracker. Your data never leaves your browser.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen)
-![Version](https://img.shields.io/badge/Version-2.0.0-blue)
+![Version](https://img.shields.io/badge/Version-2.1.0-blue)
 
-## Overview
-**OpenExpense** is a lightweight, local-first expense tracker designed for those who value data sovereignty. Unlike standard platforms that rely on cloud synchronization and data mining, OpenExpense runs entirely on your local machine. Your financial history never leaves your browser.
-
-![Alt Text](https://i.ibb.co/35rj0v7b/Screenshot-2026-06-03-at-4-46-03-PM.png)
-
-## Features
-* **Zero-Server Architecture:** No backend, no databases, and no API calls to third-party servers.
-* **Privacy by Design:** Your data resides strictly in your browser. It is immune to data breaches or corporate profiling.
-* **Open Source:** Full transparency. Audit the code and modify it to suit your needs.
-* **Local Persistence:** Ledger data auto-saves to IndexedDB; export/import JSON for backups and device transfer.
-* **Receipt Scanning:** Client-side OCR (PP-OCRv5) runs entirely in the browser — images never leave your device.
-
-## Architecture (v2.0.0)
-
-OpenExpense v2.0.0 uses ES modules under `src/`. The site loads a single bundled `app.js` (no runtime build step on GitHub Pages).
-
-```
-src/                    # Source modules (edit these)
-├── config.js           # CONFIG, DAYS, STORAGE_KEYS, THEMES
-├── main.js             # Bootstrap, event delegation, store subscription
-├── core/
-│   ├── store.js        # Central state: getState(), patch(), subscribe(), getColors()
-│   ├── persist.js      # IndexedDB auto-save/load (openexpense v1)
-│   └── utils.js        # Shared helpers
-├── ui/
-│   ├── components.js   # UI element factory
-│   ├── theme.js        # Theme application
-│   └── toast.js        # Toast notifications
-├── features/
-│   ├── calendar.js     # Calendar grid and month navigation
-│   ├── ledger.js       # Import/export
-│   ├── modal.js        # Expense editor modal
-│   ├── receipt.js      # OCR receipt scanning
-│   └── sidebar.js      # Monthly summary sidebar
-└── app/
-    ├── render.js       # Top-level render orchestration
-    └── views.js        # App/docs view switching
-app.js                  # Bundled entry loaded by index.html
-```
-
-After changing files in `src/`, rebuild the bundle:
+## Quick start
 
 ```bash
+# Start the local dev server (http://localhost:8765)
+npm run serve
+
+# Kill the dev server when you're done
+pkill -f "http.server 8765"
+
+# Rebuild app.js after editing anything in src/
 npm run build
 ```
 
-**State flow:** UI actions call `patch()` on the central store. A subscriber in `main.js` re-renders the UI. `initPersist()` hooks the store to debounced IndexedDB saves (400 ms) whenever state changes.
+Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
 
-**Entry point:** `index.html` loads `app.js` as `type="module"`. User interactions use `data-action`, `data-view`, and `data-tab` attributes with delegated click handling.
+## Features
 
-## Data Architecture
-OpenExpense uses a dictionary-based structure to map calendar dates to expense records.
+- **Zero servers** — no backend, no database, no third-party calls.
+- **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
+- **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+
+## How it works
+
+OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+
+```
+src/
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── main.js            # Bootstrap + store subscription
+├── core/
+│   ├── store.js       # Central state: getState(), patch(), subscribe()
+│   ├── persist.js     # Encrypted IndexedDB auto-save/load
+│   ├── crypto.js      # AES-256-GCM device key (at rest)
+│   ├── bundle.js      # Encrypted .zip export/import
+│   └── utils.js
+├── ui/                # components, theme, toast
+├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
+└── app/               # render orchestration, view switching
+app.js                 # Bundled entry (rebuild with `npm run build`)
+```
+
+UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Data format
+
+Calendar dates map to expense records. This is the shape used in exports and inside the encrypted record.
 
 ```json
 {
   "name": "GBA Expenses",
   "events": {
     "2026-06-03": [
-      {
-        "title": "API Hosting",
-        "price": 49.99,
-        "recurring": true
-      }
+      { "title": "API Hosting", "price": 49.99, "recurring": true }
     ]
   }
 }
 ```
 
-IndexedDB stores `{ name, events, savedAt }` under database `openexpense` (v1), object store `ledger`, key `current`.
+## Encryption & storage
+
+- **Autosave = encrypted local storage.** Changes are debounced and written to the `openexpense` IndexedDB (v2), encrypted with AES-256-GCM. No files are involved — autosave never touches the disk as plaintext. It's on by default; the header disk button pauses it (changes then stay in memory only until re-enabled).
+- The AES-GCM key is stored **non-extractable**, so its raw bytes can't be read back — even from devtools.
+- Only non-sensitive UI prefs (theme, autosave on/off, first-visit) use `localStorage`. The ledger name and entries never do.
+- **Export** is an encrypted `.zip` (via [`fflate`](https://github.com/101arrowz/fflate)) with `ledger.enc.json` (ciphertext) + `ledger.key.json` (the key) + `README.txt`. Anyone with both files can decrypt — for sensitive backups, store or send them separately.
+- **Import** auto-detects: a full zip, a key and encrypted file loaded separately (in any order), or a legacy plaintext `.json`.

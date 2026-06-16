@@ -1,12 +1,15 @@
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CONFIG = {
-    version: "Version 2.0.0",
+    version: "Version 2.1.0",
     buildEnv: "Production",
     defaultTheme: "light"
 };
 
-export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', ledgerName: 'oe-ledger-name' };
+// localStorage only holds non-sensitive UI preferences. The ledger itself
+// (including its name) lives encrypted in IndexedDB (see core/persist.js +
+// core/crypto.js), never in plaintext localStorage.
+export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
 export const THEMES = {
     light: {

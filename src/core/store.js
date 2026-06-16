@@ -5,6 +5,8 @@ const state = {
     events: {},
     ledgerName: '',
     isDark: CONFIG.defaultTheme === 'dark',
+    autosaveEnabled: true,
+    storageEncrypted: true,
     selectedKey: null,
     editingIndex: null
 };

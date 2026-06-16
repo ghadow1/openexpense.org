@@ -40,14 +40,20 @@ function ensureShell(calCol) {
     actions.className = 'nav-group toolbar-actions';
     const divider = () => Object.assign(document.createElement('div'), { className: 'nav-divider' });
 
-    actions.append(
-        UI.createButton('Today', () => patch({ currentDate: new Date() })),
-        divider(),
-        UI.createButton('Import', Ledger.import, { icon: 'upload' }),
-        UI.createButton('Export', Ledger.export, { icon: 'download' }),
-        divider(),
-        UI.createButton(Utils.isMobile() ? 'Scan' : 'Scan Receipt', () => Receipt.pickImage(), { icon: 'camera' })
-    );
+    const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event' });
+    const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload' });
+    const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download' });
+    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
+    const scanBtn = UI.createButton('Scan Receipt', () => Receipt.pickImage(), { icon: 'camera' });
+
+    // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
+    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],
+    [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt']].forEach(([btn, label]) => {
+        btn.setAttribute('aria-label', label);
+        btn.title = label;
+    });
+
+    actions.append(todayBtn, divider(), importBtn, exportBtn, clearBtn, divider(), scanBtn);
     hdr.append(nav, actions);
     shellEl.appendChild(hdr);
 
@@ -67,6 +73,56 @@ function updateMonthTitle(currentDate) {
     const title = shellEl?.querySelector('.month-title');
     if (title) {
         title.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+}
+
+function getCalendarDensity() {
+    if (Utils.isMobile()) return 'mobile';
+    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+    return 'desktop';
+}
+
+function appendCompactMobileDay(body, dayEvents) {
+    const dots = document.createElement('div');
+    dots.className = 'cal-day-dots';
+    const dotCount = Math.min(dayEvents.length, 4);
+    for (let j = 0; j < dotCount; j++) {
+        const dot = document.createElement('span');
+        dot.className = `cal-day-dot${dayEvents[j].paid ? ' is-paid' : ''}`;
+        dots.appendChild(dot);
+    }
+    body.appendChild(dots);
+
+    if (dayEvents.length === 1) {
+        const micro = document.createElement('div');
+        micro.className = 'cal-day-micro';
+        micro.textContent = dayEvents[0].title;
+        body.appendChild(micro);
+        return;
+    }
+
+    const badge = document.createElement('div');
+    badge.className = 'cal-day-count';
+    badge.textContent = `${dayEvents.length} items`;
+    body.appendChild(badge);
+}
+
+function appendPills(body, dayEvents, dateKey, maxVisible) {
+    const visible = dayEvents.slice(0, maxVisible);
+    visible.forEach(e => {
+        const pill = document.createElement('div');
+        pill.className = `pill ${e.paid ? 'is-paid' : ''}`;
+        const amt = Utils.getPrice(e);
+        pill.innerHTML = `<span class="title">${Utils.escapeHtml(e.title)}</span>${amt > 0 ? `<span class="pill-amt">$${amt.toFixed(2)}</span>` : ''}`;
+        pill.onclick = (ev) => { ev.stopPropagation(); openModal(dateKey); };
+        body.appendChild(pill);
+    });
+
+    if (dayEvents.length > maxVisible) {
+        const more = document.createElement('div');
+        more.className = 'cal-more';
+        more.textContent = `+${dayEvents.length - maxVisible} more`;
+        body.appendChild(more);
     }
 }
 
@@ -114,21 +170,20 @@ function renderGrid(y, m, events) {
             cell.appendChild(numLabel);
 
             const dayEvents = events[dateKey] || [];
-            dayEvents.slice(0, 4).forEach(e => {
-                const pill = document.createElement('div');
-                pill.className = `pill ${e.paid ? 'is-paid' : ''}`;
-                const amt = Utils.getPrice(e);
-                pill.innerHTML = `<span class="title">${Utils.escapeHtml(e.title)}</span>${amt > 0 ? `<span class="pill-amt">$${amt.toFixed(2)}</span>` : ''}`;
-                pill.onclick = (ev) => { ev.stopPropagation(); openModal(dateKey); };
-                cell.appendChild(pill);
-            });
+            if (dayEvents.length) cell.classList.add('has-items');
 
-            if (dayEvents.length > 4) {
-                const more = document.createElement('div');
-                more.className = 'cal-more';
-                more.textContent = `+${dayEvents.length - 4} more`;
-                cell.appendChild(more);
+            const body = document.createElement('div');
+            body.className = 'cal-day-body';
+
+            const density = getCalendarDensity();
+            if (density === 'mobile') {
+                if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
+            } else {
+                const maxVisible = density === 'tablet' ? 2 : 3;
+                appendPills(body, dayEvents, dateKey, maxVisible);
             }
+
+            cell.appendChild(body);
         } else {
             cell.classList.add('is-empty');
         }
@@ -156,4 +211,19 @@ export function renderCalendar(changedKeys) {
     if (!changedKeys || monthChanged || keys.includes('events')) {
         renderGrid(y, m, events);
     }
+}
+
+let boundResize = false;
+let lastDensity = getCalendarDensity();
+
+export function bindResponsiveCalendar() {
+    if (boundResize) return;
+    boundResize = true;
+    window.addEventListener('resize', () => {
+        const density = getCalendarDensity();
+        if (density === lastDensity) return;
+        lastDensity = density;
+        const { currentDate, events } = getState();
+        renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events);
+    });
 }

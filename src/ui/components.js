@@ -1,8 +1,7 @@
-import { getColors } from '../core/store.js';
-
 export const UI = {
+    // Colors reference CSS theme variables (set per theme in openexpense.css), so
+    // buttons restyle automatically on light/dark toggle even when cached in the DOM.
     createButton: (label, onClick, opts = {}) => {
-        const c = getColors();
         const btn = document.createElement('button');
 
         if (opts.icon) {
@@ -13,9 +12,10 @@ export const UI = {
 
         btn.onclick = onClick;
 
-        const bg = opts.accent ? c.accent : opts.danger ? c.dangerBg : c.btnBg;
-        const col = opts.accent ? '#fff' : opts.danger ? c.dangerText : (opts.iconOnly ? c.text : c.btnText);
-        const bdr = opts.accent ? c.accent : opts.danger ? c.dangerBorder : c.btnBorder;
+        const bg = opts.accent ? 'var(--accent)' : opts.danger ? 'var(--danger-bg)' : 'var(--btn-bg)';
+        const col = opts.accent ? '#fff' : opts.danger ? 'var(--danger-text)' : (opts.iconOnly ? 'var(--text)' : 'var(--btn-text)');
+        const bdr = opts.accent ? 'var(--accent)' : opts.danger ? 'var(--danger-border)' : 'var(--btn-border)';
+        const hoverBg = opts.accent ? 'var(--accent-hover)' : opts.danger ? 'var(--danger-border)' : 'var(--surface2)';
 
         Object.assign(btn.style, {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -23,19 +23,18 @@ export const UI = {
             fontSize: '13px', fontWeight: '500', borderRadius: '6px', cursor: 'pointer',
             whiteSpace: 'nowrap', border: `1px solid ${bdr}`, background: bg, color: col,
             transition: 'all 0.1s ease', outline: 'none', height: '34px',
-            boxShadow: opts.accent ? `0 1px 2px ${c.accent}20` : c.shadowSm
+            boxShadow: opts.accent ? '0 1px 2px rgba(0, 0, 0, 0.18)' : 'var(--shadow-sm)'
         });
 
         btn.onmouseenter = () => {
-            btn.style.background = opts.accent ? c.accentHover : opts.danger ? c.dangerBorder : c.surface2;
-            if (!opts.accent && !opts.danger) btn.style.color = c.textStrong;
+            btn.style.background = hoverBg;
+            if (!opts.accent && !opts.danger) btn.style.color = 'var(--text-strong)';
         };
         btn.onmouseleave = () => { btn.style.background = bg; btn.style.color = col; };
         return btn;
     },
 
     createInput: (id, val, placeholder, type = 'text') => {
-        const c = getColors();
         const el = document.createElement(type === 'textarea' ? 'textarea' : 'input');
 
         el.id = id;
@@ -56,14 +55,14 @@ export const UI = {
         }
 
         Object.assign(el.style, {
-            width: '100%', background: c.inputBg, border: `1px solid ${c.inputBorder}`,
-            borderRadius: '6px', color: c.textStrong, padding: '8px 12px',
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--input-border)',
+            borderRadius: '6px', color: 'var(--text-strong)', padding: '8px 12px',
             fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box',
             transition: 'border-color 0.1s, box-shadow 0.1s'
         });
 
-        el.onfocus = () => { el.style.borderColor = c.accent; el.style.boxShadow = `0 0 0 3px ${c.accentRing}`; };
-        el.onblur = () => { el.style.borderColor = c.inputBorder; el.style.boxShadow = 'none'; };
+        el.onfocus = () => { el.style.borderColor = 'var(--accent)'; el.style.boxShadow = '0 0 0 3px var(--accent-ring)'; };
+        el.onblur = () => { el.style.borderColor = 'var(--input-border)'; el.style.boxShadow = 'none'; };
         return el;
     },
 

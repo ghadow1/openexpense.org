@@ -3,9 +3,14 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OpenExpense">
+  <meta name="format-detection" content="telephone=no">
 
   <title>openexpense.org — Simple Private Expense Tracker</title>
   <meta name="description"
@@ -37,14 +42,30 @@
     window.addEventListener('unhandledrejection', (e) => {
       if (!window.__oeBoot.ok) window.__oeBoot.err = String(e.reason || 'Load failed');
     });
+    function dismissBootError() {
+      const el = document.getElementById('boot-error');
+      if (el) el.remove();
+    }
     function showBootError(msg) {
       if (window.__oeBoot.ok || document.getElementById('boot-error')) return;
+      const isFile = location.protocol === 'file:';
       const el = document.createElement('div');
       el.id = 'boot-error';
-      el.className = 'boot-error';
-      const isFile = location.protocol === 'file:';
-      el.innerHTML = '<strong>OpenExpense did not start</strong><p>' + (msg || window.__oeBoot.err || 'The app script failed to load.') + '</p>'
-        + (isFile ? '<p>Open this site through a local server, not by double-clicking the HTML file. From the project folder run: <code>python3 -m http.server 8765</code> then open <code>http://localhost:8765</code></p>' : '<p>Check the browser console for details, then refresh.</p>');
+      el.className = 'boot-error-backdrop open';
+      el.innerHTML =
+        '<div class="boot-error-card" role="alertdialog" aria-labelledby="boot-error-title" aria-describedby="boot-error-desc">'
+        + '<button type="button" class="boot-error-close" aria-label="Dismiss">&times;</button>'
+        + '<strong id="boot-error-title">OpenExpense did not start</strong>'
+        + '<p id="boot-error-desc">' + (msg || window.__oeBoot.err || 'The app script failed to load.') + '</p>'
+        + (isFile
+          ? '<p>Open this site through a local server, not by double-clicking the HTML file. From the project folder run: <code>python3 -m http.server 8765</code> then open <code>http://localhost:8765</code></p>'
+          : '<p>Check the browser console for details, then refresh.</p>')
+        + '</div>';
+      el.addEventListener('click', (e) => { if (e.target === el) dismissBootError(); });
+      el.querySelector('.boot-error-close')?.addEventListener('click', dismissBootError);
+      document.addEventListener('keydown', function onEsc(ev) {
+        if (ev.key === 'Escape') { dismissBootError(); document.removeEventListener('keydown', onEsc); }
+      });
       document.body.appendChild(el);
     }
     setTimeout(() => { if (!window.__oeBoot.ok) showBootError(); }, 4000);
@@ -60,8 +81,8 @@
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
       </div>
       <p class="welcome-copy">
-        A private, offline-first financial tracker. Your data lives only on your machine.
-        Start by clicking on any date in the calendar to log an expense.
+        A private, offline-first financial tracker. Your ledger is encrypted on this device and
+        never leaves your browser. Start by clicking on any date in the calendar to log an expense.
       </p>
       <button class="btn-primary welcome-cta" type="button" data-action="close-welcome">
         Get Started
@@ -87,7 +108,8 @@
           Open Source
         </a>
 
-        <div id="theme-toggle-slot" class="header-btn"></div>
+        <div id="autosave-toggle-slot" class="header-icon-slot"></div>
+        <div id="theme-toggle-slot" class="header-icon-slot"></div>
       </div>
     </header>
 
@@ -105,6 +127,10 @@
         <label class="ledger-name-label" for="ledger-name-input">Expense file</label>
         <input id="ledger-name-input" class="ledger-name-input text-input" type="text"
           placeholder="Name this ledger (e.g. GBA Expenses)" spellcheck="false" autocomplete="off">
+        <span id="privacy-status" class="privacy-chip" hidden>
+          <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
+          <span class="privacy-chip-text">Encrypted on this device</span>
+        </span>
       </div>
       <div class="layout-wrapper">
         <div class="cal-main" id="cal-col"></div>
@@ -152,6 +178,9 @@
             <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.8;">
               <li style="margin-bottom: 12px;"><strong>Zero-Server Architecture:</strong> Code runs exclusively on your
                 hardware. There are no remote backends to intercept data.</li>
+              <li style="margin-bottom: 12px;"><strong>Encrypted at Rest:</strong> Your ledger is encrypted with
+                AES-256-GCM before it is written to local storage. The key is generated on your device and is
+                non-extractable, so the stored data is unreadable even from the browser's developer tools.</li>
               <li style="margin-bottom: 12px;"><strong>Privacy by Design:</strong> Without a remote server, your data is
                 physically immune to breaches or corporate harvesting.</li>
               <li style="margin-bottom: 12px;"><strong>Total Custody:</strong> Your financial life remains strictly
@@ -174,27 +203,49 @@
               style="margin: 24px 0; padding: 20px; border-radius: 8px; background: var(--surface2); border-left: 3px solid var(--border-strong);">
               <h4
                 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-strong); display: flex; align-items: center; text-transform: uppercase; letter-spacing: 0.05em;">
-                <i class="ti ti-database" style="margin-right: 8px; font-size: 16px; color: var(--text2);"></i> Your
-                Data File
+                <i class="ti ti-lock" style="margin-right: 8px; font-size: 16px; color: var(--text2);"></i> How Your Data
+                Is Stored
               </h4>
-              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0;"> Your data is stored locally.
-                When you click <strong>"Export"</strong>, you download a <code>.json</code>
-                file.
-                <strong>This file is your complete database.</strong> You can store it on your hard drive, a secure
-                encrypted folder, or a private flash drive.
+              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 10px 0;">
+                Your ledger is saved into your browser's <strong>IndexedDB</strong> and encrypted with
+                <strong>AES-256-GCM</strong> before it ever touches disk. The encryption key is created on this device,
+                marked <strong>non-extractable</strong>, and kept inside the database — so even someone inspecting local
+                storage sees only ciphertext.
+              </p>
+              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 10px 0;">
+                <strong>Autosave</strong> writes every change to this encrypted local storage automatically — there are no
+                files to manage and nothing is ever saved as plaintext. It's on by default; the disk button in the header
+                pauses it for an ephemeral session where changes stay in memory only.
               </p>
               <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0;">
-                To pick up where you left off, simply click <strong>"Import"</strong> on the main calendar view and
-                select your <code>.json</code> file to restore your entire expense history instantly.
+                Encryption requires a secure context (an <code>https://</code> address or <code>localhost</code>). On the
+                live site this is always the case. The status chip on the calendar shows whether encryption and autosave
+                are active.
               </p>
             </div>
+
+            <h3
+              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
+              Backups &amp; Moving Between Devices</h3>
+            <p class="docs-p" style="color: var(--text2);">
+              Click <strong>Export</strong> to download an encrypted <code>.zip</code> containing two files:
+              <code>ledger.enc.json</code> (your ledger, encrypted with AES-256-GCM) and <code>ledger.key.json</code>
+              (the key that decrypts it). Click <strong>Import</strong> and select that <code>.zip</code> to restore
+              everything on any device.
+            </p>
+            <p class="docs-p" style="color: var(--text2);">
+              You can also load the two files <strong>separately</strong> — Import the key and the encrypted ledger in
+              either order and OpenExpense joins them automatically. For sensitive backups, keep the key file apart from
+              the encrypted file so neither is useful on its own. Legacy plaintext <code>.json</code> exports still
+              import fine.
+            </p>
 
             <h3
               style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
               Technical Structure</h3>
             <p class="docs-p" style="color: var(--text2);">
               Your data uses a simple, readable dictionary structure. Calendar dates act as unique keys, mapping to your
-              expense objects.
+              expense objects. This is the shape used in export files and inside the encrypted record.
             </p>
 
             <div class="docs-code-block"
@@ -204,14 +255,17 @@
 
             <h3
               style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
-              Security Instructions</h3>
+              Security Notes</h3>
             <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.8; color: var(--text2);">
-              <li style="margin-bottom: 4px;">&bull; <strong>Backup Often:</strong> Export your data after every session
-                to ensure no progress is lost.</li>
-              <li style="margin-bottom: 4px;">&bull; <strong>Storage Safety:</strong> Keep your <code>.json</code> file
-                on encrypted storage if you require extra protection.</li>
-              <li>&bull; <strong>No Syncing:</strong> Since there is no cloud server, you must manually move your file
-                if you switch between computers.</li>
+              <li style="margin-bottom: 4px;">&bull; <strong>Device-bound encryption:</strong> The key lives on this
+                device. It protects your stored data from casual inspection and backups, but not from someone with full
+                access to this browser profile.</li>
+              <li style="margin-bottom: 4px;">&bull; <strong>Backup often:</strong> Export your encrypted
+                <code>.zip</code> periodically so a cleared browser or lost device doesn't take your history with it.</li>
+              <li style="margin-bottom: 4px;">&bull; <strong>Split the set for sensitive data:</strong> The key and the
+                encrypted ledger can be stored or sent separately — together they decrypt, apart they don't.</li>
+              <li>&bull; <strong>No syncing:</strong> Since there is no cloud server, move your export
+                manually when switching computers.</li>
             </ul>
           </div>
 
@@ -285,7 +339,7 @@
     </div>
   </div>
 
-  <input type="file" id="ledger-import-input" accept=".json,application/json" hidden>
+  <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
   <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif" hidden>
 
   <div id="global-tooltip"></div>

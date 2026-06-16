@@ -2,10 +2,12 @@ import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
+import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
 import { switchView, switchDocTab, showWelcome, closeWelcomeModal } from './app/views.js';
 import { closeModal, initModalBindings, renderModal } from './features/modal.js';
+import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
@@ -18,18 +20,22 @@ async function initApplication() {
         if (storedTheme) bootPatch.isDark = storedTheme === 'dark';
     } catch (_) { }
 
+    // Local encrypted autosave is on by default; only an explicit opt-out disables it.
+    try {
+        if (localStorage.getItem(STORAGE_KEYS.autosave) === 'false') {
+            bootPatch.autosaveEnabled = false;
+        }
+    } catch (_) { }
+
+    bootPatch.storageEncrypted = cryptoAvailable();
+
     const saved = await loadLedger();
     if (saved && typeof saved === 'object') {
         if (saved.name) bootPatch.ledgerName = Utils.sanitizeFilename(saved.name);
         if (saved.events && typeof saved.events === 'object') bootPatch.events = saved.events;
-    } else {
-        try {
-            const storedName = localStorage.getItem(STORAGE_KEYS.ledgerName);
-            if (storedName) bootPatch.ledgerName = Utils.sanitizeFilename(storedName);
-        } catch (_) { }
     }
 
-    if (Object.keys(bootPatch).length) patch(bootPatch);
+    patch(bootPatch);
 
     initPersist(store);
 
@@ -63,6 +69,7 @@ async function initApplication() {
     }
 
     initModalBindings();
+    bindResponsiveCalendar();
     window.__oeBoot = { ok: true };
 }
 
@@ -106,7 +113,7 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
-        const needsApp = keyList.some(k => ['isDark', 'ledgerName', 'currentDate', 'events'].includes(k));
+        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events'].includes(k));
         const needsModal = getState().selectedKey
             && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark'].includes(k));
 

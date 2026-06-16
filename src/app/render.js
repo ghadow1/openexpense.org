@@ -2,9 +2,19 @@ import { applyTheme, setTheme } from '../ui/theme.js';
 import { renderCalendar } from '../features/calendar.js';
 import { renderSidebar } from '../features/sidebar.js';
 import { getState } from '../core/store.js';
-import { UI } from '../ui/components.js';
+import { Ledger } from '../features/ledger.js';
 
 let themeToggleBtn = null;
+let autosaveToggleBtn = null;
+
+function createHeaderIconBtn(icon, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'header-icon-btn';
+    btn.innerHTML = `<i class="ti ti-${icon}" aria-hidden="true"></i>`;
+    btn.onclick = onClick;
+    return btn;
+}
 
 export function render(changedKeys) {
     const keys = changedKeys ? Object.keys(changedKeys) : null;
@@ -12,7 +22,12 @@ export function render(changedKeys) {
 
     if (all || keys.includes('isDark')) {
         applyTheme();
-        updateThemeToggle();
+    }
+    if (all || keys.includes('isDark') || keys.includes('autosaveEnabled') || keys.includes('ledgerName')) {
+        updateHeaderToggles();
+    }
+    if (all || keys.includes('storageEncrypted') || keys.includes('autosaveEnabled')) {
+        updatePrivacyStatus();
     }
     if (all || keys.includes('ledgerName')) {
         syncLedgerNameInput();
@@ -20,6 +35,35 @@ export function render(changedKeys) {
     if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events')) {
         renderCalendar(keys);
         renderSidebar();
+    }
+}
+
+function updatePrivacyStatus() {
+    const chip = document.getElementById('privacy-status');
+    if (!chip) return;
+
+    const { storageEncrypted, autosaveEnabled } = getState();
+    const icon = chip.querySelector('.privacy-chip-icon');
+    const text = chip.querySelector('.privacy-chip-text');
+
+    chip.hidden = false;
+
+    const setChip = (warn, iconName, label, title) => {
+        chip.classList.toggle('is-warn', warn);
+        if (icon) icon.className = `ti ti-${iconName} privacy-chip-icon`;
+        if (text) text.textContent = label;
+        chip.title = title;
+    };
+
+    if (!storageEncrypted) {
+        setChip(true, 'lock-open', 'Local only — not encrypted',
+            'Encryption needs a secure context (https or localhost). Data is stored locally but unencrypted in this context.');
+    } else if (!autosaveEnabled) {
+        setChip(true, 'alert-triangle', 'Autosave off — not saving',
+            "Autosave is off, so changes this session aren't being written to this device. Turn it back on with the disk button, or use Export to save a backup.");
+    } else {
+        setChip(false, 'lock', 'Encrypted on this device',
+            'Auto-saving to this device, encrypted at rest with AES-256-GCM. The key never leaves your browser.');
     }
 }
 
@@ -31,6 +75,11 @@ export function syncLedgerNameInput() {
     }
 }
 
+function updateHeaderToggles() {
+    updateThemeToggle();
+    updateAutosaveToggle();
+}
+
 function updateThemeToggle() {
     const toggleSlot = document.getElementById('theme-toggle-slot');
     if (!toggleSlot) return;
@@ -38,18 +87,33 @@ function updateThemeToggle() {
     const { isDark } = getState();
     if (!themeToggleBtn) {
         toggleSlot.innerHTML = '';
-        themeToggleBtn = UI.createButton('', () => setTheme(!getState().isDark),
-            { icon: isDark ? 'sun' : 'moon', iconOnly: true });
-        Object.assign(themeToggleBtn.style, {
-            fontSize: '10px', fontWeight: '600', background: 'var(--surface2)',
-            border: '1px solid var(--border)', color: 'var(--text2)', padding: '2px 6px',
-            borderRadius: '4px', height: 'auto', boxShadow: 'none', width: 'auto'
-        });
+        themeToggleBtn = createHeaderIconBtn(isDark ? 'sun' : 'moon', () => setTheme(!getState().isDark));
         toggleSlot.appendChild(themeToggleBtn);
     }
 
-    themeToggleBtn.innerHTML = `<i class="ti ti-${isDark ? 'sun' : 'moon'}" style="font-size: 15px;"></i>`;
+    themeToggleBtn.innerHTML = `<i class="ti ti-${isDark ? 'sun' : 'moon'}" aria-hidden="true"></i>`;
     themeToggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
     themeToggleBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
     themeToggleBtn.onclick = () => setTheme(!getState().isDark);
+}
+
+function updateAutosaveToggle() {
+    const slot = document.getElementById('autosave-toggle-slot');
+    if (!slot) return;
+
+    const { autosaveEnabled } = getState();
+    if (!autosaveToggleBtn) {
+        slot.innerHTML = '';
+        autosaveToggleBtn = createHeaderIconBtn('device-floppy', () => Ledger.toggleAutosave());
+        slot.appendChild(autosaveToggleBtn);
+    }
+
+    autosaveToggleBtn.classList.toggle('is-active', autosaveEnabled);
+    autosaveToggleBtn.innerHTML = `<i class="ti ti-device-floppy autosave-icon" aria-hidden="true"></i>`;
+    autosaveToggleBtn.setAttribute('aria-label', autosaveEnabled ? 'Autosave on' : 'Autosave off');
+    autosaveToggleBtn.setAttribute('aria-pressed', autosaveEnabled ? 'true' : 'false');
+    autosaveToggleBtn.title = autosaveEnabled
+        ? 'Autosave on — saving encrypted on this device. Click to pause.'
+        : 'Autosave off — click to save changes encrypted on this device.';
+    autosaveToggleBtn.onclick = () => Ledger.toggleAutosave();
 }

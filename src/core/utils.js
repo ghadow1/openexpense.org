@@ -24,12 +24,6 @@ export const Utils = {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
     filenameToLedgerName(filename) {
-        return Utils.sanitizeFilename(String(filename ?? '').replace(/\.json$/i, ''));
-    },
-    exportFilename(name) {
-        const cleaned = Utils.sanitizeFilename(name);
-        if (cleaned) return `${cleaned}.json`;
-        return `ledger-${Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`;
-    },
-    ledgerFilename: () => `ledger-${Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`
+        return Utils.sanitizeFilename(String(filename ?? '').replace(/\.(zip|json)$/i, ''));
+    }
 };
