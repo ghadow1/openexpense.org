@@ -1,21 +1,42 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
-import { openModal } from './modal.js';
+import { saveExpense } from './modal.js';
 
 export const Receipt = {
+    // Lazy-loaded from CDN on first scan. index.html must define an import map for
+    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
     OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
     _service: null,
     _initPromise: null,
+    _pdfjs: null,
+    _pdfjsPromise: null,
     _previewUrl: null,
+    _lastFile: null,
+
+    isPdf(file) {
+        if (!file) return false;
+        const type = (file.type || '').toLowerCase();
+        const name = (file.name || '').toLowerCase();
+        return type === 'application/pdf' || name.endsWith('.pdf');
+    },
 
     pickImage() {
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
         input.value = '';
-        if (Utils.isMobile()) input.setAttribute('capture', 'environment');
+        if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
         else input.removeAttribute('capture');
         input.click();
+    },
+
+    warmEngine() {
+        if (Receipt._warmStarted) return Receipt._warmPromise;
+        Receipt._warmStarted = true;
+        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
+        return Receipt._warmPromise;
     },
 
     async ensureEngine(onProgress) {
@@ -49,6 +70,103 @@ export const Receipt = {
             Receipt._initPromise = null;
             throw err;
         }
+    },
+
+    async loadPdfJs() {
+        if (Receipt._pdfjs) return Receipt._pdfjs;
+        if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
+
+        Receipt._pdfjsPromise = (async () => {
+            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
+            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
+            Receipt._pdfjs = pdfjs;
+            return pdfjs;
+        })();
+
+        try {
+            return await Receipt._pdfjsPromise;
+        } catch (err) {
+            Receipt._pdfjsPromise = null;
+            throw err;
+        }
+    },
+
+    linesFromPdfTextContent(textContent) {
+        let block = '';
+        const lines = [];
+        for (const item of textContent.items) {
+            block += item.str;
+            if (item.hasEOL) {
+                const trimmed = block.trim();
+                if (trimmed) lines.push(trimmed);
+                block = '';
+            }
+        }
+        const tail = block.trim();
+        if (tail) lines.push(tail);
+        return lines;
+    },
+
+    async pdfToCanvasAndText(file, onProgress) {
+        onProgress?.('Loading PDF…', 0.25);
+        const pdfjs = await Receipt.loadPdfJs();
+        const data = new Uint8Array(await file.arrayBuffer());
+        const doc = await pdfjs.getDocument({ data }).promise;
+
+        const allLines = [];
+        for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+            onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
+            const page = await doc.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            allLines.push(...Receipt.linesFromPdfTextContent(textContent));
+        }
+
+        onProgress?.('Rendering preview…', 0.55);
+        const page = await doc.getPage(1);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+        const lines = Receipt.normalizeLines(allLines);
+        const text = Receipt.normalizeText(lines.join('\n'), lines);
+        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+        return {
+            canvas: Receipt.prepareForOcr(canvas),
+            text,
+            lines,
+            previewUrl,
+            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+        };
+    },
+
+    async ocrCanvas(service, canvas, onProgress) {
+        onProgress?.('Reading text…', 0.55);
+
+        let result = await service.recognize(canvas, { flatten: false });
+        let flatResult = null;
+        let lines = Receipt.linesFromResult(result);
+        let text = (result.text || '').trim();
+
+        if (!lines.length && !text) {
+            flatResult = await service.recognize(canvas, { flatten: true });
+            text = (flatResult.text || '').trim();
+            lines = Receipt.buildLineList(result, flatResult);
+        } else {
+            if (!lines.length && text) {
+                lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+            }
+            lines = Receipt.normalizeLines(lines);
+        }
+
+        if (!text) text = lines.join('\n');
+        text = Receipt.normalizeText(text, lines);
+        const confidence = Math.max(result.confidence ?? 0, flatResult?.confidence ?? 0);
+        return { text, lines, confidence };
     },
 
     async fileToCanvas(file) {
@@ -147,34 +265,34 @@ export const Receipt = {
     },
 
     async recognizeText(file, onProgress) {
+        if (Receipt.isPdf(file)) {
+            const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
+            Receipt._previewUrl = pdf.previewUrl;
+
+            if (pdf.hasExtractedText) {
+                onProgress?.('Done', 1);
+                return {
+                    text: pdf.text,
+                    lines: pdf.lines,
+                    confidence: 0.95,
+                    previewUrl: pdf.previewUrl
+                };
+            }
+
+            const service = await Receipt.ensureEngine(onProgress);
+            const ocr = await Receipt.ocrCanvas(service, pdf.canvas, onProgress);
+            return { ...ocr, previewUrl: pdf.previewUrl };
+        }
+
         const service = await Receipt.ensureEngine(onProgress);
         const { canvas, previewUrl } = await Receipt.fileToCanvas(file);
         Receipt._previewUrl = previewUrl;
-        onProgress?.('Reading text…', 0.55);
-
-        let result = await service.recognize(canvas, { flatten: false });
-        let flatResult = null;
-        let lines = Receipt.linesFromResult(result);
-        let text = (result.text || '').trim();
-
-        if (!lines.length && !text) {
-            flatResult = await service.recognize(canvas, { flatten: true });
-            text = (flatResult.text || '').trim();
-            lines = Receipt.buildLineList(result, flatResult);
-        } else {
-            if (!lines.length && text) {
-                lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-            }
-            lines = Receipt.normalizeLines(lines);
-        }
-
-        if (!text) text = lines.join('\n');
-        text = Receipt.normalizeText(text, lines);
-        const confidence = Math.max(result.confidence ?? 0, flatResult?.confidence ?? 0);
-        return { text, lines, confidence, previewUrl };
+        const ocr = await Receipt.ocrCanvas(service, canvas, onProgress);
+        return { ...ocr, previewUrl };
     },
 
     async scan(file) {
+        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -182,14 +300,25 @@ export const Receipt = {
             const parsed = Receipt.parse(ocr.text, ocr.lines, ocr.confidence);
             if (!ocr.lines.length && !ocr.text.trim()) {
                 parsed.lowConfidence = true;
-                Toast.show('No text detected — fill in the fields manually or try a clearer photo.', 'error');
+                const hint = Receipt.isPdf(file)
+                    ? 'No text found in this PDF — fill in the fields manually or try a screenshot.'
+                    : 'No text detected — fill in the fields manually or try a clearer photo.';
+                Toast.show(hint, 'error');
             }
             Receipt.showPreview(parsed, ocr.previewUrl);
         } catch (err) {
             console.error('OCR error:', err);
             progress.close();
-            if (Receipt._previewUrl) URL.revokeObjectURL(Receipt._previewUrl);
-            Toast.show('Receipt scanning failed. Try a clearer photo with good lighting.', 'error');
+            if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
+                URL.revokeObjectURL(Receipt._previewUrl);
+            }
+            Receipt._previewUrl = null;
+            const hint = Receipt.isPdf(file)
+                ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
+                : 'Receipt scanning failed. Try a clearer photo with good lighting.';
+            Toast.show(hint, 'error');
+        } finally {
+            Receipt._lastFile = null;
         }
     },
 
@@ -201,11 +330,13 @@ export const Receipt = {
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads ~5 MB of models, then caches locally.</p>
+                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
+        Utils.hideTooltip();
         document.body.appendChild(backdrop);
+        document.body.classList.add('modal-open');
         const fill = backdrop.querySelector('.bar > span');
         const pct = backdrop.querySelector('.ocr-pct');
         return {
@@ -214,7 +345,12 @@ export const Receipt = {
                 fill.style.width = `${v}%`;
                 pct.textContent = typeof label === 'string' ? `${label} (${v}%)` : `${v}%`;
             },
-            close() { backdrop.remove(); }
+            close() {
+                backdrop.remove();
+                if (!document.getElementById('ocr-preview') && !document.getElementById('modal')?.classList.contains('open')) {
+                    document.body.classList.remove('modal-open');
+                }
+            }
         };
     },
 
@@ -593,15 +729,19 @@ export const Receipt = {
                         <pre>${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
                     </details>
                 </div>
-                <div class="modal-actions ocr-actions">
-                    <button class="btn-secondary" type="button" data-act="cancel">Cancel</button>
-                    <button class="btn-primary" type="button" data-act="apply"><i class="ti ti-plus"></i> Add expense</button>
+                <div class="modal-actions ocr-actions ocr-actions-stack">
+                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
                 </div>
             </div>`;
 
         backdrop.addEventListener('click', (e) => { if (e.target === backdrop) Receipt.closePreview(); });
         backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
-        backdrop.querySelector('[data-act="apply"]').onclick = Receipt.apply;
+        backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
+        backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
+        Utils.hideTooltip();
+        document.body.classList.add('modal-open');
         document.body.appendChild(backdrop);
 
         const thumb = backdrop.querySelector('.ocr-thumb');
@@ -619,33 +759,45 @@ export const Receipt = {
 
     closePreview() {
         document.getElementById('ocr-preview')?.remove();
-        if (Receipt._previewUrl) {
-            URL.revokeObjectURL(Receipt._previewUrl);
-            Receipt._previewUrl = null;
+        if (!document.getElementById('modal')?.classList.contains('open')) {
+            document.body.classList.remove('modal-open');
         }
+        if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
+            URL.revokeObjectURL(Receipt._previewUrl);
+        }
+        Receipt._previewUrl = null;
     },
 
-    apply() {
-        const dateStr = document.getElementById('ocr-date').value;
-        const title = document.getElementById('ocr-title').value.trim();
-        const amountRaw = document.getElementById('ocr-amount').value.replace(/[^0-9.]/g, '');
-        const note = document.getElementById('ocr-note').value.trim();
+    saveFromPreview(scanAnother = false) {
+        const dateStr = document.getElementById('ocr-date')?.value;
+        const title = document.getElementById('ocr-title')?.value.trim();
+        const amountRaw = document.getElementById('ocr-amount')?.value.replace(/[^0-9.]/g, '');
+        const note = document.getElementById('ocr-note')?.value.trim();
 
         if (!title) { Toast.show('Please enter a title or merchant name.', 'error'); return; }
         if (!dateStr) { Toast.show('Please choose a date.', 'error'); return; }
 
+        const ok = saveExpense({
+            dateKey: dateStr,
+            title,
+            price: amountRaw,
+            note,
+            paid: true
+        });
+        if (!ok) return;
+
         const [y, m, d] = dateStr.split('-').map(Number);
-        patch({ currentDate: new Date(y, m - 1, d) });
+        patch({ currentDate: new Date(y, m - 1, d), selectedKey: null, editingIndex: null });
 
         Receipt.closePreview();
-        openModal(dateStr);
+        Toast.show(scanAnother ? 'Saved — ready for next receipt.' : 'Expense saved to your calendar.', 'success');
 
-        const et = document.getElementById('et');
-        const ep = document.getElementById('ep');
-        const en = document.getElementById('en');
-        if (et) et.value = title;
-        if (ep) ep.value = amountRaw || '';
-        if (en) en.value = note;
-        Toast.show('Review the details, then Save Item.', 'info');
+        if (scanAnother) {
+            window.setTimeout(() => Receipt.pickImage(), 350);
+        }
+    },
+
+    apply() {
+        Receipt.saveFromPreview(false);
     }
 };

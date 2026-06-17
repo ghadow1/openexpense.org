@@ -56,14 +56,14 @@ function updatePrivacyStatus() {
     };
 
     if (!storageEncrypted) {
-        setChip(true, 'lock-open', 'Local only — not encrypted',
-            'Encryption needs a secure context (https or localhost). Data is stored locally but unencrypted in this context.');
+        setChip(true, 'lock-open', 'Unencrypted — local only',
+            'Encryption needs a secure context (https or localhost). Your data stays on this device but is not encrypted in this browser context.');
     } else if (!autosaveEnabled) {
-        setChip(true, 'alert-triangle', 'Autosave off — not saving',
-            "Autosave is off, so changes this session aren't being written to this device. Turn it back on with the disk button, or use Export to save a backup.");
+        setChip(true, 'alert-triangle', 'Not saving — session only',
+            "Autosave is off, so changes this session aren't written to your device. Turn it back on with the disk button, or export a backup.");
     } else {
-        setChip(false, 'lock', 'Encrypted on this device',
-            'Auto-saving to this device, encrypted at rest with AES-256-GCM. The key never leaves your browser.');
+        setChip(false, 'lock', 'Encrypted — data stays here',
+            'Auto-saving encrypted on this device with AES-256-GCM. Your key never leaves your browser.');
     }
 }
 

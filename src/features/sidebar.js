@@ -1,176 +1,275 @@
-import { getState, patch, getColors } from '../core/store.js';
+import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
+import { computeMonthlySummary, formatDelta } from '../core/summary.js';
 import { UI } from '../ui/components.js';
-import { closeModal } from './modal.js';
+import { Ledger } from './ledger.js';
+import { Toast } from '../ui/toast.js';
+import { closeModal, openModal } from './modal.js';
 
-export function renderSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-    sidebar.innerHTML = '';
-    const fragment = document.createDocumentFragment();
-    const c = getColors();
-    const { currentDate, events } = getState();
+async function downloadSummaryPdf() {
+    if (downloadSummaryPdf._busy) return;
+    downloadSummaryPdf._busy = true;
 
-    const sideHeader = document.createElement('div');
-    sideHeader.style.cssText = `display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;`;
+    const { currentDate, events, ledgerName, isDark } = getState();
+    const summary = computeMonthlySummary(events, currentDate);
 
-    const sideTitle = document.createElement('h3');
-    sideTitle.className = 'sidebar-title';
-    sideTitle.innerHTML = `<i class="ti ti-chart-pie"></i> Monthly Summary`;
+    try {
+        const { exportMonthlySummaryPdf } = await import('../core/summary-pdf.js');
+        const { blob, filename } = await exportMonthlySummaryPdf({ summary, ledgerName, isDark });
+        const result = await Ledger.saveBlob(
+            blob,
+            filename,
+            'Monthly spending report',
+            { 'application/pdf': ['.pdf'] }
+        );
+        if (result !== 'abort') {
+            Toast.show(
+                summary.itemCount ? 'Spending report PDF downloaded.' : 'Empty spending report PDF downloaded.',
+                'success'
+            );
+        }
+    } catch (err) {
+        console.error('[OpenExpense] PDF export failed:', err);
+        Toast.show('Could not create PDF.', 'error');
+    } finally {
+        downloadSummaryPdf._busy = false;
+    }
+}
 
-    const printBtn = UI.createButton('', () => {
-        requestAnimationFrame(() => setTimeout(() => window.print(), 50));
-    }, { icon: 'printer', iconOnly: true });
-    printBtn.className = 'sidebar-print-btn';
-    printBtn.setAttribute('aria-label', 'Print monthly summary');
-    printBtn.title = 'Print';
-    Object.assign(printBtn.style, { height: '28px', padding: '0 8px' });
+function el(tag, className, html) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (html != null) node.innerHTML = html;
+    return node;
+}
 
-    sideHeader.append(sideTitle, printBtn);
-    fragment.appendChild(sideHeader);
+function statCard(icon, label, value, hint, tone) {
+    const card = el('div', `summary-stat${tone ? ` is-${tone}` : ''}`);
+    card.innerHTML = `
+        <div class="summary-stat-label"><i class="ti ti-${icon}" aria-hidden="true"></i>${label}</div>
+        <div class="summary-stat-value">${value}</div>
+        ${hint ? `<div class="summary-stat-hint">${hint}</div>` : ''}
+    `;
+    return card;
+}
 
-    const y = currentDate.getFullYear();
-    const m = currentDate.getMonth();
-    const mKey = `${y}-${Utils.pad(m + 1)}`;
+function renderHero(summary) {
+    const hero = el('section', 'summary-hero');
+    const meta = summary.itemCount
+        ? `${summary.itemCount} item${summary.itemCount === 1 ? '' : 's'} · ${summary.activeDays} active day${summary.activeDays === 1 ? '' : 's'}`
+        : 'No expenses logged yet';
 
-    let tTotal = 0, tPaid = 0, tPending = 0;
-    let yearlyTotal = 0;
-    let monthTotals = new Array(12).fill(0);
-    const list = [];
+    hero.innerHTML = `
+        <div class="summary-hero-top">
+            <span class="summary-hero-label">Total spent</span>
+            ${summary.isCurrentMonth && summary.itemCount ? `<span class="summary-hero-badge">Live</span>` : ''}
+        </div>
+        <div class="summary-hero-amount">${Utils.formatMoney(summary.total)}</div>
+        <div class="summary-hero-meta">${meta}</div>
+    `;
+    return hero;
+}
 
-    Object.keys(events).forEach(k => {
-        const isCurrentMonth = k.startsWith(mKey);
-        const isCurrentYear = k.startsWith(`${y}-`);
-        if (!isCurrentMonth && !isCurrentYear) return;
+function renderProgress(summary) {
+    const wrap = el('section', 'summary-progress');
+    wrap.innerHTML = `
+        <div class="summary-progress-head">
+            <span>Paid vs pending</span>
+            <span class="summary-progress-pct">${summary.total ? `${Math.round(summary.pctPaid)}% settled` : '—'}</span>
+        </div>
+        <div class="budget-bar" role="img" aria-label="Paid ${Utils.formatMoney(summary.paid)}, pending ${Utils.formatMoney(summary.pending)}">
+            <div class="budget-fill-paid" style="width:${summary.pctPaid}%"></div>
+            <div class="budget-fill-pending" style="width:${summary.pctPending}%"></div>
+        </div>
+        <div class="summary-progress-legend">
+            <span><i class="legend-dot is-paid"></i>Paid <strong>${Utils.formatMoney(summary.paid)}</strong></span>
+            <span><i class="legend-dot is-pending"></i>Pending <strong>${Utils.formatMoney(summary.pending)}</strong></span>
+        </div>
+    `;
+    return wrap;
+}
 
-        const currentMonthIdx = isCurrentYear ? parseInt(k.split('-')[1], 10) - 1 : -1;
+function renderStatsGrid(summary) {
+    const grid = el('div', 'summary-stats-grid');
 
-        events[k].forEach(e => {
-            const amt = Utils.getPrice(e);
-            if (amt <= 0) return;
+    const deltaTone = summary.monthDelta > 0 ? 'up' : summary.monthDelta < 0 ? 'down' : '';
+    const deltaHint = summary.prevMonthTotal > 0 || summary.total > 0
+        ? `${formatDelta(summary.monthDelta)} vs last month`
+        : 'No prior month data';
 
-            if (isCurrentMonth) {
-                tTotal += amt;
-                if (e.paid) tPaid += amt; else tPending += amt;
-                list.push({ title: e.title, val: amt, date: k, recurring: e.recurring, paid: e.paid, note: e.note });
-            }
-            if (isCurrentYear) {
-                yearlyTotal += amt;
-                monthTotals[currentMonthIdx] += amt;
-            }
-        });
+    grid.append(
+        statCard('calendar-stats', 'Avg / active day', Utils.formatMoney(summary.avgPerDay),
+            summary.activeDays ? `${summary.activeDays} days with spend` : 'Log an expense to start', ''),
+        statCard('receipt-2', 'Avg / entry', Utils.formatMoney(summary.avgPerEntry),
+            summary.itemCount ? `${summary.itemCount} entries` : '—', ''),
+        statCard('chart-arrows-vertical', 'Month trend', summary.prevMonthTotal || summary.total ? formatDelta(summary.monthDelta) : '—',
+            deltaHint, deltaTone),
+        statCard('repeat', 'Recurring', Utils.formatMoney(summary.recurring),
+            summary.oneTime ? `${Utils.formatMoney(summary.oneTime)} one-time` : 'No one-time spend', '')
+    );
+
+    if (summary.isCurrentMonth && summary.itemCount) {
+        grid.appendChild(statCard('trending-up', 'Projected', Utils.formatMoney(summary.projectedTotal),
+            `${Utils.formatMoney(summary.dailyPace)}/day pace · ${summary.daysElapsed}/${summary.daysInMonth} days`, 'accent'));
+    }
+
+    if (summary.largest) {
+        grid.appendChild(statCard('arrow-big-up-lines', 'Largest', Utils.formatMoney(summary.largest.amount),
+            `${Utils.escapeHtml(summary.largest.title)} · ${summary.largest.date}`, ''));
+    }
+
+    return grid;
+}
+
+function renderTopMerchants(summary) {
+    if (!summary.topMerchants.length) return null;
+
+    const section = el('section', 'summary-section');
+    section.appendChild(el('div', 'summary-section-title', 'Top spend'));
+
+    const list = el('div', 'summary-merchant-list');
+    const max = summary.topMerchants[0].amount || 1;
+
+    summary.topMerchants.forEach(item => {
+        const row = el('div', 'summary-merchant');
+        const pct = Math.max(8, (item.amount / max) * 100);
+        row.innerHTML = `
+            <div class="summary-merchant-head">
+                <span class="summary-merchant-name">${Utils.escapeHtml(item.title)}</span>
+                <span class="summary-merchant-amt">${Utils.formatMoney(item.amount)}</span>
+            </div>
+            <div class="summary-merchant-track"><span style="width:${pct}%"></span></div>
+            <div class="summary-merchant-meta">${item.count} entr${item.count === 1 ? 'y' : 'ies'}</div>
+        `;
+        list.appendChild(row);
     });
 
-    const pctPaid = tTotal ? (tPaid / tTotal) * 100 : 0;
-    const pctPending = tTotal ? (tPending / tTotal) * 100 : 0;
+    section.appendChild(list);
+    return section;
+}
 
-    const statsWrap = document.createElement('div');
-    statsWrap.style.cssText = `background: ${c.surface2}; border: 1px solid ${c.border}; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: ${c.shadowSm};`;
-    statsWrap.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px;">
-          <div>
-            <div style="font-size:10px; color:${c.text2}; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Total Budget</div>
-            <div style="font-size:22px; font-weight:700; color:${c.textStrong}; letter-spacing:-0.02em;">$${tTotal.toFixed(2)}</div>
-          </div>
-        </div>
-        <div class="budget-bar">
-          <div class="budget-fill-paid" style="width: ${pctPaid}%"></div>
-          <div class="budget-fill-pending" style="width: ${pctPending}%"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:12px;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <div style="width:8px; height:8px; border-radius:2px; background:${c.success};"></div>
-            <span style="color:${c.text2}">Paid <strong style="color:${c.textStrong}; margin-left:2px;">$${tPaid.toFixed(2)}</strong></span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <div style="width:8px; height:8px; border-radius:2px; background:${c.accent};"></div>
-            <span style="color:${c.text2}">Pending <strong style="color:${c.textStrong}; margin-left:2px;">$${tPending.toFixed(2)}</strong></span>
-          </div>
-        </div>
-    `;
-    fragment.appendChild(statsWrap);
+function renderYearChart(summary, currentDate) {
+    const section = el('section', 'summary-section');
+    section.appendChild(el('div', 'summary-section-title', `${summary.year} overview`));
 
-    const activeMonths = monthTotals.filter(a => a > 0).length || 1;
-    const monthlyAvg = yearlyTotal / activeMonths;
+    const cards = el('div', 'summary-stats-grid is-compact');
+    cards.append(
+        statCard('chart-bar', 'Year total', Utils.formatMoney(summary.yearTotal), '', 'accent'),
+        statCard('chart-dots', 'Avg month', Utils.formatMoney(summary.yearAvg), `${summary.year}`, '')
+    );
+    section.appendChild(cards);
 
-    const insightsWrap = document.createElement('div');
-    insightsWrap.style.cssText = `margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid ${c.border};`;
-    insightsWrap.innerHTML = `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: ${c.text2}; font-weight: 600; margin-bottom: 12px;">${y} Projections</div>`;
+    const maxMonth = Math.max(...summary.monthTotals, 1);
+    const graphWrap = el('div', 'mini-graph');
+    graphWrap.setAttribute('role', 'group');
+    graphWrap.setAttribute('aria-label', `${summary.year} monthly spending chart`);
 
-    const miniGrid = document.createElement('div');
-    miniGrid.style.cssText = `display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;`;
-    const mkMiniCard = (icon, label, val) => `
-        <div style="background: ${c.surface2}; border: 1px solid ${c.border}; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; align-items: center; gap: 6px; color: ${c.text2}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-            <i class="ti ti-${icon}" style="font-size: 13px; color: ${c.accent};"></i> ${label}
-          </div>
-          <div style="font-size: 15px; font-weight: 700; color: ${c.textStrong}; letter-spacing: -0.01em;">$${val.toFixed(2)}</div>
-        </div>
-    `;
-    miniGrid.innerHTML = mkMiniCard('chart-bar', 'Avg Month', monthlyAvg) + mkMiniCard('wallet', 'Year Total', yearlyTotal);
-    insightsWrap.appendChild(miniGrid);
-
-    const maxMonth = Math.max(...monthTotals, 1);
-    const graphWrap = document.createElement('div');
-    graphWrap.className = 'mini-graph';
-
-    monthTotals.forEach((amt, i) => {
-        const pct = (amt / maxMonth) * 100;
-        const bar = document.createElement('div');
+    summary.monthTotals.forEach((amt, i) => {
+        const bar = el('div', 'graph-bar');
         const isCur = i === currentDate.getMonth();
+        bar.style.height = `${Math.max((amt / maxMonth) * 100, amt > 0 ? 10 : 4)}%`;
+        bar.classList.toggle('is-current', isCur);
+        bar.dataset.month = String(i);
 
-        bar.className = 'graph-bar';
-        bar.style.background = isCur ? c.accent : c.borderStrong;
-        bar.style.height = `${Math.max(pct, 6)}%`;
-        bar.style.opacity = isCur ? '1' : '0.4';
+        const monthName = new Date(summary.year, i).toLocaleString('default', { month: 'short' });
+        bar.setAttribute('aria-label', `${monthName}: ${Utils.formatMoney(amt)}`);
+        Utils.bindTooltip(bar, `${monthName}: ${Utils.formatMoney(amt)}`);
 
-        const monthName = new Date(y, i).toLocaleString('default', { month: 'short' });
-        Utils.bindTooltip(bar, `${monthName}: $${amt.toFixed(2)}`);
-
-        bar.onmouseenter = () => { bar.style.opacity = '1'; };
-        bar.onmouseleave = () => { bar.style.opacity = isCur ? '1' : '0.4'; };
         bar.onclick = () => {
-            patch({ currentDate: new Date(y, i, 1) });
+            patch({ currentDate: new Date(summary.year, i, 1) });
             if (getState().selectedKey) closeModal();
         };
 
         graphWrap.appendChild(bar);
     });
-    insightsWrap.appendChild(graphWrap);
-    fragment.appendChild(insightsWrap);
 
-    if (list.length > 0) {
-        const listHeader = document.createElement('div');
-        listHeader.style.cssText = `font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: ${c.text2}; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid ${c.border}`;
-        listHeader.textContent = "Expense Items";
-        fragment.appendChild(listHeader);
+    section.appendChild(graphWrap);
+    return section;
+}
 
-        const ledgerWrap = document.createElement('div');
-        ledgerWrap.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
+function renderItemRow(item) {
+    const row = el('button', `summary-item${item.paid ? ' is-paid' : ' is-pending'}`);
+    row.type = 'button';
+    row.innerHTML = `
+        <span class="summary-item-main">
+            <span class="summary-item-title">
+                ${Utils.escapeHtml(item.title)}
+                ${item.recurring ? '<i class="ti ti-refresh" aria-hidden="true"></i>' : ''}
+            </span>
+            <span class="summary-item-date">${item.date}</span>
+        </span>
+        <span class="summary-item-amt">${Utils.formatMoney(item.amount)}</span>
+    `;
 
-        list.sort((a, b) => a.date.localeCompare(b.date)).forEach(item => {
-            const row = document.createElement('div');
-            row.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; transition: background-color 0.1s; background: ${item.paid ? 'transparent' : c.surface2}; border: 1px solid ${item.paid ? 'transparent' : c.border};`;
-
-            row.onmouseenter = () => { row.style.background = c.surface2; };
-            row.onmouseleave = () => { row.style.background = item.paid ? 'transparent' : c.surface2; };
-            Utils.bindTooltip(row, item.note);
-
-            row.innerHTML = `
-            <div style="display:flex; flex-direction:column; opacity: ${item.paid ? '0.5' : '1'}; min-width:0; flex:1;">
-                <span style="color:${c.textStrong}; font-weight: 500; font-size:13px; text-decoration: ${item.paid ? 'line-through' : 'none'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px;">${Utils.escapeHtml(item.title)} ${item.recurring ? '<i class="ti ti-refresh" style="font-size:11px; margin-left:2px; opacity:0.6;"></i>' : ''}</span>
-                <span style="font-size: 11px; color:${c.text2}; margin-top:1px;">${item.date}</span>
-            </div>
-            <span style="font-weight:600; color:${item.paid ? c.text2 : c.textStrong}; font-size:13px; opacity: ${item.paid ? '0.5' : '1'}; flex-shrink:0;">$${item.val.toFixed(2)}</span>
-            `;
-            ledgerWrap.appendChild(row);
-        });
-        fragment.appendChild(ledgerWrap);
-    } else {
-        const empty = document.createElement('div');
-        empty.style.cssText = `text-align:center; padding: 32px 0; color: ${c.textMuted}; font-size: 13px;`;
-        empty.innerHTML = `<i class="ti ti-receipt" style="font-size:28px; opacity:0.4; margin-bottom:8px; display:block;"></i>No items logged.`;
-        fragment.appendChild(empty);
+    if (item.note) {
+        row.title = item.note;
+        Utils.bindTooltip(row, item.note);
     }
-    sidebar.appendChild(fragment);
+
+    row.onclick = () => openModal(item.date);
+    return row;
+}
+
+function renderItemList(summary) {
+    if (!summary.allItems.length) {
+        const empty = el('div', 'summary-empty');
+        empty.innerHTML = `<i class="ti ti-receipt" aria-hidden="true"></i><p>No expenses this month.</p><span>Tap a calendar day to log spending.</span>`;
+        return empty;
+    }
+
+    const wrap = el('section', 'summary-section');
+    wrap.appendChild(el('div', 'summary-section-title', 'This month'));
+
+    if (summary.pendingItems.length) {
+        wrap.appendChild(el('div', 'summary-list-label', `${summary.pendingItems.length} pending`));
+        const pendingList = el('div', 'summary-item-list');
+        summary.pendingItems.forEach(item => pendingList.appendChild(renderItemRow(item)));
+        wrap.appendChild(pendingList);
+    }
+
+    if (summary.paidItems.length) {
+        wrap.appendChild(el('div', 'summary-list-label is-muted', `${summary.paidItems.length} paid`));
+        const paidList = el('div', 'summary-item-list');
+        summary.paidItems.forEach(item => paidList.appendChild(renderItemRow(item)));
+        wrap.appendChild(paidList);
+    }
+
+    return wrap;
+}
+
+export function renderSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    const { currentDate, events } = getState();
+    const summary = computeMonthlySummary(events, currentDate);
+
+    sidebar.replaceChildren();
+
+    const header = el('div', 'sidebar-header');
+    const title = el('h3', 'sidebar-title');
+    title.innerHTML = `<i class="ti ti-chart-pie" aria-hidden="true"></i> Monthly spending <span class="sidebar-month">${summary.shortMonth} ${summary.year}</span>`;
+
+    const pdfBtn = UI.createButton('', () => { downloadSummaryPdf(); }, { icon: 'file-type-pdf', iconOnly: true });
+    pdfBtn.className = 'sidebar-print-btn';
+    pdfBtn.setAttribute('aria-label', 'Download monthly spending report PDF');
+    pdfBtn.title = 'Download spending report';
+
+    header.append(title, pdfBtn);
+    sidebar.appendChild(header);
+
+    sidebar.appendChild(renderHero(summary));
+    sidebar.appendChild(renderProgress(summary));
+
+    const statsSection = el('section', 'summary-section');
+    statsSection.appendChild(el('div', 'summary-section-title', 'Insights'));
+    const statsGrid = renderStatsGrid(summary);
+    statsSection.appendChild(statsGrid);
+    sidebar.appendChild(statsSection);
+
+    const merchants = renderTopMerchants(summary);
+    if (merchants) sidebar.appendChild(merchants);
+
+    sidebar.appendChild(renderYearChart(summary, currentDate));
+    sidebar.appendChild(renderItemList(summary));
 }

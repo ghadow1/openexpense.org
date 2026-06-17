@@ -4,13 +4,16 @@ import { UI } from '../ui/components.js';
 
 export function openModal(key) {
     patch({ selectedKey: key, editingIndex: null });
+    Utils.hideTooltip();
     document.getElementById('modal').classList.add('open');
+    document.body.classList.add('modal-open');
     renderModal();
 }
 
 export function closeModal() {
     patch({ selectedKey: null, editingIndex: null });
     document.getElementById('modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
 }
 
 export function bgClose(e) {
@@ -26,10 +29,137 @@ export function initModalBindings() {
     }
 }
 
+let addFormReady = false;
+
+function refreshEventList() {
+    const { selectedKey, events } = getState();
+    if (!selectedKey) return;
+    const c = getColors();
+    const eventsContainer = document.getElementById('events-container');
+    if (!eventsContainer) return;
+
+    eventsContainer.replaceChildren();
+    const list = events[selectedKey] || [];
+    if (!list.length) {
+        const p = document.createElement('p');
+        p.className = 'modal-empty';
+        p.textContent = 'No expenses logged on this date.';
+        eventsContainer.appendChild(p);
+    } else {
+        list.forEach((e, i) => eventsContainer.appendChild(buildRow(e, i)));
+    }
+}
+
+function ensureAddForm(formContainer) {
+    if (addFormReady && formContainer?.querySelector('#et')) return;
+    if (!formContainer) return;
+
+    const c = getColors();
+    formContainer.replaceChildren();
+    addFormReady = false;
+
+    const form = document.createElement('form');
+    form.className = 'record-form';
+    form.id = 'expense-add-form';
+    form.onsubmit = (e) => { e.preventDefault(); addEvent(); };
+
+    form.appendChild(UI.createFieldGroup('et', 'Title', '', 'e.g. Coffee, Zoom, Gas'));
+
+    const splitRow = document.createElement('div');
+    splitRow.className = 'form-row-split';
+
+    const costWrap = UI.createFieldGroup('ep', 'Cost', '', '0.00', 'number');
+    costWrap.style.flex = '0 0 45%';
+    const costInput = costWrap.querySelector('input');
+    costInput.style.paddingLeft = '24px';
+    costInput.setAttribute('inputmode', 'decimal');
+    const dollarSign = document.createElement('span');
+    dollarSign.className = 'form-dollar';
+    dollarSign.style.cssText = `position:absolute; left:12px; top:31px; color:${c.text2}; font-weight:500; font-size:13px;`;
+    dollarSign.textContent = '$';
+    costWrap.style.position = 'relative';
+    costWrap.appendChild(dollarSign);
+    splitRow.appendChild(costWrap);
+
+    const optWrap = document.createElement('div');
+    optWrap.style.cssText = 'display:flex; gap:20px; flex:1; padding-bottom: 3px;';
+    optWrap.innerHTML = `
+        <label class="custom-cb"><input type="checkbox" id="er"><span>Recurring</span></label>
+        <label class="custom-cb"><input type="checkbox" id="epad"><span>Paid</span></label>
+    `;
+    splitRow.appendChild(optWrap);
+    form.appendChild(splitRow);
+
+    form.appendChild(UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea'));
+
+    const act = document.createElement('div');
+    act.className = 'form-actions';
+    act.style.cssText = 'display:flex; justify-content:flex-end; margin-top: 6px;';
+    const submitBtn = UI.createButton('Save expense', null, { icon: 'plus', accent: true });
+    submitBtn.type = 'submit';
+    act.appendChild(submitBtn);
+    form.appendChild(act);
+
+    formContainer.appendChild(form);
+    addFormReady = true;
+}
+
+export function resetAddForm() {
+    const et = document.getElementById('et');
+    const ep = document.getElementById('ep');
+    const en = document.getElementById('en');
+    const er = document.getElementById('er');
+    const epad = document.getElementById('epad');
+    if (et) et.value = '';
+    if (ep) ep.value = '';
+    if (en) en.value = '';
+    if (er) er.checked = false;
+    if (epad) epad.checked = false;
+}
+
+export function prefillAddForm({ title = '', price = '', note = '', recurring = false, paid = false } = {}) {
+    ensureAddForm(document.getElementById('form-container'));
+    const et = document.getElementById('et');
+    const ep = document.getElementById('ep');
+    const en = document.getElementById('en');
+    const er = document.getElementById('er');
+    const epad = document.getElementById('epad');
+    if (et) et.value = title;
+    if (ep) ep.value = price ?? '';
+    if (en) en.value = note ?? '';
+    if (er) er.checked = !!recurring;
+    if (epad) epad.checked = !!paid;
+}
+
+export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false }) {
+    const t = String(title ?? '').trim();
+    if (!t || !dateKey) return false;
+
+    const parsedPrice = price != null && String(price).trim() !== ''
+        ? parseFloat(String(price).replace(/[^0-9.]/g, ''))
+        : null;
+
+    const newEv = {
+        title: t,
+        note: String(note ?? '').trim(),
+        price: parsedPrice != null && !Number.isNaN(parsedPrice) ? parsedPrice : null,
+        recurring: !!recurring,
+        paid: !!paid
+    };
+
+    const { events } = getState();
+    const nextEvents = { ...events };
+    if (!nextEvents[dateKey]) nextEvents[dateKey] = [];
+    else nextEvents[dateKey] = [...nextEvents[dateKey]];
+    nextEvents[dateKey].push(newEv);
+    patch({ events: nextEvents });
+    if (newEv.recurring) propagateRecurring(newEv, dateKey);
+    return true;
+}
+
 export function renderModal() {
     const { selectedKey } = getState();
     if (!selectedKey) return;
-    const c = getColors();
 
     const [y, m, d] = selectedKey.split('-');
     const dateObj = new Date(+y, +m - 1, +d);
@@ -39,66 +169,12 @@ export function renderModal() {
         titleEl.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     }
 
-    const eventsContainer = document.getElementById('events-container');
-    const formContainer = document.getElementById('form-container');
-    const { events } = getState();
+    refreshEventList();
+    ensureAddForm(document.getElementById('form-container'));
 
-    if (eventsContainer) {
-        eventsContainer.innerHTML = '';
-        const list = events[selectedKey] || [];
-        if (!list.length) {
-            const p = document.createElement('p');
-            p.style.cssText = `font-size:13px; color:${c.textMuted}; padding: 16px 0; border-bottom: 1px solid ${c.border}`;
-            p.textContent = 'No expenses logged on this date.';
-            eventsContainer.appendChild(p);
-        } else {
-            list.forEach((e, i) => eventsContainer.appendChild(buildRow(e, i)));
-        }
-    }
-
-    if (formContainer) {
-        formContainer.innerHTML = '';
-        const form = document.createElement('form');
-        form.className = 'record-form';
-        form.onsubmit = (e) => { e.preventDefault(); addEvent(); };
-
-        form.appendChild(UI.createFieldGroup('et', 'Title', '', 'e.g. Server Invoice'));
-
-        const splitRow = document.createElement('div'); splitRow.className = 'form-row-split';
-
-        const costWrap = UI.createFieldGroup('ep', 'Cost', '', '0.00', 'number');
-        costWrap.style.flex = '0 0 45%';
-        const costInput = costWrap.querySelector('input');
-        costInput.style.paddingLeft = '24px';
-        const dollarSign = document.createElement('span');
-        dollarSign.style.cssText = `position:absolute; left:12px; top:31px; color:${c.text2}; font-weight:500; font-size:13px;`;
-        dollarSign.textContent = '$';
-        costWrap.style.position = 'relative'; costWrap.appendChild(dollarSign);
-        splitRow.appendChild(costWrap);
-
-        const optWrap = document.createElement('div');
-        optWrap.style.cssText = 'display:flex; gap:20px; flex:1; padding-bottom: 3px;';
-        optWrap.innerHTML = `
-            <label class="custom-cb"><input type="checkbox" id="er"><span>Recurring</span></label>
-            <label class="custom-cb"><input type="checkbox" id="epad"><span>Paid</span></label>
-        `;
-        splitRow.appendChild(optWrap);
-        form.appendChild(splitRow);
-
-        form.appendChild(UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea'));
-
-        const act = document.createElement('div'); act.style.cssText = 'display:flex; justify-content:flex-end; margin-top: 6px;';
-        const submitBtn = UI.createButton('Save Item', null, { icon: 'plus', accent: true });
-        submitBtn.type = 'submit';
-        act.appendChild(submitBtn);
-        form.appendChild(act);
-
-        formContainer.appendChild(form);
-
-        setTimeout(() => {
-            const etEl = document.getElementById('et');
-            if (etEl) etEl.focus();
-        }, 60);
+    const focusTitle = !document.activeElement?.closest('#form-container');
+    if (focusTitle) {
+        setTimeout(() => document.getElementById('et')?.focus(), 60);
     }
 }
 
@@ -256,22 +332,20 @@ export function deleteEv(i) {
 }
 
 export function addEvent() {
-    const t = document.getElementById('et').value.trim(); if (!t) return;
-    const p = document.getElementById('ep').value;
-    const isRecurring = document.getElementById('er').checked;
+    const { selectedKey } = getState();
+    if (!selectedKey) return;
 
-    const newEv = {
-        title: t, note: document.getElementById('en').value.trim(),
-        price: p ? parseFloat(p) : null, recurring: isRecurring,
-        paid: document.getElementById('epad').checked
-    };
+    const ok = saveExpense({
+        dateKey: selectedKey,
+        title: document.getElementById('et')?.value,
+        price: document.getElementById('ep')?.value,
+        note: document.getElementById('en')?.value,
+        recurring: document.getElementById('er')?.checked,
+        paid: document.getElementById('epad')?.checked
+    });
+    if (!ok) return;
 
-    const { selectedKey, events } = getState();
-    const nextEvents = { ...events };
-    if (!nextEvents[selectedKey]) nextEvents[selectedKey] = [];
-    else nextEvents[selectedKey] = [...nextEvents[selectedKey]];
-    nextEvents[selectedKey].push(newEv);
-    patch({ events: nextEvents });
-    if (isRecurring) propagateRecurring(newEv, selectedKey);
-    renderModal();
+    refreshEventList();
+    resetAddForm();
+    document.getElementById('et')?.focus();
 }

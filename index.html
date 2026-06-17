@@ -26,10 +26,21 @@
   <meta property="og:url" content="https://www.openexpense.org/">
   <meta name="twitter:card" content="summary">
 
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='20' font-size='20'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
 
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs",
+      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js"
+    }
+  }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"></noscript>
   <link rel="stylesheet" href="openexpense.css">
@@ -81,8 +92,8 @@
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
       </div>
       <p class="welcome-copy">
-        A private, offline-first financial tracker. Your ledger is encrypted on this device and
-        never leaves your browser. Start by clicking on any date in the calendar to log an expense.
+        Track spending without giving up your data. Your ledger is encrypted on this device — nothing
+        is uploaded, synced, or sold. Tap any day on the calendar to log an expense.
       </p>
       <button class="btn-primary welcome-cta" type="button" data-action="close-welcome">
         Get Started
@@ -94,18 +105,17 @@
 
     <header class="site-header">
 
-      <div class="brand">
-        <i class="ti ti-wallet brand-icon" aria-hidden="true"></i>
-        <div class="brand-text">
-          <span class="brand-name">openexpense.org</span>
-          <span class="brand-description">An unlocked tool for your wallet</span>
-        </div>
+      <div class="brand" aria-label="OpenExpense.org — Private expense tracker">
+        <p class="brand-wordmark">
+          <span class="brand-title">OpenExpense.org</span>
+          <span class="brand-tag">Private expense tracker</span>
+        </p>
       </div>
 
       <div class="header-actions">
-        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener" class="header-btn">
+        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener" class="header-btn" aria-label="View source on GitHub">
           <i class="ti ti-brand-github" aria-hidden="true"></i>
-          Open Source
+          <span class="header-btn-label">Open Source</span>
         </a>
 
         <div id="autosave-toggle-slot" class="header-icon-slot"></div>
@@ -114,22 +124,24 @@
     </header>
 
     <nav class="view-segment-bar">
-      <button id="vt-app" class="view-tab active" data-view="app">
-        <i class="ti ti-calendar"></i> Expense Tracker
+      <button id="vt-app" class="view-tab active" data-view="app" aria-label="Expenses">
+        <i class="ti ti-calendar" aria-hidden="true"></i>
+        <span class="view-tab-label">Expenses</span>
       </button>
-      <button id="vt-docs" class="view-tab" data-view="docs">
-        <i class="ti ti-book"></i> How It Works
+      <button id="vt-docs" class="view-tab" data-view="docs" aria-label="Privacy and help">
+        <i class="ti ti-shield-lock" aria-hidden="true"></i>
+        <span class="view-tab-label">Privacy &amp; Help</span>
       </button>
     </nav>
 
     <main class="app-view" id="view-app">
       <div class="ledger-name-bar">
-        <label class="ledger-name-label" for="ledger-name-input">Expense file</label>
+        <label class="ledger-name-label" for="ledger-name-input">Ledger name</label>
         <input id="ledger-name-input" class="ledger-name-input text-input" type="text"
-          placeholder="Name this ledger (e.g. GBA Expenses)" spellcheck="false" autocomplete="off">
+          placeholder="Name your ledger (e.g. Personal expenses)" spellcheck="false" autocomplete="off">
         <span id="privacy-status" class="privacy-chip" hidden>
           <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
-          <span class="privacy-chip-text">Encrypted on this device</span>
+          <span class="privacy-chip-text">Encrypted — data stays here</span>
         </span>
       </div>
       <div class="layout-wrapper">
@@ -138,167 +150,248 @@
       </div>
     </main>
 
-    <main class="layout-wrapper hidden" id="view-docs">
+    <main class="docs-view hidden" id="view-docs">
       <div class="docs-container">
-        <nav class="docs-nav">
+        <nav class="docs-nav" aria-label="Documentation sections">
           <button id="dt-manual" class="docs-nav-tab active" data-tab="manual">
-            <i class="ti ti-help"></i> About
+            <span class="docs-nav-icon"><i class="ti ti-help" aria-hidden="true"></i></span>
+            <span class="docs-nav-copy">
+              <span class="docs-nav-label">About</span>
+              <span class="docs-nav-desc">Privacy-first overview</span>
+            </span>
           </button>
           <button id="dt-schema" class="docs-nav-tab" data-tab="schema">
-            <i class="ti ti-code"></i> Data & Events
+            <span class="docs-nav-icon"><i class="ti ti-code" aria-hidden="true"></i></span>
+            <span class="docs-nav-copy">
+              <span class="docs-nav-label">Data &amp; Events</span>
+              <span class="docs-nav-desc">Storage, export, schema</span>
+            </span>
           </button>
-          <button id="dt-author" class="docs-nav-tab" data-tab="author">
-            <i class="ti ti-user"></i> Author Information
+          <button id="dt-operator" class="docs-nav-tab" data-tab="operator">
+            <span class="docs-nav-icon"><i class="ti ti-cpu" aria-hidden="true"></i></span>
+            <span class="docs-nav-copy">
+              <span class="docs-nav-label">AI Operator</span>
+              <span class="docs-nav-desc">Local OCR &amp; assistance</span>
+            </span>
           </button>
         </nav>
+
         <section class="docs-content">
 
-          <!-- About & Privacy Pane -->
+          <!-- About -->
           <div id="pane-manual" class="docs-pane active">
-            <p class="docs-p">
-              <strong>OpenExpense</strong> is a privacy-first, open-source financial management tool. Unlike standard
-              platforms that monetize personal data, our offline-first architecture ensures your financial footprint
-              remains entirely under your control.
-            </p>
+            <header class="docs-hero">
+              <p class="docs-eyebrow">How it works</p>
+              <h2 class="docs-hero-title">Your finances, on your device</h2>
+              <p class="docs-hero-lead">
+                OpenExpense is a privacy-first, open-source tracker. No accounts, no cloud sync, no data mining —
+                just an encrypted ledger that lives in your browser.
+              </p>
+            </header>
 
-            <ul class="docs-list" style="list-style: none; padding: 0; margin: 24px 0; line-height: 1.8;">
-              <li style="margin-bottom: 8px;">&bull; <strong>Data Sovereignty:</strong> You own your history. No
-                tracking, no cloud, no profiling.</li>
-              <li style="margin-bottom: 8px;">&bull; <strong>Full Transparency:</strong> Our codebase is open-source and
-                available for audit on GitHub.</li>
-              <li>&bull; <strong>Zero-Cost Model:</strong> Free, sustainable, and built without subscriptions or
-                data-mining incentives.</li>
-            </ul>
+            <div class="docs-feature-grid">
+              <article class="docs-feature-card">
+                <div class="docs-feature-icon"><i class="ti ti-shield-lock" aria-hidden="true"></i></div>
+                <h3>Data sovereignty</h3>
+                <p>You own your history. Nothing is tracked, profiled, or sent to a server.</p>
+              </article>
+              <article class="docs-feature-card">
+                <div class="docs-feature-icon"><i class="ti ti-brand-github" aria-hidden="true"></i></div>
+                <h3>Full transparency</h3>
+                <p>The codebase is open source and available for audit on GitHub.</p>
+              </article>
+              <article class="docs-feature-card">
+                <div class="docs-feature-icon"><i class="ti ti-coin-off" aria-hidden="true"></i></div>
+                <h3>Zero-cost model</h3>
+                <p>Free to use, with no subscriptions or ad-driven incentives.</p>
+              </article>
+            </div>
 
-            <p class="docs-p">
-              Our architecture is built on <em>hostile-environment-ready</em> principles. We remove the network
-              dependency entirely to ensure your financial habits remain private.
-            </p>
-
-            <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.8;">
-              <li style="margin-bottom: 12px;"><strong>Zero-Server Architecture:</strong> Code runs exclusively on your
-                hardware. There are no remote backends to intercept data.</li>
-              <li style="margin-bottom: 12px;"><strong>Encrypted at Rest:</strong> Your ledger is encrypted with
-                AES-256-GCM before it is written to local storage. The key is generated on your device and is
-                non-extractable, so the stored data is unreadable even from the browser's developer tools.</li>
-              <li style="margin-bottom: 12px;"><strong>Privacy by Design:</strong> Without a remote server, your data is
-                physically immune to breaches or corporate harvesting.</li>
-              <li style="margin-bottom: 12px;"><strong>Total Custody:</strong> Your financial life remains strictly
-                between you and your machine.</li>
-            </ul>
+            <section class="docs-section">
+              <h3 class="docs-section-title">Built for hostile environments</h3>
+              <p class="docs-p">
+                The architecture removes network dependency entirely so your financial habits stay private —
+                even on shared or untrusted devices.
+              </p>
+              <div class="docs-arch-grid">
+                <article class="docs-arch-card">
+                  <h4>Zero-server</h4>
+                  <p>Code runs on your hardware only. There are no remote backends to intercept data.</p>
+                </article>
+                <article class="docs-arch-card">
+                  <h4>Encrypted at rest</h4>
+                  <p>AES-256-GCM encryption before data hits disk. Keys are device-bound and non-extractable.</p>
+                </article>
+                <article class="docs-arch-card">
+                  <h4>Privacy by design</h4>
+                  <p>Without a cloud server, your records are immune to corporate breaches and harvesting.</p>
+                </article>
+                <article class="docs-arch-card">
+                  <h4>Total custody</h4>
+                  <p>Your financial life stays strictly between you and your machine.</p>
+                </article>
+              </div>
+            </section>
           </div>
 
-          <!-- Data Schema & Event System Pane -->
-          <!-- Data Architecture & Privacy Pane -->
+          <!-- Data & Events -->
           <div id="pane-schema" class="docs-pane">
-            <h2 class="docs-title">Data Sovereignty & Privacy</h2>
-            <p class="docs-p">
-              OpenExpense is designed for <strong>total data ownership</strong>. Because this tool runs entirely in your
-              browser,
-              <strong>you are the only person who can access or view your financial records.</strong>
-            </p>
+            <header class="docs-hero">
+              <p class="docs-eyebrow">Data architecture</p>
+              <h2 class="docs-hero-title">Data sovereignty &amp; privacy</h2>
+              <p class="docs-hero-lead">
+                Because OpenExpense runs entirely in your browser, <strong>you are the only person who can access
+                your financial records.</strong>
+              </p>
+            </header>
 
-            <!-- Refined, Low-Contrast Privacy Box -->
-            <div class="docs-note"
-              style="margin: 24px 0; padding: 20px; border-radius: 8px; background: var(--surface2); border-left: 3px solid var(--border-strong);">
-              <h4
-                style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-strong); display: flex; align-items: center; text-transform: uppercase; letter-spacing: 0.05em;">
-                <i class="ti ti-lock" style="margin-right: 8px; font-size: 16px; color: var(--text2);"></i> How Your Data
-                Is Stored
-              </h4>
-              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 10px 0;">
-                Your ledger is saved into your browser's <strong>IndexedDB</strong> and encrypted with
-                <strong>AES-256-GCM</strong> before it ever touches disk. The encryption key is created on this device,
-                marked <strong>non-extractable</strong>, and kept inside the database — so even someone inspecting local
-                storage sees only ciphertext.
-              </p>
-              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 10px 0;">
-                <strong>Autosave</strong> writes every change to this encrypted local storage automatically — there are no
-                files to manage and nothing is ever saved as plaintext. It's on by default; the disk button in the header
-                pauses it for an ephemeral session where changes stay in memory only.
-              </p>
-              <p style="font-size: 13px; line-height: 1.6; color: var(--text); margin: 0;">
-                Encryption requires a secure context (an <code>https://</code> address or <code>localhost</code>). On the
-                live site this is always the case. The status chip on the calendar shows whether encryption and autosave
-                are active.
-              </p>
+            <div class="docs-split">
+              <div class="docs-split-main">
+                <section class="docs-section">
+                  <div class="docs-callout">
+                    <div class="docs-callout-head">
+                      <i class="ti ti-lock" aria-hidden="true"></i>
+                      <h3>How your data is stored</h3>
+                    </div>
+                    <p>Your ledger is saved in <strong>IndexedDB</strong> and encrypted with <strong>AES-256-GCM</strong>
+                      before it touches disk. The key is created on this device, marked non-extractable, and stored
+                      locally — inspecting storage shows only ciphertext.</p>
+                    <p><strong>Autosave</strong> writes every change to encrypted local storage automatically. The disk
+                      button in the header pauses it for a session where changes stay in memory only.</p>
+                    <p>Encryption requires a secure context (<code>https://</code> or <code>localhost</code>). The status
+                      chip on the calendar shows whether encryption and autosave are active.</p>
+                  </div>
+                </section>
+
+                <section class="docs-section">
+                  <h3 class="docs-section-title">Backups &amp; moving between devices</h3>
+                  <div class="docs-flow">
+                    <div class="docs-flow-step">
+                      <span class="docs-flow-num">1</span>
+                      <div>
+                        <strong>Export</strong>
+                        <p>Download an encrypted <code>.zip</code> with <code>ledger.enc.json</code> and
+                          <code>ledger.key.json</code>.</p>
+                      </div>
+                    </div>
+                    <div class="docs-flow-step">
+                      <span class="docs-flow-num">2</span>
+                      <div>
+                        <strong>Split for safety</strong>
+                        <p>Store the key separately from the encrypted file — neither is useful alone.</p>
+                      </div>
+                    </div>
+                    <div class="docs-flow-step">
+                      <span class="docs-flow-num">3</span>
+                      <div>
+                        <strong>Import</strong>
+                        <p>Load the <code>.zip</code> or the two files in either order on any device. Legacy plaintext
+                          <code>.json</code> still imports.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="docs-section">
+                  <h3 class="docs-section-title">Technical structure</h3>
+                  <p class="docs-p">Calendar dates are unique keys mapping to expense objects — the same shape used in
+                    exports and inside the encrypted record.</p>
+                  <pre class="docs-code-block"><code>{
+  "name": "GBA Expenses",
+  "events": {
+    "2026-06-03": [
+      { "title": "API Hosting", "price": 49.99, "recurring": true, "paid": false }
+    ]
+  }
+}</code></pre>
+                </section>
+              </div>
+
+              <aside class="docs-split-aside">
+                <div class="docs-aside-card">
+                  <h4>Security notes</h4>
+                  <ul class="docs-checklist">
+                    <li><strong>Device-bound keys</strong> protect against casual inspection, not full browser access.</li>
+                    <li><strong>Backup often</strong> — export your encrypted <code>.zip</code> periodically.</li>
+                    <li><strong>Split sensitive sets</strong> — key and ciphertext apart when storing or sending.</li>
+                    <li><strong>No syncing</strong> — move exports manually between computers.</li>
+                  </ul>
+                </div>
+                <div class="docs-aside-card is-accent">
+                  <h4>Quick reference</h4>
+                  <dl class="docs-kv">
+                    <div><dt>Storage</dt><dd>IndexedDB (encrypted)</dd></div>
+                    <div><dt>Export</dt><dd>Encrypted .zip bundle</dd></div>
+                    <div><dt>Cipher</dt><dd>AES-256-GCM</dd></div>
+                    <div><dt>Sync</dt><dd>None (by design)</dd></div>
+                  </dl>
+                </div>
+              </aside>
             </div>
-
-            <h3
-              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
-              Backups &amp; Moving Between Devices</h3>
-            <p class="docs-p" style="color: var(--text2);">
-              Click <strong>Export</strong> to download an encrypted <code>.zip</code> containing two files:
-              <code>ledger.enc.json</code> (your ledger, encrypted with AES-256-GCM) and <code>ledger.key.json</code>
-              (the key that decrypts it). Click <strong>Import</strong> and select that <code>.zip</code> to restore
-              everything on any device.
-            </p>
-            <p class="docs-p" style="color: var(--text2);">
-              You can also load the two files <strong>separately</strong> — Import the key and the encrypted ledger in
-              either order and OpenExpense joins them automatically. For sensitive backups, keep the key file apart from
-              the encrypted file so neither is useful on its own. Legacy plaintext <code>.json</code> exports still
-              import fine.
-            </p>
-
-            <h3
-              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
-              Technical Structure</h3>
-            <p class="docs-p" style="color: var(--text2);">
-              Your data uses a simple, readable dictionary structure. Calendar dates act as unique keys, mapping to your
-              expense objects. This is the shape used in export files and inside the encrypted record.
-            </p>
-
-            <div class="docs-code-block"
-              style="background: var(--surface2); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; border: 1px solid var(--border);">
-              { "name": "GBA Expenses", "events": { "2026-06-03": [{ "title": "API Hosting", "price": 49.99, "recurring": true }] } }
-            </div>
-
-            <h3
-              style="font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--text-strong);">
-              Security Notes</h3>
-            <ul class="docs-list" style="list-style: none; padding: 0; line-height: 1.8; color: var(--text2);">
-              <li style="margin-bottom: 4px;">&bull; <strong>Device-bound encryption:</strong> The key lives on this
-                device. It protects your stored data from casual inspection and backups, but not from someone with full
-                access to this browser profile.</li>
-              <li style="margin-bottom: 4px;">&bull; <strong>Backup often:</strong> Export your encrypted
-                <code>.zip</code> periodically so a cleared browser or lost device doesn't take your history with it.</li>
-              <li style="margin-bottom: 4px;">&bull; <strong>Split the set for sensitive data:</strong> The key and the
-                encrypted ledger can be stored or sent separately — together they decrypt, apart they don't.</li>
-              <li>&bull; <strong>No syncing:</strong> Since there is no cloud server, move your export
-                manually when switching computers.</li>
-            </ul>
           </div>
 
-          <!-- Developer Information Pane -->
-          <div id="pane-author" class="docs-pane">
-            <h2 class="docs-title">About the Developer</h2>
-            <div class="author-card">
-              <img src="avatar.jpeg" alt="Gregory Medina" class="author-photo"
-                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-              <div class="avatar-fallback">GM</div>
+          <!-- AI Operator -->
+          <div id="pane-operator" class="docs-pane">
+            <header class="docs-hero">
+              <p class="docs-eyebrow">Intelligent assistance</p>
+              <h2 class="docs-hero-title">AI Operator</h2>
+              <p class="docs-hero-lead">
+                OpenExpense includes local, privacy-respecting AI tools to speed up expense entry — without sending your
+                receipts or ledger to the cloud.
+              </p>
+            </header>
 
-              <div class="author-info">
-                <h3>Gregory Medina</h3>
-                <p>I build tools designed to provide total data sovereignty by removing reliance on cloud tracking.</p>
-                <div class="author-links">
-                  <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">
-                    <i class="ti ti-brand-github" aria-hidden="true"></i> GitHub Profile
-                  </a>
-                  <a href="mailto:oxracr@icloud.com">
-                    <i class="ti ti-mail" aria-hidden="true"></i> Contact
-                  </a>
+            <div class="docs-feature-grid is-two">
+              <article class="docs-feature-card">
+                <div class="docs-feature-icon"><i class="ti ti-scan" aria-hidden="true"></i></div>
+                <h3>Receipt scanning</h3>
+                <p>Click <strong>Scan Receipt</strong> to photograph or upload a receipt. OCR extracts merchant, date,
+                  and amount for you to review before saving.</p>
+              </article>
+              <article class="docs-feature-card">
+                <div class="docs-feature-icon"><i class="ti ti-device-desktop" aria-hidden="true"></i></div>
+                <h3>Runs in your browser</h3>
+                <p>Models download once (~5 MB) and cache locally. Processing happens on your device — not on our
+                  servers, because there aren't any.</p>
+              </article>
+            </div>
+
+            <section class="docs-section">
+              <div class="operator-card">
+                <div class="operator-badge" aria-hidden="true">
+                  <i class="ti ti-cpu"></i>
+                </div>
+                <div class="operator-info">
+                  <h3>Human-in-the-loop by default</h3>
+                  <p>Every scanned field is shown in a review sheet before it touches your ledger. You confirm or edit
+                    title, date, amount, and notes — nothing is auto-saved without your approval.</p>
+                  <ul class="docs-checklist">
+                    <li>OCR suggests values; you decide what gets saved.</li>
+                    <li>Raw scanned text is available if you need to verify parsing.</li>
+                    <li>Works offline after the first model download.</li>
+                  </ul>
+                  <div class="operator-links">
+                    <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">
+                      <i class="ti ti-brand-github" aria-hidden="true"></i> View source on GitHub
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
 
         </section>
-
       </div>
     </main>
 
+    <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
+      <i class="ti ti-camera" aria-hidden="true"></i>
+      <span class="quick-fab-label">Scan</span>
+    </button>
+
     <footer class="site-footer">
       <div class="footer-left">
+        <p class="footer-sovereignty">Your expenses never leave this device.</p>
         <span>&copy; 2026 openexpense.org &bull; MIT License</span>
       </div>
       <div class="footer-right">
@@ -324,13 +417,13 @@
       <div class="modal-columns">
 
         <div class="modal-panel">
-          <h4 class="panel-title">Existing Items</h4>
+          <h4 class="panel-title">Expenses this day</h4>
           <div id="events-container">
           </div>
         </div>
 
         <div class="modal-panel">
-          <h4 class="panel-title">Log New Item</h4>
+          <h4 class="panel-title">Add expense</h4>
           <div id="form-container">
           </div>
         </div>
@@ -340,7 +433,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif" hidden>
+  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
 
   <div id="global-tooltip"></div>
 

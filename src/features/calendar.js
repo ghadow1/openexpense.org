@@ -44,11 +44,12 @@ function ensureShell(calCol) {
     const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload' });
     const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download' });
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
-    const scanBtn = UI.createButton('Scan Receipt', () => Receipt.pickImage(), { icon: 'camera' });
+    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true });
+    scanBtn.classList.add('toolbar-scan-btn');
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
     [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],
-    [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt']].forEach(([btn, label]) => {
+    [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt — photo or PDF']].forEach(([btn, label]) => {
         btn.setAttribute('aria-label', label);
         btn.title = label;
     });
@@ -76,10 +77,20 @@ function updateMonthTitle(currentDate) {
     }
 }
 
-function getCalendarDensity() {
+function getCalendarDensity(colEl) {
+    const col = colEl || document.getElementById('cal-col');
+    const colW = col?.clientWidth || 0;
+
     if (Utils.isMobile()) return 'mobile';
+    if (colW > 0 && colW < 640) return 'compact';
+    if (colW > 0 && colW < 820) return 'narrow';
+    if (colW > 0 && colW < 980) return 'tablet';
     if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
     return 'desktop';
+}
+
+function syncDensityClass(density) {
+    if (shellEl) shellEl.dataset.density = density;
 }
 
 function appendCompactMobileDay(body, dayEvents) {
@@ -107,13 +118,20 @@ function appendCompactMobileDay(body, dayEvents) {
     body.appendChild(badge);
 }
 
-function appendPills(body, dayEvents, dateKey, maxVisible) {
+function appendPills(body, dayEvents, dateKey, maxVisible, density) {
     const visible = dayEvents.slice(0, maxVisible);
     visible.forEach(e => {
         const pill = document.createElement('div');
-        pill.className = `pill ${e.paid ? 'is-paid' : ''}`;
+        pill.className = `pill ${e.paid ? 'is-paid' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
         const amt = Utils.getPrice(e);
-        pill.innerHTML = `<span class="title">${Utils.escapeHtml(e.title)}</span>${amt > 0 ? `<span class="pill-amt">$${amt.toFixed(2)}</span>` : ''}`;
+        const title = Utils.escapeHtml(e.title);
+        if (density === 'narrow') {
+            pill.innerHTML = amt > 0
+                ? `<span class="pill-amt">$${amt.toFixed(2)}</span><span class="title">${title}</span>`
+                : `<span class="title">${title}</span>`;
+        } else {
+            pill.innerHTML = `<span class="title">${title}</span>${amt > 0 ? `<span class="pill-amt">$${amt.toFixed(2)}</span>` : ''}`;
+        }
         pill.onclick = (ev) => { ev.stopPropagation(); openModal(dateKey); };
         body.appendChild(pill);
     });
@@ -175,12 +193,13 @@ function renderGrid(y, m, events) {
             const body = document.createElement('div');
             body.className = 'cal-day-body';
 
-            const density = getCalendarDensity();
-            if (density === 'mobile') {
+            const density = getCalendarDensity(document.getElementById('cal-col'));
+
+            if (density === 'mobile' || density === 'compact') {
                 if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
             } else {
-                const maxVisible = density === 'tablet' ? 2 : 3;
-                appendPills(body, dayEvents, dateKey, maxVisible);
+                const maxVisible = density === 'narrow' ? 1 : density === 'tablet' ? 2 : 3;
+                appendPills(body, dayEvents, dateKey, maxVisible, density);
             }
 
             cell.appendChild(body);
@@ -203,6 +222,10 @@ export function renderCalendar(changedKeys) {
 
     ensureShell(calCol);
 
+    const density = getCalendarDensity(calCol);
+    syncDensityClass(density);
+    if (density !== lastDensity) lastDensity = density;
+
     if (monthChanged) {
         updateMonthTitle(currentDate);
         lastMonthKey = monthKey;
@@ -214,16 +237,30 @@ export function renderCalendar(changedKeys) {
 }
 
 let boundResize = false;
-let lastDensity = getCalendarDensity();
+let lastDensity = '';
+
+function refreshCalendarDensity() {
+    const col = document.getElementById('cal-col');
+    const density = getCalendarDensity(col);
+    syncDensityClass(density);
+    if (density === lastDensity) return;
+    lastDensity = density;
+    const { currentDate, events } = getState();
+    renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events);
+}
 
 export function bindResponsiveCalendar() {
     if (boundResize) return;
     boundResize = true;
-    window.addEventListener('resize', () => {
-        const density = getCalendarDensity();
-        if (density === lastDensity) return;
-        lastDensity = density;
-        const { currentDate, events } = getState();
-        renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events);
-    });
+
+    const col = document.getElementById('cal-col');
+    window.addEventListener('resize', refreshCalendarDensity);
+
+    if (col && typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(() => refreshCalendarDensity());
+        observer.observe(col);
+    }
+
+    lastDensity = getCalendarDensity(col);
+    syncDensityClass(lastDensity);
 }

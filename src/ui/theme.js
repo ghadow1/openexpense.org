@@ -16,6 +16,14 @@ export function applyTheme() {
     root.style.setProperty('--accent-ring', c.accentRing);
     root.style.setProperty('--thumb-bg', c.thumbBg);
     root.style.setProperty('--modal-shadow', c.modalShadow);
+
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+    }
+    meta.content = c.bg;
 }
 
 export function setTheme(isDark) {

@@ -19,6 +19,8 @@ export function switchView(viewName) {
         if (tabApp) tabApp.classList.remove('active');
         if (tabDocs) tabDocs.classList.add('active');
     }
+
+    window.scrollTo(0, 0);
 }
 
 export function switchDocTab(tabName) {

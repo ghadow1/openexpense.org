@@ -1,3 +1,5 @@
+import { Utils } from '../core/utils.js';
+
 let backdropEl = null;
 let keyHandler = null;
 let resolveActive = null;
@@ -10,6 +12,10 @@ function teardown(result) {
     if (backdropEl) {
         backdropEl.remove();
         backdropEl = null;
+    }
+    if (!document.getElementById('modal')?.classList.contains('open')
+        && !document.querySelector('.backdrop.open')) {
+        document.body.classList.remove('modal-open');
     }
     if (resolveActive) {
         const resolve = resolveActive;
@@ -72,6 +78,8 @@ export function confirmDialog({
         };
         document.addEventListener('keydown', keyHandler, true);
 
+        Utils.hideTooltip();
+        document.body.classList.add('modal-open');
         document.body.appendChild(backdropEl);
         requestAnimationFrame(() => okBtn.focus());
     });

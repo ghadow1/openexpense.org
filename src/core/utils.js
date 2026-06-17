@@ -9,14 +9,35 @@ export const Utils = {
     escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch])),
+    hideTooltip: () => {
+        const tt = document.getElementById('global-tooltip');
+        if (!tt) return;
+        tt.style.opacity = '0';
+        tt.textContent = '';
+    },
+    overlayOpen: () => document.body.classList.contains('modal-open')
+        || !!document.querySelector('.backdrop.open'),
     bindTooltip: (el, text) => {
         if (!text) return;
         const tt = document.getElementById('global-tooltip');
-        el.addEventListener('mouseenter', () => { tt.textContent = text; tt.style.opacity = '1'; });
-        el.addEventListener('mousemove', (e) => { tt.style.left = `${e.clientX}px`; tt.style.top = `${e.clientY - 15}px`; });
-        el.addEventListener('mouseleave', () => { tt.style.opacity = '0'; });
+        if (!tt) return;
+        el.addEventListener('mouseenter', () => {
+            if (Utils.overlayOpen()) return;
+            tt.textContent = text;
+            tt.style.opacity = '1';
+        });
+        el.addEventListener('mousemove', (e) => {
+            if (Utils.overlayOpen()) return;
+            tt.style.left = `${e.clientX}px`;
+            tt.style.top = `${e.clientY - 15}px`;
+        });
+        el.addEventListener('mouseleave', () => {
+            tt.style.opacity = '0';
+            tt.textContent = '';
+        });
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
@@ -25,5 +46,8 @@ export const Utils = {
     },
     filenameToLedgerName(filename) {
         return Utils.sanitizeFilename(String(filename ?? '').replace(/\.(zip|json)$/i, ''));
+    },
+    formatMoney(value) {
+        return `$${Number(value || 0).toFixed(2)}`;
     }
 };

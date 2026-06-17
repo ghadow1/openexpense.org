@@ -6,7 +6,7 @@ import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
 import { switchView, switchDocTab, showWelcome, closeWelcomeModal } from './app/views.js';
-import { closeModal, initModalBindings, renderModal } from './features/modal.js';
+import { closeModal, initModalBindings, renderModal, openModal } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
@@ -70,6 +70,11 @@ async function initApplication() {
 
     initModalBindings();
     bindResponsiveCalendar();
+
+    const warmOcr = () => { Receipt.warmEngine(); };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
+    else setTimeout(warmOcr, 3000);
+
     window.__oeBoot = { ok: true };
 }
 
@@ -84,6 +89,16 @@ function handleDelegatedClick(e) {
             case 'close-modal':
                 closeModal();
                 break;
+            case 'scan-receipt':
+                if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
+                Receipt.pickImage();
+                break;
+            case 'quick-add-today': {
+                const now = new Date();
+                switchView('app');
+                openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));
+                break;
+            }
         }
         return;
     }
