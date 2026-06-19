@@ -983,13 +983,13 @@ textarea,
    ========================================================================== */
 .docs-container {
     display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-    gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+    gap: clamp(24px, 4vw, 48px);
     width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: clamp(20px, 3vw, 36px);
+    padding: clamp(24px, 4vw, 44px);
     box-shadow: var(--shadow-sm);
     min-height: min(560px, calc(100dvh - 220px));
 }
@@ -1084,7 +1084,91 @@ textarea,
 .docs-content {
     padding-left: 4px;
     min-width: 0;
-    max-width: 960px;
+    max-width: 720px;
+}
+
+.docs-book {
+    width: 100%;
+}
+
+.docs-prose {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+}
+
+.docs-prose > p,
+.docs-prose .docs-chapter > p {
+    margin: 0 0 1em;
+    max-width: 68ch;
+}
+
+.docs-prose a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.docs-prose a:hover {
+    text-decoration: underline;
+}
+
+.docs-prose em {
+    font-style: italic;
+    color: var(--text-strong);
+}
+
+.docs-chapter {
+    margin-bottom: 2rem;
+    padding-bottom: 0.25rem;
+}
+
+.docs-chapter:last-child {
+    margin-bottom: 0;
+}
+
+.docs-chapter .docs-section-title {
+    margin-top: 0;
+    font-size: 1.05rem;
+    padding-top: 0.25rem;
+}
+
+.docs-prose .docs-list {
+    margin: 0 0 1em;
+    padding-left: 1.35rem;
+    max-width: 68ch;
+}
+
+.docs-prose .docs-list li {
+    margin-bottom: 0.45em;
+    line-height: 1.65;
+    color: var(--text);
+}
+
+.docs-prose .docs-list.is-ordered {
+    list-style: decimal;
+}
+
+.docs-prose .docs-checklist {
+    max-width: 68ch;
+    margin-bottom: 1em;
+}
+
+.docs-prose .docs-note {
+    max-width: 68ch;
+    margin: 1.25em 0;
+}
+
+.docs-prose .docs-note p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text2);
+}
+
+.docs-prose .docs-code-block {
+    margin: 1em 0 1.25em;
+    max-width: 100%;
 }
 
 .docs-pane {

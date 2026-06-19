@@ -154,230 +154,270 @@
       <div class="docs-container">
         <nav class="docs-nav" aria-label="Documentation sections">
           <button id="dt-manual" class="docs-nav-tab active" data-tab="manual">
-            <span class="docs-nav-icon"><i class="ti ti-help" aria-hidden="true"></i></span>
+            <span class="docs-nav-icon"><i class="ti ti-book" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
-              <span class="docs-nav-label">About</span>
-              <span class="docs-nav-desc">Privacy-first overview</span>
+              <span class="docs-nav-label">Introduction</span>
+              <span class="docs-nav-desc">What OpenExpense is</span>
+            </span>
+          </button>
+          <button id="dt-guide" class="docs-nav-tab" data-tab="guide">
+            <span class="docs-nav-icon"><i class="ti ti-map" aria-hidden="true"></i></span>
+            <span class="docs-nav-copy">
+              <span class="docs-nav-label">Using the app</span>
+              <span class="docs-nav-desc">Calendar, expenses &amp; receipts</span>
             </span>
           </button>
           <button id="dt-schema" class="docs-nav-tab" data-tab="schema">
-            <span class="docs-nav-icon"><i class="ti ti-code" aria-hidden="true"></i></span>
+            <span class="docs-nav-icon"><i class="ti ti-database" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
-              <span class="docs-nav-label">Data &amp; Events</span>
-              <span class="docs-nav-desc">Storage, export, schema</span>
-            </span>
-          </button>
-          <button id="dt-operator" class="docs-nav-tab" data-tab="operator">
-            <span class="docs-nav-icon"><i class="ti ti-cpu" aria-hidden="true"></i></span>
-            <span class="docs-nav-copy">
-              <span class="docs-nav-label">AI Operator</span>
-              <span class="docs-nav-desc">Local OCR &amp; assistance</span>
+              <span class="docs-nav-label">Your data</span>
+              <span class="docs-nav-desc">Storage, backup &amp; format</span>
             </span>
           </button>
         </nav>
 
         <section class="docs-content">
 
-          <!-- About -->
+          <!-- Introduction -->
           <div id="pane-manual" class="docs-pane active">
-            <header class="docs-hero">
-              <p class="docs-eyebrow">How it works</p>
-              <h2 class="docs-hero-title">Your finances, on your device</h2>
-              <p class="docs-hero-lead">
-                OpenExpense is a privacy-first, open-source tracker. No accounts, no cloud sync, no data mining —
-                just an encrypted ledger that lives in your browser.
-              </p>
-            </header>
+            <article class="docs-book">
+              <header class="docs-hero">
+                <p class="docs-eyebrow">Chapter 1</p>
+                <h2 class="docs-hero-title">Introduction</h2>
+                <p class="docs-hero-lead">
+                  OpenExpense is a privacy-first, open-source expense tracker. There are no accounts, no cloud sync,
+                  and no data mining — only an encrypted ledger that lives in your browser.
+                </p>
+              </header>
 
-            <div class="docs-feature-grid">
-              <article class="docs-feature-card">
-                <div class="docs-feature-icon"><i class="ti ti-shield-lock" aria-hidden="true"></i></div>
-                <h3>Data sovereignty</h3>
-                <p>You own your history. Nothing is tracked, profiled, or sent to a server.</p>
-              </article>
-              <article class="docs-feature-card">
-                <div class="docs-feature-icon"><i class="ti ti-brand-github" aria-hidden="true"></i></div>
-                <h3>Full transparency</h3>
-                <p>The codebase is open source and available for audit on GitHub.</p>
-              </article>
-              <article class="docs-feature-card">
-                <div class="docs-feature-icon"><i class="ti ti-coin-off" aria-hidden="true"></i></div>
-                <h3>Zero-cost model</h3>
-                <p>Free to use, with no subscriptions or ad-driven incentives.</p>
-              </article>
-            </div>
+              <div class="docs-prose">
+                <p>
+                  Most expense apps ask you to trust a company with your spending history. OpenExpense takes the
+                  opposite approach: the entire app runs on your device, your ledger is encrypted before it is written
+                  to storage, and nothing is uploaded to a server because there is no server.
+                </p>
+                <p>
+                  You are always in control. There is no background service, no AI operator, and no automated agent
+                  acting on your behalf — every expense is something you log, edit, or confirm yourself.
+                </p>
 
-            <section class="docs-section">
-              <h3 class="docs-section-title">Built for hostile environments</h3>
-              <p class="docs-p">
-                The architecture removes network dependency entirely so your financial habits stay private —
-                even on shared or untrusted devices.
-              </p>
-              <div class="docs-arch-grid">
-                <article class="docs-arch-card">
-                  <h4>Zero-server</h4>
-                  <p>Code runs on your hardware only. There are no remote backends to intercept data.</p>
-                </article>
-                <article class="docs-arch-card">
-                  <h4>Encrypted at rest</h4>
-                  <p>AES-256-GCM encryption before data hits disk. Keys are device-bound and non-extractable.</p>
-                </article>
-                <article class="docs-arch-card">
-                  <h4>Privacy by design</h4>
-                  <p>Without a cloud server, your records are immune to corporate breaches and harvesting.</p>
-                </article>
-                <article class="docs-arch-card">
-                  <h4>Total custody</h4>
-                  <p>Your financial life stays strictly between you and your machine.</p>
-                </article>
+                <h3 class="docs-section-title">What you get</h3>
+                <ul class="docs-list">
+                  <li><strong>Calendar ledger</strong> — tap any day to log one or more expenses.</li>
+                  <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
+                  <li><strong>Receipt scanning</strong> — photograph or upload a receipt or PDF; local OCR suggests fields you review before saving.</li>
+                  <li><strong>Encrypted autosave</strong> — changes write to encrypted local storage automatically.</li>
+                  <li><strong>Encrypted export</strong> — download a backup zip you can move to another device.</li>
+                  <li><strong>Spending report PDF</strong> — export the current month from the sidebar.</li>
+                </ul>
+
+                <h3 class="docs-section-title">Open source &amp; transparent</h3>
+                <p>
+                  The full codebase is on
+                  <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">GitHub</a>
+                  under the MIT license. You can read exactly how encryption, storage, and receipt parsing work.
+                  The project is free to use — no subscriptions, ads, or upsells.
+                </p>
+
+                <h3 class="docs-section-title">Privacy by architecture</h3>
+                <p>
+                  Because OpenExpense never calls a backend, your records cannot be harvested in a corporate breach or
+                  sold to advertisers. Encryption keys are created on your device and marked non-extractable, so even
+                  casual inspection of browser storage shows only ciphertext. On shared or untrusted devices, you can
+                  pause autosave from the header disk button so changes stay in memory only for that session.
+                </p>
               </div>
-            </section>
+            </article>
           </div>
 
-          <!-- Data & Events -->
+          <!-- Using the app -->
+          <div id="pane-guide" class="docs-pane">
+            <article class="docs-book">
+              <header class="docs-hero">
+                <p class="docs-eyebrow">Chapter 2</p>
+                <h2 class="docs-hero-title">Using the app</h2>
+                <p class="docs-hero-lead">
+                  Everything in OpenExpense is designed around the calendar. This chapter walks through logging
+                  expenses, reading your monthly summary, scanning receipts, and managing backups.
+                </p>
+              </header>
+
+              <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Ledger name &amp; status</h3>
+                  <p>
+                    Name your ledger at the top of the Expenses view (for example, <em>Personal expenses</em>).
+                    The name appears in exports and PDF reports. Next to it, a status chip shows whether encryption
+                    and autosave are active — green when your ledger is encrypted and saving locally, amber when
+                    autosave is paused or encryption is unavailable.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">The calendar</h3>
+                  <p>
+                    The main view is a month calendar. Use the arrows to change months, or tap <strong>Today</strong>
+                    to jump back to the current month. Days with expenses show a total; tap a day to open its detail
+                    panel.
+                  </p>
+                  <p>Toolbar actions on the calendar:</p>
+                  <ul class="docs-list">
+                    <li><strong>Import</strong> — load an encrypted backup zip, separate key/ledger files, or a legacy plaintext <code>.json</code>.</li>
+                    <li><strong>Export</strong> — download an encrypted <code>.zip</code> backup of your full ledger.</li>
+                    <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
+                    <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
+                  </ul>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Logging an expense</h3>
+                  <p>
+                    Tap a calendar day to open the expense panel. For each entry you can set:
+                  </p>
+                  <ul class="docs-list">
+                    <li><strong>Title</strong> — merchant or description.</li>
+                    <li><strong>Cost</strong> — amount in dollars.</li>
+                    <li><strong>Recurring</strong> — when checked on a new entry, copies forward to the same day in future months.</li>
+                    <li><strong>Paid</strong> — mark whether the charge is settled or still pending.</li>
+                    <li><strong>Notes</strong> — optional context (line items, invoice numbers, etc.).</li>
+                  </ul>
+                  <p>
+                    Existing entries can be edited inline or deleted. Nothing leaves the panel until you save.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Monthly summary sidebar</h3>
+                  <p>
+                    On wider screens, the right sidebar shows a spending report for the month you are viewing:
+                  </p>
+                  <ul class="docs-list">
+                    <li><strong>Total spent</strong> with paid vs pending breakdown.</li>
+                    <li><strong>Insights</strong> — averages, month-over-month trend, recurring vs one-time spend, and a projected total for the current month.</li>
+                    <li><strong>Top spend</strong> — your largest merchants by amount.</li>
+                    <li><strong>Year overview</strong> — bar chart of monthly totals; click a bar to jump to that month.</li>
+                    <li><strong>This month</strong> — pending and paid entries; click any row to open that day.</li>
+                  </ul>
+                  <p>
+                    Use the PDF button in the sidebar header to download a formatted monthly spending report.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Receipt scanning</h3>
+                  <p>
+                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
+                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
+                    it in your browser — processing never leaves your device.
+                  </p>
+                  <p>
+                    After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
+                    before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
+                    You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
+                    Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <div class="docs-note">
+                    <p>
+                      Receipt parsing is a convenience, not an autopilot. You are always the one who decides what
+                      gets saved — the app never auto-logs a scanned receipt without your confirmation.
+                    </p>
+                  </div>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Header controls</h3>
+                  <ul class="docs-list">
+                    <li><strong>Disk button</strong> — toggle autosave. When off, changes stay in memory only until you turn autosave back on or export a backup.</li>
+                    <li><strong>Sun/moon button</strong> — switch between light and dark theme.</li>
+                    <li><strong>Open Source</strong> — link to the GitHub repository.</li>
+                  </ul>
+                </section>
+              </div>
+            </article>
+          </div>
+
+          <!-- Your data -->
           <div id="pane-schema" class="docs-pane">
-            <header class="docs-hero">
-              <p class="docs-eyebrow">Data architecture</p>
-              <h2 class="docs-hero-title">Data sovereignty &amp; privacy</h2>
-              <p class="docs-hero-lead">
-                Because OpenExpense runs entirely in your browser, <strong>you are the only person who can access
-                your financial records.</strong>
-              </p>
-            </header>
+            <article class="docs-book">
+              <header class="docs-hero">
+                <p class="docs-eyebrow">Chapter 3</p>
+                <h2 class="docs-hero-title">Your data</h2>
+                <p class="docs-hero-lead">
+                  Because OpenExpense runs entirely in your browser, <strong>you are the only person who can access
+                  your financial records.</strong> This chapter covers how data is stored, backed up, and structured.
+                </p>
+              </header>
 
-            <div class="docs-split">
-              <div class="docs-split-main">
-                <section class="docs-section">
-                  <div class="docs-callout">
-                    <div class="docs-callout-head">
-                      <i class="ti ti-lock" aria-hidden="true"></i>
-                      <h3>How your data is stored</h3>
-                    </div>
-                    <p>Your ledger is saved in <strong>IndexedDB</strong> and encrypted with <strong>AES-256-GCM</strong>
-                      before it touches disk. The key is created on this device, marked non-extractable, and stored
-                      locally — inspecting storage shows only ciphertext.</p>
-                    <p><strong>Autosave</strong> writes every change to encrypted local storage automatically. The disk
-                      button in the header pauses it for a session where changes stay in memory only.</p>
-                    <p>Encryption requires a secure context (<code>https://</code> or <code>localhost</code>). The status
-                      chip on the calendar shows whether encryption and autosave are active.</p>
-                  </div>
+              <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">How your data is stored</h3>
+                  <p>
+                    Your ledger is saved in <strong>IndexedDB</strong> and encrypted with <strong>AES-256-GCM</strong>
+                    before it touches disk. The key is created on this device, marked non-extractable, and stored
+                    locally — inspecting browser storage shows only ciphertext.
+                  </p>
+                  <p>
+                    <strong>Autosave</strong> writes every change to encrypted local storage automatically (debounced,
+                    so rapid edits batch into one write). The disk button in the header pauses autosave for a session
+                    where changes stay in memory only.
+                  </p>
+                  <p>
+                    Encryption requires a secure context (<code>https://</code> or <code>localhost</code>). Open the
+                    app through a local server or HTTPS — not by double-clicking the HTML file — so encryption works.
+                    Only non-sensitive UI preferences (theme, autosave on/off, first-visit flag) use
+                    <code>localStorage</code>; the ledger itself never does.
+                  </p>
                 </section>
 
-                <section class="docs-section">
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">Backups &amp; moving between devices</h3>
-                  <div class="docs-flow">
-                    <div class="docs-flow-step">
-                      <span class="docs-flow-num">1</span>
-                      <div>
-                        <strong>Export</strong>
-                        <p>Download an encrypted <code>.zip</code> with <code>ledger.enc.json</code> and
-                          <code>ledger.key.json</code>.</p>
-                      </div>
-                    </div>
-                    <div class="docs-flow-step">
-                      <span class="docs-flow-num">2</span>
-                      <div>
-                        <strong>Split for safety</strong>
-                        <p>Store the key separately from the encrypted file — neither is useful alone.</p>
-                      </div>
-                    </div>
-                    <div class="docs-flow-step">
-                      <span class="docs-flow-num">3</span>
-                      <div>
-                        <strong>Import</strong>
-                        <p>Load the <code>.zip</code> or the two files in either order on any device. Legacy plaintext
-                          <code>.json</code> still imports.</p>
-                      </div>
-                    </div>
-                  </div>
+                  <p>
+                    Export is your manual backup. It produces an encrypted <code>.zip</code> containing
+                    <code>ledger.enc.json</code> (ciphertext), <code>ledger.key.json</code> (the decryption key),
+                    and a short <code>README.txt</code>.
+                  </p>
+                  <ol class="docs-list is-ordered">
+                    <li><strong>Export</strong> — download the encrypted zip from the calendar toolbar.</li>
+                    <li><strong>Split for safety</strong> — store the key file separately from the encrypted ledger; neither is useful alone.</li>
+                    <li><strong>Import</strong> — load the zip, or the two files in either order, on any device. Legacy plaintext <code>.json</code> exports still import.</li>
+                  </ol>
+                  <p>
+                    There is no cloud sync. Move backups manually — USB drive, encrypted cloud folder, or any method
+                    you trust.
+                  </p>
                 </section>
 
-                <section class="docs-section">
-                  <h3 class="docs-section-title">Technical structure</h3>
-                  <p class="docs-p">Calendar dates are unique keys mapping to expense objects — the same shape used in
-                    exports and inside the encrypted record.</p>
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Ledger format</h3>
+                  <p>
+                    Inside the encrypted record, calendar dates are unique keys mapping to arrays of expense objects.
+                    This is the same shape used in exports (after decryption) and legacy imports:
+                  </p>
                   <pre class="docs-code-block"><code>{
   "name": "GBA Expenses",
   "events": {
     "2026-06-03": [
-      { "title": "API Hosting", "price": 49.99, "recurring": true, "paid": false }
+      { "title": "API Hosting", "price": 49.99, "recurring": true, "paid": false, "note": "" }
     ]
   }
 }</code></pre>
+                  <p>
+                    Each expense has a <code>title</code>, <code>price</code>, and optional <code>recurring</code>,
+                    <code>paid</code>, and <code>note</code> fields. Dates use <code>YYYY-MM-DD</code> keys.
+                  </p>
                 </section>
-              </div>
 
-              <aside class="docs-split-aside">
-                <div class="docs-aside-card">
-                  <h4>Security notes</h4>
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Security notes</h3>
                   <ul class="docs-checklist">
-                    <li><strong>Device-bound keys</strong> protect against casual inspection, not full browser access.</li>
-                    <li><strong>Backup often</strong> — export your encrypted <code>.zip</code> periodically.</li>
-                    <li><strong>Split sensitive sets</strong> — key and ciphertext apart when storing or sending.</li>
+                    <li><strong>Device-bound keys</strong> protect against casual inspection, not a compromised browser with full access.</li>
+                    <li><strong>Backup often</strong> — export your encrypted zip periodically.</li>
+                    <li><strong>Split sensitive sets</strong> — keep key and ciphertext apart when storing or sending.</li>
                     <li><strong>No syncing</strong> — move exports manually between computers.</li>
                   </ul>
-                </div>
-                <div class="docs-aside-card is-accent">
-                  <h4>Quick reference</h4>
-                  <dl class="docs-kv">
-                    <div><dt>Storage</dt><dd>IndexedDB (encrypted)</dd></div>
-                    <div><dt>Export</dt><dd>Encrypted .zip bundle</dd></div>
-                    <div><dt>Cipher</dt><dd>AES-256-GCM</dd></div>
-                    <div><dt>Sync</dt><dd>None (by design)</dd></div>
-                  </dl>
-                </div>
-              </aside>
-            </div>
-          </div>
-
-          <!-- AI Operator -->
-          <div id="pane-operator" class="docs-pane">
-            <header class="docs-hero">
-              <p class="docs-eyebrow">Intelligent assistance</p>
-              <h2 class="docs-hero-title">AI Operator</h2>
-              <p class="docs-hero-lead">
-                OpenExpense includes local, privacy-respecting AI tools to speed up expense entry — without sending your
-                receipts or ledger to the cloud.
-              </p>
-            </header>
-
-            <div class="docs-feature-grid is-two">
-              <article class="docs-feature-card">
-                <div class="docs-feature-icon"><i class="ti ti-scan" aria-hidden="true"></i></div>
-                <h3>Receipt scanning</h3>
-                <p>Click <strong>Scan Receipt</strong> to photograph or upload a receipt. OCR extracts merchant, date,
-                  and amount for you to review before saving.</p>
-              </article>
-              <article class="docs-feature-card">
-                <div class="docs-feature-icon"><i class="ti ti-device-desktop" aria-hidden="true"></i></div>
-                <h3>Runs in your browser</h3>
-                <p>Models download once (~5 MB) and cache locally. Processing happens on your device — not on our
-                  servers, because there aren't any.</p>
-              </article>
-            </div>
-
-            <section class="docs-section">
-              <div class="operator-card">
-                <div class="operator-badge" aria-hidden="true">
-                  <i class="ti ti-cpu"></i>
-                </div>
-                <div class="operator-info">
-                  <h3>Human-in-the-loop by default</h3>
-                  <p>Every scanned field is shown in a review sheet before it touches your ledger. You confirm or edit
-                    title, date, amount, and notes — nothing is auto-saved without your approval.</p>
-                  <ul class="docs-checklist">
-                    <li>OCR suggests values; you decide what gets saved.</li>
-                    <li>Raw scanned text is available if you need to verify parsing.</li>
-                    <li>Works offline after the first model download.</li>
-                  </ul>
-                  <div class="operator-links">
-                    <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">
-                      <i class="ti ti-brand-github" aria-hidden="true"></i> View source on GitHub
-                    </a>
-                  </div>
-                </div>
+                </section>
               </div>
-            </section>
+            </article>
           </div>
 
         </section>
