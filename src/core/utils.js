@@ -41,6 +41,12 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    shouldWarmHeavyFeature() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || '')) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory <= 2) return false;
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

@@ -3,6 +3,29 @@ import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+const OCR_IMAGE_LIMITS = Object.freeze({
+    minSide: 1000,
+    maxSide: 2400,
+    pdfPreviewMaxSide: 2400,
+    pdfMaxRenderScale: 2.5
+});
+
+const RECEIPT_FLOW_TAGS = Object.freeze({
+    progress: 'receipt-ocr-progress',
+    preview: 'receipt-review-sheet',
+    previewImage: 'receipt-preview-image',
+    rawText: 'receipt-raw-text'
+});
+
+/**
+ * Local receipt OCR pipeline.
+ *
+ * @codeTag receipt-input: camera/file/PDF input and platform capture hints.
+ * @codeTag receipt-engine: lazy PP-OCRv5 initialization and warmup.
+ * @codeTag receipt-pdf: text-first PDF extraction with OCR fallback.
+ * @codeTag receipt-parser: heuristic merchant/date/total extraction.
+ * @codeTag receipt-review: human confirmation before ledger writes.
+ */
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
@@ -14,7 +37,8 @@ export const Receipt = {
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
+    _warmStarted: false,
+    _warmPromise: null,
 
     isPdf(file) {
         if (!file) return false;
@@ -124,7 +148,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_IMAGE_LIMITS.pdfMaxRenderScale,
+            OCR_IMAGE_LIMITS.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +160,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -142,6 +169,20 @@ export const Receipt = {
             previewUrl,
             hasExtractedText: text.trim().length >= 12 || lines.length >= 2
         };
+    },
+
+    canvasToPreviewUrl(canvas) {
+        if (!canvas.toBlob) return Promise.resolve(canvas.toDataURL('image/jpeg', 0.86));
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(URL.createObjectURL(blob));
+                    return;
+                }
+                resolve(canvas.toDataURL('image/jpeg', 0.86));
+            }, 'image/jpeg', 0.86);
+        });
     },
 
     async ocrCanvas(service, canvas, onProgress) {
@@ -178,7 +219,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_IMAGE_LIMITS.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +241,7 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = OCR_IMAGE_LIMITS;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -292,7 +332,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,8 +356,6 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
@@ -326,8 +363,9 @@ export const Receipt = {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-progress';
+        backdrop.dataset.oeReceipt = RECEIPT_FLOW_TAGS.progress;
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-progress" role="status" aria-live="polite">
+            <div class="modal-shell ocr-progress" role="status" aria-live="polite" data-oe-receipt="${RECEIPT_FLOW_TAGS.progress}">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
                 <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
@@ -689,8 +727,9 @@ export const Receipt = {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
+        backdrop.dataset.oeReceipt = RECEIPT_FLOW_TAGS.preview;
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt" data-oe-receipt="${RECEIPT_FLOW_TAGS.preview}">
                 <div class="ocr-sheet-header">
                     <div>
                         <h3 class="modal-title">Review receipt</h3>
@@ -699,7 +738,7 @@ export const Receipt = {
                     <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="" data-oe-receipt="${RECEIPT_FLOW_TAGS.previewImage}"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-title">Title / Merchant</label>
@@ -726,7 +765,7 @@ export const Receipt = {
                     </div>
                     <details class="ocr-raw">
                         <summary>View raw scanned text</summary>
-                        <pre>${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
+                        <pre data-oe-receipt="${RECEIPT_FLOW_TAGS.rawText}">${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
@@ -795,9 +834,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };

@@ -71,7 +71,9 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
+    const warmOcr = () => {
+        if (Utils.shouldWarmHeavyFeature()) Receipt.warmEngine();
+    };
     if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
     else setTimeout(warmOcr, 3000);
 
