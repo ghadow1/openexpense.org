@@ -2,7 +2,8 @@
   "name": "openexpense.org",
   "private": true,
   "scripts": {
-    "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && npm run serve",
     "serve": "python3 -m http.server 8765"
   },
   "devDependencies": {

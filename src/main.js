@@ -71,6 +71,7 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
+    // @tag ocr-performance Warm OCR during idle time unless the browser is in data-saver mode.
     const warmOcr = () => { Receipt.warmEngine(); };
     if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
     else setTimeout(warmOcr, 3000);

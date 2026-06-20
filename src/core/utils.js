@@ -1,3 +1,7 @@
+/**
+ * @module core/platform-utils
+ * Small DOM, formatting, and capability helpers shared across the PWA.
+ */
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +40,13 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    /** @tag platform-mobile Responsive UI breakpoint used for mobile layouts. */
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    /** @tag platform-camera Prefer the rear camera on touch/coarse-pointer devices. */
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    /** @tag platform-network Respect explicit browser data-saver preferences. */
+    prefersReducedData: () => navigator.connection?.saveData === true,
+    /** @tag platform-desktop Use the File System Access API only when it is safe and ergonomic. */
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

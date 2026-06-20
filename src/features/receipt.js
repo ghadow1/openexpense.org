@@ -1,14 +1,26 @@
+import { OCR_RESOURCES } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+/**
+ * @module feature/receipt
+ * @tag ocr-engine
+ * @tag receipt-parser
+ * @tag receipt-review-ui
+ * @platform all
+ *
+ * Client-side receipt intake for images and PDFs. The module is intentionally
+ * browser-only: OCR runs in the user's device with CDN-loaded PP-OCRv5 assets,
+ * and parsed fields must be reviewed before anything is saved.
+ */
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_RESOURCES.paddleOcrCdn,
+    PDF_CDN: OCR_RESOURCES.pdfJsCdn,
+    PDF_WORKER: OCR_RESOURCES.pdfWorkerCdn,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -32,7 +44,15 @@ export const Receipt = {
         input.click();
     },
 
+    /** @tag ocr-performance Choose OCR scale bounds for mobile CPU/GPU budgets. */
+    ocrCanvasBounds() {
+        return Utils.isMobile()
+            ? OCR_RESOURCES.canvasBounds.mobile
+            : OCR_RESOURCES.canvasBounds.desktop;
+    },
+
     warmEngine() {
+        if (Utils.prefersReducedData()) return Promise.resolve(null);
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
         Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
@@ -178,7 +198,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const { maxSide } = Receipt.ocrCanvasBounds();
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +220,7 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = Receipt.ocrCanvasBounds();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -264,6 +283,10 @@ export const Receipt = {
         return body;
     },
 
+    /**
+     * @tag ocr-engine
+     * Reads either selectable PDF text or rendered image text before parsing.
+     */
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -621,6 +644,11 @@ export const Receipt = {
         return items;
     },
 
+    /**
+     * @tag receipt-parser
+     * Turns OCR/PDF text into reviewable ledger fields. Keep this deterministic
+     * and side-effect free so fixture tests can cover parser behavior.
+     */
     parse(text, lines, confidence = 0) {
         const lineList = (lines && lines.length)
             ? lines
@@ -678,6 +706,11 @@ export const Receipt = {
         };
     },
 
+    /**
+     * @tag receipt-review-ui
+     * Review is the trust boundary: OCR can suggest fields, but the user must
+     * confirm before data enters the encrypted ledger.
+     */
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
