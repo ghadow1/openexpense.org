@@ -22,7 +22,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero app servers** — no backend, no database, and no data-uploading API calls. Third-party libraries are loaded as static assets only.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
@@ -30,9 +30,13 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit rebuilt assets after source edits. `npm run build` removes old generated bundles before writing the current set.
 
 ```
+docs/
+└── OCR.md             # OCR pipeline, performance bounds, and parser notes
+scripts/
+└── build.mjs          # Cleans generated bundles, then runs esbuild
 src/
 ├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
@@ -49,6 +53,18 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR pipeline
+
+Receipt scanning lives in `src/features/receipt.js` and is tagged with readable section markers such as `[ocr:engine]`, `[ocr:pdf]`, `[ocr:canvas]`, and `[ocr:parser]`. Shared OCR resource pins and cross-platform canvas bounds live in `src/config.js` as `OCR_RESOURCES`.
+
+- **Mobile-first capture** — coarse-pointer and narrow devices ask for the environment camera; desktop users get a normal file picker.
+- **Text-first PDFs** — PDF text extraction runs before OCR, so digital invoices avoid model work when possible.
+- **Bounded canvases** — images are normalized between 1000px and 2400px on the long side to preserve receipt text while limiting mobile memory and CPU cost.
+- **Lazy OCR engine** — PP-OCRv5 and ONNX load only when scanning starts or during idle warm-up; first scan downloads model assets, then browser caching handles repeat scans.
+- **Review before save** — OCR never writes directly to the ledger. The user reviews merchant, total, date, notes, and raw scanned text before saving.
+
+See [`docs/OCR.md`](docs/OCR.md) for implementation notes and platform guidance.
 
 ## Data format
 
