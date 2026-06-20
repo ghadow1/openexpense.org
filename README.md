@@ -8,14 +8,17 @@
 ## Quick start
 
 ```bash
-# Start the local dev server (http://localhost:8765)
+# Rebuild app.js after editing anything in src/
+npm run build
+
+# Rebuild once, then start the local dev server (http://localhost:8765)
+npm run dev
+
+# Or start only the server when app.js is already current
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
-
-# Rebuild app.js after editing anything in src/
-npm run build
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +52,17 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform notes
+
+Receipt scanning is documented in [`docs/OCR.md`](docs/OCR.md). The short version:
+
+- The scanner accepts camera images, uploaded images, HEIC-compatible browser uploads, and PDFs.
+- PDFs use selectable text first and only fall back to OCR when text is unavailable.
+- OCR resources are lazy-loaded from pinned CDN URLs in `src/config.js` and the `index.html` import map.
+- Desktop devices use a larger OCR canvas budget; mobile devices use smaller bounds to reduce memory and inference cost.
+- Browser data-saver mode skips idle OCR warm-up, but user-initiated scans still work.
+- Parser and platform code use `@tag` comments such as `ocr-engine`, `receipt-parser`, and `platform-export` to make responsibilities searchable.
 
 ## Data format
 

@@ -311,6 +311,12 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    PDFs are read as selectable text first, which is faster and avoids OCR when invoices already
+                    contain text. Photos and scanned PDFs are resized on-device for the current screen class, with a
+                    lighter mobile profile to reduce memory use. If your browser has data-saver enabled, OpenExpense
+                    waits to load OCR assets until you start a scan.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.

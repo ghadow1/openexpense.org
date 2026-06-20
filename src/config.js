@@ -6,6 +6,23 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+/**
+ * @tag ocr-resources
+ * @platform all
+ *
+ * CDN entry points and OCR canvas bounds used by the receipt scanner. Keep these
+ * pins aligned with the import map in index.html and docs/OCR.md.
+ */
+export const OCR_RESOURCES = {
+    paddleOcrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+    pdfJsCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+    pdfWorkerCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    canvasBounds: {
+        desktop: { minSide: 1000, maxSide: 2400 },
+        mobile: { minSide: 900, maxSide: 1800 }
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
