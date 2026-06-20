@@ -11,6 +11,21 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// [ocr:resources] CDN resources stay lazy so the base calendar remains fast.
+// Keep these pins in sync with index.html import-map peer dependencies.
+export const OCR_RESOURCES = {
+    paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+    pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+    pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    firstScanModelSize: '~5 MB',
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

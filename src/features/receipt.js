@@ -1,20 +1,15 @@
+import { OCR_RESOURCES } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
 
     isPdf(file) {
         if (!file) return false;
@@ -32,6 +27,7 @@ export const Receipt = {
         input.click();
     },
 
+    // [ocr:engine] PP-OCRv5 and ONNX are warmed lazily so app startup stays light.
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -45,7 +41,7 @@ export const Receipt = {
 
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
-            const { PaddleOcrService } = await import(Receipt.OCR_CDN);
+            const { PaddleOcrService } = await import(OCR_RESOURCES.paddleOcr);
             onProgress?.('Downloading models (first scan only)…', 0.2);
             const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
             await service.initialize();
@@ -72,13 +68,14 @@ export const Receipt = {
         }
     },
 
+    // [ocr:pdf] Text-based PDFs bypass OCR; scanned PDFs render page one for OCR fallback.
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
 
         Receipt._pdfjsPromise = (async () => {
-            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
-            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
+            const pdfjs = await import(/* @vite-ignore */ OCR_RESOURCES.pdfJs);
+            pdfjs.GlobalWorkerOptions.workerSrc = OCR_RESOURCES.pdfWorker;
             Receipt._pdfjs = pdfjs;
             return pdfjs;
         })();
@@ -124,7 +121,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_RESOURCES.canvas.pdfPreviewMaxScale,
+            OCR_RESOURCES.canvas.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -178,7 +178,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_RESOURCES.canvas.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -199,9 +199,9 @@ export const Receipt = {
         }
     },
 
+    // [ocr:canvas] Keep enough pixels for receipt text while bounding mobile memory/CPU.
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = OCR_RESOURCES.canvas;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -292,7 +292,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,8 +316,6 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
@@ -330,7 +327,7 @@ export const Receipt = {
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
+                <p class="ocr-progress-note">First scan downloads models (${OCR_RESOURCES.firstScanModelSize} OCR, PDF reader on demand), then caches locally.</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
@@ -621,6 +618,7 @@ export const Receipt = {
         return items;
     },
 
+    // [ocr:parser] Heuristics prefer explicit totals, then invoice rows, then conservative amount inference.
     parse(text, lines, confidence = 0) {
         const lineList = (lines && lines.length)
             ? lines
@@ -795,9 +793,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };
