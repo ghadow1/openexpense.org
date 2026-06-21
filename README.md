@@ -34,7 +34,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +45,26 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── ocr-platform.md    # OCR pipeline, platform profiles, and readable tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform notes
+
+Receipt scanning is configured in `OCR_CONFIG` (`src/config.js`) and implemented in `src/features/receipt.js`.
+The browser lazy-loads PP-OCRv5 and PDF.js only when scanning is needed. Desktop browsers may warm the OCR engine
+during idle time; mobile and low-power devices wait for an explicit scan to conserve battery and memory.
+
+Canvas sizing uses human-readable platform tags:
+
+- `platform:mobile-camera` keeps images smaller for phones, tablets, and coarse-pointer devices.
+- `platform:desktop-workstation` preserves more detail for desktop CPUs and larger displays.
+- `platform:low-power` caps work for devices with limited memory or CPU cores.
+
+See [`docs/ocr-platform.md`](docs/ocr-platform.md) for the full receipt reading flow and tag glossary.
 
 ## Data format
 
