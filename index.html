@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- OCR_RECEIPT_PIPELINE_V1 peer pins; keep in sync with OCR_CONFIG.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -309,6 +309,12 @@
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
                     it in your browser — processing never leaves your device.
+                  </p>
+                  <p>
+                    The scanner adapts to the device you are using. Phones and tablets use smaller OCR canvases to
+                    reduce memory, heat, and battery drain; desktop-class browsers can prewarm OCR during idle time
+                    and use larger canvases for sharper text recognition. PDFs with embedded text are parsed directly
+                    before OCR is considered.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
