@@ -38,6 +38,18 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    platformProfile() {
+        const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const isNarrowScreen = window.matchMedia('(max-width: 900px)').matches;
+        const memoryGb = Number(navigator.deviceMemory || 0);
+        const cpuCores = Number(navigator.hardwareConcurrency || 0);
+        return {
+            isMobileLike: isCoarsePointer || isNarrowScreen,
+            isConstrained: (memoryGb > 0 && memoryGb <= 4) || (cpuCores > 0 && cpuCores <= 4),
+            memoryGb,
+            cpuCores
+        };
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

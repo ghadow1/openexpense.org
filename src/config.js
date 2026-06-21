@@ -11,6 +11,52 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const OCR_CONFIG = {
+    runtime: {
+        // OCR runs locally in the browser. Keep these pins explicit so peer
+        // dependencies in index.html and the lazy imports stay in sync.
+        engineUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        recognition: { strategy: 'cross-line' }
+    },
+    canvas: {
+        minSide: 1000,
+        desktopMaxSide: 2600,
+        mobileMaxSide: 1800,
+        constrainedMaxSide: 1400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        jpegPreviewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        sampleSize: 64
+    },
+    progress: {
+        loadEngine: ['Loading OCR engine...', 0.08],
+        downloadModels: ['Downloading models (first scan only)...', 0.2],
+        warmup: ['Warming up...', 0.88],
+        readText: ['Reading text...', 0.55],
+        pdfLoad: ['Loading PDF...', 0.25],
+        pdfRenderPreview: ['Rendering preview...', 0.55],
+        ready: ['Ready', 1],
+        done: ['Done', 1]
+    },
+    codeTags: {
+        scanInput: 'receipt.scan-input',
+        quickScanButton: 'receipt.quick-scan',
+        progressDialog: 'ocr.progress-dialog',
+        reviewDialog: 'ocr.review-dialog',
+        reviewMerchant: 'ocr.review.merchant',
+        reviewAmount: 'ocr.review.amount',
+        reviewDate: 'ocr.review.date',
+        reviewNotes: 'ocr.review.notes',
+        reviewRawText: 'ocr.review.raw-text'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

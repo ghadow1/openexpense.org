@@ -25,7 +25,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5) with mobile/desktop canvas tuning; images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -34,7 +34,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, OCR_CONFIG, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -49,6 +49,17 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform
+
+Receipt scanning is implemented in `src/features/receipt.js` and configured from `OCR_CONFIG` in `src/config.js`.
+
+- OCR and PDF libraries are lazy-loaded from pinned CDN URLs and run locally in the browser.
+- Image decode uses `createImageBitmap` when available, with an `Image` fallback for browser-specific formats.
+- Canvas sizes are tuned from the runtime platform profile in `src/core/utils.js`: desktop devices can use larger OCR canvases, while mobile or constrained devices use smaller bounds to reduce memory pressure.
+- Human-readable `data-code-tag` attributes mark scan entry points and review fields (for example, `receipt.quick-scan`, `ocr.review.amount`, and `ocr.review.raw-text`).
+
+See [`docs/ocr-platform.md`](docs/ocr-platform.md) for the full OCR performance and tagging contract.
 
 ## Data format
 
