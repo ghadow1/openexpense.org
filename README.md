@@ -14,7 +14,7 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk-*.js after editing anything in src/
 npm run build
 ```
 
@@ -30,7 +30,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and `chunk-*.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets after editing `src/`.
 
 ```
 src/
@@ -49,6 +49,18 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR architecture
+
+Receipt scanning lives in `src/features/receipt.js` and is tagged by pipeline section (`OCR_RESOURCE`, `OCR_ENGINE`, `OCR_PDF`, `OCR_IMAGE`, `OCR_PARSE`, and `OCR_REVIEW`) so maintainers can follow the flow from upload to reviewed expense.
+
+- **Latest browser resources without bundling model weight:** `ppu-paddle-ocr@5.8.0` is lazy-loaded from jsDelivr on first scan. Its peer runtime pins are kept in the `index.html` import map (`onnxruntime-web@1.23.2` and `ppu-ocv@3.2.2`), while PDF extraction uses `pdfjs-dist@4.10.38` only for PDF uploads.
+- **Cross-platform performance:** the app preconnects to the CDN, idles the OCR warmup on capable connections, and respects Data Saver / `prefers-reduced-data` by waiting for an explicit scan before downloading OCR resources. Image uploads use `createImageBitmap` when available for off-main-thread decoding, with an `Image` fallback for older mobile and desktop browsers.
+- **PDF text-first path:** text PDFs and invoices are parsed without OCR when enough embedded text is available. Image-only PDFs render the first page to a bounded canvas and then use the same OCR path as photos.
+- **Memory-aware canvas sizing:** camera photos, screenshots, and scans are normalized to a 1000-2400px longest side range to balance OCR accuracy with mobile GPU/canvas memory.
+- **Human review:** OCR never writes directly to the ledger. The review sheet shows the source preview, suggested merchant, amount, date, notes, confidence, and raw recognized text before saving.
+
+HEIC/HEIF selection is accepted so supported browsers can decode native mobile photos, but support depends on the browser's image decoder. For the most reliable cross-device OCR, use JPEG, PNG, or a text PDF.
 
 ## Data format
 
