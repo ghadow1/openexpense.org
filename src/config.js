@@ -9,7 +9,38 @@ export const CONFIG = {
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
-export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
+export const STORAGE_KEYS = {
+    theme: 'oe-theme',
+    visited: 'hasVisited',
+    autosave: 'oe-autosave',
+    receiptScannerUsed: 'oe-receipt-scanner-used'
+};
+
+export const OCR_CONFIG = {
+    engineUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+    pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+    pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    canvas: {
+        minSide: 1000,
+        defaultMaxSide: 2400,
+        lowMemoryMaxSide: 2000,
+        highMemoryMaxSide: 2600,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    progress: {
+        loadEngine: 'Loading OCR engine...',
+        downloadModels: 'Downloading models (first scan only)...',
+        warmup: 'Warming up...',
+        ready: 'Ready',
+        loadPdf: 'Loading PDF...',
+        readPdfPage: (pageNum) => `Reading PDF page ${pageNum}...`,
+        renderPreview: 'Rendering preview...',
+        readText: 'Reading text...',
+        done: 'Done'
+    }
+};
 
 export const THEMES = {
     light: {

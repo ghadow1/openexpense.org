@@ -1,3 +1,4 @@
+import { OCR_CONFIG, STORAGE_KEYS } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
@@ -6,9 +7,9 @@ import { saveExpense } from './modal.js';
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.engineUrl,
+    PDF_CDN: OCR_CONFIG.pdfUrl,
+    PDF_WORKER: OCR_CONFIG.pdfWorkerUrl,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -39,17 +40,33 @@ export const Receipt = {
         return Receipt._warmPromise;
     },
 
+    rememberScannerUse() {
+        try { localStorage.setItem(STORAGE_KEYS.receiptScannerUsed, '1'); } catch (_) { }
+    },
+
+    hasScannerHistory() {
+        try { return localStorage.getItem(STORAGE_KEYS.receiptScannerUsed) === '1'; } catch (_) { return false; }
+    },
+
+    ocrMaxSide() {
+        const canvas = OCR_CONFIG.canvas;
+        const memory = Number(navigator.deviceMemory || 0);
+        if (Utils.prefersCamera() && memory > 0 && memory <= 4) return canvas.lowMemoryMaxSide;
+        if (!Utils.prefersCamera() && memory >= 8) return canvas.highMemoryMaxSide;
+        return canvas.defaultMaxSide;
+    },
+
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
-            onProgress?.('Loading OCR engine…', 0.08);
+            onProgress?.(OCR_CONFIG.progress.loadEngine, 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
-            onProgress?.('Downloading models (first scan only)…', 0.2);
+            onProgress?.(OCR_CONFIG.progress.downloadModels, 0.2);
             const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
             await service.initialize();
-            onProgress?.('Warming up…', 0.88);
+            onProgress?.(OCR_CONFIG.progress.warmup, 0.88);
             const warm = document.createElement('canvas');
             warm.width = warm.height = 64;
             const ctx = warm.getContext('2d');
@@ -60,7 +77,7 @@ export const Receipt = {
             ctx.fillText('A', 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
-            onProgress?.('Ready', 1);
+            onProgress?.(OCR_CONFIG.progress.ready, 1);
             return service;
         })();
 
@@ -108,23 +125,26 @@ export const Receipt = {
     },
 
     async pdfToCanvasAndText(file, onProgress) {
-        onProgress?.('Loading PDF…', 0.25);
+        onProgress?.(OCR_CONFIG.progress.loadPdf, 0.25);
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
 
         const allLines = [];
         for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-            onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
+            onProgress?.(OCR_CONFIG.progress.readPdfPage(pageNum), 0.25 + (pageNum / doc.numPages) * 0.25);
             const page = await doc.getPage(pageNum);
             const textContent = await page.getTextContent();
             allLines.push(...Receipt.linesFromPdfTextContent(textContent));
         }
 
-        onProgress?.('Rendering preview…', 0.55);
+        onProgress?.(OCR_CONFIG.progress.renderPreview, 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfPreviewMaxScale,
+            OCR_CONFIG.canvas.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +153,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -145,7 +165,7 @@ export const Receipt = {
     },
 
     async ocrCanvas(service, canvas, onProgress) {
-        onProgress?.('Reading text…', 0.55);
+        onProgress?.(OCR_CONFIG.progress.readText, 0.55);
 
         let result = await service.recognize(canvas, { flatten: false });
         let flatResult = null;
@@ -169,17 +189,40 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    async decodeImageSource(file, previewUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return { source: bitmap, close: () => bitmap.close?.() };
+            } catch (_) {
+                // Fall back to <img> decoding for older WebViews and unsupported formats.
+            }
+        }
+
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = previewUrl;
+        });
+        return { source: img, close: () => {} };
+    },
+
+    imageSize(source) {
+        return {
+            width: source.naturalWidth || source.width || 0,
+            height: source.naturalHeight || source.height || 0
+        };
+    },
+
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let decoded = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            decoded = await Receipt.decodeImageSource(file, url);
+            const maxSide = Receipt.ocrMaxSide();
+            let { width, height } = Receipt.imageSize(decoded.source);
+            if (!width || !height) throw new Error('Could not read image dimensions');
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,20 +234,23 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.drawImage(decoded.source, 0, 0, width, height);
             return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            decoded?.close?.();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = Receipt.ocrMaxSide();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
+        if (!longest) return source;
 
         if (longest < minSide) {
             const scale = minSide / longest;
@@ -270,7 +316,7 @@ export const Receipt = {
             Receipt._previewUrl = pdf.previewUrl;
 
             if (pdf.hasExtractedText) {
-                onProgress?.('Done', 1);
+                onProgress?.(OCR_CONFIG.progress.done, 1);
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
@@ -292,6 +338,7 @@ export const Receipt = {
     },
 
     async scan(file) {
+        Receipt.rememberScannerUse();
         Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
@@ -444,6 +491,8 @@ export const Receipt = {
         return null;
     },
 
+    // OCR_TAG amount-scoring: prefer explicit total/due rows while suppressing
+    // payment method, subtotal, tax, address, and invoice metadata amounts.
     scoreAmount(line) {
         const lower = line.toLowerCase();
         let score = 0;
@@ -470,6 +519,8 @@ export const Receipt = {
         return amounts.length === 1 ? amounts[0] : null;
     },
 
+    // OCR_TAG invoice-cluster: many PDF invoices expose line item subtotal/fee
+    // pairs instead of one grand total, so cluster nearby rows before summing.
     collectInvoiceAmounts(lineList) {
         const rows = [];
         for (let i = 0; i < lineList.length; i++) {
@@ -546,6 +597,8 @@ export const Receipt = {
         return Math.max(...positive);
     },
 
+    // OCR_TAG merchant-name: trust known merchant patterns first, then choose
+    // early company-looking lines while avoiding addresses and invoice labels.
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
@@ -596,6 +649,8 @@ export const Receipt = {
         return lineList.find(l => l.length >= 3 && !/^\d+$/.test(l))?.slice(0, 60) || '';
     },
 
+    // OCR_TAG line-items: capture useful purchase detail for notes but leave
+    // totals, tender rows, and billing boilerplate out of the saved expense.
     parseItems(lineList) {
         const skip = /sub\s*-?total|taxes|fees|surcharges|change|tender|payment|visa|mastercard|amex|debit|credit|tip|balance\s*forward|payment\s*terms|currency|certificate|charge\s*description|billing\s*period/i;
         const totalKey = /(grand\s*total|amount\s*due|balance\s*due|total\s*due|\btotal\b)/i;
