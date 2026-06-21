@@ -11,8 +11,8 @@
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
-# Kill the dev server when you're done
-pkill -f "http.server 8765"
+# Stop the dev server when you're done
+# Press Ctrl+C in the terminal running npm run serve
 
 # Rebuild app.js after editing anything in src/
 npm run build
@@ -30,7 +30,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root-level `app.js` plus hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt app bundle.
 
 ```
 src/
@@ -45,10 +45,22 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js + chunk-*.js    # Bundled app output (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform notes
+
+Receipt OCR lives in [`src/features/receipt.js`](src/features/receipt.js), with mobile/desktop tuning in [`OCR_CONFIG`](src/config.js). The pipeline is tagged in code as:
+
+1. scan intent and lazy OCR engine warmup,
+2. PDF text extraction with page-one OCR fallback,
+3. camera/upload image normalization,
+4. receipt-specific text cleanup and field parsing,
+5. human review before anything is saved.
+
+The OCR engine and PDF reader are lazy-loaded from pinned CDN URLs, so normal app sessions do not download model assets until the user hovers, focuses, taps, or clicks a scan control. Canvas sizes are capped for mobile memory and upscaled for small desktop uploads before OCR. For more implementation detail, see [`docs/ocr-platform.md`](docs/ocr-platform.md).
 
 ## Data format
 
