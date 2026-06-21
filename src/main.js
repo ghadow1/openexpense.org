@@ -12,6 +12,19 @@ import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
 
+function bindReceiptWarmupIntent() {
+    const warmForScanTarget = (e) => {
+        if (!e.target?.closest?.('[data-action="scan-receipt"], .toolbar-scan-btn')) return;
+        Receipt.warmEngine();
+    };
+
+    // Warm OCR only when the user signals scan intent. This avoids downloading
+    // WASM/model assets for sessions that only edit or export expenses.
+    document.addEventListener('pointerover', warmForScanTarget, { passive: true });
+    document.addEventListener('touchstart', warmForScanTarget, { passive: true });
+    document.addEventListener('focusin', warmForScanTarget);
+}
+
 async function initApplication() {
     const bootPatch = {};
 
@@ -70,10 +83,7 @@ async function initApplication() {
 
     initModalBindings();
     bindResponsiveCalendar();
-
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    bindReceiptWarmupIntent();
 
     window.__oeBoot = { ok: true };
 }

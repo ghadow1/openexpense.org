@@ -6,6 +6,27 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// Receipt OCR tuning is centralized so mobile memory budgets and desktop
+// quality targets stay in sync across image, PDF, and parser paths.
+export const OCR_CONFIG = {
+    paddleUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+    pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+    pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        warmupSize: 64,
+        previewQuality: 0.9
+    },
+    recognition: {
+        pdfTextMinChars: 12,
+        pdfTextMinLines: 2,
+        extractedPdfConfidence: 0.95,
+        lowConfidenceThreshold: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

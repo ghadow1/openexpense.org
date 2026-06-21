@@ -1,20 +1,39 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+/**
+ * Receipt OCR pipeline.
+ *
+ * Everything runs in the browser: scan intent -> image/PDF normalization ->
+ * local OCR or PDF text extraction -> heuristic parsing -> human review. Keep
+ * platform-specific tuning in OCR_CONFIG so mobile memory limits and desktop
+ * quality improvements stay readable and easy to audit.
+ */
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // OCR typo corrections + brand aliases seen in common receipts/invoices.
+    KNOWN_MERCHANTS: [
+        [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
+        [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
+        [/amazon\.?\s*com/i, 'Amazon'],
+        [/whole\s*foods/i, 'Whole Foods'],
+        [/costco\s*wholesale/i, 'Costco'],
+        [/target\s*(store|corp)?/i, 'Target'],
+        [/walmart/i, 'Walmart'],
+        [/starbucks/i, 'Starbucks']
+    ],
     _service: null,
     _initPromise: null,
+    _warmStarted: false,
+    _warmPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
+
+    // --- OCR engine lifecycle and scan intent ---
 
     isPdf(file) {
         if (!file) return false;
@@ -29,6 +48,7 @@ export const Receipt = {
         input.value = '';
         if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
         else input.removeAttribute('capture');
+        Receipt.warmEngine();
         input.click();
     },
 
@@ -41,20 +61,23 @@ export const Receipt = {
 
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
-        if (Receipt._initPromise) return Receipt._initPromise;
+        if (Receipt._initPromise) {
+            onProgress?.('Finishing OCR warmup…', 0.2);
+            return Receipt._initPromise;
+        }
 
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
-            const { PaddleOcrService } = await import(Receipt.OCR_CDN);
+            const { PaddleOcrService } = await import(OCR_CONFIG.paddleUrl);
             onProgress?.('Downloading models (first scan only)…', 0.2);
             const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.canvas.warmupSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -72,13 +95,15 @@ export const Receipt = {
         }
     },
 
+    // --- PDF text extraction and page-one OCR fallback ---
+
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
 
         Receipt._pdfjsPromise = (async () => {
-            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
-            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
+            const pdfjs = await import(/* @vite-ignore */ OCR_CONFIG.pdfUrl);
+            pdfjs.GlobalWorkerOptions.workerSrc = OCR_CONFIG.pdfWorkerUrl;
             Receipt._pdfjs = pdfjs;
             return pdfjs;
         })();
@@ -124,7 +149,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfMaxScale,
+            OCR_CONFIG.canvas.maxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,14 +161,15 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.recognition.pdfTextMinChars
+                || lines.length >= OCR_CONFIG.recognition.pdfTextMinLines
         };
     },
 
@@ -169,16 +198,47 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // --- Image normalization for mobile cameras and desktop uploads ---
+
+    canvasToPreviewUrl(canvas) {
+        if (!canvas.toBlob) {
+            return Promise.resolve(canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality));
+        }
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(URL.createObjectURL(blob));
+                    return;
+                }
+                resolve(canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality));
+            }, 'image/jpeg', OCR_CONFIG.canvas.previewQuality);
+        });
+    },
+
+    async decodeImage(file, url) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                // Fall back for browsers or file formats without ImageBitmap support.
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = url;
+        });
+    },
+
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let img = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
+            img = await Receipt.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.canvas.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -196,12 +256,14 @@ export const Receipt = {
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            img?.close?.();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = OCR_CONFIG.canvas.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -229,6 +291,8 @@ export const Receipt = {
         ctx.drawImage(source, 0, 0, w, h);
         return canvas;
     },
+
+    // --- OCR result cleanup and receipt-specific text normalization ---
 
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
@@ -264,6 +328,8 @@ export const Receipt = {
         return body;
     },
 
+    // --- Scan orchestration and progress UI ---
+
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -274,7 +340,7 @@ export const Receipt = {
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: OCR_CONFIG.recognition.extractedPdfConfidence,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -353,6 +419,8 @@ export const Receipt = {
             }
         };
     },
+
+    // --- Field parsing: amount, date, merchant, tax, and line items ---
 
     moneyOnLine(line) {
         const amounts = [];
@@ -549,18 +617,8 @@ export const Receipt = {
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
-        const known = [
-            [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
-            [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
-            [/amazon\.?\s*com/i, 'Amazon'],
-            [/whole\s*foods/i, 'Whole Foods'],
-            [/costco\s*wholesale/i, 'Costco'],
-            [/target\s*(store|corp)?/i, 'Target'],
-            [/walmart/i, 'Walmart'],
-            [/starbucks/i, 'Starbucks']
-        ];
 
-        for (const [pat, name] of known) {
+        for (const [pat, name] of Receipt.KNOWN_MERCHANTS) {
             if (pat.test(text)) return name;
         }
 
@@ -674,9 +732,11 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.recognition.lowConfidenceThreshold
         };
     },
+
+    // --- Human review UI and save flow ---
 
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
