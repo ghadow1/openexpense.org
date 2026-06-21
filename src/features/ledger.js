@@ -9,6 +9,11 @@ import {
 import { confirmDialog } from '../ui/confirm.js';
 import { saveLedger } from '../core/persist.js';
 
+/**
+ * @module oe/ledger-io
+ * @tag privacy:encrypted-export
+ * @tag platform:save-picker-share-download
+ */
 export const Ledger = {
     _pendingEnc: null,
     _pendingKey: null,
@@ -58,6 +63,7 @@ export const Ledger = {
         return `${base}-${stamp}.zip`;
     },
 
+    // @section platform-save-blob
     // Persist a Blob using the best available mechanism for the platform:
     // native save picker on desktop, share sheet on mobile, download fallback.
     async saveBlob(blob, filename, description, accept) {

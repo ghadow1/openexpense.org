@@ -1,9 +1,56 @@
+/**
+ * @module oe/config
+ * @tag config:runtime
+ * @tag ocr:platform-pins
+ *
+ * Keep user-facing runtime settings here so browser, mobile, and desktop
+ * behavior can be audited without spelunking through feature modules.
+ */
+
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CONFIG = {
     version: "Version 2.1.0",
     buildEnv: "Production",
     defaultTheme: "light"
+};
+
+const OCR_VERSIONS = {
+    paddleOcr: '5.8.3',
+    onnxRuntimeWeb: '1.27.0',
+    ppuOcv: '3.2.2',
+    // PDF.js stays on the verified browser module path used by this static app.
+    pdfjsDist: '4.10.38'
+};
+
+export const OCR_CONFIG = {
+    versions: OCR_VERSIONS,
+    urls: {
+        paddleOcr: `https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@${OCR_VERSIONS.paddleOcr}/web/index.js`,
+        onnxRuntimeWeb: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${OCR_VERSIONS.onnxRuntimeWeb}/dist/ort.bundle.min.mjs`,
+        ppuOcvCanvas: `https://cdn.jsdelivr.net/npm/ppu-ocv@${OCR_VERSIONS.ppuOcv}/index.canvas-web.js`,
+        pdfjs: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_VERSIONS.pdfjsDist}/build/pdf.mjs`,
+        pdfWorker: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_VERSIONS.pdfjsDist}/build/pdf.worker.min.mjs`
+    },
+    image: {
+        minSide: 1000,
+        maxSide: {
+            mobile: 1600,
+            tablet: 2000,
+            desktop: 2400
+        },
+        pdfScaleCap: 2.5,
+        previewQuality: {
+            mobile: 0.82,
+            tablet: 0.86,
+            desktop: 0.9
+        }
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        mobileDelayMs: 4500,
+        skipIdleWhenDeviceMemoryAtOrBelowGB: 4
+    }
 };
 
 // localStorage only holds non-sensitive UI preferences. The ledger itself
