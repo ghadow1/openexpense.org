@@ -1,14 +1,15 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
+import { OCR_CONFIG } from '../config.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.cdn.paddleOcr,
+    PDF_CDN: OCR_CONFIG.cdn.pdfjs,
+    PDF_WORKER: OCR_CONFIG.cdn.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -44,23 +45,23 @@ export const Receipt = {
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
-            onProgress?.('Loading OCR engine…', 0.08);
+            Receipt.reportProgress(onProgress, OCR_CONFIG.stages.engineLoad);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
-            onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            Receipt.reportProgress(onProgress, OCR_CONFIG.stages.modelDownload);
+            const service = new PaddleOcrService({ recognition: { strategy: OCR_CONFIG.recognition.strategy } });
             await service.initialize();
-            onProgress?.('Warming up…', 0.88);
+            Receipt.reportProgress(onProgress, OCR_CONFIG.stages.engineWarmup);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.canvas.warmupSide;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, OCR_CONFIG.canvas.warmupSide, OCR_CONFIG.canvas.warmupSide);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
-            onProgress?.('Ready', 1);
+            Receipt.reportProgress(onProgress, OCR_CONFIG.stages.ready);
             return service;
         })();
 
@@ -91,6 +92,11 @@ export const Receipt = {
         }
     },
 
+    reportProgress(onProgress, stage, overrideLabel, overrideProgress) {
+        if (!onProgress || !stage) return;
+        onProgress(overrideLabel || stage.label, overrideProgress ?? stage.progress, stage.tag);
+    },
+
     linesFromPdfTextContent(textContent) {
         let block = '';
         const lines = [];
@@ -108,23 +114,32 @@ export const Receipt = {
     },
 
     async pdfToCanvasAndText(file, onProgress) {
-        onProgress?.('Loading PDF…', 0.25);
+        Receipt.reportProgress(onProgress, OCR_CONFIG.stages.pdfLoad);
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
 
         const allLines = [];
         for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-            onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
+            const stage = OCR_CONFIG.stages.pdfPageRead;
+            Receipt.reportProgress(
+                onProgress,
+                stage,
+                `${stage.label} ${pageNum}...`,
+                stage.progressStart + (pageNum / doc.numPages) * stage.progressSpan
+            );
             const page = await doc.getPage(pageNum);
             const textContent = await page.getTextContent();
             allLines.push(...Receipt.linesFromPdfTextContent(textContent));
         }
 
-        onProgress?.('Rendering preview…', 0.55);
+        Receipt.reportProgress(onProgress, OCR_CONFIG.stages.pdfPreviewRender);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfPreviewMaxScale,
+            OCR_CONFIG.canvas.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +148,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.jpegPreviewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -145,7 +160,7 @@ export const Receipt = {
     },
 
     async ocrCanvas(service, canvas, onProgress) {
-        onProgress?.('Reading text…', 0.55);
+        Receipt.reportProgress(onProgress, OCR_CONFIG.stages.textRead);
 
         let result = await service.recognize(canvas, { flatten: false });
         let flatResult = null;
@@ -178,7 +193,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_CONFIG.canvas.maxOcrSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +215,8 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minReadableSide;
+        const maxSide = OCR_CONFIG.canvas.maxOcrSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -270,7 +285,7 @@ export const Receipt = {
             Receipt._previewUrl = pdf.previewUrl;
 
             if (pdf.hasExtractedText) {
-                onProgress?.('Done', 1);
+                Receipt.reportProgress(onProgress, OCR_CONFIG.stages.done);
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
@@ -295,7 +310,7 @@ export const Receipt = {
         Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
-            const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
+            const ocr = await Receipt.recognizeText(file, (label, pct, tag) => progress.set(label, pct, tag));
             progress.close();
             const parsed = Receipt.parse(ocr.text, ocr.lines, ocr.confidence);
             if (!ocr.lines.length && !ocr.text.trim()) {
@@ -330,7 +345,7 @@ export const Receipt = {
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
+                <p class="ocr-progress-note">${Utils.escapeHtml(OCR_CONFIG.modelDownloadNote)}</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
@@ -340,8 +355,9 @@ export const Receipt = {
         const fill = backdrop.querySelector('.bar > span');
         const pct = backdrop.querySelector('.ocr-pct');
         return {
-            set(label, p) {
+            set(label, p, tag) {
                 const v = Math.round((p || 0) * 100);
+                if (tag) backdrop.dataset.ocrStage = tag;
                 fill.style.width = `${v}%`;
                 pct.textContent = typeof label === 'string' ? `${label} (${v}%)` : `${v}%`;
             },
