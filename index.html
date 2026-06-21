@@ -311,6 +311,12 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    On phones and tablets, Scan asks for the rear camera when the browser supports it and uses a
+                    smaller OCR canvas budget to avoid memory spikes. On desktop, uploaded images can use a larger
+                    detail budget. PDFs with selectable text are read directly before OCR, which is usually faster and
+                    more accurate than scanning a rendered page.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
@@ -319,7 +325,8 @@
                   <div class="docs-note">
                     <p>
                       Receipt parsing is a convenience, not an autopilot. You are always the one who decides what
-                      gets saved — the app never auto-logs a scanned receipt without your confirmation.
+                      gets saved — the app never auto-logs a scanned receipt without your confirmation. HEIC/HEIF
+                      photos work only in browsers that can decode those formats natively.
                     </p>
                   </div>
                 </section>

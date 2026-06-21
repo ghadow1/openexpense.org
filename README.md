@@ -14,7 +14,7 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild generated browser assets after editing anything in src/
 npm run build
 ```
 
@@ -30,7 +30,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js` and any generated chunk changes.
 
 ```
 src/
@@ -43,12 +43,26 @@ src/
 │   ├── bundle.js      # Encrypted .zip export/import
 │   └── utils.js
 ├── ui/                # components, theme, toast
-├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
+├── features/          # calendar, ledger (autosave + export/import), modal, receipt OCR, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Generated split chunks for browser delivery
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform performance
+
+Receipt scanning lives in `src/features/receipt.js` and is designed to stay local on both mobile and desktop browsers.
+
+- **Engine loading** — PP-OCRv5 is lazy-loaded from `Receipt.OCR_CDN`, then warmed during idle time in `src/main.js` so later scans can reuse cached model and WASM resources.
+- **Import-map peers** — `index.html` maps `onnxruntime-web` and `ppu-ocv/canvas-web`, which are peer dependencies of `ppu-paddle-ocr`. Keep those pins aligned with the OCR CDN pin when upgrading.
+- **PDF fast path** — PDF.js reads embedded text before OCR. Image-only PDFs render page 1 to canvas and then use OCR.
+- **Image decode path** — modern browsers use `createImageBitmap` when available, with an `HTMLImageElement` fallback for compatibility. HEIC/HEIF input depends on the browser's native decoder.
+- **Canvas budgets** — OCR upscales very small images to preserve recognition accuracy, caps desktop/detail canvases at 2400 px on the longest side, and uses a 2000 px cap for camera-oriented or lower-memory devices to reduce mobile memory pressure.
+- **Human-readable code tags** — OCR comments use tags such as `[OCR:engine]`, `[OCR:canvas]`, and `[OCR:parse]` so performance-sensitive sections are easy to scan.
+
+See `docs/ocr-platform.md` for the OCR pipeline map, dependency pins, and a manual cross-platform smoke checklist.
 
 ## Data format
 

@@ -3,6 +3,12 @@ import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+const OCR_LOG_TAG = '[OpenExpense][OCR]';
+const OCR_MIN_SIDE = 1000;
+const OCR_DESKTOP_MAX_SIDE = 2400;
+const OCR_MOBILE_MAX_SIDE = 2000;
+const PDF_MAX_SCALE = 2.5;
+
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
@@ -16,6 +22,8 @@ export const Receipt = {
     _previewUrl: null,
     _lastFile: null,
 
+    // [OCR:entry] File picking keeps the platform-native path: camera capture on
+    // coarse/mobile pointers, regular file picker on desktop.
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
@@ -32,6 +40,8 @@ export const Receipt = {
         input.click();
     },
 
+    // [OCR:engine] The OCR model is large enough to lazy-load, then warm during
+    // idle time so repeat scans use the browser's cached WASM/model resources.
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -72,6 +82,8 @@ export const Receipt = {
         }
     },
 
+    // [OCR:pdf] Prefer a PDF's embedded text layer when available. It is faster,
+    // more accurate, and avoids unnecessary canvas OCR work on mobile devices.
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -107,6 +119,17 @@ export const Receipt = {
         return lines;
     },
 
+    // [OCR:sizing] Desktop keeps the 2400 px detail cap; mobile/camera or
+    // lower-memory devices use 2000 px to reduce canvas allocation spikes.
+    ocrSizingProfile() {
+        const memory = Number(navigator.deviceMemory || 0);
+        const constrained = Utils.prefersCamera() || (memory > 0 && memory <= 4);
+        return {
+            minSide: OCR_MIN_SIDE,
+            maxSide: constrained ? OCR_MOBILE_MAX_SIDE : OCR_DESKTOP_MAX_SIDE
+        };
+    },
+
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +147,8 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const { maxSide } = Receipt.ocrSizingProfile();
+        const scale = Math.min(PDF_MAX_SCALE, maxSide / Math.max(baseViewport.width, baseViewport.height));
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -144,6 +168,9 @@ export const Receipt = {
         };
     },
 
+    // [OCR:recognition] Run structured recognition first so parser heuristics get
+    // usable line boundaries; fall back to flattened text when an engine returns
+    // text without regions.
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,16 +196,33 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    async decodeImage(file, previewUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                try { return await createImageBitmap(file); } catch (_) { }
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = previewUrl;
+        });
+    },
+
+    // [OCR:canvas] Decode with createImageBitmap when available so modern mobile
+    // and desktop browsers can use their optimized image pipeline; HTMLImageElement
+    // remains the compatibility path.
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let bitmap = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
+            const img = await Receipt.decodeImage(file, url);
+            bitmap = typeof img.close === 'function' ? img : null;
+            const { maxSide } = Receipt.ocrSizingProfile();
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -196,12 +240,13 @@ export const Receipt = {
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            bitmap?.close();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = Receipt.ocrSizingProfile();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -264,6 +309,8 @@ export const Receipt = {
         return body;
     },
 
+    // [OCR:pipeline] Dispatch by file type, keep a preview URL for the review
+    // sheet, and only invoke OCR when cheaper extraction paths are not enough.
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -307,7 +354,7 @@ export const Receipt = {
             }
             Receipt.showPreview(parsed, ocr.previewUrl);
         } catch (err) {
-            console.error('OCR error:', err);
+            console.error(`${OCR_LOG_TAG} scan failed:`, err);
             progress.close();
             if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
                 URL.revokeObjectURL(Receipt._previewUrl);
@@ -354,6 +401,8 @@ export const Receipt = {
         };
     },
 
+    // [OCR:parse] Heuristics below turn OCR text into reviewable ledger fields.
+    // They intentionally favor editable suggestions over automatic posting.
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -678,6 +727,8 @@ export const Receipt = {
         };
     },
 
+    // [OCR:review] The scan result always goes through a human-readable review
+    // sheet before it becomes an expense record.
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
