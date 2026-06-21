@@ -38,6 +38,30 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    getOcrPlatformProfile() {
+        const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const mobileViewport = window.matchMedia('(max-width: 900px)').matches;
+        const desktopViewport = window.matchMedia('(min-width: 1200px)').matches;
+        const deviceMemoryGb = Number(navigator.deviceMemory || 0);
+        const hardwareConcurrency = Number(navigator.hardwareConcurrency || 0);
+        const lowMemory = deviceMemoryGb > 0 && deviceMemoryGb <= 3;
+        const highMemory = deviceMemoryGb >= 8 || deviceMemoryGb === 0;
+        const highCoreCount = hardwareConcurrency >= 8 || hardwareConcurrency === 0;
+
+        let tier = 'balanced';
+        if (coarsePointer || mobileViewport || lowMemory) tier = 'mobile';
+        else if (desktopViewport && highMemory && highCoreCount) tier = 'highEnd';
+        else if (desktopViewport) tier = 'desktop';
+
+        return {
+            tier,
+            coarsePointer,
+            mobileViewport,
+            desktopViewport,
+            deviceMemoryGb,
+            hardwareConcurrency
+        };
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

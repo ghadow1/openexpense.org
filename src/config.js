@@ -6,6 +6,44 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    // Human-readable tag used in logs, DOM data attributes, and docs to connect
+    // the runtime flow back to the receipt OCR pipeline.
+    codeTag: 'OCR_RECEIPT_PIPELINE_V1',
+    cdn: {
+        engine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    },
+    peerImportMap: {
+        'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+        'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+    },
+    progressLabels: {
+        engineLoad: 'Loading OCR engine...',
+        modelLoad: 'Downloading OCR models (first scan only)...',
+        warmup: 'Warming up OCR...',
+        pdfLoad: 'Loading PDF...',
+        pdfText: 'Reading PDF text...',
+        pdfPreview: 'Rendering PDF preview...',
+        imageDecode: 'Preparing image...',
+        ocrRead: 'Reading receipt text...',
+        done: 'Done'
+    },
+    extractedTextMinimum: { chars: 12, lines: 2 },
+    lowConfidenceThreshold: 0.55,
+    canvas: {
+        jpegQuality: 0.9,
+        maxWarmupSide: 64,
+        profiles: {
+            mobile: { minSide: 960, maxSide: 1800, pdfMaxSide: 1800 },
+            balanced: { minSide: 1000, maxSide: 2200, pdfMaxSide: 2200 },
+            desktop: { minSide: 1200, maxSide: 2600, pdfMaxSide: 2600 },
+            highEnd: { minSide: 1400, maxSide: 3000, pdfMaxSide: 3000 }
+        }
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
