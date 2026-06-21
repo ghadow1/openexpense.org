@@ -7,7 +7,7 @@ import {
     isEncFile, isKeyFile, BUNDLE
 } from '../core/bundle.js';
 import { confirmDialog } from '../ui/confirm.js';
-import { saveLedger } from '../core/persist.js';
+import { saveLedger, isAutosaveBlocked } from '../core/persist.js';
 
 export const Ledger = {
     _pendingEnc: null,
@@ -36,6 +36,10 @@ export const Ledger = {
     // Autosave persists the ledger to encrypted local storage (IndexedDB) using
     // the device key — no files involved. Export is the manual encrypted .zip.
     enableAutosave() {
+        if (isAutosaveBlocked()) {
+            Toast.show('Autosave is paused to protect an unreadable saved ledger. Import a backup or clear the calendar before turning it back on.', 'error', 8000);
+            return;
+        }
         patch({ autosaveEnabled: true });
         try { localStorage.setItem(STORAGE_KEYS.autosave, 'true'); } catch (_) { }
         Toast.show('Autosave on — saving encrypted on this device.', 'success');
@@ -150,8 +154,11 @@ export const Ledger = {
 
         patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
         // Clearing must remove the stored copy too, even if autosave is paused.
-        saveLedger({ name: '', events: {}, savedAt: Date.now() });
-        Toast.show('Calendar cleared.', 'success');
+        const saved = await saveLedger({ name: '', events: {}, savedAt: Date.now() }, { force: true });
+        Toast.show(
+            saved ? 'Calendar cleared.' : 'Calendar cleared for this session, but the saved copy could not be removed.',
+            saved ? 'success' : 'error'
+        );
     },
 
     async handleImport(evt) {
@@ -240,7 +247,7 @@ export const Ledger = {
             Toast.show('Unrecognized file format.', 'error');
             return;
         }
-        Ledger.applyImportedLedger(
+        await Ledger.applyImportedLedger(
             { name: Ledger.nameFromImport(file.name, obj), events: importedEvents },
             file.name
         );
@@ -265,10 +272,10 @@ export const Ledger = {
             Toast.show('That key does not match the encrypted ledger.', 'error');
             return;
         }
-        Ledger.applyImportedLedger(payload, srcName);
+        await Ledger.applyImportedLedger(payload, srcName);
     },
 
-    applyImportedLedger(payload, srcName) {
+    async applyImportedLedger(payload, srcName) {
         const importedEvents = (payload && payload.events && typeof payload.events === 'object' && !Array.isArray(payload.events))
             ? payload.events
             : null;
@@ -280,11 +287,20 @@ export const Ledger = {
         const { events: current, ledgerName } = getState();
         const hasData = Object.keys(current).length > 0 || ledgerName;
         if (hasData && !confirm('Import will replace your current ledger. Continue?')) return;
+        const wasAutosaveBlocked = isAutosaveBlocked();
+        const nextLedgerName = Ledger.nameFromImport(srcName, payload);
 
         patch({
-            ledgerName: Ledger.nameFromImport(srcName, payload),
+            ledgerName: nextLedgerName,
             events: importedEvents
         });
+        if (wasAutosaveBlocked) {
+            const saved = await saveLedger({ name: nextLedgerName, events: importedEvents, savedAt: Date.now() }, { force: true });
+            if (!saved) {
+                Toast.show('Imported for this session, but could not replace the unreadable saved ledger.', 'error', 8000);
+                return;
+            }
+        }
         const count = Object.values(importedEvents).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
         Toast.show(`Imported ${count} item${count === 1 ? '' : 's'}.`, 'success');
     }
