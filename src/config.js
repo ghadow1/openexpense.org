@@ -11,6 +11,60 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const OCR_CONFIG = {
+    codeTags: {
+        engine: 'receipt-ocr-engine',
+        pdf: 'receipt-pdf-text-layer',
+        image: 'receipt-image-canvas',
+        parser: 'receipt-parser',
+        review: 'receipt-review'
+    },
+    cdn: {
+        paddleOcr: {
+            label: 'PP-OCRv5 browser OCR bundle',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js'
+        },
+        pdfjs: {
+            label: 'PDF.js text extraction and preview renderer',
+            url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+        }
+    },
+    peerImportMap: {
+        // Keep these URLs in sync with the static import map in index.html.
+        onnxruntimeWeb: {
+            importName: 'onnxruntime-web',
+            url: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs'
+        },
+        ppuOcvCanvas: {
+            importName: 'ppu-ocv/canvas-web',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfRenderMaxScale: 2.5,
+        previewJpegQuality: 0.9,
+        warmupSize: 64
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupGlyph: 'A'
+    },
+    progressLabels: {
+        loadingEngine: 'Loading OCR engine...',
+        downloadingModels: 'Downloading models (first scan only)...',
+        warmingUp: 'Warming up...',
+        loadingPdf: 'Loading PDF...',
+        renderingPreview: 'Rendering preview...',
+        readingText: 'Reading text...',
+        ready: 'Ready',
+        done: 'Done'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',
