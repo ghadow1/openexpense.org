@@ -71,9 +71,11 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (Receipt.shouldWarmOnIdle()) {
+        const warmOcr = () => { Receipt.warmOnIdle(); };
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: Receipt.IDLE_WARMUP_TIMEOUT_MS });
+        else setTimeout(warmOcr, Receipt.WARMUP_FALLBACK_DELAY_MS);
+    }
 
     window.__oeBoot = { ok: true };
 }

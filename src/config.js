@@ -11,6 +11,72 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const OCR_CONFIG = {
+    engine: {
+        tag: 'ocr-engine:pp-ocrv5',
+        cdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        modelSizeLabel: '~5 MB OCR',
+        recognition: { strategy: 'cross-line' }
+    },
+    pdf: {
+        tag: 'pdf-reader:pdfjs-4.10',
+        cdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    },
+    progress: {
+        loadingEngine: 'Loading OCR engine...',
+        downloadingModels: 'Downloading models (first scan only)...',
+        warming: 'Warming up...',
+        ready: 'Ready',
+        loadingPdf: 'Loading PDF...',
+        readingPdfPage: (pageNum) => `Reading PDF page ${pageNum}...`,
+        renderingPreview: 'Rendering preview...',
+        readingText: 'Reading text...',
+        done: 'Done'
+    },
+    canvas: {
+        defaultProfile: 'desktop',
+        profiles: {
+            mobile: {
+                tag: 'platform:mobile-camera',
+                minSide: 900,
+                maxSide: 1800,
+                pdfMaxSide: 1800,
+                pdfMaxScale: 2
+            },
+            desktop: {
+                tag: 'platform:desktop-workstation',
+                minSide: 1100,
+                maxSide: 2800,
+                pdfMaxSide: 2600,
+                pdfMaxScale: 2.75
+            },
+            lowPower: {
+                tag: 'platform:low-power',
+                minSide: 800,
+                maxSide: 1600,
+                pdfMaxSide: 1600,
+                pdfMaxScale: 1.75
+            }
+        }
+    },
+    warmup: {
+        desktopIdle: true,
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    },
+    ui: {
+        progressNote: 'First scan downloads models ({modelSize}, PDF reader on demand), then caches locally.'
+    },
+    tags: [
+        'privacy:local-only',
+        'ocr:receipt-reading',
+        'runtime:webassembly',
+        'input:image-or-pdf',
+        'review:human-confirmed'
+    ]
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',
