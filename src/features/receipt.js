@@ -3,12 +3,34 @@ import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+// OCR_PIPELINE_TAGS are intentionally human-readable so documentation, logs, and
+// future diagnostics can refer to the same browser-only receipt scanning stages.
+const OCR_PIPELINE_TAGS = Object.freeze({
+    engine: 'ocr.engine.lazy-cdn',
+    modelCache: 'ocr.model.browser-cache',
+    pdfText: 'ocr.pdf.text-first',
+    pdfPreview: 'ocr.pdf.page-one-preview',
+    imageNormalize: 'ocr.image.canvas-normalize',
+    humanReview: 'ocr.review.human-confirm'
+});
+
+const OCR_IMAGE_MIN_SIDE = 1000;
+const OCR_IMAGE_MAX_SIDE = 2400;
+const OCR_WARMUP_CANVAS_SIDE = 64;
+const PDF_PREVIEW_MAX_SCALE = 2.5;
+const RECEIPT_PREVIEW_JPEG_QUALITY = 0.9;
+const PDF_EXTRACTED_TEXT_MIN_CHARS = 12;
+const PDF_EXTRACTED_TEXT_MIN_LINES = 2;
+const PDF_TEXT_CONFIDENCE = 0.95;
+const LOW_CONFIDENCE_THRESHOLD = 0.55;
+
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
     OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
     PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
     PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    PIPELINE_TAGS: OCR_PIPELINE_TAGS,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -51,10 +73,10 @@ export const Receipt = {
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_WARMUP_CANVAS_SIDE;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, OCR_WARMUP_CANVAS_SIDE, OCR_WARMUP_CANVAS_SIDE);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -124,7 +146,7 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(PDF_PREVIEW_MAX_SCALE, OCR_IMAGE_MAX_SIDE / Math.max(baseViewport.width, baseViewport.height));
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,14 +155,15 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', RECEIPT_PREVIEW_JPEG_QUALITY);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= PDF_EXTRACTED_TEXT_MIN_CHARS
+                || lines.length >= PDF_EXTRACTED_TEXT_MIN_LINES
         };
     },
 
@@ -178,7 +201,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_IMAGE_MAX_SIDE;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +223,8 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_IMAGE_MIN_SIDE;
+        const maxSide = OCR_IMAGE_MAX_SIDE;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -274,7 +297,7 @@ export const Receipt = {
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: PDF_TEXT_CONFIDENCE,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -674,7 +697,7 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < LOW_CONFIDENCE_THRESHOLD
         };
     },
 
