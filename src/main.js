@@ -12,6 +12,23 @@ import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
 
+function scheduleIdleTask(callback, timeout = 8000) {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(callback, { timeout });
+    else setTimeout(callback, Math.min(timeout, 3000));
+}
+
+function bindReceiptScannerWarmup() {
+    const warmOcr = () => { Receipt.warmEngine(); };
+    document.querySelectorAll('[data-action="scan-receipt"]').forEach((el) => {
+        if (el.dataset.ocrWarmBound) return;
+        el.dataset.ocrWarmBound = '1';
+        el.addEventListener('pointerenter', warmOcr, { once: true });
+        el.addEventListener('focus', warmOcr, { once: true });
+        el.addEventListener('touchstart', warmOcr, { once: true, passive: true });
+    });
+    if (Receipt.hasScannerHistory()) scheduleIdleTask(warmOcr);
+}
+
 async function initApplication() {
     const bootPatch = {};
 
@@ -70,10 +87,7 @@ async function initApplication() {
 
     initModalBindings();
     bindResponsiveCalendar();
-
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    bindReceiptScannerWarmup();
 
     window.__oeBoot = { ok: true };
 }

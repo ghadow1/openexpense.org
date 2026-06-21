@@ -22,10 +22,10 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero servers** — no backend and no database; runtime libraries load from CDN, but your ledger and receipt images stay in your browser.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5) for camera photos, image uploads, HEIC/HEIF, and PDF invoices. Embedded PDF text is parsed before falling back to OCR.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -49,6 +49,8 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+See [`docs/ocr-platform.md`](docs/ocr-platform.md) for the receipt OCR pipeline, adaptive mobile/desktop canvas settings, and the human-readable `OCR_TAG` parser labels.
 
 ## Data format
 
