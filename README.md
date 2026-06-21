@@ -8,13 +8,16 @@
 ## Quick start
 
 ```bash
+# Install the local build toolchain
+npm install
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk-*.js after editing anything in src/
 npm run build
 ```
 
@@ -30,7 +33,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt bundle files.
 
 ```
 src/
@@ -45,10 +48,25 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/ocr-platform.md   # OCR pipeline, platform requirements, performance notes
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR architecture
+
+Receipt scanning is fully client-side. `src/features/receipt.js` handles the scan button flow, lazy-loads PP-OCRv5 and PDF.js from pinned CDN URLs in `OCR_CONFIG`, extracts PDF text before falling back to OCR, parses likely receipt fields, then shows a review sheet before anything is saved.
+
+The OCR module is tagged with human-readable section names and `OCR_CONFIG.codeTags`:
+
+- `receipt-ocr-engine` — lazy OCR loading, model warmup, ONNX Runtime Web execution.
+- `receipt-pdf-text-layer` — PDF.js text extraction and first-page preview rendering.
+- `receipt-image-canvas` — mobile/desktop canvas sizing for OCR quality and memory control.
+- `receipt-parser` — merchant, amount, tax, date, and line-item heuristics.
+- `receipt-review` — editable review UI and save flow.
+
+See [docs/ocr-platform.md](docs/ocr-platform.md) for browser support notes, mobile/desktop performance guidance, and the manual scan checklist.
 
 ## Data format
 

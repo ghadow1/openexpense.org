@@ -1,20 +1,28 @@
+/**
+ * @module features/receipt
+ * Client-side receipt ingestion for images and PDFs.
+ *
+ * Human-readable code tags are defined in OCR_CONFIG.codeTags and used here to
+ * mark the OCR engine, PDF text layer, image canvas, parser, and review UI.
+ */
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // Lazy-loaded platform configuration. index.html must define an import map
+    // for OCR_CONFIG.peerImportMap because ppu-paddle-ocr uses bare imports.
+    config: OCR_CONFIG,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
+
+    // --- File picker and platform routing ---
 
     isPdf(file) {
         if (!file) return false;
@@ -32,6 +40,8 @@ export const Receipt = {
         input.click();
     },
 
+    // --- OCR engine lifecycle ---
+
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -44,23 +54,24 @@ export const Receipt = {
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
-            onProgress?.('Loading OCR engine…', 0.08);
-            const { PaddleOcrService } = await import(Receipt.OCR_CDN);
-            onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const { progressLabels, canvas, engine, cdn } = Receipt.config;
+            onProgress?.(progressLabels.loadingEngine, 0.08);
+            const { PaddleOcrService } = await import(cdn.paddleOcr.url);
+            onProgress?.(progressLabels.downloadingModels, 0.2);
+            const service = new PaddleOcrService({ recognition: { strategy: engine.recognitionStrategy } });
             await service.initialize();
-            onProgress?.('Warming up…', 0.88);
+            onProgress?.(progressLabels.warmingUp, 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = canvas.warmupSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, canvas.warmupSize, canvas.warmupSize);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
-            ctx.fillText('A', 20, 40);
+            ctx.fillText(engine.warmupGlyph, 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
-            onProgress?.('Ready', 1);
+            onProgress?.(progressLabels.ready, 1);
             return service;
         })();
 
@@ -72,13 +83,15 @@ export const Receipt = {
         }
     },
 
+    // --- PDF text extraction and preview rendering ---
+
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
 
         Receipt._pdfjsPromise = (async () => {
-            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
-            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
+            const pdfjs = await import(/* @vite-ignore */ Receipt.config.cdn.pdfjs.url);
+            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.config.cdn.pdfjs.workerUrl;
             Receipt._pdfjs = pdfjs;
             return pdfjs;
         })();
@@ -108,7 +121,8 @@ export const Receipt = {
     },
 
     async pdfToCanvasAndText(file, onProgress) {
-        onProgress?.('Loading PDF…', 0.25);
+        const { canvas: canvasConfig, progressLabels } = Receipt.config;
+        onProgress?.(progressLabels.loadingPdf, 0.25);
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
@@ -121,10 +135,13 @@ export const Receipt = {
             allLines.push(...Receipt.linesFromPdfTextContent(textContent));
         }
 
-        onProgress?.('Rendering preview…', 0.55);
+        onProgress?.(progressLabels.renderingPreview, 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            canvasConfig.pdfRenderMaxScale,
+            canvasConfig.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +150,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', canvasConfig.previewJpegQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -144,8 +161,10 @@ export const Receipt = {
         };
     },
 
+    // --- Image OCR canvas preparation ---
+
     async ocrCanvas(service, canvas, onProgress) {
-        onProgress?.('Reading text…', 0.55);
+        onProgress?.(Receipt.config.progressLabels.readingText, 0.55);
 
         let result = await service.recognize(canvas, { flatten: false });
         let flatResult = null;
@@ -178,7 +197,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = Receipt.config.canvas.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +219,7 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = Receipt.config.canvas;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -229,6 +247,8 @@ export const Receipt = {
         ctx.drawImage(source, 0, 0, w, h);
         return canvas;
     },
+
+    // --- OCR result normalization ---
 
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
@@ -270,7 +290,7 @@ export const Receipt = {
             Receipt._previewUrl = pdf.previewUrl;
 
             if (pdf.hasExtractedText) {
-                onProgress?.('Done', 1);
+                onProgress?.(Receipt.config.progressLabels.done, 1);
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
@@ -307,7 +327,7 @@ export const Receipt = {
             }
             Receipt.showPreview(parsed, ocr.previewUrl);
         } catch (err) {
-            console.error('OCR error:', err);
+            console.error(`[OpenExpense:${Receipt.config.codeTags.engine}] OCR error:`, err);
             progress.close();
             if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
                 URL.revokeObjectURL(Receipt._previewUrl);
@@ -353,6 +373,8 @@ export const Receipt = {
             }
         };
     },
+
+    // --- Heuristic receipt parsing ---
 
     moneyOnLine(line) {
         const amounts = [];
@@ -677,6 +699,8 @@ export const Receipt = {
             lowConfidence: confidence > 0 && confidence < 0.55
         };
     },
+
+    // --- Review UI and save flow ---
 
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
