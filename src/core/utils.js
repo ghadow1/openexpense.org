@@ -37,7 +37,19 @@ export const Utils = {
         });
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    // Platform tag: mobile capture. Coarse pointers and narrow viewports should
+    // open the rear camera when browsers support the file input capture hint.
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // Platform tag: resource policy. Respect Data Saver / reduced-data hints so
+    // the OCR model loads only after an explicit scan on constrained devices.
+    prefersReducedData: () => {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return Boolean(connection?.saveData)
+            || window.matchMedia('(prefers-reduced-data: reduce)').matches;
+    },
+    shouldPreloadOcr: () => !Utils.prefersReducedData(),
+    // Platform tag: desktop save. The File System Access API needs HTTPS and is
+    // intentionally kept off compact mobile layouts that prefer share/download.
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
