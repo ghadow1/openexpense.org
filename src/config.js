@@ -11,6 +11,41 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const OCR_CONFIG = {
+    cdn: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    },
+    recognition: {
+        strategy: 'cross-line'
+    },
+    canvas: {
+        minReadableSide: 1000,
+        maxOcrSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        pdfPreviewMaxSide: 2400,
+        jpegPreviewQuality: 0.9,
+        warmupSide: 64
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    },
+    modelDownloadNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.',
+    stages: {
+        engineLoad: { tag: 'ocr.engine.load', label: 'Loading OCR engine...', progress: 0.08 },
+        modelDownload: { tag: 'ocr.model.download', label: 'Downloading models (first scan only)...', progress: 0.2 },
+        engineWarmup: { tag: 'ocr.engine.warmup', label: 'Warming up...', progress: 0.88 },
+        ready: { tag: 'ocr.engine.ready', label: 'Ready', progress: 1 },
+        pdfLoad: { tag: 'ocr.pdf.load', label: 'Loading PDF...', progress: 0.25 },
+        pdfPageRead: { tag: 'ocr.pdf.page-text', label: 'Reading PDF page', progressStart: 0.25, progressSpan: 0.25 },
+        pdfPreviewRender: { tag: 'ocr.pdf.preview', label: 'Rendering preview...', progress: 0.55 },
+        textRead: { tag: 'ocr.image.read-text', label: 'Reading text...', progress: 0.55 },
+        done: { tag: 'ocr.done', label: 'Done', progress: 1 }
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',
