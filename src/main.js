@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -60,6 +60,7 @@ async function initApplication() {
     }
     const scanInput = document.getElementById('receipt-scan-input');
     if (scanInput && !scanInput.dataset.bound) {
+        scanInput.dataset.codeTag = OCR_CONFIG.codeTags.scanInput;
         scanInput.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0];
             if (file) Receipt.scan(file);
@@ -67,13 +68,15 @@ async function initApplication() {
         });
         scanInput.dataset.bound = '1';
     }
+    const quickScanButton = document.querySelector('[data-action="scan-receipt"]');
+    if (quickScanButton) quickScanButton.dataset.codeTag = OCR_CONFIG.codeTags.quickScanButton;
 
     initModalBindings();
     bindResponsiveCalendar();
 
     const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: OCR_CONFIG.warmup.idleTimeoutMs });
+    else setTimeout(warmOcr, OCR_CONFIG.warmup.fallbackDelayMs);
 
     window.__oeBoot = { ok: true };
 }

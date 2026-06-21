@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded local OCR (keep pinned with OCR_CONFIG.runtime) -->
   <script type="importmap">
   {
     "imports": {
@@ -308,7 +308,8 @@
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    it in your browser — processing never leaves your device. The scanner tunes image canvas sizes for
+                    mobile, desktop, and constrained devices before OCR so large camera photos stay responsive.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
@@ -424,7 +425,7 @@
       </div>
     </main>
 
-    <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
+    <button type="button" class="quick-fab" data-action="scan-receipt" data-code-tag="receipt.quick-scan" aria-label="Scan receipt" title="Scan receipt">
       <i class="ti ti-camera" aria-hidden="true"></i>
       <span class="quick-fab-label">Scan</span>
     </button>
@@ -473,7 +474,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
+  <input type="file" id="receipt-scan-input" data-code-tag="receipt.scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
 
   <div id="global-tooltip"></div>
 
