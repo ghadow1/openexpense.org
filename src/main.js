@@ -1,7 +1,7 @@
 import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
-import { loadLedger, initPersist } from './core/persist.js';
+import { loadLedger, initPersist, isAutosaveBlocked } from './core/persist.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
@@ -34,6 +34,8 @@ async function initApplication() {
         if (saved.name) bootPatch.ledgerName = Utils.sanitizeFilename(saved.name);
         if (saved.events && typeof saved.events === 'object') bootPatch.events = saved.events;
     }
+    const protectedLocalLedger = isAutosaveBlocked();
+    if (protectedLocalLedger) bootPatch.autosaveEnabled = false;
 
     patch(bootPatch);
 
@@ -47,6 +49,9 @@ async function initApplication() {
     }
 
     switchView('app');
+    if (protectedLocalLedger) {
+        Toast.show('Could not decrypt the saved ledger. Autosave is paused to avoid overwriting it; import a backup or clear the calendar to recover.', 'error', 9000);
+    }
 
     const importInput = document.getElementById('ledger-import-input');
     if (importInput && !importInput.dataset.bound) {

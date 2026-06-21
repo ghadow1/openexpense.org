@@ -8,6 +8,20 @@ const KEY = 'current';
 
 let saveTimer = null;
 let dbPromise = null;
+let autosaveBlocked = false;
+
+export function isAutosaveBlocked() {
+    return autosaveBlocked;
+}
+
+export function allowLedgerOverwrite() {
+    autosaveBlocked = false;
+}
+
+function blockAutosave() {
+    autosaveBlocked = true;
+    clearTimeout(saveTimer);
+}
 
 export function openDb() {
     if (dbPromise) return dbPromise;
@@ -66,13 +80,19 @@ export function metaPut(key, value) {
 export async function loadLedger() {
     try {
         const raw = await idbGet(STORE_NAME, KEY);
-        if (raw == null) return null;
+        if (raw == null) {
+            allowLedgerOverwrite();
+            return null;
+        }
 
         if (isEncrypted(raw)) {
             try {
-                return await decryptJSON(raw);
+                const ledger = await decryptJSON(raw);
+                allowLedgerOverwrite();
+                return ledger;
             } catch (err) {
                 console.error('[OpenExpense] could not decrypt local ledger:', err);
+                blockAutosave();
                 return null;
             }
         }
@@ -82,6 +102,7 @@ export async function loadLedger() {
         if (cryptoAvailable()) {
             saveLedger(raw).catch(() => { });
         }
+        allowLedgerOverwrite();
         return raw;
     } catch {
         dbPromise = null;
@@ -89,7 +110,9 @@ export async function loadLedger() {
     }
 }
 
-export async function saveLedger(data) {
+export async function saveLedger(data, options = {}) {
+    if (autosaveBlocked && !options.force) return false;
+
     try {
         let record = data;
         if (cryptoAvailable()) {
@@ -97,21 +120,24 @@ export async function saveLedger(data) {
                 record = await encryptJSON(data);
             } catch (err) {
                 console.error('[OpenExpense] encryption failed, keeping data out of storage:', err);
-                return;
+                return false;
             }
         }
         await idbPut(STORE_NAME, KEY, record);
+        if (options.force) allowLedgerOverwrite();
+        return true;
     } catch {
         dbPromise = null;
+        return false;
     }
 }
 
 export function initPersist(store) {
     store.subscribe(() => {
         clearTimeout(saveTimer);
-        if (!store.getState().autosaveEnabled) return;
+        if (autosaveBlocked || !store.getState().autosaveEnabled) return;
         saveTimer = setTimeout(() => {
-            if (!store.getState().autosaveEnabled) return;
+            if (autosaveBlocked || !store.getState().autosaveEnabled) return;
             const s = store.getState();
             saveLedger({ name: s.ledgerName, events: s.events, savedAt: Date.now() });
         }, 400);

@@ -1,12 +1,15 @@
 {
   "name": "openexpense.org",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
+    "test": "node --test test/*.test.js",
     "serve": "python3 -m http.server 8765"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "fake-indexeddb": "^6.2.5"
   },
   "dependencies": {
     "fflate": "^0.8.3",
