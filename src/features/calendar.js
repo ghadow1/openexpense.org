@@ -6,6 +6,11 @@ import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
 import { openModal } from './modal.js';
 
+/**
+ * @module oe/calendar-view
+ * @tag perf:responsive-render
+ * @tag platform:mobile-tablet-desktop
+ */
 let shellEl = null;
 let gridHeadEl = null;
 let gridEl = null;
@@ -78,6 +83,7 @@ function updateMonthTitle(currentDate) {
 }
 
 function getCalendarDensity(colEl) {
+    // @section responsive-density
     const col = colEl || document.getElementById('cal-col');
     const colW = col?.clientWidth || 0;
 

@@ -1,3 +1,9 @@
+/**
+ * @module oe/platform-utils
+ * @tag platform:mobile-desktop
+ * @tag privacy:dom-only
+ */
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +42,34 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
-    canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
-        && window.isSecureContext
-        && !Utils.isMobile(),
+    // @section platform-profile
+    getDeviceProfile() {
+        const mobileViewport = window.matchMedia('(max-width: 640px)').matches;
+        const tabletViewport = window.matchMedia('(max-width: 900px)').matches;
+        const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        const prefersReducedData = Boolean(connection?.saveData || effectiveType === 'slow-2g' || effectiveType === '2g');
+        const memoryGB = Number(navigator.deviceMemory || 0);
+        const tier = mobileViewport ? 'mobile' : (tabletViewport || coarsePointer ? 'tablet' : 'desktop');
+        const canUseSavePicker = typeof window.showSaveFilePicker === 'function'
+            && window.isSecureContext
+            && tier === 'desktop';
+
+        return {
+            tier,
+            isMobile: tier === 'mobile',
+            isTablet: tier === 'tablet',
+            isDesktop: tier === 'desktop',
+            prefersCamera: tabletViewport || coarsePointer,
+            canUseSavePicker,
+            prefersReducedData,
+            memoryGB
+        };
+    },
+    isMobile: () => Utils.getDeviceProfile().isMobile,
+    prefersCamera: () => Utils.getDeviceProfile().prefersCamera,
+    canUseSavePicker: () => Utils.getDeviceProfile().canUseSavePicker,
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

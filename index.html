@@ -32,11 +32,15 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!--
+    @tag ocr:import-map
+    Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps).
+    Keep these pins in sync with OCR_CONFIG.urls in src/config.js.
+  -->
   <script type="importmap">
   {
     "imports": {
-      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs",
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs",
       "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js"
     }
   }
@@ -307,14 +311,22 @@
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    image file, or PDF invoice. On first use, the app downloads the PP-OCRv5 browser engine and its
+                    peer runtime from the CDN, then caches those assets in your browser. Processing never uploads your
+                    receipt to OpenExpense or any backend service.
+                  </p>
+                  <p>
+                    Mobile devices use the rear camera when available and smaller OCR canvases to reduce memory
+                    pressure; desktop browsers keep larger canvases for higher-detail receipts. PDFs are checked for
+                    embedded text first, and OCR is only used as a fallback for scanned/image-only pages.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
-                    Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                    Expand <em>View raw scanned text</em> if you want to verify what the parser read. HEIC images work
+                    only in browsers that can decode them natively; if a photo does not load, take a screenshot or save
+                    it as JPEG/PNG.
                   </p>
                   <div class="docs-note">
                     <p>

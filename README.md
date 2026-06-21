@@ -22,7 +22,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero backend** — no server, no database, and no ledger uploads. First-use CDN downloads provide UI icons and OCR/PDF browser assets; your expense data and receipt contents stay on-device.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
@@ -49,6 +49,61 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR stack
+
+Receipt reading is lazy-loaded so the calendar starts quickly on phones and desktops:
+
+- `src/config.js` owns OCR/PDF CDN pins and image-size limits in `OCR_CONFIG`.
+- `src/features/receipt.js` imports PP-OCRv5 (`ppu-paddle-ocr`) only when a scan starts or when idle warmup is safe.
+- `index.html` provides the import map for `onnxruntime-web` and `ppu-ocv/canvas-web`, the peer runtimes used by the OCR engine.
+- PDFs are parsed for embedded text first through PDF.js; OCR is used only for scanned/image-only PDFs.
+- Mobile and low-memory devices use smaller OCR canvases, while desktops keep larger canvases for sharper text recognition.
+
+The OCR engine, PDF reader, and icon font are fetched from jsDelivr as static browser assets. No receipt image, parsed text, or ledger data is sent to OpenExpense servers.
+
+## Development notes
+
+### Bundles
+
+GitHub Pages serves the root `app.js` and `chunk-*.js` files directly. After editing `src/`, run:
+
+```bash
+npm run build
+```
+
+The build script first removes old generated bundles, then emits a fresh `app.js` and active chunks. Commit the regenerated bundle files with the source change.
+
+### Human-readable code tags
+
+Important modules use lightweight tags in comments so privacy, performance, and platform-sensitive paths are searchable:
+
+```js
+/**
+ * @module oe/receipt-ocr
+ * @tag privacy:local-only
+ * @tag perf:lazy-load
+ * @tag platform:mobile-desktop
+ */
+// @section receipt-parse-heuristics
+```
+
+Use tags sparingly on module headers and high-value sections such as OCR engine loading, platform export behavior, storage encryption, and render scheduling.
+
+### Verification
+
+```bash
+npm run build
+npm run serve
+```
+
+Then open http://localhost:8765 and smoke-test:
+
+- app boot (`window.__oeBoot.ok === true` in the console)
+- receipt scan from a photo
+- PDF invoice with embedded text
+- scanned/image-only PDF fallback
+- export on desktop (save picker) and mobile/narrow viewport (share or download fallback)
 
 ## Data format
 
