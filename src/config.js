@@ -6,6 +6,51 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+/**
+ * Human-readable platform tags for the client-only OCR receipt pipeline.
+ * Keep these CDN pins in sync with index.html's import map peer versions.
+ */
+export const OCR_CONFIG = {
+    tags: {
+        module: 'receipt-ocr',
+        engine: 'pp-ocrv5-browser',
+        privacy: 'device-only',
+        platforms: 'mobile-camera desktop-file pdf-invoice'
+    },
+    cdn: {
+        engine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    },
+    peerImportMap: {
+        'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+        'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+    },
+    progress: {
+        engineLoad: 'Loading OCR engine...',
+        modelDownload: 'Downloading models (first scan only)...',
+        warmup: 'Warming up...',
+        ready: 'Ready',
+        pdfLoad: 'Loading PDF...',
+        pdfPreview: 'Rendering preview...',
+        textRead: 'Reading text...',
+        done: 'Done'
+    },
+    canvas: {
+        desktopMaxSide: 2400,
+        mobileMaxSide: 1800,
+        minSide: 1000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        jpegPreviewQuality: 0.9,
+        highMemoryMinDeviceMemory: 4
+    },
+    confidence: {
+        extractedPdf: 0.95,
+        low: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -8,6 +8,9 @@
 ## Quick start
 
 ```bash
+# Install dependencies after cloning
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
@@ -30,11 +33,11 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt bundle after editing anything under `src/`. The `prebuild` script removes stale generated chunks before esbuild emits the current deployment files.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -46,9 +49,28 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Hashed dynamic chunks emitted by esbuild
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform notes
+
+Receipt scanning runs entirely in the browser. The OCR stack is lazy-loaded from the CDN on first scan intent:
+
+- `ppu-paddle-ocr@5.8.0` (PP-OCRv5) for recognition.
+- `onnxruntime-web@1.23.2` and `ppu-ocv/canvas-web@3.2.2` via the import map in `index.html`.
+- `pdfjs-dist@4.10.38` only when a PDF or invoice is selected.
+
+The first scan downloads and caches the OCR model in the browser. PDFs use embedded text first and only fall back to OCR for scanned/image-only documents. Photos and rendered PDFs are normalized to OCR-friendly canvases with device-aware limits: desktop and higher-memory devices keep larger canvases for accuracy, while camera-first mobile devices use a lower max side to reduce memory pressure and latency.
+
+| Platform | Receipt input path | Performance behavior | Export behavior |
+| --- | --- | --- | --- |
+| Mobile camera / tablet | Scan button prefers `capture="environment"` and accepts images, HEIC/HEIF where supported, and PDFs. | OCR engine warms after scan intent; preprocessing uses mobile canvas limits on constrained devices. | Uses `navigator.share` for encrypted exports when files can be shared. |
+| Desktop browser | Scan opens the file picker for image/PDF invoices. | OCR can warm during idle time on capable devices; larger canvases preserve desktop OCR accuracy. | Uses `showSaveFilePicker` in secure contexts, then download fallback. |
+| PDF invoices | Embedded text extraction runs before OCR. | PDF.js loads on demand; OCR is skipped when the PDF text layer is sufficient. | Same as platform export path. |
+
+Developer details live in [`docs/ocr-platform.md`](docs/ocr-platform.md). Human-readable code tags are collected in `OCR_CONFIG.tags` and mirrored in the receipt, ledger, utility, and bootstrap module headers.
 
 ## Data format
 

@@ -1,3 +1,7 @@
+/**
+ * @file Ledger import/export and autosave controls.
+ * @tags encrypted-export desktop-save-picker mobile-share offline-storage
+ */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';

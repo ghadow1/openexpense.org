@@ -1,3 +1,7 @@
+/**
+ * @file Cross-platform utility helpers shared by OpenExpense UI features.
+ * @tags platform-detect secure-save-picker mobile-camera desktop-export
+ */
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -37,7 +41,12 @@ export const Utils = {
         });
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    hasCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    supportsHighMemoryOcr: (minDeviceMemory = 4) => {
+        const memory = Number(navigator.deviceMemory || 0);
+        return !Utils.prefersCamera() || memory >= minDeviceMemory;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

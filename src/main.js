@@ -1,4 +1,8 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+/**
+ * @file OpenExpense application bootstrap.
+ * @tags app-bootstrap encrypted-autosave responsive-render ocr-idle-warmup
+ */
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +75,11 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (Utils.supportsHighMemoryOcr(OCR_CONFIG.canvas.highMemoryMinDeviceMemory)) {
+        const warmOcr = () => { Receipt.warmEngine(); };
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
+        else setTimeout(warmOcr, 3000);
+    }
 
     window.__oeBoot = { ok: true };
 }

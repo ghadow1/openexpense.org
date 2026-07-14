@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR; keep in sync with OCR_CONFIG.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -311,6 +311,11 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    On phones and tablets, Scan opens the rear camera when the browser supports it. On desktop, it
+                    opens the file picker. PDF invoices are checked for embedded text before OCR, so digital invoices
+                    can scan quickly while scanned PDFs still use the on-device OCR fallback.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
@@ -320,6 +325,8 @@
                     <p>
                       Receipt parsing is a convenience, not an autopilot. You are always the one who decides what
                       gets saved — the app never auto-logs a scanned receipt without your confirmation.
+                      HEIC/HEIF support depends on your browser; if a photo will not open, save it as JPEG or PNG
+                      and scan again.
                     </p>
                   </div>
                 </section>
