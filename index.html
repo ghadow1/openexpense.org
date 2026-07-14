@@ -32,7 +32,8 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps).
+       Keep these URLs in sync with OCR_CONFIG.dependencies.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -309,6 +310,12 @@
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
                     it in your browser — processing never leaves your device.
+                  </p>
+                  <p>
+                    For the best cross-platform results, use a sharp JPEG/PNG photo with the full receipt in frame,
+                    or upload a digital PDF invoice when one is available. Digital PDFs are read from their text layer
+                    first, which is faster than image OCR. HEIC/HEIF support depends on your browser's native image
+                    decoding; if a scan fails, try a screenshot or exported PDF instead.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything

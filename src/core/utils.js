@@ -1,3 +1,5 @@
+import { PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,23 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform-mobile: small screens and coarse pointers prefer camera capture
+    // and share-sheet exports over desktop file-system APIs.
+    isMobile: () => window.matchMedia(PLATFORM_CONFIG.mobileMediaQuery).matches,
+    prefersCamera: () => window.matchMedia(PLATFORM_CONFIG.cameraMediaQuery).matches,
+    // @platform-desktop: the File System Access API is a Chromium desktop
+    // enhancement, so it stays behind secure-context and mobile checks.
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @ocr-performance: avoid eager OCR model downloads on data-saver or very
+    // slow connections. Manual scans still lazy-load the engine on demand.
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!connection) return true;
+        if (connection.saveData) return false;
+        return !PLATFORM_CONFIG.skipOcrWarmupEffectiveTypes.includes(connection.effectiveType);
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
