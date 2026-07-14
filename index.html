@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR. Keep these peer pins in sync with OCR_CONFIG.dependencies.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -306,11 +306,15 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
-                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Phones and tablets
+                    open the rear camera when the browser supports it; desktop browsers use the standard file picker.
+                    Choose a photo, image file, or PDF invoice. On first use, the app downloads a local OCR engine
+                    (~5 MB) and caches it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    PDFs are checked for embedded text before OCR, which keeps digital invoices fast on desktop and
+                    mobile. Photos are resized for the current device class before recognition so modern mobile
+                    browsers avoid unnecessary memory pressure while larger desktop screens can keep more detail.
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.

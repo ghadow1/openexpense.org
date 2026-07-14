@@ -6,6 +6,50 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        phoneMax: 640,
+        tabletMax: 900
+    },
+    calendarDensity: {
+        compactMax: 640,
+        narrowMax: 820,
+        tabletMax: 980
+    },
+    performance: {
+        lowMemoryDeviceGb: 4
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcrUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJsUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64,
+        warmupText: 'A'
+    },
+    raster: {
+        minLongestSide: 1000,
+        maxLongestSideDesktop: 2400,
+        maxLongestSideMobile: 1800,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    thresholds: {
+        extractedTextChars: 12,
+        extractedTextLines: 2,
+        lowConfidence: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

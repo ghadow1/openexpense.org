@@ -1,20 +1,22 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // Lazy-loaded from CDN on first scan. Keep index.html's import map in sync
+    // with OCR_CONFIG.dependencies.peerImportMap for ppu-paddle-ocr peer deps.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcrUrl,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJsUrl,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorkerUrl,
     _service: null,
     _initPromise: null,
+    _warmStarted: false,
+    _warmPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
 
     isPdf(file) {
         if (!file) return false;
@@ -47,17 +49,19 @@ export const Receipt = {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
             onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const service = new PaddleOcrService({
+                recognition: { strategy: OCR_CONFIG.engine.recognitionStrategy }
+            });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.engine.warmupCanvasSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
-            ctx.fillText('A', 20, 40);
+            ctx.fillText(OCR_CONFIG.engine.warmupText, 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
             onProgress?.('Ready', 1);
@@ -124,7 +128,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.raster.pdfMaxScale,
+            Receipt.maxOcrSide() / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,14 +140,15 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.raster.previewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.thresholds.extractedTextChars
+                || lines.length >= OCR_CONFIG.thresholds.extractedTextLines
         };
     },
 
@@ -169,39 +177,70 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
-    async fileToCanvas(file) {
-        const url = URL.createObjectURL(file);
-        try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
-            if (width > maxSide || height > maxSide) {
-                const scale = maxSide / Math.max(width, height);
-                width = Math.round(width * scale);
-                height = Math.round(height * scale);
+    maxOcrSide() {
+        return Utils.isMobile()
+            ? OCR_CONFIG.raster.maxLongestSideMobile
+            : OCR_CONFIG.raster.maxLongestSideDesktop;
+    },
+
+    fitWithin(width, height, maxSide) {
+        if (width <= maxSide && height <= maxSide) return { width, height };
+        const scale = maxSide / Math.max(width, height);
+        return {
+            width: Math.round(width * scale),
+            height: Math.round(height * scale)
+        };
+    },
+
+    async decodeImage(file, fallbackUrl) {
+        if (typeof createImageBitmap === 'function') {
+            const optionSets = [{ imageOrientation: 'from-image' }, undefined];
+            for (const options of optionSets) {
+                try {
+                    const bitmap = options ? await createImageBitmap(file, options) : await createImageBitmap(file);
+                    return { image: bitmap, close: () => bitmap.close?.() };
+                } catch (_) { }
             }
+        }
+
+        const image = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = fallbackUrl;
+        });
+        return { image, close: () => {} };
+    },
+
+    async fileToCanvas(file) {
+        const previewUrl = URL.createObjectURL(file);
+        let decoded = null;
+        try {
+            decoded = await Receipt.decodeImage(file, previewUrl);
+            const { width, height } = Receipt.fitWithin(
+                decoded.image.width,
+                decoded.image.height,
+                Receipt.maxOcrSide()
+            );
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            ctx.drawImage(decoded.image, 0, 0, width, height);
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(previewUrl);
             throw err;
+        } finally {
+            decoded?.close();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.raster.minLongestSide;
+        const maxSide = Receipt.maxOcrSide();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -292,7 +331,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,8 +355,6 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
@@ -674,7 +710,7 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.thresholds.lowConfidence
         };
     },
 
@@ -736,6 +772,8 @@ export const Receipt = {
                 </div>
             </div>`;
 
+        // data-act is local to this generated review sheet; data-action is reserved
+        // for document-level delegated controls in index.html/main.js.
         backdrop.addEventListener('click', (e) => { if (e.target === backdrop) Receipt.closePreview(); });
         backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
         backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
@@ -795,9 +833,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };
