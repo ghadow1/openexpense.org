@@ -6,6 +6,49 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    codeTagPrefix: 'oe-ocr',
+    dependencies: {
+        paddleOcr: {
+            name: 'ppu-paddle-ocr',
+            version: '6.1.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.1.0/web/index.js'
+        },
+        pdfjs: {
+            name: 'pdfjs-dist',
+            version: '6.1.200',
+            url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/build/pdf.worker.min.mjs'
+        },
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    engineOptions: {
+        recognition: { strategy: 'cross-line' }
+    },
+    confidence: {
+        low: 0.55,
+        pdfText: 0.95
+    },
+    canvasProfiles: {
+        mobile: { minSide: 900, maxSide: 1800, pdfRenderScale: 2.1 },
+        default: { minSide: 1000, maxSide: 2400, pdfRenderScale: 2.5 },
+        desktop: { minSide: 1200, maxSide: 2800, pdfRenderScale: 2.8 }
+    },
+    progressLabels: {
+        engine: 'Loading OCR engine...',
+        models: 'Downloading models (first scan only)...',
+        warmup: 'Warming up...',
+        ready: 'Ready',
+        pdf: 'Loading PDF...',
+        preview: 'Rendering preview...',
+        text: 'Reading text...',
+        done: 'Done'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

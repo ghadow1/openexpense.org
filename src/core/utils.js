@@ -37,7 +37,23 @@ export const Utils = {
         });
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    hasCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    deviceProfile() {
+        const memory = Number(navigator.deviceMemory || 0);
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        const coarse = Utils.hasCoarsePointer();
+        const mobileViewport = window.matchMedia('(max-width: 760px)').matches;
+        const wideViewport = window.matchMedia('(min-width: 1100px)').matches;
+
+        if (mobileViewport || coarse || (memory > 0 && memory <= 4)) return 'mobile';
+        if (wideViewport && (memory >= 8 || cores >= 8)) return 'desktop';
+        return 'default';
+    },
+    shouldWarmOcr() {
+        if (navigator.connection?.saveData) return false;
+        return Utils.deviceProfile() !== 'mobile';
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
