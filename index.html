@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR; keep pins in sync with OCR_CONFIG.dependencies.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -315,6 +315,12 @@
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    On mobile, Scan opens the rear camera when your browser supports it; on desktop, choose an image
+                    or PDF from disk. Text-based PDFs are read directly first, while receipt photos and scanned PDFs
+                    use the local OCR engine. Very slow or data-saver connections skip background OCR warm-up and
+                    load the engine only when you start a scan.
                   </p>
                   <div class="docs-note">
                     <p>

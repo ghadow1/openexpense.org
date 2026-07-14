@@ -6,6 +6,75 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+/**
+ * @module openexpense/config
+ * Shared, human-readable tags for major capability surfaces.
+ *
+ * These labels are intentionally plain English so UI copy, logs, docs, and
+ * contributor comments can refer to the same concepts without guessing what a
+ * hard-coded number or CDN URL means.
+ */
+export const UI_TAGS = {
+    receiptOcr: 'Receipt OCR',
+    pdfReader: 'PDF reader',
+    mobileCamera: 'Mobile camera capture',
+    desktopSavePicker: 'Desktop save picker',
+    mobileShareSheet: 'Mobile share sheet',
+    offlinePrivate: 'Offline private processing'
+};
+
+/**
+ * Client-only OCR and receipt parsing configuration.
+ *
+ * Dependency pins mirror the import map in index.html for bare-specifier peer
+ * dependencies. Keep those peer versions in sync when updating OCR tech.
+ */
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            onnxruntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            opencvCanvas: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        warmupSide: 64
+    },
+    progress: {
+        loadingEngine: { label: 'Loading OCR engine...', value: 0.08 },
+        downloadingModels: { label: 'Downloading models (first scan only)...', value: 0.2 },
+        warmingUp: { label: 'Warming up...', value: 0.88 },
+        readingPdf: { label: 'Loading PDF...', value: 0.25 },
+        renderingPreview: { label: 'Rendering preview...', value: 0.55 },
+        readingText: { label: 'Reading text...', value: 0.55 },
+        ready: { label: 'Ready', value: 1 },
+        done: { label: 'Done', value: 1 }
+    },
+    lowConfidenceThreshold: 0.55,
+    firstScanNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+};
+
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        mobile: 640,
+        cameraPreferred: 900,
+        tablet: 900,
+        calendarCompact: 640,
+        calendarNarrow: 820,
+        calendarTablet: 980
+    },
+    ocrWarmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    },
+    objectUrlRevokeDelayMs: 1000
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and verify generated assets are current
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,8 +28,8 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5 + ONNX Runtime Web); images never leave your device.
+- **Cross-platform** — responsive layout with mobile camera capture, desktop save-picker, mobile share sheet, and download fallbacks.
 
 ## How it works
 
@@ -49,6 +52,17 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Cross-platform OCR & performance
+
+OpenExpense keeps receipt reading private by running OCR in the browser instead of sending images to a server. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full contributor guide.
+
+- **Current browser OCR stack:** PP-OCRv5 is lazy-loaded from jsDelivr with ONNX Runtime Web and OpenCV canvas peer dependencies declared in the `index.html` import map.
+- **PDF-first path:** PDF.js extracts embedded text before OCR; scanned PDFs fall back to a rendered canvas.
+- **Mobile path:** the file picker prefers `capture="environment"` on phones/tablets and coarse-pointer devices, then bounds canvases to reduce memory pressure.
+- **Desktop path:** image/PDF upload uses the same OCR pipeline, while export prefers the File System Access save picker when the browser supports it.
+- **Preload policy:** the OCR engine warms during browser idle time, but data-saver and very slow connections skip automatic preload and load only after the user scans.
+- **Human-readable code tags:** shared labels live in `src/config.js` (`UI_TAGS`, `OCR_CONFIG`, and `PLATFORM_CONFIG`) so future OCR/mobile/desktop changes have one documented place to start.
 
 ## Data format
 

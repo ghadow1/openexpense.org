@@ -1,3 +1,5 @@
+import { PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,40 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    /**
+     * @platform Mobile
+     * Small-screen breakpoint used for touch-first layout and mobile export UX.
+     */
+    isMobile: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.mobile}px)`).matches,
+
+    /**
+     * @platform Mobile camera capture
+     * Prefer the device camera on phones/tablets and coarse-pointer devices.
+     */
+    prefersCamera: () => window.matchMedia(
+        `(max-width: ${PLATFORM_CONFIG.breakpoints.cameraPreferred}px), (pointer: coarse)`
+    ).matches,
+
+    /**
+     * @platform Desktop save picker
+     * Chromium desktop can write directly to a chosen file in secure contexts.
+     */
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+
+    /**
+     * @platform Mobile performance
+     * Warm OCR only when the network signal suggests model preload will not
+     * surprise users on constrained or data-saver connections.
+     */
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (['slow-2g', '2g'].includes(connection?.effectiveType)) return false;
+        return true;
+    },
+
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

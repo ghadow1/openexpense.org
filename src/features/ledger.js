@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../config.js';
+import { PLATFORM_CONFIG, STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
@@ -58,8 +58,11 @@ export const Ledger = {
         return `${base}-${stamp}.zip`;
     },
 
-    // Persist a Blob using the best available mechanism for the platform:
-    // native save picker on desktop, share sheet on mobile, download fallback.
+    /**
+     * @platform Desktop save picker | Mobile share sheet
+     * Persist a Blob using the best available mechanism for the current device:
+     * native save picker on desktop, share sheet on mobile, download fallback.
+     */
     async saveBlob(blob, filename, description, accept) {
         if (Utils.canUseSavePicker()) {
             try {
@@ -99,7 +102,7 @@ export const Ledger = {
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => URL.revokeObjectURL(url), PLATFORM_CONFIG.objectUrlRevokeDelayMs);
     },
 
     // Export the ledger as an encrypted .zip set: an AES-256-GCM ciphertext of
