@@ -1,4 +1,4 @@
-import { DAYS } from '../config.js';
+import { DAYS, PLATFORM_CONFIG } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
@@ -82,10 +82,10 @@ function getCalendarDensity(colEl) {
     const colW = col?.clientWidth || 0;
 
     if (Utils.isMobile()) return 'mobile';
-    if (colW > 0 && colW < 640) return 'compact';
-    if (colW > 0 && colW < 820) return 'narrow';
-    if (colW > 0 && colW < 980) return 'tablet';
-    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+    if (colW > 0 && colW < PLATFORM_CONFIG.breakpoints.calendarCompact) return 'compact';
+    if (colW > 0 && colW < PLATFORM_CONFIG.breakpoints.calendarNarrow) return 'narrow';
+    if (colW > 0 && colW < PLATFORM_CONFIG.breakpoints.calendarTablet) return 'tablet';
+    if (Utils.mqMax(PLATFORM_CONFIG.breakpoints.sidebarStack)) return 'tablet';
     return 'desktop';
 }
 

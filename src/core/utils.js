@@ -1,3 +1,5 @@
+import { OCR_CONFIG, PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,10 +38,27 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    mqMax: (px) => window.matchMedia(`(max-width: ${px}px)`).matches,
+    mqMin: (px) => window.matchMedia(`(min-width: ${px}px)`).matches,
+    isMobile: () => Utils.mqMax(PLATFORM_CONFIG.breakpoints.mobile),
+    isCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
+    prefersCamera: () => Utils.mqMax(PLATFORM_CONFIG.breakpoints.cameraPreferred) || Utils.isCoarsePointer(),
+    hasReducedDataPreference() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!connection) return false;
+        if (connection.saveData) return true;
+        return PLATFORM_CONFIG.ocrWarmup.skipEffectiveTypes.includes(connection.effectiveType);
+    },
+    shouldWarmOcr: () => !Utils.hasReducedDataPreference(),
+    ocrCanvasProfile() {
+        if (Utils.prefersCamera() || Utils.hasReducedDataPreference()) return OCR_CONFIG.canvasProfiles.mobile;
+        if (Utils.mqMin(PLATFORM_CONFIG.breakpoints.desktopOcr) && (navigator.deviceMemory || 4) >= 8) {
+            return OCR_CONFIG.canvasProfiles.desktop;
+        }
+        return OCR_CONFIG.canvasProfiles.default;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
-        && window.isSecureContext
+        && (!PLATFORM_CONFIG.savePicker.secureContextRequired || window.isSecureContext)
         && !Utils.isMobile(),
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
