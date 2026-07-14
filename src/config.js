@@ -6,6 +6,74 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        mobile: 640,
+        cameraCapture: 900,
+        compactCalendar: 640,
+        narrowCalendar: 820,
+        tabletCalendar: 980,
+        tabletViewport: 900
+    },
+    network: {
+        skipWarmupEffectiveTypes: ['slow-2g', '2g'],
+        minWarmupDownlinkMbps: 0.75
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            onnxruntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            ppuOcvCanvasWeb: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64,
+        warmupSampleText: 'A'
+    },
+    image: {
+        minCanvasSide: 1000,
+        maxCanvasSide: 2400,
+        jpegPreviewQuality: 0.9
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        maxRenderSide: 2400,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    confidence: {
+        extractedText: 0.95,
+        low: 0.55
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    }
+};
+
+export const UI_TAGS = {
+    actions: {
+        closeWelcome: 'close-welcome',
+        closeModal: 'close-modal',
+        quickAddToday: 'quick-add-today',
+        scanReceipt: 'scan-receipt'
+    },
+    ocr: {
+        progressId: 'ocr-progress',
+        previewId: 'ocr-preview',
+        progressTitle: 'Reading receipt...',
+        progressNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.',
+        confidenceOkClass: 'ocr-conf-ok',
+        confidenceLowClass: 'ocr-conf-low'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

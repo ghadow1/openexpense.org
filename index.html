@@ -32,6 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
+  <!-- Keep these peer pins in sync with OCR_CONFIG.dependencies.peerImportMap in src/config.js. -->
   <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
   <script type="importmap">
   {
@@ -307,14 +308,20 @@
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    image file, or PDF invoice. On first use, the app downloads OCR/PDF runtime files and caches
+                    them in your browser. Recognition runs locally, so receipt images and recognized text never leave
+                    your device.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    Mobile browsers open the rear camera when available and scale photos for device memory limits.
+                    PDF invoices use embedded text when possible, which is faster than OCR. HEIC/HEIF support depends
+                    on the browser; if a photo will not decode, try a screenshot or JPEG/PNG export.
                   </p>
                   <div class="docs-note">
                     <p>

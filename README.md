@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild the deploy bundle and clear stale generated chunks
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,7 +28,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images and parsed text never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -34,7 +37,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG, PLATFORM_CONFIG
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -49,6 +52,16 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and performance
+
+Receipt OCR lives in `src/features/receipt.js` and is tagged by responsibility with markers such as `[OCR:Engine lifecycle]`, `[OCR:Image normalization and recognition]`, and `[OCR:Review sheet]`. Shared tuning lives in `src/config.js`:
+
+- `OCR_CONFIG` pins OCR/PDF dependencies and canvas, confidence, PDF render, and warmup thresholds.
+- `PLATFORM_CONFIG` keeps mobile, tablet, desktop, camera, and network warmup behavior consistent.
+- `UI_TAGS` keeps action names and OCR dialog IDs readable across modules.
+
+The first scan lazy-loads the OCR engine and models from jsDelivr, then browser caching handles later scans. OCR inference is local: receipt images and recognized text are not uploaded. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the mobile/desktop pipeline, import-map sync notes, HEIC/HEIF caveats, and tuning checklist.
 
 ## Data format
 

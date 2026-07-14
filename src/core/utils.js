@@ -1,3 +1,5 @@
+import { PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,21 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.cameraCapture}px), (pointer: coarse)`).matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    isDataConstrainedNetwork() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!connection) return false;
+        if (connection.saveData) return true;
+        if (PLATFORM_CONFIG.network.skipWarmupEffectiveTypes.includes(connection.effectiveType)) return true;
+        return typeof connection.downlink === 'number'
+            && connection.downlink > 0
+            && connection.downlink < PLATFORM_CONFIG.network.minWarmupDownlinkMbps;
+    },
+    shouldWarmOcr: () => !Utils.isDataConstrainedNetwork(),
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

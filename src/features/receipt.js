@@ -1,21 +1,25 @@
+import { OCR_CONFIG, UI_TAGS } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // [OCR:Runtime dependencies]
+    // Lazy-loaded from CDN on first scan. index.html must define the matching
+    // import map for onnxruntime-web and ppu-ocv/canvas-web peer dependencies.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
+    _warmStarted: false,
+    _warmPromise: null,
 
+    // [OCR:Input routing]
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
@@ -32,6 +36,7 @@ export const Receipt = {
         input.click();
     },
 
+    // [OCR:Engine lifecycle]
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -47,17 +52,19 @@ export const Receipt = {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
             onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const service = new PaddleOcrService({
+                recognition: { strategy: OCR_CONFIG.engine.recognitionStrategy }
+            });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.engine.warmupCanvasSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
-            ctx.fillText('A', 20, 40);
+            ctx.fillText(OCR_CONFIG.engine.warmupSampleText, 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
             onProgress?.('Ready', 1);
@@ -72,6 +79,7 @@ export const Receipt = {
         }
     },
 
+    // [OCR:PDF extraction and preview rendering]
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -124,7 +132,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.pdf.maxRenderScale,
+            OCR_CONFIG.pdf.maxRenderSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +144,19 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.image.jpegPreviewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.extractedTextMinChars
+                || lines.length >= OCR_CONFIG.pdf.extractedTextMinLines
         };
     },
 
+    // [OCR:Image normalization and recognition]
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -178,7 +191,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_CONFIG.image.maxCanvasSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +213,8 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.image.minCanvasSide;
+        const maxSide = OCR_CONFIG.image.maxCanvasSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -230,6 +243,7 @@ export const Receipt = {
         return canvas;
     },
 
+    // [OCR:Text cleanup and vendor normalization]
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
             line.map(r => r.text).join(' ').replace(/\s{2,}/g, ' ').trim()
@@ -274,7 +288,7 @@ export const Receipt = {
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: OCR_CONFIG.confidence.extractedText,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -292,7 +306,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,20 +330,19 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
+    // [OCR:Progress dialog]
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
-        backdrop.id = 'ocr-progress';
+        backdrop.id = UI_TAGS.ocr.progressId;
         backdrop.innerHTML = `
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
-                <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
+                <strong>${UI_TAGS.ocr.progressTitle}</strong>
+                <p class="ocr-progress-note">${UI_TAGS.ocr.progressNote}</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
@@ -347,13 +359,14 @@ export const Receipt = {
             },
             close() {
                 backdrop.remove();
-                if (!document.getElementById('ocr-preview') && !document.getElementById('modal')?.classList.contains('open')) {
+                if (!document.getElementById(UI_TAGS.ocr.previewId) && !document.getElementById('modal')?.classList.contains('open')) {
                     document.body.classList.remove('modal-open');
                 }
             }
         };
     },
 
+    // [OCR:Receipt amount and date parsing]
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -546,6 +559,7 @@ export const Receipt = {
         return Math.max(...positive);
     },
 
+    // [OCR:Merchant and line item parsing]
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
@@ -674,21 +688,22 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.confidence.low
         };
     },
 
+    // [OCR:Review sheet]
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
         const noteParts = [...parsed.items];
         if (parsed.tax != null) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
         const confPct = parsed.confidence ? Math.round(parsed.confidence * 100) : null;
-        const confClass = parsed.lowConfidence ? 'ocr-conf-low' : 'ocr-conf-ok';
+        const confClass = parsed.lowConfidence ? UI_TAGS.ocr.confidenceLowClass : UI_TAGS.ocr.confidenceOkClass;
 
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
-        backdrop.id = 'ocr-preview';
+        backdrop.id = UI_TAGS.ocr.previewId;
         backdrop.innerHTML = `
             <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
                 <div class="ocr-sheet-header">
@@ -758,7 +773,7 @@ export const Receipt = {
     },
 
     closePreview() {
-        document.getElementById('ocr-preview')?.remove();
+        document.getElementById(UI_TAGS.ocr.previewId)?.remove();
         if (!document.getElementById('modal')?.classList.contains('open')) {
             document.body.classList.remove('modal-open');
         }
