@@ -11,6 +11,115 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        mobile: 640,
+        cameraPreferred: 900,
+        tablet: 900,
+        desktop: 1200
+    },
+    connections: {
+        skipWarmupEffectiveTypes: ['slow-2g', '2g'],
+        skipWarmupWhenSaveData: true
+    }
+};
+
+export const UI_TAGS = {
+    actions: {
+        closeWelcome: 'close-welcome',
+        closeModal: 'close-modal',
+        scanReceipt: 'scan-receipt',
+        quickAddToday: 'quick-add-today'
+    },
+    views: {
+        app: 'app',
+        docs: 'docs'
+    },
+    docTabs: {
+        manual: 'manual',
+        guide: 'guide',
+        schema: 'schema'
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: {
+            name: 'ppu-paddle-ocr',
+            version: '5.8.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js'
+        },
+        pdfjs: {
+            name: 'pdfjs-dist',
+            version: '4.10.38',
+            url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+        },
+        peerImportMap: {
+            onnxRuntimeWeb: {
+                specifier: 'onnxruntime-web',
+                version: '1.23.2',
+                url: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs'
+            },
+            ppuOcvCanvasWeb: {
+                specifier: 'ppu-ocv/canvas-web',
+                version: '3.2.2',
+                url: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+            }
+        }
+    },
+    progressLabels: {
+        loadingEngine: 'Loading OCR engine...',
+        downloadingModels: 'Downloading models (first scan only)...',
+        warmingUp: 'Warming up...',
+        ready: 'Ready',
+        loadingPdf: 'Loading PDF...',
+        readingPdfPage: (page) => `Reading PDF page ${page}...`,
+        renderingPreview: 'Rendering preview...',
+        readingText: 'Reading text...',
+        done: 'Done'
+    },
+    notes: {
+        firstScan: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+    },
+    confidence: {
+        extractedPdfText: 0.95,
+        low: 0.55
+    },
+    pdf: {
+        textLengthThreshold: 12,
+        lineCountThreshold: 2,
+        previewPage: 1,
+        previewJpegQuality: 0.9
+    },
+    image: {
+        warmCanvasSize: 64
+    },
+    platformProfiles: {
+        mobile: {
+            minSide: 900,
+            maxSide: 1800,
+            pdfMaxSide: 1800,
+            idleWarmupTimeout: 12000,
+            fallbackWarmupDelay: 5000
+        },
+        tablet: {
+            minSide: 1000,
+            maxSide: 2200,
+            pdfMaxSide: 2200,
+            idleWarmupTimeout: 10000,
+            fallbackWarmupDelay: 3500
+        },
+        desktop: {
+            minSide: 1000,
+            maxSide: 2400,
+            pdfMaxSide: 2400,
+            idleWarmupTimeout: 8000,
+            fallbackWarmupDelay: 3000
+        }
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

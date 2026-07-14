@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, STORAGE_KEYS, UI_TAGS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +71,12 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (Utils.shouldWarmOcr()) {
+        const profile = Utils.ocrProfile();
+        const warmOcr = () => { Receipt.warmEngine(); };
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: profile.idleWarmupTimeout });
+        else setTimeout(warmOcr, profile.fallbackWarmupDelay);
+    }
 
     window.__oeBoot = { ok: true };
 }
@@ -83,17 +86,17 @@ function handleDelegatedClick(e) {
     if (actionEl) {
         const action = actionEl.dataset.action;
         switch (action) {
-            case 'close-welcome':
+            case UI_TAGS.actions.closeWelcome:
                 closeWelcomeModal();
                 break;
-            case 'close-modal':
+            case UI_TAGS.actions.closeModal:
                 closeModal();
                 break;
-            case 'scan-receipt':
+            case UI_TAGS.actions.scanReceipt:
                 if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
                 Receipt.pickImage();
                 break;
-            case 'quick-add-today': {
+            case UI_TAGS.actions.quickAddToday: {
                 const now = new Date();
                 switchView('app');
                 openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));

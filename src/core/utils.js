@@ -1,3 +1,5 @@
+import { OCR_CONFIG, PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +38,22 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.cameraPreferred}px), (pointer: coarse)`).matches,
+    platformProfileName() {
+        if (Utils.isMobile()) return 'mobile';
+        if (window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.tablet}px), (pointer: coarse)`).matches) return 'tablet';
+        return 'desktop';
+    },
+    ocrProfile() {
+        return OCR_CONFIG.platformProfiles[Utils.platformProfileName()] || OCR_CONFIG.platformProfiles.desktop;
+    },
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!connection) return true;
+        if (PLATFORM_CONFIG.connections.skipWarmupWhenSaveData && connection.saveData) return false;
+        return !PLATFORM_CONFIG.connections.skipWarmupEffectiveTypes.includes(connection.effectiveType);
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR; keep these URLs in sync with OCR_CONFIG.dependencies.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -311,6 +311,11 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    Phones use camera capture and smaller OCR canvases to reduce memory pressure, while desktop browsers
+                    use a larger scan target for extra detail. If data saver or a very slow connection is detected, OCR
+                    warmup waits until you explicitly scan.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
@@ -319,7 +324,8 @@
                   <div class="docs-note">
                     <p>
                       Receipt parsing is a convenience, not an autopilot. You are always the one who decides what
-                      gets saved — the app never auto-logs a scanned receipt without your confirmation.
+                      gets saved — the app never auto-logs a scanned receipt without your confirmation. HEIC/HEIF
+                      decoding depends on your browser and operating system.
                     </p>
                   </div>
                 </section>
