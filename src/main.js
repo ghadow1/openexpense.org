@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +71,15 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (Utils.shouldWarmOcr()) {
+        const profile = Utils.getOcrProfile(OCR_CONFIG.profiles);
+        const warmOcr = () => { Receipt.warmEngine(); };
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(warmOcr, { timeout: profile.idleWarmupDelayMs + 5000 });
+        } else {
+            setTimeout(warmOcr, profile.idleWarmupDelayMs);
+        }
+    }
 
     window.__oeBoot = { ok: true };
 }

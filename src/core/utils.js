@@ -38,6 +38,36 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    hardwareConcurrency: () => Number(navigator.hardwareConcurrency || 0) || null,
+    deviceMemory: () => Number(navigator.deviceMemory || 0) || null,
+    prefersReducedData: () => !!navigator.connection?.saveData,
+    ocrPlatformTier() {
+        const cores = Utils.hardwareConcurrency();
+        const memory = Utils.deviceMemory();
+        const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const mobileViewport = window.matchMedia('(max-width: 760px)').matches;
+
+        if (Utils.prefersReducedData() || mobileViewport || coarsePointer || (memory && memory <= 4) || (cores && cores <= 4)) {
+            return 'mobile';
+        }
+
+        if (!Utils.isMobile() && ((memory && memory >= 8) || (cores && cores >= 8))) {
+            return 'desktop';
+        }
+
+        return 'default';
+    },
+    getOcrProfile(profiles) {
+        const tier = Utils.ocrPlatformTier();
+        return profiles[tier] || profiles.default;
+    },
+    shouldWarmOcr() {
+        if (Utils.prefersReducedData()) return false;
+        const tier = Utils.ocrPlatformTier();
+        const cores = Utils.hardwareConcurrency();
+        const memory = Utils.deviceMemory();
+        return tier !== 'mobile' || ((cores == null || cores >= 6) && (memory == null || memory >= 4));
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

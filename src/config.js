@@ -6,6 +6,84 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    dependencies: {
+        // Keep these CDN pins aligned with the import map in index.html.
+        paddleOcrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJsCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        },
+        modelDownloadNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+    },
+    stages: {
+        engineLoad: { tag: 'ocr.engine.load', label: 'Loading OCR engine...', progress: 0.08 },
+        modelDownload: { tag: 'ocr.model.download', label: 'Downloading models (first scan only)...', progress: 0.2 },
+        warmup: { tag: 'ocr.engine.warmup', label: 'Warming up...', progress: 0.88 },
+        ready: { tag: 'ocr.engine.ready', label: 'Ready', progress: 1 },
+        pdfLoad: { tag: 'ocr.pdf.load', label: 'Loading PDF...', progress: 0.25 },
+        pdfText: { tag: 'ocr.pdf.text', label: 'Reading PDF page', progressStart: 0.25, progressEnd: 0.5 },
+        pdfPreview: { tag: 'ocr.pdf.preview', label: 'Rendering preview...', progress: 0.55 },
+        textRead: { tag: 'ocr.text.read', label: 'Reading text...', progress: 0.55 },
+        done: { tag: 'ocr.done', label: 'Done', progress: 1 }
+    },
+    profiles: {
+        mobile: {
+            tag: 'ocr.profile.mobile',
+            minSide: 900,
+            maxSide: 1800,
+            sourceMaxSide: 1800,
+            pdfMaxSide: 1800,
+            pdfScaleCap: 2,
+            previewQuality: 0.82,
+            idleWarmupDelayMs: 6000
+        },
+        default: {
+            tag: 'ocr.profile.default',
+            minSide: 1000,
+            maxSide: 2400,
+            sourceMaxSide: 2400,
+            pdfMaxSide: 2400,
+            pdfScaleCap: 2.5,
+            previewQuality: 0.86,
+            idleWarmupDelayMs: 3000
+        },
+        desktop: {
+            tag: 'ocr.profile.desktop',
+            minSide: 1200,
+            maxSide: 3000,
+            sourceMaxSide: 3000,
+            pdfMaxSide: 3000,
+            pdfScaleCap: 3,
+            previewQuality: 0.9,
+            idleWarmupDelayMs: 1500
+        }
+    },
+    parsing: {
+        lowConfidenceThreshold: 0.55,
+        lineReplacements: [
+            { tag: 'ocr.fix.zoom-lowercase-i', pattern: /\bzooml\b/gi, replacement: 'Zoom' },
+            { tag: 'ocr.fix.decimal-bar', pattern: /(\d)[|lI](\d{2})\b/g, replacement: '$1.$2' }
+        ],
+        textReplacements: [
+            { tag: 'ocr.fix.zoom-company', pattern: /\bzooml\b/gi, replacement: 'Zoom Communications' },
+            { tag: 'ocr.fix.zoom-communications', pattern: /zoom\s*c[o0]mmunications/gi, replacement: 'Zoom Communications' }
+        ],
+        merchantAliases: [
+            { tag: 'merchant.zoom-company', pattern: /zoom\s+communications?,?\s*inc\.?/i, name: 'Zoom Communications, Inc.' },
+            { tag: 'merchant.zoom-short', pattern: /\bzoom[l1i]?\b/i, name: 'Zoom Communications, Inc.' },
+            { tag: 'merchant.amazon', pattern: /amazon\.?\s*com/i, name: 'Amazon' },
+            { tag: 'merchant.whole-foods', pattern: /whole\s*foods/i, name: 'Whole Foods' },
+            { tag: 'merchant.costco', pattern: /costco\s*wholesale/i, name: 'Costco' },
+            { tag: 'merchant.target', pattern: /target\s*(store|corp)?/i, name: 'Target' },
+            { tag: 'merchant.walmart', pattern: /walmart/i, name: 'Walmart' },
+            { tag: 'merchant.starbucks', pattern: /starbucks/i, name: 'Starbucks' }
+        ]
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -25,8 +25,8 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); photos and PDFs never leave your device.
+- **Cross-platform** — adaptive OCR canvas profiles, responsive layout, desktop save-picker, and mobile camera/share fallbacks.
 
 ## How it works
 
@@ -45,10 +45,18 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── ocr-platform.md    # OCR pipeline, platform profiles, and readable code tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform notes
+
+`src/config.js` exposes `OCR_CONFIG`, which centralizes OCR CDN pins, progress labels, parser aliases, confidence thresholds, and mobile/default/desktop canvas profiles. The receipt feature uses browser signals such as viewport, pointer type, hardware concurrency, device memory, and Save-Data to decide whether to warm the OCR engine in the background and how large to render images for recognition.
+
+Readable tags such as `ocr.engine.load`, `ocr.profile.mobile`, `ocr.fix.decimal-bar`, and `merchant.amazon` live beside the rules they describe. See [`docs/ocr-platform.md`](docs/ocr-platform.md) before changing OCR dependencies, parser heuristics, or canvas sizing.
 
 ## Data format
 
