@@ -8,13 +8,16 @@
 ## Quick start
 
 ```bash
+# Install the pinned local build toolchain
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk-*.js after editing anything in src/
 npm run build
 ```
 
@@ -30,25 +33,40 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus lazy `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, OCR_CONFIG, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Shared platform helpers, including OCR device profiles
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js + chunk-*.js    # Generated browser bundle (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR platform
+
+Receipt scanning is implemented in `src/features/receipt.js` with shared OCR settings in `OCR_CONFIG` (`src/config.js`). The scanner lazy-loads PP-OCRv5 and PDF.js from jsDelivr, reads embedded PDF text before falling back to OCR, and keeps all processing on the current device.
+
+- Mobile/camera-first devices get smaller OCR canvases to reduce memory and battery pressure.
+- Capable desktops get larger canvases for sharper OCR on dense invoices.
+- Idle OCR warmup is skipped when the browser reports data saver mode or very constrained hardware.
+- Human-readable `data-action`, `data-view`, `data-tab`, and receipt-preview `data-act` tags drive delegated UI events.
+
+See [`docs/ocr-platform.md`](docs/ocr-platform.md) for dependency pins, device profiles, and UI tag conventions.
+
+## Building generated assets
+
+`npm run build` runs `scripts/clean-build-assets.mjs` first, removing stale `app.js` and `chunk-*.js` files before esbuild writes the current bundle. Commit the generated assets with source changes because the deployed site is static.
 
 ## Data format
 

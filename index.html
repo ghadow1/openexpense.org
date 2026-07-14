@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR (mirror OCR_CONFIG.dependencies.peerImportMap) -->
   <script type="importmap">
   {
     "imports": {
@@ -309,6 +309,12 @@
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
                     it in your browser — processing never leaves your device.
+                  </p>
+                  <p>
+                    Phones and tablets can open the rear camera directly, while desktop browsers can choose existing
+                    image files or PDFs. PDFs are checked for embedded text first and only fall back to OCR when the
+                    document does not include enough readable text. The scanner also sizes images differently for
+                    mobile and desktop hardware so receipt text stays readable without wasting memory.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything

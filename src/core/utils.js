@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,24 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    deviceClass() {
+        const memory = Number(navigator.deviceMemory || 0);
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        if (Utils.prefersCamera() || Utils.isMobile() || (memory > 0 && memory <= 4)) return 'mobile';
+        if (window.matchMedia('(min-width: 1180px)').matches && (memory >= 8 || cores >= 6)) return 'desktop';
+        return 'default';
+    },
+    ocrCanvasProfile() {
+        return OCR_CONFIG.canvasProfiles[Utils.deviceClass()] || OCR_CONFIG.canvasProfiles.default;
+    },
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const memory = Number(navigator.deviceMemory || 0);
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        if (connection?.saveData) return false;
+        if (Utils.deviceClass() === 'mobile' && ((memory > 0 && memory <= 2) || (cores > 0 && cores <= 2))) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
