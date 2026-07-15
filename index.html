@@ -32,7 +32,8 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps).
+       Keep these pins in sync with OCR_CONFIG.dependencies.peerImports in src/config.js. -->
   <script type="importmap">
   {
     "imports": {
@@ -322,6 +323,11 @@
                       gets saved — the app never auto-logs a scanned receipt without your confirmation.
                     </p>
                   </div>
+                  <p>
+                    <strong>Technology:</strong> mobile browsers can open the rear camera, desktop browsers use the
+                    file/PDF picker, and text-native PDFs are read before falling back to OCR. The scanner uses
+                    PP-OCRv5, ONNX Runtime Web, OpenCV canvas helpers, and pdf.js directly in the browser.
+                  </p>
                 </section>
 
                 <section class="docs-chapter">

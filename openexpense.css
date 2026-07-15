@@ -2741,7 +2741,7 @@ textarea.text-input {
 }
 
 /* ==========================================================================
-   Receipt OCR dialog
+   Receipt OCR — review sheet, progress, mobile FAB
    ========================================================================== */
 .ocr-sheet {
     width: 100%;

@@ -6,6 +6,34 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// Human-readable OCR metadata. Keep peerImports in sync with index.html's
+// import map because browser import maps must be declared before app.js loads.
+export const OCR_CONFIG = {
+    dependencies: {
+        engine: 'PP-OCRv5 via ppu-paddle-ocr',
+        engineUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'pdfjs-dist',
+        pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    performance: {
+        firstScanDownload: '~5 MB OCR model, PDF reader on demand',
+        minCanvasSide: 1000,
+        maxCanvasSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        idleWarmTimeoutMs: 8000,
+        fallbackWarmDelayMs: 3000
+    },
+    platform: {
+        mobileCapture: 'environment camera when coarse pointer or narrow viewport is detected',
+        desktopImport: 'file picker for images, HEIC/HEIF when the browser can decode them, and PDFs'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

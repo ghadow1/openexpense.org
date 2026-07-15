@@ -58,8 +58,11 @@ export const Ledger = {
         return `${base}-${stamp}.zip`;
     },
 
-    // Persist a Blob using the best available mechanism for the platform:
-    // native save picker on desktop, share sheet on mobile, download fallback.
+    /**
+     * @platform desktop File System Access API save picker when available.
+     * @platform mobile Web Share sheet for encrypted exports that can be shared as files.
+     * @platform fallback Anchor download for browsers without native save/share support.
+     */
     async saveBlob(blob, filename, description, accept) {
         if (Utils.canUseSavePicker()) {
             try {

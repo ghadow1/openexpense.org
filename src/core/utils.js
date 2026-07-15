@@ -36,11 +36,22 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    /** @platform mobile Compact layout breakpoint for phones. */
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    /** @platform mobile Prefer camera capture on touch/coarse-pointer devices. */
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    /** @platform desktop Native save picker requires Chromium-style File System Access in a secure context. */
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    /** @perf Avoid idle OCR preloads when the browser reports constrained bandwidth or memory. */
+    shouldWarmOcr: () => {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (/^(slow-2g|2g)$/i.test(connection?.effectiveType || '')) return false;
+        if (Utils.prefersCamera() && navigator.deviceMemory && navigator.deviceMemory <= 2) return false;
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
