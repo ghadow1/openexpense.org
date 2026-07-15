@@ -1,3 +1,5 @@
+import { PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,33 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.cameraPreferred}px), (pointer: coarse)`).matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    isSaveData: () => !!Utils.connectionInfo()?.saveData,
+    isSlowConnection: () => {
+        const type = Utils.connectionInfo()?.effectiveType;
+        return !!type && PLATFORM_CONFIG.ocr.slowConnectionTypes.includes(type);
+    },
+    hasLimitedMemory: () => {
+        const memory = Number(navigator.deviceMemory || 0);
+        return memory > 0 && memory <= PLATFORM_CONFIG.ocr.lowMemoryGb;
+    },
+    getOcrProfile() {
+        if (Utils.isSaveData() || Utils.isSlowConnection() || Utils.hasLimitedMemory()) return 'compact';
+        if (Utils.prefersCamera() || window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.tablet}px)`).matches) {
+            return 'balanced';
+        }
+        return 'desktop';
+    },
+    getOcrCanvasSettings() {
+        return PLATFORM_CONFIG.ocr.canvasProfiles[Utils.getOcrProfile()]
+            || PLATFORM_CONFIG.ocr.canvasProfiles.desktop;
+    },
+    shouldWarmOcr: () => !Utils.isSaveData() && !Utils.isSlowConnection(),
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

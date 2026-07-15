@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, PLATFORM_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -9,8 +9,43 @@ import { switchView, switchDocTab, showWelcome, closeWelcomeModal } from './app/
 import { closeModal, initModalBindings, renderModal, openModal } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
-import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
+
+let receiptModulePromise = null;
+
+function loadReceipt() {
+    receiptModulePromise ||= import('./features/receipt.js');
+    return receiptModulePromise
+        .then(module => module.Receipt)
+        .catch((err) => {
+            receiptModulePromise = null;
+            throw err;
+        });
+}
+
+async function withReceipt(action) {
+    try {
+        const Receipt = await loadReceipt();
+        return await action(Receipt);
+    } catch (err) {
+        console.error('[OpenExpense] receipt scanner failed to load:', err);
+        Toast.show('Receipt scanner could not load. Check your connection and try again.', 'error', 6000);
+        return null;
+    }
+}
+
+function scheduleReceiptWarmup() {
+    if (!Utils.shouldWarmOcr()) return;
+
+    const warmOcr = () => {
+        loadReceipt()
+            .then(Receipt => Receipt.warmEngine())
+            .catch((err) => console.debug('[OpenExpense] OCR warm-up skipped:', err));
+    };
+
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: PLATFORM_CONFIG.ocr.idleWarmupTimeoutMs });
+    else setTimeout(warmOcr, PLATFORM_CONFIG.ocr.warmupDelayMs);
+}
 
 async function initApplication() {
     const bootPatch = {};
@@ -62,7 +97,7 @@ async function initApplication() {
     if (scanInput && !scanInput.dataset.bound) {
         scanInput.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0];
-            if (file) Receipt.scan(file);
+            if (file) withReceipt(Receipt => Receipt.scan(file));
             e.target.value = '';
         });
         scanInput.dataset.bound = '1';
@@ -70,10 +105,7 @@ async function initApplication() {
 
     initModalBindings();
     bindResponsiveCalendar();
-
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    scheduleReceiptWarmup();
 
     window.__oeBoot = { ok: true };
 }
@@ -91,7 +123,7 @@ function handleDelegatedClick(e) {
                 break;
             case 'scan-receipt':
                 if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
-                Receipt.pickImage();
+                withReceipt(Receipt => Receipt.pickImage());
                 break;
             case 'quick-add-today': {
                 const now = new Date();

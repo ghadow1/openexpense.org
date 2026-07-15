@@ -22,15 +22,37 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero servers** — no backend and no database. Static assets and OCR dependencies load from CDNs, but ledger data and receipt images are never uploaded.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
+## Receipt OCR and platform performance
+
+Receipt scanning lives in `src/features/receipt.js` and is lazy-loaded only when
+the user scans a receipt or the browser has idle time to warm the engine. OCR
+settings live in `OCR_CONFIG` and `PLATFORM_CONFIG` inside `src/config.js`:
+
+- PP-OCRv5 (`ppu-paddle-ocr`) and PDF.js are loaded from jsDelivr on demand.
+- The import map in `index.html` pins OCR peer dependencies; keep those URLs in
+  sync with `OCR_CONFIG.dependencies.peerImportMap`.
+- `Utils.getOcrCanvasSettings()` selects compact, balanced, or desktop canvas
+  caps based on save-data, connection speed, device memory, screen size, and
+  pointer type.
+- `Utils.shouldWarmOcr()` skips idle warm-up for save-data or very slow
+  connections; scanning still loads OCR manually when requested.
+
+The receipt module is tagged for readability with `@tag ocr-engine`,
+`@tag ocr-preprocess`, `@tag receipt-parse`, and `@tag ocr-review`. See
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR
+dependencies, canvas profiles, or parser heuristics.
+
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root `app.js` plus hashed
+`chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages
+— commit the rebuilt generated assets after editing `src/`.
 
 ```
 src/
@@ -49,6 +71,10 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+`npm run build` removes stale generated root assets before bundling so deploys do
+not accumulate obsolete `chunk-*.js` files. `npm run validate` currently runs the
+same cleaned production build.
 
 ## Data format
 

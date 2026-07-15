@@ -6,6 +6,63 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        mobile: 640,
+        cameraPreferred: 900,
+        tablet: 1024
+    },
+    ocr: {
+        idleWarmupTimeoutMs: 8000,
+        warmupDelayMs: 3000,
+        lowMemoryGb: 4,
+        slowConnectionTypes: ['slow-2g', '2g'],
+        canvasProfiles: {
+            compact: { minSide: 960, maxSide: 1600, pdfMaxSide: 1600, pdfMaxScale: 2 },
+            balanced: { minSide: 1000, maxSide: 2000, pdfMaxSide: 2000, pdfMaxScale: 2.25 },
+            desktop: { minSide: 1200, maxSide: 2400, pdfMaxSide: 2400, pdfMaxScale: 2.5 }
+        }
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    recognition: {
+        strategy: 'cross-line',
+        firstScanNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.',
+        pdfExtractedTextConfidence: 0.95,
+        lowConfidenceThreshold: 0.55
+    },
+    corrections: {
+        lines: [
+            [/\bzooml\b/gi, 'Zoom'],
+            [/(\d)[|lI](\d{2})\b/g, '$1.$2']
+        ],
+        text: [
+            [/\bzooml\b/gi, 'Zoom Communications'],
+            [/zoom\s*c[o0]mmunications/gi, 'Zoom Communications']
+        ]
+    },
+    knownMerchants: [
+        [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
+        [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
+        [/amazon\.?\s*com/i, 'Amazon'],
+        [/whole\s*foods/i, 'Whole Foods'],
+        [/costco\s*wholesale/i, 'Costco'],
+        [/target\s*(store|corp)?/i, 'Target'],
+        [/walmart/i, 'Walmart'],
+        [/starbucks/i, 'Starbucks']
+    ]
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
