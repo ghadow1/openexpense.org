@@ -1,26 +1,48 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
+import { OCR_CONFIG } from '../config.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcrCdn,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJsCdn,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorkerCdn,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
+    _warmStarted: false,
+    _warmPromise: null,
+    _intentWarmupBound: false,
     _previewUrl: null,
-    _lastFile: null,
 
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
         const name = (file.name || '').toLowerCase();
         return type === 'application/pdf' || name.endsWith('.pdf');
+    },
+
+    isHeic(file) {
+        if (!file) return false;
+        const type = (file.type || '').toLowerCase();
+        const name = (file.name || '').toLowerCase();
+        return type.includes('heic') || type.includes('heif') || /\.(heic|heif)$/i.test(name);
+    },
+
+    bindIntentWarmup(root = document) {
+        if (Receipt._intentWarmupBound) return;
+        Receipt._intentWarmupBound = true;
+        const selector = `[data-ocr-tag="${OCR_CONFIG.tags.scanControl}"]`;
+        const warmOnIntent = (event) => {
+            if (event.target?.closest?.(selector)) Receipt.warmEngine();
+        };
+        root.addEventListener('pointerenter', warmOnIntent, true);
+        root.addEventListener('focusin', warmOnIntent);
+        root.addEventListener('touchstart', warmOnIntent, { passive: true, capture: true });
     },
 
     pickImage() {
@@ -35,7 +57,10 @@ export const Receipt = {
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
-        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
+        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {
+            Receipt._warmStarted = false;
+            Receipt._warmPromise = null;
+        });
         return Receipt._warmPromise;
     },
 
@@ -47,14 +72,14 @@ export const Receipt = {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
             onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const service = new PaddleOcrService({ recognition: { strategy: OCR_CONFIG.recognition.strategy } });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.warmup.sampleSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -124,7 +149,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfPreviewMaxScale,
+            OCR_CONFIG.canvas.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,15 +161,33 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.recognition.pdfTextMinChars
+                || lines.length >= OCR_CONFIG.recognition.pdfTextMinLines
         };
+    },
+
+    canvasToPreviewUrl(canvas) {
+        if (!canvas.toBlob) {
+            return Promise.resolve(canvas.toDataURL(
+                OCR_CONFIG.canvas.previewMimeType,
+                OCR_CONFIG.canvas.previewQuality
+            ));
+        }
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob
+                    ? URL.createObjectURL(blob)
+                    : canvas.toDataURL(OCR_CONFIG.canvas.previewMimeType, OCR_CONFIG.canvas.previewQuality));
+            }, OCR_CONFIG.canvas.previewMimeType, OCR_CONFIG.canvas.previewQuality);
+        });
     },
 
     async ocrCanvas(service, canvas, onProgress) {
@@ -169,17 +215,32 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    async decodeImage(file, url) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return { image: bitmap, close: () => bitmap.close?.() };
+            } catch (_) {
+                // Some mobile browsers expose createImageBitmap but cannot decode HEIC/HEIF.
+            }
+        }
+
+        const image = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = url;
+        });
+        return { image, close: () => {} };
+    },
+
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let decoded = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            decoded = await Receipt.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.canvas.maxSide;
+            let { width, height } = decoded.image;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,17 +252,19 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.drawImage(decoded.image, 0, 0, width, height);
             return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            decoded?.close?.();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = OCR_CONFIG.canvas.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -292,7 +355,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -315,10 +377,10 @@ export const Receipt = {
             Receipt._previewUrl = null;
             const hint = Receipt.isPdf(file)
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
+                : Receipt.isHeic(file)
+                    ? 'This HEIC/HEIF image could not be decoded in this browser. Try a JPEG, PNG, or PDF export.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
@@ -326,8 +388,9 @@ export const Receipt = {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-progress';
+        backdrop.dataset.ocrTag = OCR_CONFIG.tags.progress;
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-progress" role="status" aria-live="polite">
+            <div class="modal-shell ocr-progress" role="status" aria-live="polite" data-ocr-tag="${OCR_CONFIG.tags.progress}">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
                 <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
@@ -674,7 +737,7 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.recognition.lowConfidenceThreshold
         };
     },
 
@@ -689,17 +752,18 @@ export const Receipt = {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
+        backdrop.dataset.ocrTag = OCR_CONFIG.tags.reviewSheet;
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt" data-ocr-tag="${OCR_CONFIG.tags.reviewSheet}">
                 <div class="ocr-sheet-header">
                     <div>
                         <h3 class="modal-title">Review receipt</h3>
                         ${confPct != null ? `<span class="ocr-conf ${confClass}">${confPct}% match</span>` : ''}
                     </div>
-                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
+                    <button class="close-modal" type="button" data-act="cancel" data-ocr-tag="${OCR_CONFIG.tags.cancel}" aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="" data-ocr-tag="${OCR_CONFIG.tags.previewImage}"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-title">Title / Merchant</label>
@@ -724,15 +788,15 @@ export const Receipt = {
                         <label class="field-label" for="ocr-note">Notes</label>
                         <textarea class="text-input" id="ocr-note" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
                     </div>
-                    <details class="ocr-raw">
+                    <details class="ocr-raw" data-ocr-tag="${OCR_CONFIG.tags.rawText}">
                         <summary>View raw scanned text</summary>
                         <pre>${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
-                    <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
+                    <button class="btn-primary" type="button" data-act="save" data-ocr-tag="${OCR_CONFIG.tags.saveExpense}"><i class="ti ti-check"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-act="save-scan" data-ocr-tag="${OCR_CONFIG.tags.saveAndScan}"><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-ghost" type="button" data-act="cancel" data-ocr-tag="${OCR_CONFIG.tags.cancel}">Cancel</button>
                 </div>
             </div>`;
 
@@ -795,9 +859,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };

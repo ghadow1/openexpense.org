@@ -11,6 +11,51 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// Keep dependency URLs in sync with the import map in index.html. The OCR flow
+// lazy-loads these resources, then runs parsing entirely in the browser.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJsCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            onnxRuntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            ppuOcvCanvasWeb: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    recognition: {
+        strategy: 'cross-line',
+        pdfTextMinChars: 12,
+        pdfTextMinLines: 2,
+        lowConfidenceThreshold: 0.55
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        pdfPreviewMaxSide: 2400,
+        previewMimeType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        sampleSize: 64,
+        minDeviceMemoryGb: 4
+    },
+    tags: {
+        scanControl: 'ocr:scan-control',
+        fileInput: 'ocr:file-input',
+        progress: 'ocr:progress',
+        reviewSheet: 'ocr:review-sheet',
+        previewImage: 'ocr:preview-image',
+        rawText: 'ocr:raw-text',
+        saveExpense: 'ocr:save-expense',
+        saveAndScan: 'ocr:save-and-scan',
+        cancel: 'ocr:cancel'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

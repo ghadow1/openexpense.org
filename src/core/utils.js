@@ -38,6 +38,14 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    shouldWarmOcr(minDeviceMemoryGb = 4) {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        const lowData = Boolean(connection?.saveData) || ['slow-2g', '2g'].includes(effectiveType);
+        const lowMemory = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory < minDeviceMemoryGb;
+        const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        return !lowData && !lowMemory && !coarsePointer;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

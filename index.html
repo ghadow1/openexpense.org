@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR (keep in sync with OCR_CONFIG in src/config.js) -->
   <script type="importmap">
   {
     "imports": {
@@ -311,6 +311,11 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    Searchable PDFs use their embedded text first for speed and battery life. Scanned PDFs and photos
+                    fall back to the same browser OCR path, with images resized to a mobile-friendly working canvas
+                    before recognition.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
@@ -424,7 +429,7 @@
       </div>
     </main>
 
-    <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
+    <button type="button" class="quick-fab" data-action="scan-receipt" data-ocr-tag="ocr:scan-control" aria-label="Scan receipt" title="Scan receipt">
       <i class="ti ti-camera" aria-hidden="true"></i>
       <span class="quick-fab-label">Scan</span>
     </button>
@@ -473,7 +478,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
+  <input type="file" id="receipt-scan-input" data-ocr-tag="ocr:file-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
 
   <div id="global-tooltip"></div>
 
