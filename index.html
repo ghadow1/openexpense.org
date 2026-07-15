@@ -14,7 +14,7 @@
 
   <title>openexpense.org — Simple Private Expense Tracker</title>
   <meta name="description"
-    content="OpenExpense is a free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
+    content="OpenExpense is a free, privacy-first, offline-only expense tracker with local OCR receipt reading for mobile and desktop. Your financial data never leaves your browser.">
   <meta name="author" content="Gregory Medina">
   <link rel="canonical" href="https://www.openexpense.org/">
 
@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps Bare-specifier resolution for lazy-loaded OCR (mirrors OCR_CONFIG.dependencies.peerImports) -->
   <script type="importmap">
   {
     "imports": {
@@ -310,6 +310,12 @@
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
                     it in your browser — processing never leaves your device.
                   </p>
+                  <ul class="docs-list">
+                    <li><strong>Mobile:</strong> camera-capable phones and tablets prefer the rear camera so you can capture receipts in place.</li>
+                    <li><strong>Desktop:</strong> upload receipt images or searchable PDF invoices from your file system.</li>
+                    <li><strong>Performance:</strong> OpenExpense warms OCR during idle time on capable devices, but skips that preload on data-saver, very slow network, or low-memory sessions.</li>
+                    <li><strong>PDFs:</strong> searchable PDF text is parsed directly first; OCR is used only when a PDF page needs image recognition.</li>
+                  </ul>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.

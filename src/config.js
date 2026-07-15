@@ -6,6 +6,52 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform
+// Keep OCR/PDF dependency pins and cross-platform tuning in one readable place.
+// The import map in index.html mirrors dependencies.peerImports for OCR peer deps.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    recognition: {
+        strategy: 'cross-line'
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        previewQuality: 0.9
+    },
+    pdf: {
+        renderMaxSide: 2400,
+        maxScale: 2.5,
+        minTextChars: 12,
+        minTextLines: 2
+    },
+    warmup: {
+        idleDelayMs: 3000,
+        idleTimeoutMs: 8000,
+        minDeviceMemoryGb: 2,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    },
+    platform: {
+        mobileViewportPx: 640,
+        cameraViewportPx: 900,
+        compactCalendarPx: 640,
+        narrowCalendarPx: 820,
+        tabletCalendarPx: 980,
+        tabletViewportPx: 900
+    },
+    confidence: {
+        low: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

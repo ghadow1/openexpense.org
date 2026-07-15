@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build plus the same validation hook used by automation
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,8 +28,8 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images and PDFs never leave your device.
+- **Cross-platform** — responsive layout with desktop save-picker, mobile share fallbacks, rear-camera capture, and guarded OCR warmup for constrained devices.
 
 ## How it works
 
@@ -41,7 +44,7 @@ src/
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Platform helpers (mobile/desktop, data saver, density)
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
@@ -49,6 +52,20 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance and source tags
+
+Receipt reading is intentionally local and cross-platform. Dependency pins and image/PDF thresholds live in `OCR_CONFIG` (`src/config.js`), while source tags make the critical paths searchable:
+
+- `@ocr-deps` — CDN/import-map pins for OCR and PDF libraries.
+- `@ocr-engine` — OCR engine load, warmup, and recognition calls.
+- `@ocr-pipeline` — image decode, resize, and canvas preparation.
+- `@ocr-pdf` — PDF text extraction and preview rendering.
+- `@ocr-parse` — merchant/date/total parsing heuristics.
+- `@ocr-ui` — scan progress and review UI.
+- `@platform` / `@perf` / `@privacy` — mobile/desktop capability gates, resource tuning, and local-only guarantees.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full receipt OCR maintenance guide.
 
 ## Data format
 
