@@ -6,6 +6,45 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const BREAKPOINTS = {
+    mobileMax: 640,
+    cameraMax: 900,
+    desktopMin: 1024
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        engine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvasProfiles: {
+        mobile: { minSide: 960, maxSide: 1800, pdfPreviewMaxSide: 1800, pdfMaxScale: 2 },
+        tablet: { minSide: 1000, maxSide: 2200, pdfPreviewMaxSide: 2200, pdfMaxScale: 2.25 },
+        desktop: { minSide: 1200, maxSide: 2600, pdfPreviewMaxSide: 2600, pdfMaxScale: 2.5 }
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minIdleDeviceMemoryGb: 4,
+        slowEffectiveTypes: ['slow-2g', '2g']
+    },
+    tags: {
+        scanIntent: 'ocr.scan.intent',
+        scanInput: 'ocr.scan.file-input',
+        progress: 'ocr.scan.progress',
+        reviewSheet: 'ocr.review.sheet',
+        rawText: 'ocr.review.raw-text',
+        save: 'ocr.review.save',
+        saveAndScan: 'ocr.review.save-and-scan',
+        cancel: 'ocr.review.cancel'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

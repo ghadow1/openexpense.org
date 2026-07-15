@@ -1,4 +1,4 @@
-import { DAYS } from '../config.js';
+import { DAYS, OCR_CONFIG } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
@@ -46,6 +46,7 @@ function ensureShell(calCol) {
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
     const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true });
     scanBtn.classList.add('toolbar-scan-btn');
+    scanBtn.dataset.oeTag = OCR_CONFIG.tags.scanIntent;
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
     [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],

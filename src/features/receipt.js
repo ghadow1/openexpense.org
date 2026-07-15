@@ -1,3 +1,4 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
@@ -6,21 +7,33 @@ import { saveExpense } from './modal.js';
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.dependencies.engine,
+    PDF_CDN: OCR_CONFIG.dependencies.pdf,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
+    _warmIntentBound: false,
 
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
         const name = (file.name || '').toLowerCase();
         return type === 'application/pdf' || name.endsWith('.pdf');
+    },
+
+    isHeic(file) {
+        if (!file) return false;
+        const type = (file.type || '').toLowerCase();
+        const name = (file.name || '').toLowerCase();
+        return type.includes('heic') || type.includes('heif') || /\.(heic|heif)$/i.test(name);
+    },
+
+    tagAttr(tag) {
+        return `data-oe-tag="${tag}"`;
     },
 
     pickImage() {
@@ -37,6 +50,21 @@ export const Receipt = {
         Receipt._warmStarted = true;
         Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
         return Receipt._warmPromise;
+    },
+
+    bindIntentWarmup() {
+        if (Receipt._warmIntentBound) return;
+        Receipt._warmIntentBound = true;
+
+        const selector = `[data-oe-tag="${OCR_CONFIG.tags.scanIntent}"], [data-action="scan-receipt"]`;
+        const warmFromIntent = (event) => {
+            if (!event.target?.closest?.(selector) || !Utils.shouldWarmOcr('intent')) return;
+            Receipt.warmEngine();
+        };
+
+        document.addEventListener('pointerover', warmFromIntent);
+        document.addEventListener('focusin', warmFromIntent);
+        document.addEventListener('touchstart', warmFromIntent, { passive: true });
     },
 
     async ensureEngine(onProgress) {
@@ -124,7 +152,11 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const profile = Utils.ocrCanvasProfile();
+        const scale = Math.min(
+            profile.pdfMaxScale,
+            profile.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -172,36 +204,52 @@ export const Receipt = {
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
         try {
+            if (typeof createImageBitmap === 'function') {
+                try {
+                    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                    const canvas = Receipt.canvasFromImageSource(bitmap, bitmap.width, bitmap.height);
+                    bitmap.close?.();
+                    return { canvas, previewUrl: url };
+                } catch (_) {
+                    // Fall back to HTMLImageElement decoding for browsers with partial createImageBitmap support.
+                }
+            }
+
             const img = await new Promise((resolve, reject) => {
                 const el = new Image();
                 el.onload = () => resolve(el);
                 el.onerror = () => reject(new Error('Could not load image'));
+                el.decoding = 'async';
                 el.src = url;
             });
-            const maxSide = 2400;
-            let { width, height } = img;
-            if (width > maxSide || height > maxSide) {
-                const scale = maxSide / Math.max(width, height);
-                width = Math.round(width * scale);
-                height = Math.round(height * scale);
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            return { canvas: Receipt.canvasFromImageSource(img, img.naturalWidth || img.width, img.naturalHeight || img.height), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
         }
     },
 
+    canvasFromImageSource(source, sourceWidth, sourceHeight) {
+        const { maxSide } = Utils.ocrCanvasProfile();
+        let width = sourceWidth;
+        let height = sourceHeight;
+        if (width > maxSide || height > maxSide) {
+            const scale = maxSide / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(source, 0, 0, width, height);
+        return Receipt.prepareForOcr(canvas);
+    },
+
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = Utils.ocrCanvasProfile();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -315,7 +363,9 @@ export const Receipt = {
             Receipt._previewUrl = null;
             const hint = Receipt.isPdf(file)
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
-                : 'Receipt scanning failed. Try a clearer photo with good lighting.';
+                : Receipt.isHeic(file)
+                    ? 'This HEIC/HEIF photo could not be decoded in this browser. Try a JPEG export or screenshot.'
+                    : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
         } finally {
             Receipt._lastFile = null;
@@ -327,7 +377,7 @@ export const Receipt = {
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-progress';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-progress" role="status" aria-live="polite">
+            <div class="modal-shell ocr-progress" role="status" aria-live="polite" ${Receipt.tagAttr(OCR_CONFIG.tags.progress)}>
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
                 <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
@@ -690,13 +740,13 @@ export const Receipt = {
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt" ${Receipt.tagAttr(OCR_CONFIG.tags.reviewSheet)}>
                 <div class="ocr-sheet-header">
                     <div>
                         <h3 class="modal-title">Review receipt</h3>
                         ${confPct != null ? `<span class="ocr-conf ${confClass}">${confPct}% match</span>` : ''}
                     </div>
-                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
+                    <button class="close-modal" type="button" data-act="cancel" ${Receipt.tagAttr(OCR_CONFIG.tags.cancel)} aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
                 ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
@@ -724,15 +774,15 @@ export const Receipt = {
                         <label class="field-label" for="ocr-note">Notes</label>
                         <textarea class="text-input" id="ocr-note" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
                     </div>
-                    <details class="ocr-raw">
+                    <details class="ocr-raw" ${Receipt.tagAttr(OCR_CONFIG.tags.rawText)}>
                         <summary>View raw scanned text</summary>
                         <pre>${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
-                    <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
+                    <button class="btn-primary" type="button" data-act="save" ${Receipt.tagAttr(OCR_CONFIG.tags.save)}><i class="ti ti-check"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-act="save-scan" ${Receipt.tagAttr(OCR_CONFIG.tags.saveAndScan)}><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-ghost" type="button" data-act="cancel" ${Receipt.tagAttr(OCR_CONFIG.tags.cancel)}>Cancel</button>
                 </div>
             </div>`;
 
