@@ -1,9 +1,13 @@
 {
   "name": "openexpense.org",
   "private": true,
+  "type": "module",
   "scripts": {
+    "prebuild": "node scripts/clean-build-assets.mjs",
     "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
-    "serve": "python3 -m http.server 8765"
+    "serve": "python3 -m http.server 8765",
+    "test": "node --test tests/*.test.mjs",
+    "validate": "npm test && npm run build"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

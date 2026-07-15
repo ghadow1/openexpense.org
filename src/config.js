@@ -1,5 +1,53 @@
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+export const BREAKPOINTS = {
+    mobile: 640,
+    cameraPreferred: 900,
+    calendarCompact: 640,
+    calendarNarrow: 820,
+    calendarTablet: 980
+};
+
+export const CODE_TAGS = {
+    platform: 'platform-capability',
+    ocrEngine: 'ocr-engine',
+    ocrInput: 'ocr-input',
+    ocrPreprocess: 'ocr-preprocess',
+    ocrParse: 'ocr-parse',
+    ocrReview: 'ocr-review',
+    storage: 'storage-privacy'
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    imageBounds: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        warmupSide: 64
+    },
+    pdfTextThreshold: {
+        minChars: 12,
+        minLines: 2,
+        confidence: 0.95
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        idleWarmupTimeoutMs: 8000,
+        fallbackWarmupDelayMs: 3000
+    },
+    progressNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+};
+
 export const CONFIG = {
     version: "Version 2.1.0",
     buildEnv: "Production",

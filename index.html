@@ -14,7 +14,7 @@
 
   <title>openexpense.org — Simple Private Expense Tracker</title>
   <meta name="description"
-    content="OpenExpense is a free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
+    content="OpenExpense is a free, privacy-first, local-first expense tracker. Your financial data never leaves your browser.">
   <meta name="author" content="Gregory Medina">
   <link rel="canonical" href="https://www.openexpense.org/">
 
@@ -22,7 +22,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="openexpense.org — Private Expense Tracker">
   <meta property="og:description"
-    content="A free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
+    content="A free, privacy-first, local-first expense tracker. Your financial data never leaves your browser.">
   <meta property="og:url" content="https://www.openexpense.org/">
   <meta name="twitter:card" content="summary">
 
@@ -32,7 +32,8 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- OCR_ENGINE: bare-specifier resolution for lazy-loaded OCR peer deps.
+       Keep these pins in sync with OCR_CONFIG.dependencies.peerImportMap. -->
   <script type="importmap">
   {
     "imports": {
@@ -308,13 +309,22 @@
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    it in your browser — receipt files, scanned text, and parsed fields never leave your device.
+                  </p>
+                  <p>
+                    Mobile devices are offered the rear camera when the browser supports it. Desktop browsers use the
+                    normal file picker and can scan screenshots, image files, or PDFs. PDFs are text-extracted first
+                    across all pages; if a PDF is only a scanned image, the first page is rendered and read with OCR.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    HEIC/HEIF images work when your browser can decode them. If a desktop browser cannot open one,
+                    export the receipt as JPEG/PNG or scan a screenshot instead.
                   </p>
                   <div class="docs-note">
                     <p>
