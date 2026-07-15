@@ -1,14 +1,15 @@
+import { CODE_TAGS, OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // [receipt-ocr:engine] Lazy-loaded from CDN on first scan. index.html must
+    // keep the import map in sync with OCR_CONFIG.dependencies.peerImportMap.
+    OCR_CDN: OCR_CONFIG.dependencies.ocrEngine,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -39,28 +40,32 @@ export const Receipt = {
         return Receipt._warmPromise;
     },
 
+    // [receipt-ocr:engine] Keep OCR out of the initial bundle and reuse the
+    // initialized model across scans for mobile battery and desktop latency.
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
-            onProgress?.('Loading OCR engine…', 0.08);
+            onProgress?.(OCR_CONFIG.progress.loadingEngine, 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
-            onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            onProgress?.(OCR_CONFIG.progress.downloadingModels, 0.2);
+            const service = new PaddleOcrService({
+                recognition: { strategy: OCR_CONFIG.engine.recognitionStrategy }
+            });
             await service.initialize();
-            onProgress?.('Warming up…', 0.88);
+            onProgress?.(OCR_CONFIG.progress.warmingUp, 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.engine.warmupCanvasSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
-            ctx.fillText('A', 20, 40);
+            ctx.fillText(OCR_CONFIG.engine.warmupGlyph, 20, 40);
             try { await service.recognize(warm, { flatten: true }); } catch (_) { }
             Receipt._service = service;
-            onProgress?.('Ready', 1);
+            onProgress?.(OCR_CONFIG.progress.ready, 1);
             return service;
         })();
 
@@ -72,6 +77,8 @@ export const Receipt = {
         }
     },
 
+    // [receipt-ocr:pdf] PDF.js is loaded only for PDF receipts; text extraction
+    // is preferred over OCR when the invoice already contains selectable text.
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -108,7 +115,7 @@ export const Receipt = {
     },
 
     async pdfToCanvasAndText(file, onProgress) {
-        onProgress?.('Loading PDF…', 0.25);
+        onProgress?.(OCR_CONFIG.progress.loadingPdf, 0.25);
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
@@ -121,10 +128,13 @@ export const Receipt = {
             allLines.push(...Receipt.linesFromPdfTextContent(textContent));
         }
 
-        onProgress?.('Rendering preview…', 0.55);
+        onProgress?.(OCR_CONFIG.progress.renderingPreview, 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.pdf.maxScale,
+            OCR_CONFIG.pdf.previewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +143,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', Utils.ocrCanvasProfile().jpegQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -144,8 +154,10 @@ export const Receipt = {
         };
     },
 
+    // [receipt-ocr:pipeline] OCR keeps line structure for parsing, then falls
+    // back to flattened text for engines that cannot segment a noisy receipt.
     async ocrCanvas(service, canvas, onProgress) {
-        onProgress?.('Reading text…', 0.55);
+        onProgress?.(OCR_CONFIG.progress.readingText, 0.55);
 
         let result = await service.recognize(canvas, { flatten: false });
         let flatResult = null;
@@ -178,7 +190,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const { maxSide } = Utils.ocrCanvasProfile();
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -200,8 +212,7 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = Utils.ocrCanvasProfile();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -270,11 +281,11 @@ export const Receipt = {
             Receipt._previewUrl = pdf.previewUrl;
 
             if (pdf.hasExtractedText) {
-                onProgress?.('Done', 1);
+                onProgress?.(OCR_CONFIG.progress.done, 1);
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: OCR_CONFIG.confidence.extractedPdfText,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -307,7 +318,7 @@ export const Receipt = {
             }
             Receipt.showPreview(parsed, ocr.previewUrl);
         } catch (err) {
-            console.error('OCR error:', err);
+            console.error(`${CODE_TAGS.receiptOcr} scan failed:`, err);
             progress.close();
             if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
                 URL.revokeObjectURL(Receipt._previewUrl);
@@ -330,7 +341,7 @@ export const Receipt = {
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
+                <p class="ocr-progress-note">${Utils.escapeHtml(OCR_CONFIG.progress.cacheNote)}</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
@@ -354,6 +365,8 @@ export const Receipt = {
         };
     },
 
+    // [receipt-parser:amounts] Receipt totals vary by vendor, so scoring favors
+    // explicit total labels while still falling back to sane amount ranges.
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -546,6 +559,8 @@ export const Receipt = {
         return Math.max(...positive);
     },
 
+    // [receipt-parser:merchant] Keep vendor recognition readable and easy to
+    // expand as common OCR mistakes or merchant formats are discovered.
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
@@ -674,10 +689,12 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.confidence.low
         };
     },
 
+    // [receipt-ui:review] OCR suggestions are always human-reviewed before an
+    // expense is saved; raw text stays visible for transparent correction.
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());

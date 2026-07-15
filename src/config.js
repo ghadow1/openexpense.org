@@ -6,6 +6,81 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const BREAKPOINTS = {
+    mobile: 640,
+    camera: 900,
+    calendarCompact: 640,
+    calendarNarrow: 820,
+    calendarTablet: 980
+};
+
+export const CODE_TAGS = {
+    receiptOcr: '[OpenExpense:receipt-ocr]',
+    platform: '[OpenExpense:platform]'
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrEngine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupGlyph: 'A',
+        warmupCanvasSize: 64
+    },
+    canvasProfiles: {
+        mobile: {
+            minSide: 900,
+            maxSide: 1800,
+            jpegQuality: 0.86,
+            label: 'mobile camera'
+        },
+        tablet: {
+            minSide: 1000,
+            maxSide: 2200,
+            jpegQuality: 0.88,
+            label: 'tablet'
+        },
+        desktop: {
+            minSide: 1100,
+            maxSide: 2600,
+            jpegQuality: 0.9,
+            label: 'desktop'
+        }
+    },
+    pdf: {
+        previewMaxSide: 2400,
+        maxScale: 2.5
+    },
+    confidence: {
+        low: 0.55,
+        extractedPdfText: 0.95
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        skipConnectionTypes: ['slow-2g', '2g'],
+        minDeviceMemoryGb: 2
+    },
+    progress: {
+        loadingEngine: 'Loading OCR engine...',
+        downloadingModels: 'Downloading models (first scan only)...',
+        warmingUp: 'Warming up...',
+        ready: 'Ready',
+        loadingPdf: 'Loading PDF...',
+        renderingPreview: 'Rendering preview...',
+        readingText: 'Reading text...',
+        done: 'Done',
+        cacheNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

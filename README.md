@@ -8,14 +8,20 @@
 ## Quick start
 
 ```bash
+# Install dependencies once
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild deploy assets after editing anything in src/
 npm run build
+
+# Clean-build deploy assets and verify the bundle
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,16 +31,16 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images and PDFs never leave your device, and every scan is reviewed before saving.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root `app.js` plus hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt deploy assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, breakpoints, code tags, themes
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -46,9 +52,16 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Generated split chunks used by app.js
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR performance
+
+Receipt scanning is lazy-loaded from CDN at first use so the calendar stays fast. OCR dependency pins, import-map peer URLs, progress labels, confidence thresholds, warmup policy, and mobile/tablet/desktop canvas profiles live in `OCR_CONFIG` (`src/config.js`). Keep the import map in `index.html` synchronized with `OCR_CONFIG.dependencies.peerImportMap`.
+
+For implementation details and tuning guidance, see [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Data format
 
