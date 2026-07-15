@@ -32,7 +32,8 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- OE-OCR: Bare-specifier resolution for lazy-loaded OCR peer deps.
+       Keep these URLs in sync with OCR_CONFIG.dependencies.peerImports. -->
   <script type="importmap">
   {
     "imports": {
@@ -307,8 +308,14 @@
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    image file, or PDF invoice. On first use, the app downloads the OCR/PDF runtime from the CDN and
+                    caches those assets in your browser. Your receipt image, PDF, and ledger data still stay on your
+                    device; scanning happens locally.
+                  </p>
+                  <p>
+                    Mobile browsers receive a camera hint for quick capture, while desktop browsers keep the file picker
+                    flow for screenshots, scans, and invoices. On data-saver, very slow, or low-memory devices, OCR waits
+                    until you scan instead of preloading in the background.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything

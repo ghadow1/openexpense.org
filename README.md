@@ -8,6 +8,9 @@
 ## Quick start
 
 ```bash
+# Install dependencies if this is a fresh checkout
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
@@ -22,7 +25,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero app servers** — no backend, no database, and no account sync. OCR/PDF/icon assets are downloaded from the CDN when needed; ledger data and receipt images are not uploaded.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
@@ -34,7 +37,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, BREAKPOINTS, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -49,6 +52,18 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR and platform performance
+
+Receipt reading is intentionally assistive: OCR suggests fields, and the user reviews every scan before saving. The performance-sensitive paths use readable `OE-*` tags in source comments:
+
+- `OE-OCR` — OCR/PDF dependency loading and shared config.
+- `OE-PDF` — text-first PDF extraction before OCR fallback.
+- `OE-PERF` — canvas sizing, image decoding, render batching, and idle warmup decisions.
+- `OE-PLATFORM` — mobile/tablet/desktop breakpoints, camera hints, save picker/share fallbacks.
+- `OE-PARSE` and `OE-REVIEW` — receipt parsing heuristics and human confirmation UI.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full map.
 
 ## Data format
 

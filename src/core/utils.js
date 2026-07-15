@@ -1,3 +1,5 @@
+import { BREAKPOINTS, OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +38,31 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`).matches,
+    isTablet: () => window.matchMedia(`(max-width: ${BREAKPOINTS.tablet}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${BREAKPOINTS.cameraHint}px), (pointer: coarse)`).matches,
+    connectionInfo: () => navigator.connection || navigator.webkitConnection || navigator.mozConnection || null,
+    deviceMemoryGb: () => Number.isFinite(navigator.deviceMemory) ? navigator.deviceMemory : null,
+    isSaveDataEnabled: () => !!Utils.connectionInfo()?.saveData,
+    effectiveConnectionType: () => Utils.connectionInfo()?.effectiveType || '',
+    isVerySlowConnection: () => OCR_CONFIG.warmup.skipEffectiveTypes.includes(Utils.effectiveConnectionType()),
+    supportsImageBitmap: () => typeof createImageBitmap === 'function',
+    // OE-PERF: Match OCR canvas budgets to the likely device class. Manual scans
+    // still work everywhere; this only chooses the amount of image data to feed OCR.
+    ocrPlatformProfile() {
+        if (Utils.isMobile()) return 'mobile';
+        if (Utils.isTablet()) return 'tablet';
+        return 'desktop';
+    },
+    ocrCanvasBounds() {
+        return OCR_CONFIG.canvas[Utils.ocrPlatformProfile()] || OCR_CONFIG.canvas.desktop;
+    },
+    shouldWarmOcr() {
+        if (Utils.isSaveDataEnabled() || Utils.isVerySlowConnection()) return false;
+
+        const memory = Utils.deviceMemoryGb();
+        return memory == null || memory >= OCR_CONFIG.warmup.minDeviceMemoryGb;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

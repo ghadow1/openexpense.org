@@ -6,6 +6,68 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// OE-PLATFORM: Shared breakpoints keep mobile, tablet, and desktop behavior
+// aligned across JS modules instead of scattering magic viewport numbers.
+export const BREAKPOINTS = {
+    mobile: 640,
+    cameraHint: 900,
+    tablet: 900,
+    calendarCompact: 640,
+    calendarNarrow: 820,
+    calendarTablet: 980
+};
+
+// OE-OCR: Centralized receipt-scanning constants. Keep the peer import URLs in
+// index.html's import map in sync with dependencies.peerImports.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrModule: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfModule: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engineOptions: {
+        recognition: { strategy: 'cross-line' }
+    },
+    progress: {
+        loadEngine: ['Loading OCR engine…', 0.08],
+        downloadModels: ['Downloading models (first scan only)…', 0.2],
+        warmup: ['Warming up…', 0.88],
+        ready: ['Ready', 1],
+        loadPdf: ['Loading PDF…', 0.25],
+        renderPreview: ['Rendering preview…', 0.55],
+        readText: ['Reading text…', 0.55],
+        done: ['Done', 1],
+        cacheNote: 'First scan downloads OCR/PDF assets, then your browser caches them for later scans.'
+    },
+    warmup: {
+        canvasSize: 64,
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 3,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    },
+    canvas: {
+        mobile: { minSide: 900, maxSide: 1800 },
+        tablet: { minSide: 1000, maxSide: 2200 },
+        desktop: { minSide: 1100, maxSide: 2400 }
+    },
+    pdf: {
+        maxPreviewScale: 2.5,
+        previewMaxSide: 2400,
+        previewQuality: 0.9,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    confidence: {
+        low: 0.55,
+        extractedPdfText: 0.95
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
