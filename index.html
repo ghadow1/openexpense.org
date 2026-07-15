@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR; keep in sync with OCR_CONFIG.dependencies.peerImports. -->
   <script type="importmap">
   {
     "imports": {
@@ -315,6 +315,11 @@
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    For PDFs, embedded text is read first for speed and battery life; scanned PDFs fall back to OCR
+                    on the first rendered page. HEIC/HEIF photos depend on browser support, so a JPEG or PNG export
+                    is the most portable choice across desktop and Android browsers.
                   </p>
                   <div class="docs-note">
                     <p>

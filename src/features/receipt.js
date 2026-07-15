@@ -1,18 +1,32 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
+const KNOWN_MERCHANTS = [
+    [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
+    [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
+    [/amazon\.?\s*com/i, 'Amazon'],
+    [/whole\s*foods/i, 'Whole Foods'],
+    [/costco\s*wholesale/i, 'Costco'],
+    [/target\s*(store|corp)?/i, 'Target'],
+    [/walmart/i, 'Walmart'],
+    [/starbucks/i, 'Starbucks']
+];
+
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.dependencies.ocrCdn,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfCdn,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
+    _warmStarted: false,
+    _warmPromise: null,
     _previewUrl: null,
     _lastFile: null,
 
@@ -39,6 +53,7 @@ export const Receipt = {
         return Receipt._warmPromise;
     },
 
+    // OCR-ENGINE: PP-OCRv5 and its ONNX peer dependencies stay out of app.js until scanning starts.
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
@@ -72,6 +87,7 @@ export const Receipt = {
         }
     },
 
+    // OCR-PDF: PDF.js is separate from the OCR engine so text-first PDF invoices avoid model loading.
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -124,7 +140,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfMaxRenderScale,
+            OCR_CONFIG.canvas.pdfMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +152,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -144,6 +163,7 @@ export const Receipt = {
         };
     },
 
+    // OCR-RECOGNITION: try layout-preserving regions first, then a flattened fallback for hard scans.
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -178,7 +198,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = OCR_CONFIG.canvas.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -199,9 +219,9 @@ export const Receipt = {
         }
     },
 
+    // OCR-CANVAS: keep the long edge large enough for text, but bounded for mobile memory/battery.
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = OCR_CONFIG.canvas;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -274,7 +294,7 @@ export const Receipt = {
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: OCR_CONFIG.confidence.embeddedPdf,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -549,18 +569,7 @@ export const Receipt = {
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
-        const known = [
-            [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
-            [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
-            [/amazon\.?\s*com/i, 'Amazon'],
-            [/whole\s*foods/i, 'Whole Foods'],
-            [/costco\s*wholesale/i, 'Costco'],
-            [/target\s*(store|corp)?/i, 'Target'],
-            [/walmart/i, 'Walmart'],
-            [/starbucks/i, 'Starbucks']
-        ];
-
-        for (const [pat, name] of known) {
+        for (const [pat, name] of KNOWN_MERCHANTS) {
             if (pat.test(text)) return name;
         }
 
@@ -621,6 +630,13 @@ export const Receipt = {
         return items;
     },
 
+    /**
+     * OCR-PARSE: convert raw receipt text into review fields. The result is a
+     * suggestion only; showPreview keeps the user in control before saving.
+     *
+     * @returns {{merchant: string, total: number|null, tax: number|null, date: string|null,
+     * items: string[], rawText: string, confidence: number, lowConfidence: boolean}}
+     */
     parse(text, lines, confidence = 0) {
         const lineList = (lines && lines.length)
             ? lines
@@ -674,10 +690,11 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.confidence.low
         };
     },
 
+    // OCR-REVIEW: every OCR result is human-reviewed before it becomes an expense record.
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());

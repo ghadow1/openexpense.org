@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build and verify committed deploy assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,11 +33,11 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus generated `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt deploy assets after source changes.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG, BREAKPOINTS
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +48,22 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js, chunk-*.js     # Bundled deploy assets (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR & receipt scanning
+
+Receipt scanning is privacy-first and runs in the browser:
+
+- `src/features/receipt.js` lazy-loads PP-OCRv5 (`ppu-paddle-ocr`) only when scanning starts or when a capable device is idle.
+- PDF invoices use PDF.js first. If embedded text is readable, the app skips OCR entirely; otherwise it renders page 1 for OCR review.
+- Camera/photo scans are normalized onto a bounded canvas so modern mobile browsers have enough pixels for text without exhausting memory or battery.
+- `src/config.js` owns OCR dependency pins, canvas sizing, confidence thresholds, and warm-up limits. Keep the `index.html` import map in sync with `OCR_CONFIG.dependencies.peerImports`.
+- Every OCR result opens a review sheet. The app suggests merchant, amount, date, and notes, but nothing is saved until the user confirms.
+
+Human-readable source tags in `receipt.js` mark the pipeline: `OCR-ENGINE`, `OCR-PDF`, `OCR-RECOGNITION`, `OCR-CANVAS`, `OCR-PARSE`, and `OCR-REVIEW`. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR behavior or parser heuristics.
 
 ## Data format
 

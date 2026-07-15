@@ -1,3 +1,5 @@
+import { BREAKPOINTS, OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,18 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${BREAKPOINTS.tablet}px), (pointer: coarse)`).matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.blockedEffectiveTypes.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < OCR_CONFIG.warmup.minDeviceMemoryGb) return false;
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
