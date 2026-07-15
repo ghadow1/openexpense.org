@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +71,14 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    // Warm OCR only when the browser reports enough network and device headroom.
+    // Manual scans still lazy-load the same engine on demand.
+    const warmOcr = () => { if (Utils.shouldWarmOcr()) Receipt.warmEngine(); };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(warmOcr, { timeout: OCR_CONFIG.performance.idleWarmupTimeoutMs });
+    } else {
+        setTimeout(warmOcr, OCR_CONFIG.performance.idleWarmupDelayMs);
+    }
 
     window.__oeBoot = { ok: true };
 }

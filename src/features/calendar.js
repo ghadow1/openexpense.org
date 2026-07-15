@@ -1,4 +1,4 @@
-import { DAYS } from '../config.js';
+import { BREAKPOINTS, CODE_TAGS, DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
@@ -46,6 +46,7 @@ function ensureShell(calCol) {
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
     const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true });
     scanBtn.classList.add('toolbar-scan-btn');
+    scanBtn.dataset.codeTag = CODE_TAGS.ocr.actionScan;
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
     [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],
@@ -82,10 +83,10 @@ function getCalendarDensity(colEl) {
     const colW = col?.clientWidth || 0;
 
     if (Utils.isMobile()) return 'mobile';
-    if (colW > 0 && colW < 640) return 'compact';
-    if (colW > 0 && colW < 820) return 'narrow';
-    if (colW > 0 && colW < 980) return 'tablet';
-    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+    if (colW > 0 && colW < BREAKPOINTS.calendarCompact) return 'compact';
+    if (colW > 0 && colW < BREAKPOINTS.calendarNarrow) return 'narrow';
+    if (colW > 0 && colW < BREAKPOINTS.calendarTablet) return 'tablet';
+    if (window.matchMedia(`(max-width: ${BREAKPOINTS.cameraCapture}px)`).matches) return 'tablet';
     return 'desktop';
 }
 

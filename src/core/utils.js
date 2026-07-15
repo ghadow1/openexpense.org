@@ -1,3 +1,5 @@
+import { BREAKPOINTS, OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +38,23 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${BREAKPOINTS.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${BREAKPOINTS.cameraCapture}px), (pointer: coarse)`).matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    hasConstrainedNetwork() {
+        const connection = Utils.connectionInfo();
+        if (!connection) return false;
+        return (OCR_CONFIG.performance.skipWarmupOnSaveData && connection.saveData)
+            || /(^|-)2g$/i.test(connection.effectiveType || '');
+    },
+    hasLimitedMemory: () => typeof navigator.deviceMemory === 'number'
+        && navigator.deviceMemory <= OCR_CONFIG.performance.lowMemoryDeviceGb,
+    shouldWarmOcr: () => !Utils.hasConstrainedNetwork() && !Utils.hasLimitedMemory(),
+    ocrDeviceProfile() {
+        if (Utils.isMobile()) return 'mobile';
+        if (window.matchMedia(`(max-width: ${BREAKPOINTS.cameraCapture}px), (pointer: coarse)`).matches) return 'tablet';
+        return 'desktop';
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

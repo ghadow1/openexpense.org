@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR (keep in sync with OCR_CONFIG.dependencies.peerImportMap) -->
   <script type="importmap">
   {
     "imports": {
@@ -307,14 +307,21 @@
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    image file, or PDF invoice. Mobile and tablet browsers open the rear camera when available;
+                    desktop browsers use the file picker for screenshots, scans, and PDFs. On first use, the app
+                    downloads local OCR/PDF resources and caches them in your browser — processing never leaves your
+                    device.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    For best OCR results, crop out clutter, keep the receipt flat and well lit, and prefer the original
+                    PDF invoice when one is available. Data-saver and low-memory devices skip background OCR warmup, but
+                    scanning still works on demand.
                   </p>
                   <div class="docs-note">
                     <p>
@@ -424,7 +431,7 @@
       </div>
     </main>
 
-    <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
+    <button type="button" class="quick-fab" data-action="scan-receipt" data-code-tag="ocr.action.scan" aria-label="Scan receipt" title="Scan receipt">
       <i class="ti ti-camera" aria-hidden="true"></i>
       <span class="quick-fab-label">Scan</span>
     </button>
