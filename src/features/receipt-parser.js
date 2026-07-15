@@ -2,7 +2,7 @@ const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8,
 const MONTH_NAMES = Object.keys(MONTHS);
 
 const ADDRESS_OR_META_PATTERN = /\b(street|st\.|blvd|boulevard|ave|avenue|floor|suite|drive|road|rd\.)\b/i;
-const SUMMARY_LINE_PATTERN = /sub\s*-?total|taxes|fees|surcharges|tip|change|tender|payment\s*method|visa|mastercard|amex|balance\s*forward|amount\s*due|balance\s*due|total\s*due|\btotal\b/i;
+const SUMMARY_LINE_PATTERN = /sub\s*-?total|tax(?:es)?|fees|surcharges|tip|change|tender|payment\s*method|visa|mastercard|amex|balance\s*forward|amount\s*due|balance\s*due|total\s*due|\btotal\b/i;
 const ITEM_SKIP_PATTERN = /sub\s*-?total|taxes|fees|surcharges|change|tender|payment|visa|mastercard|amex|debit|credit|tip|balance\s*forward|payment\s*terms|currency|certificate|charge\s*description|billing\s*period/i;
 const TOTAL_KEY_PATTERN = /(grand\s*total|amount\s*due|balance\s*due|total\s*due|\btotal\b)/i;
 
@@ -88,6 +88,7 @@ export const ReceiptParser = {
 
     fuzzyMonth(word) {
         const w = word.toLowerCase().replace(/[^a-z]/g, '');
+        if (/^ju.*y$/.test(w)) return 'jul';
         if (MONTH_NAMES.includes(w.slice(0, 3))) return w.slice(0, 3);
 
         let best = null;
