@@ -232,6 +232,7 @@ export const ReceiptParser = {
         }
         const positive = amounts.filter(a => a > 0 && a < 500);
         if (!positive.length) return null;
+        if (lineList.some(line => TOTAL_KEY_PATTERN.test(line))) return Math.max(...positive);
 
         const subtotals = positive.filter(a => a >= 1);
         const fees = positive.filter(a => a > 0 && a < 1);
