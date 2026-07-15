@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,11 +71,22 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    scheduleOcrWarmup();
 
     window.__oeBoot = { ok: true };
+}
+
+function scheduleOcrWarmup() {
+    // [OCR:idle-warmup] Keep first-scan latency low on capable devices without
+    // spending mobile data, battery, or memory before the user asks to scan.
+    if (!Utils.shouldWarmOcr()) return;
+
+    const warmOcr = () => { Receipt.warmEngine(); };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(warmOcr, { timeout: OCR_CONFIG.idleWarmup.timeoutMs });
+    } else {
+        setTimeout(warmOcr, OCR_CONFIG.idleWarmup.fallbackDelayMs);
+    }
 }
 
 function handleDelegatedClick(e) {

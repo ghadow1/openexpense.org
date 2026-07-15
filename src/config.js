@@ -6,6 +6,49 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const BREAKPOINTS = {
+    mobileMax: 640,
+    cameraPromptMax: 900,
+    calendarCompactMax: 640,
+    calendarNarrowMax: 820,
+    calendarTabletMax: 980
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: '5.8.0',
+        pdfjs: '4.10.38',
+        onnxruntime: '1.23.2',
+        opencvCanvas: '3.2.2'
+    },
+    cdn: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    },
+    recognition: {
+        strategy: 'cross-line',
+        pdfTextConfidence: 0.95,
+        lowConfidence: 0.55,
+        minPdfTextChars: 12,
+        minPdfTextLines: 2
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.9,
+        warmupSize: 64
+    },
+    idleWarmup: {
+        timeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        avoidEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
