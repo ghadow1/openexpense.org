@@ -46,6 +46,10 @@ export const ReceiptParser = {
             || /^\d{5}(-\d{4})?$/.test(line.trim());
     },
 
+    isSummaryAmountLine(line) {
+        return /\b(grand\s*total|amount\s*due|balance\s*due|total\s*due|total\s*amount|\btotal\b|sub\s*-?total|taxes?|fees?|surcharges?|tip|change|tender|payment)\b/i.test(line);
+    },
+
     fuzzyMonth(word) {
         const w = word.toLowerCase().replace(/[^a-z]/g, '');
         const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -133,7 +137,7 @@ export const ReceiptParser = {
         const rows = [];
         for (let i = 0; i < lineList.length; i++) {
             const line = lineList[i];
-            if (ReceiptParser.isAddressOrMeta(line)) continue;
+            if (ReceiptParser.isAddressOrMeta(line) || ReceiptParser.isSummaryAmountLine(line)) continue;
             const amounts = ReceiptParser.allMoneyOnLine(line);
             if (!amounts.length) continue;
 
@@ -145,6 +149,7 @@ export const ReceiptParser = {
 
             let paired = null;
             for (let j = i + 1; j < Math.min(i + 4, lineList.length); j++) {
+                if (ReceiptParser.isSummaryAmountLine(lineList[j])) continue;
                 const next = ReceiptParser.allMoneyOnLine(lineList[j]);
                 if (!next.length) continue;
                 if (next.length === 1 && next[0] < amounts[0] && next[0] < 1 && amounts[0] > 0) {
@@ -178,7 +183,7 @@ export const ReceiptParser = {
         let rows = 0;
         for (const line of lineList) {
             const amounts = ReceiptParser.allMoneyOnLine(line);
-            if (amounts.length < 2 || ReceiptParser.isAddressOrMeta(line)) continue;
+            if (amounts.length < 2 || ReceiptParser.isAddressOrMeta(line) || ReceiptParser.isSummaryAmountLine(line)) continue;
             const rowTotal = ReceiptParser.rowTotalFromAmounts(amounts);
             if (rowTotal == null) continue;
             sum += rowTotal;
