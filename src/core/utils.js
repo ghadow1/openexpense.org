@@ -1,3 +1,5 @@
+import { BREAKPOINTS } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +38,20 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${BREAKPOINTS.mobileMax}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${BREAKPOINTS.cameraMax}px), (pointer: coarse)`).matches,
+    platformTier() {
+        if (Utils.isMobile() || window.matchMedia('(pointer: coarse)').matches) return 'mobile';
+        if (window.matchMedia(`(max-width: ${BREAKPOINTS.cameraMax}px)`).matches) return 'tablet';
+        return 'desktop';
+    },
+    shouldWarmOcr() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (connection && /(^|-)2g$/.test(connection.effectiveType || '')) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < 4) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

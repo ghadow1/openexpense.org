@@ -6,6 +6,57 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const BREAKPOINTS = {
+    mobileMax: 640,
+    cameraMax: 900
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: '5.8.0',
+        pdfjs: '4.10.38',
+        peerImportMap: {
+            'onnxruntime-web': '1.23.2',
+            'ppu-ocv': '3.2.2'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: {
+            mobile: 1600,
+            tablet: 2000,
+            desktop: 2400
+        },
+        pdfRenderMaxScale: 2.5,
+        previewJpegQuality: 0.9,
+        warmupSize: 64
+    },
+    confidence: {
+        lowThreshold: 0.55
+    },
+    idleWarmup: {
+        timeoutMs: 8000,
+        fallbackDelayMs: 3000
+    }
+};
+
+export const CODE_TAGS = {
+    ids: {
+        receiptScanInput: 'receipt-scan-input',
+        ocrProgress: 'ocr-progress',
+        ocrPreview: 'ocr-preview',
+        ocrTitle: 'ocr-title',
+        ocrAmount: 'ocr-amount',
+        ocrDate: 'ocr-date',
+        ocrNote: 'ocr-note'
+    },
+    actions: {
+        receiptCancel: 'receipt-preview-cancel',
+        receiptSave: 'receipt-preview-save',
+        receiptSaveScan: 'receipt-preview-save-scan'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

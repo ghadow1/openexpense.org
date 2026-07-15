@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Run parser tests and rebuild generated assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,7 +33,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus hashed `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js` and current chunks together. `npm run build` removes stale generated chunks before bundling.
 
 ```
 src/
@@ -44,11 +47,25 @@ src/
 │   └── utils.js
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
+│   └── receipt-parser.js # Pure OCR text parsing heuristics with Node tests
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js + chunk-*.js    # Generated deployment bundle (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR architecture
+
+Receipt scanning is fully client-side:
+
+1. `src/features/receipt.js` accepts image/PDF input, lazy-loads PP-OCRv5 and PDF.js from jsDelivr, and renders an on-device review sheet.
+2. PDFs use embedded text first. OCR only runs on a rendered first page when text extraction is sparse.
+3. Images are painted to a white canvas and resized with platform-aware caps from `OCR_CONFIG` in `src/config.js`: lower memory on phones, higher detail on desktops.
+4. `src/features/receipt-parser.js` turns OCR text into merchant, date, total, tax, notes, and confidence flags.
+
+The first OCR scan needs network access for CDN assets and model files; browsers cache them afterward. HEIC/HEIF files depend on the browser's native image decoder, so screenshots or JPEG/PNG photos are the most portable fallback on desktops.
+
+Keep the OCR dependency pins in `src/config.js` aligned with the import map in `index.html` when bumping the engine or peer dependencies. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the platform tuning checklist.
 
 ## Data format
 

@@ -1,20 +1,27 @@
+import { CODE_TAGS, OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
+import { ReceiptParser } from './receipt-parser.js';
 
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: `https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@${OCR_CONFIG.dependencies.paddleOcr}/web/index.js`,
+    PDF_CDN: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_CONFIG.dependencies.pdfjs}/build/pdf.mjs`,
+    PDF_WORKER: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_CONFIG.dependencies.pdfjs}/build/pdf.worker.min.mjs`,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
+    _previewCleanup: null,
+
+    ocrMaxSide() {
+        const tier = Utils.platformTier();
+        return OCR_CONFIG.canvas.maxSide[tier] || OCR_CONFIG.canvas.maxSide.desktop;
+    },
 
     isPdf(file) {
         if (!file) return false;
@@ -24,7 +31,7 @@ export const Receipt = {
     },
 
     pickImage() {
-        const input = document.getElementById('receipt-scan-input');
+        const input = document.getElementById(CODE_TAGS.ids.receiptScanInput);
         if (!input) return;
         input.value = '';
         if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
@@ -51,10 +58,10 @@ export const Receipt = {
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.canvas.warmupSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -124,7 +131,11 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const maxSide = Receipt.ocrMaxSide();
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfRenderMaxScale,
+            maxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,10 +144,10 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewJpegQuality);
 
         return {
-            canvas: Receipt.prepareForOcr(canvas),
+            canvas: Receipt.prepareForOcr(canvas, maxSide),
             text,
             lines,
             previewUrl,
@@ -178,7 +189,7 @@ export const Receipt = {
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
+            const maxSide = Receipt.ocrMaxSide();
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -192,16 +203,15 @@ export const Receipt = {
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            return { canvas: Receipt.prepareForOcr(canvas, maxSide), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
         }
     },
 
-    prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+    prepareForOcr(source, maxSide = Receipt.ocrMaxSide()) {
+        const minSide = OCR_CONFIG.canvas.minSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -292,12 +302,11 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
             progress.close();
-            const parsed = Receipt.parse(ocr.text, ocr.lines, ocr.confidence);
+            const parsed = ReceiptParser.parse(ocr.text, ocr.lines, ocr.confidence);
             if (!ocr.lines.length && !ocr.text.trim()) {
                 parsed.lowConfidence = true;
                 const hint = Receipt.isPdf(file)
@@ -317,15 +326,13 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
-        backdrop.id = 'ocr-progress';
+        backdrop.id = CODE_TAGS.ids.ocrProgress;
         backdrop.innerHTML = `
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
@@ -347,336 +354,14 @@ export const Receipt = {
             },
             close() {
                 backdrop.remove();
-                if (!document.getElementById('ocr-preview') && !document.getElementById('modal')?.classList.contains('open')) {
+                if (!document.getElementById(CODE_TAGS.ids.ocrPreview) && !document.getElementById('modal')?.classList.contains('open')) {
                     document.body.classList.remove('modal-open');
                 }
             }
         };
     },
 
-    moneyOnLine(line) {
-        const amounts = [];
-        for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
-            const v = parseFloat(m[1].replace(',', '.'));
-            if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-        }
-        if (amounts.length) return amounts[amounts.length - 1];
-
-        for (const m of line.matchAll(/(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g)) {
-            const v = parseFloat(m[1].replace(',', '.'));
-            if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-        }
-        return amounts.length ? amounts[amounts.length - 1] : null;
-    },
-
-    allMoneyOnLine(line) {
-        const amounts = [];
-        for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
-            const v = parseFloat(m[1].replace(',', '.'));
-            if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-        }
-        if (!amounts.length) {
-            for (const m of line.matchAll(/(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g)) {
-                const v = parseFloat(m[1].replace(',', '.'));
-                if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-            }
-        }
-        return amounts;
-    },
-
-    isAddressOrMeta(line) {
-        return /\b(street|st\.|blvd|boulevard|ave|avenue|floor|suite|drive|road|rd\.)\b/i.test(line)
-            || /,\s*[A-Z]{2}\s+\d{5}/.test(line)
-            || /\b\d{1,5}\s+\w+\s+(street|st|blvd|ave)/i.test(line)
-            || /^invoice\s*#?/i.test(line)
-            || /^account\s*(number|#)/i.test(line)
-            || /federal\s*employer/i.test(line)
-            || /purchase\s*order/i.test(line)
-            || /^(sold|bill)\s*to/i.test(line)
-            || /^\d{5}(-\d{4})?$/.test(line.trim());
-    },
-
-    fuzzyMonth(word) {
-        const w = word.toLowerCase().replace(/[^a-z]/g, '');
-        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-        if (months.includes(w.slice(0, 3))) return w.slice(0, 3);
-        let best = null, bestDist = 3;
-        for (const m of months) {
-            let dist = 0;
-            for (let i = 0; i < Math.min(w.length, m.length); i++) dist += w[i] === m[i] ? 0 : 1;
-            dist += Math.abs(w.length - m.length);
-            if (dist < bestDist) { bestDist = dist; best = m; }
-        }
-        return bestDist <= 2 ? best : null;
-    },
-
-    parseDate(text, lines) {
-        const months = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-        const iso = (y, m, d) => {
-            y = +y; m = +m; d = +d;
-            if (y < 100) y += 2000;
-            if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-            return `${y}-${Utils.pad(m)}-${Utils.pad(d)}`;
-        };
-        const sources = [...(lines || []), text];
-
-        for (const src of sources) {
-            const norm = src.replace(/[|:]/g, ' ').replace(/\s+/g, ' ');
-            let m = norm.match(/(?:invoice|due|service|issue)?\s*date[:\s]+([a-z]{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/i);
-            if (m) {
-                const mon = Receipt.fuzzyMonth(m[1]);
-                if (mon) return iso(m[3], months[mon], m[2]);
-            }
-            m = norm.match(/([a-z]{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/i);
-            if (m) {
-                const mon = Receipt.fuzzyMonth(m[1]);
-                if (mon) return iso(m[3], months[mon], m[2]);
-            }
-            m = norm.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-            if (m) return iso(m[1], m[2], m[3]);
-            m = norm.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
-            if (m) {
-                let mm = +m[1], dd = +m[2];
-                if (mm > 12 && dd <= 12) [mm, dd] = [dd, mm];
-                return iso(m[3], mm, dd);
-            }
-        }
-        return null;
-    },
-
-    scoreAmount(line) {
-        const lower = line.toLowerCase();
-        let score = 0;
-        if (/grand\s*total|amount\s*due|balance\s*due|total\s*due|total\s*amount/i.test(lower)) score += 120;
-        else if (/\btotal\b/i.test(lower) && !/sub|taxes|fees|surcharges/i.test(lower)) score += 90;
-        else if (/\bamount\b/i.test(lower)) score += 70;
-        if (/sub\s*-?total|taxes|fees|surcharges|tip|change|tender|payment\s*method|visa|mastercard|amex/i.test(lower)) score -= 80;
-        if (Receipt.isAddressOrMeta(line)) score -= 200;
-
-        const amt = Receipt.moneyOnLine(line);
-        if (amt == null) return null;
-        if (amt < 0.01) score -= 60;
-        if (amt >= 1000 && !/\$\s*\d/.test(line)) score -= 150;
-        return { amt, score, line };
-    },
-
-    rowTotalFromAmounts(amounts) {
-        if (amounts.length >= 3) return amounts[amounts.length - 1];
-        if (amounts.length === 2) {
-            const [a, b] = amounts;
-            if (b < a && b < 1 && a > 0) return Math.round((a + b) * 100) / 100;
-            return b;
-        }
-        return amounts.length === 1 ? amounts[0] : null;
-    },
-
-    collectInvoiceAmounts(lineList) {
-        const rows = [];
-        for (let i = 0; i < lineList.length; i++) {
-            const line = lineList[i];
-            if (Receipt.isAddressOrMeta(line)) continue;
-            const amounts = Receipt.allMoneyOnLine(line);
-            if (!amounts.length) continue;
-
-            if (amounts.length >= 2) {
-                const rowTotal = Receipt.rowTotalFromAmounts(amounts);
-                if (rowTotal != null) rows.push(rowTotal);
-                continue;
-            }
-
-            let paired = null;
-            for (let j = i + 1; j < Math.min(i + 4, lineList.length); j++) {
-                const next = Receipt.allMoneyOnLine(lineList[j]);
-                if (!next.length) continue;
-                if (next.length === 1 && next[0] < amounts[0] && next[0] < 1 && amounts[0] > 0) {
-                    paired = Math.round((amounts[0] + next[0]) * 100) / 100;
-                }
-                break;
-            }
-            rows.push(paired != null ? paired : amounts[0]);
-        }
-
-        const positive = rows.filter(v => v > 0 && v < 500);
-        if (!positive.length) return null;
-        return Math.round(positive.reduce((a, b) => a + b, 0) * 100) / 100;
-    },
-
-    parseTotalFromText(text) {
-        const triple = text.match(/\$\s*(\d+\.\d{2})\s+\$\s*(\d+\.\d{2})\s+\$\s*(\d+\.\d{2})/);
-        if (triple) {
-            const a = parseFloat(triple[1]);
-            const b = parseFloat(triple[2]);
-            const c = parseFloat(triple[3]);
-            if (Math.abs(c - (a + b)) < 0.06) return c;
-        }
-        const due = text.match(/(?:amount|balance|total)\s*due[:\s]*\$?\s*(\d+\.\d{2})/i);
-        if (due) return parseFloat(due[1]);
-        return null;
-    },
-
-    sumInvoiceRowTotals(lineList) {
-        let sum = 0;
-        let rows = 0;
-        for (const line of lineList) {
-            const amounts = Receipt.allMoneyOnLine(line);
-            if (amounts.length < 2 || Receipt.isAddressOrMeta(line)) continue;
-            const rowTotal = Receipt.rowTotalFromAmounts(amounts);
-            if (rowTotal == null) continue;
-            sum += rowTotal;
-            rows++;
-        }
-        return rows > 0 ? Math.round(sum * 100) / 100 : null;
-    },
-
-    inferTotalFromAmounts(lineList) {
-        const amounts = [];
-        for (const line of lineList) {
-            if (Receipt.isAddressOrMeta(line)) continue;
-            amounts.push(...Receipt.allMoneyOnLine(line));
-        }
-        const positive = amounts.filter(a => a > 0 && a < 500);
-        if (!positive.length) return null;
-
-        const subtotals = positive.filter(a => a >= 1);
-        const fees = positive.filter(a => a > 0 && a < 1);
-        if (subtotals.length && fees.length) {
-            return Math.round((Math.max(...subtotals) + Math.max(...fees)) * 100) / 100;
-        }
-
-        return Math.max(...positive);
-    },
-
-    parseMerchant(lineList, text) {
-        const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
-        const skipPat = /^(invoice|zoom)$/i;
-        const known = [
-            [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
-            [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
-            [/amazon\.?\s*com/i, 'Amazon'],
-            [/whole\s*foods/i, 'Whole Foods'],
-            [/costco\s*wholesale/i, 'Costco'],
-            [/target\s*(store|corp)?/i, 'Target'],
-            [/walmart/i, 'Walmart'],
-            [/starbucks/i, 'Starbucks']
-        ];
-
-        for (const [pat, name] of known) {
-            if (pat.test(text)) return name;
-        }
-
-        for (const line of lineList.slice(0, 25)) {
-            if (Receipt.isAddressOrMeta(line) || skipPat.test(line.trim())) continue;
-            if (companyPat.test(line)) {
-                return line.replace(/\s{2,}/g, ' ').trim().slice(0, 60);
-            }
-        }
-
-        const zoomMatch = text.match(/zoom\s+communications,?\s*inc\.?/i);
-        if (zoomMatch) return zoomMatch[0].replace(/\s+/g, ' ').trim();
-
-        for (const line of lineList.slice(0, 12)) {
-            const trimmed = line.trim();
-            if (/^zoom[l1i]?$/i.test(trimmed) || /^zoom\s*communications/i.test(trimmed)) {
-                return 'Zoom Communications, Inc.';
-            }
-        }
-
-        for (const line of lineList.slice(0, 12)) {
-            if (Receipt.isAddressOrMeta(line)) continue;
-            const letters = (line.match(/[A-Za-z]/g) || []).length;
-            const digits = (line.match(/\d/g) || []).length;
-            if (letters >= 5 && letters > digits * 2 && line.length >= 5) {
-                return line.replace(/\s{2,}/g, ' ').trim().slice(0, 60);
-            }
-        }
-
-        for (const line of lineList.slice(0, 6)) {
-            if (/^zoom\b/i.test(line.trim())) return 'Zoom Communications, Inc.';
-        }
-        return lineList.find(l => l.length >= 3 && !/^\d+$/.test(l))?.slice(0, 60) || '';
-    },
-
-    parseItems(lineList) {
-        const skip = /sub\s*-?total|taxes|fees|surcharges|change|tender|payment|visa|mastercard|amex|debit|credit|tip|balance\s*forward|payment\s*terms|currency|certificate|charge\s*description|billing\s*period/i;
-        const totalKey = /(grand\s*total|amount\s*due|balance\s*due|total\s*due|\btotal\b)/i;
-        const items = [];
-
-        for (const line of lineList) {
-            if (skip.test(line) || totalKey.test(line) || Receipt.isAddressOrMeta(line)) continue;
-
-            const charge = line.match(/charge\s*name[:\s]+(.+)/i);
-            if (charge) {
-                items.push(charge[1].trim().slice(0, 72));
-                continue;
-            }
-
-            if (/\$\s*\d+\.\d{2}/.test(line)) {
-                const amt = Receipt.moneyOnLine(line);
-                if (amt != null && amt > 0) {
-                    items.push(line.replace(/\s{2,}/g, ' ').trim().slice(0, 72));
-                }
-            }
-            if (items.length >= 6) break;
-        }
-        return items;
-    },
-
-    parse(text, lines, confidence = 0) {
-        const lineList = (lines && lines.length)
-            ? lines
-            : text.split('\n').map(l => l.trim()).filter(Boolean);
-
-        let total = null;
-        let bestScore = -Infinity;
-        for (const line of lineList) {
-            const scored = Receipt.scoreAmount(line);
-            if (scored && scored.score > bestScore) {
-                bestScore = scored.score;
-                total = scored.amt;
-            }
-        }
-
-        const invoiceSum = Receipt.sumInvoiceRowTotals(lineList);
-        const clustered = Receipt.collectInvoiceAmounts(lineList);
-        const textTotal = Receipt.parseTotalFromText(text);
-
-        for (const candidate of [textTotal, clustered, invoiceSum, Receipt.inferTotalFromAmounts(lineList)]) {
-            if (candidate != null && (total == null || total > 500 || candidate > (total || 0))) {
-                total = candidate;
-            }
-        }
-
-        if (total == null) {
-            const amounts = lineList
-                .filter(l => !Receipt.isAddressOrMeta(l))
-                .map(Receipt.moneyOnLine)
-                .filter(v => v != null && v > 0 && v < 10_000);
-            if (amounts.length) total = amounts.reduce((a, b) => a + b, 0);
-            if (total != null) total = Math.round(total * 100) / 100;
-        }
-
-        let tax = null;
-        for (const line of lineList) {
-            if (/\btax(es)?\b|fees?\s*&?\s*surcharges?/i.test(line)) {
-                const amounts = Receipt.allMoneyOnLine(line);
-                if (amounts.length) tax = amounts[amounts.length - 1];
-            }
-        }
-
-        const merchant = Receipt.parseMerchant(lineList, text);
-        const items = Receipt.parseItems(lineList);
-
-        return {
-            merchant,
-            total,
-            tax,
-            date: Receipt.parseDate(text, lineList),
-            items,
-            rawText: text,
-            confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
-        };
-    },
+    parse: ReceiptParser.parse,
 
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
@@ -685,10 +370,11 @@ export const Receipt = {
         if (parsed.tax != null) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
         const confPct = parsed.confidence ? Math.round(parsed.confidence * 100) : null;
         const confClass = parsed.lowConfidence ? 'ocr-conf-low' : 'ocr-conf-ok';
+        const { ids, actions } = CODE_TAGS;
 
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
-        backdrop.id = 'ocr-preview';
+        backdrop.id = ids.ocrPreview;
         backdrop.innerHTML = `
             <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
                 <div class="ocr-sheet-header">
@@ -696,33 +382,33 @@ export const Receipt = {
                         <h3 class="modal-title">Review receipt</h3>
                         ${confPct != null ? `<span class="ocr-conf ${confClass}">${confPct}% match</span>` : ''}
                     </div>
-                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
+                    <button class="close-modal" type="button" data-action="${actions.receiptCancel}" aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="Receipt preview"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
-                        <label class="field-label" for="ocr-title">Title / Merchant</label>
-                        <input class="text-input" type="text" id="ocr-title" spellcheck="false" autocomplete="off"
+                        <label class="field-label" for="${ids.ocrTitle}">Title / Merchant</label>
+                        <input class="text-input" type="text" id="${ids.ocrTitle}" spellcheck="false" autocomplete="off"
                             value="${Utils.escapeHtml(parsed.merchant)}" placeholder="e.g. Whole Foods">
                     </div>
                     <div class="ocr-grid">
                         <div class="ocr-field ocr-field-amount">
-                            <label class="field-label" for="ocr-amount">Amount</label>
+                            <label class="field-label" for="${ids.ocrAmount}">Amount</label>
                             <div class="amount-wrap">
                                 <span class="amount-prefix">$</span>
-                                <input class="text-input amount-input" type="text" inputmode="decimal" id="ocr-amount"
+                                <input class="text-input amount-input" type="text" inputmode="decimal" id="${ids.ocrAmount}"
                                     value="${parsed.total != null ? parsed.total.toFixed(2) : ''}" placeholder="0.00">
                             </div>
                         </div>
                         <div class="ocr-field">
-                            <label class="field-label" for="ocr-date">Date</label>
-                            <input class="text-input" type="date" id="ocr-date" value="${parsed.date || today}">
+                            <label class="field-label" for="${ids.ocrDate}">Date</label>
+                            <input class="text-input" type="date" id="${ids.ocrDate}" value="${parsed.date || today}">
                         </div>
                     </div>
                     <div class="ocr-field">
-                        <label class="field-label" for="ocr-note">Notes</label>
-                        <textarea class="text-input" id="ocr-note" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
+                        <label class="field-label" for="${ids.ocrNote}">Notes</label>
+                        <textarea class="text-input" id="${ids.ocrNote}" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
                     </div>
                     <details class="ocr-raw">
                         <summary>View raw scanned text</summary>
@@ -730,16 +416,34 @@ export const Receipt = {
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
-                    <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
+                    <button class="btn-primary" type="button" data-action="${actions.receiptSave}"><i class="ti ti-check"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-action="${actions.receiptSaveScan}"><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-ghost" type="button" data-action="${actions.receiptCancel}">Cancel</button>
                 </div>
             </div>`;
 
-        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) Receipt.closePreview(); });
-        backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
-        backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
-        backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
+        const handlePreviewClick = (e) => {
+            if (e.target === backdrop) {
+                Receipt.closePreview();
+                return;
+            }
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (!action) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (action === actions.receiptCancel) Receipt.closePreview();
+            else if (action === actions.receiptSave) Receipt.saveFromPreview(false);
+            else if (action === actions.receiptSaveScan) Receipt.saveFromPreview(true);
+        };
+        const handlePreviewKeydown = (e) => {
+            if (e.key === 'Escape') Receipt.closePreview();
+        };
+        backdrop.addEventListener('click', handlePreviewClick);
+        document.addEventListener('keydown', handlePreviewKeydown);
+        Receipt._previewCleanup = () => {
+            backdrop.removeEventListener('click', handlePreviewClick);
+            document.removeEventListener('keydown', handlePreviewKeydown);
+        };
         Utils.hideTooltip();
         document.body.classList.add('modal-open');
         document.body.appendChild(backdrop);
@@ -754,11 +458,13 @@ export const Receipt = {
             if (thumb.complete && thumb.naturalWidth > 0) reveal();
         }
 
-        backdrop.querySelector('#ocr-title').focus();
+        backdrop.querySelector(`#${ids.ocrTitle}`).focus();
     },
 
     closePreview() {
-        document.getElementById('ocr-preview')?.remove();
+        Receipt._previewCleanup?.();
+        Receipt._previewCleanup = null;
+        document.getElementById(CODE_TAGS.ids.ocrPreview)?.remove();
         if (!document.getElementById('modal')?.classList.contains('open')) {
             document.body.classList.remove('modal-open');
         }
@@ -769,10 +475,11 @@ export const Receipt = {
     },
 
     saveFromPreview(scanAnother = false) {
-        const dateStr = document.getElementById('ocr-date')?.value;
-        const title = document.getElementById('ocr-title')?.value.trim();
-        const amountRaw = document.getElementById('ocr-amount')?.value.replace(/[^0-9.]/g, '');
-        const note = document.getElementById('ocr-note')?.value.trim();
+        const ids = CODE_TAGS.ids;
+        const dateStr = document.getElementById(ids.ocrDate)?.value;
+        const title = document.getElementById(ids.ocrTitle)?.value.trim();
+        const amountRaw = document.getElementById(ids.ocrAmount)?.value.replace(/[^0-9.]/g, '');
+        const note = document.getElementById(ids.ocrNote)?.value.trim();
 
         if (!title) { Toast.show('Please enter a title or merchant name.', 'error'); return; }
         if (!dateStr) { Toast.show('Please choose a date.', 'error'); return; }
@@ -795,9 +502,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };
