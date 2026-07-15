@@ -6,6 +6,68 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: {
+            version: '5.8.0',
+            cdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js'
+        },
+        pdfJs: {
+            version: '4.10.38',
+            cdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+            worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+        },
+        // Keep these peer pins aligned with the import map in index.html.
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvasProfile: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewMime: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        lowMemoryGb: 2,
+        slowEffectiveTypes: ['slow-2g', '2g']
+    },
+    fileInputAccept: 'image/*,.heic,.heif,.pdf,application/pdf',
+    tags: {
+        scanIntent: 'ocr-scan-intent',
+        fileInput: 'ocr-file-input',
+        progressDialog: 'ocr-progress-dialog',
+        reviewSheet: 'ocr-review-sheet',
+        previewImage: 'ocr-preview-image',
+        rawText: 'ocr-raw-text',
+        save: 'ocr-save',
+        saveAndScan: 'ocr-save-and-scan',
+        cancel: 'ocr-cancel'
+    },
+    lineCorrections: [
+        { pattern: /\bzooml\b/gi, replacement: 'Zoom' },
+        { pattern: /(\d)[|lI](\d{2})\b/g, replacement: '$1.$2' }
+    ],
+    textCorrections: [
+        { pattern: /\bzooml\b/gi, replacement: 'Zoom Communications' },
+        { pattern: /zoom\s*c[o0]mmunications/gi, replacement: 'Zoom Communications' }
+    ],
+    knownMerchants: [
+        { pattern: /zoom\s+communications?,?\s*inc\.?/i, name: 'Zoom Communications, Inc.' },
+        { pattern: /\bzoom[l1i]?\b/i, name: 'Zoom Communications, Inc.' },
+        { pattern: /amazon\.?\s*com/i, name: 'Amazon' },
+        { pattern: /whole\s*foods/i, name: 'Whole Foods' },
+        { pattern: /costco\s*wholesale/i, name: 'Costco' },
+        { pattern: /target\s*(store|corp)?/i, name: 'Target' },
+        { pattern: /walmart/i, name: 'Walmart' },
+        { pattern: /starbucks/i, name: 'Starbucks' }
+    ]
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

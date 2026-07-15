@@ -1,3 +1,4 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
@@ -6,15 +7,19 @@ import { saveExpense } from './modal.js';
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
     // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr.cdn,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJs.cdn,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfJs.worker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
+    _warmStarted: false,
+    _warmPromise: null,
+    _intentWarmupBound: false,
+
+    // OCR_INPUT: file selection and intent-based warmup hooks.
 
     isPdf(file) {
         if (!file) return false;
@@ -32,10 +37,38 @@ export const Receipt = {
         input.click();
     },
 
+    bindIntentWarmup() {
+        if (Receipt._intentWarmupBound) return;
+        Receipt._intentWarmupBound = true;
+
+        const unbind = () => {
+            document.removeEventListener('pointerover', warmOnIntent);
+            document.removeEventListener('focusin', warmOnIntent);
+            document.removeEventListener('touchstart', warmOnIntent);
+        };
+        const isScanIntent = (target) => target?.closest?.('[data-action="scan-receipt"], [data-oe-tag="ocr-scan-intent"]');
+        const warmOnIntent = (event) => {
+            if (!isScanIntent(event.target)) return;
+            unbind();
+            if (Utils.shouldWarmOcr()) Receipt.warmEngine();
+        };
+
+        document.addEventListener('pointerover', warmOnIntent, { passive: true });
+        document.addEventListener('focusin', warmOnIntent);
+        document.addEventListener('touchstart', warmOnIntent, { passive: true });
+    },
+
+    // OCR_ENGINE: lazy dependency loading, model initialization, and PDF setup.
+
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
-        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
+        Receipt._warmPromise = Receipt.ensureEngine().catch((err) => {
+            Receipt._warmStarted = false;
+            Receipt._warmPromise = null;
+            console.info('[OpenExpense] OCR warmup deferred:', err);
+            return null;
+        });
         return Receipt._warmPromise;
     },
 
@@ -107,6 +140,23 @@ export const Receipt = {
         return lines;
     },
 
+    async canvasToPreviewUrl(canvas) {
+        if (typeof canvas.toBlob !== 'function') {
+            return canvas.toDataURL(OCR_CONFIG.canvasProfile.previewMime, OCR_CONFIG.canvasProfile.previewQuality);
+        }
+
+        const blob = await new Promise((resolve) => {
+            canvas.toBlob(
+                resolve,
+                OCR_CONFIG.canvasProfile.previewMime,
+                OCR_CONFIG.canvasProfile.previewQuality
+            );
+        });
+        return blob
+            ? URL.createObjectURL(blob)
+            : canvas.toDataURL(OCR_CONFIG.canvasProfile.previewMime, OCR_CONFIG.canvasProfile.previewQuality);
+    },
+
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +174,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvasProfile.pdfMaxScale,
+            OCR_CONFIG.canvasProfile.maxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +186,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -169,17 +222,51 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // OCR_IMAGE: cross-platform image decode and canvas normalization.
+
+    isHeic(file) {
+        const type = (file?.type || '').toLowerCase();
+        const name = (file?.name || '').toLowerCase();
+        return type.includes('heic') || type.includes('heif') || /\.(heic|heif)$/i.test(name);
+    },
+
+    async decodeImage(file, url) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return {
+                    image: bitmap,
+                    width: bitmap.width,
+                    height: bitmap.height,
+                    close: () => bitmap.close?.()
+                };
+            } catch (err) {
+                if (Receipt.isHeic(file)) throw err;
+            }
+        }
+
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.decoding = 'async';
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = url;
+        });
+        return {
+            image: img,
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height,
+            close: () => {}
+        };
+    },
+
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let decoded = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            decoded = await Receipt.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.canvasProfile.maxSide;
+            let { width, height } = decoded;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,17 +278,22 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.drawImage(decoded.image, 0, 0, width, height);
+            decoded.close();
             return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
         } catch (err) {
+            decoded?.close?.();
             URL.revokeObjectURL(url);
+            if (Receipt.isHeic(file)) {
+                throw new Error('This browser cannot decode HEIC/HEIF receipts. Export the image as JPEG/PNG or scan the receipt as a PDF.');
+            }
             throw err;
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvasProfile.minSide;
+        const maxSide = OCR_CONFIG.canvasProfile.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -248,19 +340,23 @@ export const Receipt = {
         return Receipt.normalizeLines(lineList);
     },
 
+    // OCR_PARSER: normalize engine output and infer expense fields from receipt text.
+
     normalizeLines(lineList) {
-        return lineList.map(line => line
-            .replace(/\bzooml\b/gi, 'Zoom')
-            .replace(/(\d)[|lI](\d{2})\b/g, '$1.$2')
-            .replace(/\s+/g, ' ')
-            .trim()
-        ).filter(Boolean);
+        return lineList.map((line) => {
+            let normalized = line;
+            for (const { pattern, replacement } of OCR_CONFIG.lineCorrections) {
+                normalized = normalized.replace(pattern, replacement);
+            }
+            return normalized.replace(/\s+/g, ' ').trim();
+        }).filter(Boolean);
     },
 
     normalizeText(text, lines) {
-        const body = (text || lines.join('\n'))
-            .replace(/\bzooml\b/gi, 'Zoom Communications')
-            .replace(/zoom\s*c[o0]mmunications/gi, 'Zoom Communications');
+        let body = text || lines.join('\n');
+        for (const { pattern, replacement } of OCR_CONFIG.textCorrections) {
+            body = body.replace(pattern, replacement);
+        }
         return body;
     },
 
@@ -292,7 +388,6 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -307,27 +402,29 @@ export const Receipt = {
             }
             Receipt.showPreview(parsed, ocr.previewUrl);
         } catch (err) {
-            console.error('OCR error:', err);
+            console.error('[OpenExpense] OCR error:', err);
             progress.close();
             if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
                 URL.revokeObjectURL(Receipt._previewUrl);
             }
             Receipt._previewUrl = null;
-            const hint = Receipt.isPdf(file)
+            const hint = Receipt.isHeic(file) && err?.message
+                ? err.message
+                : Receipt.isPdf(file)
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
+
+    // OCR_UI: progress and review sheet for human-confirmed expense creation.
 
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-progress';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-progress" role="status" aria-live="polite">
+            <div class="modal-shell ocr-progress" role="status" aria-live="polite" data-oe-tag="${OCR_CONFIG.tags.progressDialog}">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
                 <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
@@ -549,19 +646,9 @@ export const Receipt = {
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
-        const known = [
-            [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
-            [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
-            [/amazon\.?\s*com/i, 'Amazon'],
-            [/whole\s*foods/i, 'Whole Foods'],
-            [/costco\s*wholesale/i, 'Costco'],
-            [/target\s*(store|corp)?/i, 'Target'],
-            [/walmart/i, 'Walmart'],
-            [/starbucks/i, 'Starbucks']
-        ];
 
-        for (const [pat, name] of known) {
-            if (pat.test(text)) return name;
+        for (const { pattern, name } of OCR_CONFIG.knownMerchants) {
+            if (pattern.test(text)) return name;
         }
 
         for (const line of lineList.slice(0, 25)) {
@@ -690,16 +777,16 @@ export const Receipt = {
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt" data-oe-tag="${OCR_CONFIG.tags.reviewSheet}">
                 <div class="ocr-sheet-header">
                     <div>
                         <h3 class="modal-title">Review receipt</h3>
                         ${confPct != null ? `<span class="ocr-conf ${confClass}">${confPct}% match</span>` : ''}
                     </div>
-                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
+                    <button class="close-modal" type="button" data-action="ocr-cancel" data-oe-tag="${OCR_CONFIG.tags.cancel}" aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="" data-oe-tag="${OCR_CONFIG.tags.previewImage}"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-title">Title / Merchant</label>
@@ -724,22 +811,19 @@ export const Receipt = {
                         <label class="field-label" for="ocr-note">Notes</label>
                         <textarea class="text-input" id="ocr-note" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
                     </div>
-                    <details class="ocr-raw">
+                    <details class="ocr-raw" data-oe-tag="${OCR_CONFIG.tags.rawText}">
                         <summary>View raw scanned text</summary>
                         <pre>${Utils.escapeHtml(parsed.rawText || 'No text recognized.')}</pre>
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
-                    <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
+                    <button class="btn-primary" type="button" data-action="ocr-save" data-oe-tag="${OCR_CONFIG.tags.save}"><i class="ti ti-check"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-action="ocr-save-scan" data-oe-tag="${OCR_CONFIG.tags.saveAndScan}"><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-ghost" type="button" data-action="ocr-cancel" data-oe-tag="${OCR_CONFIG.tags.cancel}">Cancel</button>
                 </div>
             </div>`;
 
         backdrop.addEventListener('click', (e) => { if (e.target === backdrop) Receipt.closePreview(); });
-        backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
-        backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
-        backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
         Utils.hideTooltip();
         document.body.classList.add('modal-open');
         document.body.appendChild(backdrop);
@@ -795,9 +879,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };

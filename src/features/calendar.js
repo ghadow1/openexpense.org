@@ -3,7 +3,6 @@ import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
-import { Receipt } from './receipt.js';
 import { openModal } from './modal.js';
 
 let shellEl = null;
@@ -44,8 +43,10 @@ function ensureShell(calCol) {
     const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload' });
     const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download' });
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
-    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true });
+    const scanBtn = UI.createButton('Scan', null, { icon: 'camera', accent: true });
     scanBtn.classList.add('toolbar-scan-btn');
+    scanBtn.dataset.action = 'scan-receipt';
+    scanBtn.dataset.oeTag = 'ocr-scan-intent';
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
     [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],

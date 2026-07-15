@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR; keep versions aligned with OCR_CONFIG.dependencies.peerImports. -->
   <script type="importmap">
   {
     "imports": {
@@ -424,7 +424,7 @@
       </div>
     </main>
 
-    <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
+    <button type="button" class="quick-fab" data-action="scan-receipt" data-oe-tag="ocr-scan-intent" aria-label="Scan receipt" title="Scan receipt">
       <i class="ti ti-camera" aria-hidden="true"></i>
       <span class="quick-fab-label">Scan</span>
     </button>
@@ -473,7 +473,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
+  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" data-oe-tag="ocr-file-input" hidden>
 
   <div id="global-tooltip"></div>
 

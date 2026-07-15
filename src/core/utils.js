@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -41,6 +43,23 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    deviceMemoryGb: () => {
+        const memory = Number(navigator.deviceMemory);
+        return Number.isFinite(memory) && memory > 0 ? memory : null;
+    },
+    shouldWarmOcr() {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        if (OCR_CONFIG.warmup.slowEffectiveTypes.includes(effectiveType)) return false;
+
+        const memory = Utils.deviceMemoryGb();
+        if (memory && memory <= OCR_CONFIG.warmup.lowMemoryGb && Utils.prefersCamera()) return false;
+
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
