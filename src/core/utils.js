@@ -1,3 +1,5 @@
+import { BREAKPOINTS, OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,9 +38,41 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
-    canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
+    matchesMaxWidth: (px) => typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia(`(max-width: ${px}px)`).matches,
+    isMobile: () => Utils.matchesMaxWidth(BREAKPOINTS.mobile),
+    prefersCamera: () => Utils.matchesMaxWidth(BREAKPOINTS.cameraPreferred)
+        || (typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(pointer: coarse)').matches),
+    platformTier() {
+        if (Utils.isMobile()) return 'mobile';
+        if (Utils.matchesMaxWidth(BREAKPOINTS.calendarTablet)
+            || (typeof window !== 'undefined'
+                && typeof window.matchMedia === 'function'
+                && window.matchMedia('(pointer: coarse)').matches)) {
+            return 'tablet';
+        }
+        return 'desktop';
+    },
+    ocrCanvasSettings() {
+        const presets = OCR_CONFIG.preprocessing.presets;
+        return presets[Utils.platformTier()] || presets.desktop;
+    },
+    shouldWarmOcr() {
+        if (typeof navigator === 'undefined') return true;
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.skipEffectiveTypes.includes(connection?.effectiveType)) return false;
+        if (typeof navigator.deviceMemory === 'number'
+            && navigator.deviceMemory < OCR_CONFIG.warmup.minDeviceMemoryGb) {
+            return false;
+        }
+        return true;
+    },
+    canUseSavePicker: () => typeof window !== 'undefined'
+        && typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
     sanitizeFilename(name) {

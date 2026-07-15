@@ -11,6 +11,83 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+export const BREAKPOINTS = {
+    mobile: 640,
+    cameraPreferred: 900,
+    calendarCompact: 640,
+    calendarNarrow: 820,
+    calendarTablet: 980
+};
+
+export const CODE_TAGS = {
+    app: {
+        idleOcrWarmup: 'app:idle-ocr-warmup'
+    },
+    receipt: {
+        fileInput: 'receipt:file-input',
+        engine: 'receipt:ocr-engine',
+        pdfReader: 'receipt:pdf-reader',
+        imagePreprocess: 'receipt:image-preprocess',
+        progress: 'receipt:progress',
+        preview: 'receipt:review-sheet',
+        rawText: 'receipt:raw-text',
+        saveExpense: 'receipt:save-expense',
+        saveAndScanAnother: 'receipt:save-and-scan-another'
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: {
+            version: '5.8.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js'
+        },
+        pdfjs: {
+            version: '4.10.38',
+            url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+        },
+        // Keep these URLs in sync with the import map in index.html.
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engineOptions: {
+        recognition: { strategy: 'cross-line' }
+    },
+    preprocessing: {
+        minSide: 1000,
+        pdfMaxScale: 2.5,
+        presets: {
+            mobile: { maxSide: 1600, pdfMaxSide: 1800, previewQuality: 0.86, smoothingQuality: 'medium' },
+            tablet: { maxSide: 2000, pdfMaxSide: 2200, previewQuality: 0.88, smoothingQuality: 'high' },
+            desktop: { maxSide: 2400, pdfMaxSide: 2400, previewQuality: 0.9, smoothingQuality: 'high' }
+        }
+    },
+    confidence: {
+        extractedPdf: 0.95,
+        low: 0.55
+    },
+    warmup: {
+        requestIdleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        skipEffectiveTypes: ['slow-2g', '2g'],
+        minDeviceMemoryGb: 2
+    },
+    progress: {
+        loadingEngine: 'Loading OCR engine...',
+        downloadingModels: 'Downloading models (first scan only)...',
+        warming: 'Warming up...',
+        ready: 'Ready',
+        loadingPdf: 'Loading PDF...',
+        readingPdfPage: (pageNum) => `Reading PDF page ${pageNum}...`,
+        renderingPreview: 'Rendering preview...',
+        readingText: 'Reading text...',
+        done: 'Done'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

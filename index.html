@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- Bare-specifier resolution for lazy-loaded OCR (keep in sync with OCR_CONFIG.peerImportMap) -->
   <script type="importmap">
   {
     "imports": {
@@ -316,6 +316,10 @@
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
                   </p>
+                  <p>
+                    The scanner automatically chooses mobile, tablet, or desktop OCR canvas sizes so newer phones
+                    save memory and battery while desktop browsers keep a higher-resolution reading path.
+                  </p>
                   <div class="docs-note">
                     <p>
                       Receipt parsing is a convenience, not an autopilot. You are always the one who decides what
@@ -473,7 +477,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
+  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" data-code-tag="receipt:file-input" hidden>
 
   <div id="global-tooltip"></div>
 

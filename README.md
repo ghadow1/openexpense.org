@@ -16,16 +16,19 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Clean stale chunks and rebuild deployment assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero app servers** — no backend and no database; OCR assets are lazy-loaded from a CDN, while receipt and ledger data stay in your browser.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); receipt images are processed locally, with a review step before anything is saved.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -34,7 +37,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG, CODE_TAGS
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -43,12 +46,29 @@ src/
 │   ├── bundle.js      # Encrypted .zip export/import
 │   └── utils.js
 ├── ui/                # components, theme, toast
-├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
+├── features/          # calendar, ledger (autosave + export/import), modal, receipt OCR, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR architecture
+
+Receipt scanning is browser-only and human-in-the-loop:
+
+1. `src/features/receipt.js` accepts image files or PDFs from the Scan button.
+2. PDFs are handled with PDF.js first. If embedded text is available, the app parses that text without running image OCR.
+3. Photos, screenshots, and scanned PDFs are rendered to a canvas and read by PP-OCRv5 (`ppu-paddle-ocr`) through ONNX Runtime Web.
+4. Parsed merchant, amount, date, tax, and line-item suggestions are shown in a review sheet. The ledger is updated only after the user confirms.
+
+The OCR, PDF, and peer dependency URLs are centralized in `OCR_CONFIG` inside `src/config.js`; the peer import map in `index.html` must stay in sync with that config. The first OCR scan downloads and browser-caches the OCR engine/model resources from jsDelivr; receipt content itself is processed in the browser and is not uploaded by OpenExpense.
+
+Cross-platform performance settings also live in `OCR_CONFIG`. Mobile browsers use smaller OCR canvases to reduce memory pressure and battery drain, tablets use a middle tier, and desktop browsers keep the highest resolution path. Idle OCR warmup is skipped on data-saver, very slow connections, or very low-memory devices; manual scans still load OCR on demand.
+
+Human-readable code tags are exported as `CODE_TAGS` in `src/config.js` and applied to key receipt scanning UI nodes through `data-code-tag` attributes. Use those tags when debugging, documenting, or writing future automated checks.
+
+See `docs/OCR-PERFORMANCE.md` for the tuning matrix and maintenance notes.
 
 ## Data format
 
