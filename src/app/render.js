@@ -20,6 +20,8 @@ export function render(changedKeys) {
     const keys = changedKeys ? Object.keys(changedKeys) : null;
     const all = !keys || keys.length === 0;
 
+    // tag: ui-render-invalidation - each branch names the smallest DOM surface
+    // affected by a state change so cross-platform renders stay responsive.
     if (all || keys.includes('isDark')) {
         applyTheme();
     }

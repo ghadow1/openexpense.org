@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +71,16 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    // tag: ocr-idle-warmup - prefetch latest mobile/desktop OCR resources only
+    // when the current device/network can absorb the background work.
+    const warmOcr = () => {
+        if (Utils.shouldWarmOcr()) Receipt.warmEngine();
+    };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(warmOcr, { timeout: OCR_CONFIG.warmup.idleTimeoutMs });
+    } else {
+        setTimeout(warmOcr, OCR_CONFIG.warmup.fallbackDelayMs);
+    }
 
     window.__oeBoot = { ok: true };
 }
@@ -128,6 +135,8 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
+        // tag: ui-render-batching - one animation frame can update app chrome,
+        // calendar/sidebar, and the open modal without re-rendering all views.
         const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events'].includes(k));
         const needsModal = getState().selectedKey
             && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark'].includes(k));

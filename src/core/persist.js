@@ -1,5 +1,8 @@
 import { encryptJSON, decryptJSON, isEncrypted, cryptoAvailable } from './crypto.js';
 
+// tag: privacy-indexeddb-autosave - v2 stores the encrypted ledger separately
+// from metadata such as the non-extractable CryptoKey. Store subscribers debounce
+// writes so rapid UI edits do not thrash desktop or mobile storage.
 const DB_NAME = 'openexpense';
 const DB_VERSION = 2;
 const STORE_NAME = 'ledger';

@@ -25,8 +25,8 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5) and PDF text extraction; images and invoices never leave your device.
+- **Cross-platform** — responsive layout, camera-first mobile scanning, desktop save-picker support, and mobile share fallbacks.
 
 ## How it works
 
@@ -41,7 +41,7 @@ src/
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Platform helpers and OCR warm-up guards
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
@@ -49,6 +49,18 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform performance
+
+Receipt scanning is optimized for current mobile and desktop browsers without adding a server:
+
+- OCR and PDF engines are lazy-loaded from pinned CDN packages only when scanning is used.
+- PDF invoices use embedded text first, then fall back to OCR on a rendered first-page canvas.
+- Images are normalized to a bounded canvas size so phones avoid oversized memory work while desktop scans still preserve text detail.
+- Idle warm-up preloads the OCR engine on capable devices, but skips data-saver, very slow connections, and low-memory devices.
+- Every scan opens a review sheet; parsed merchant, amount, date, and notes are suggestions until the user saves.
+
+Developer notes and searchable code tags live in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Data format
 

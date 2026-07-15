@@ -6,6 +6,51 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// Shared platform breakpoints keep mobile, tablet, and desktop behavior aligned
+// between JavaScript feature decisions and CSS layout expectations.
+export const BREAKPOINTS = Object.freeze({
+    mobileMax: 640,
+    cameraPromptMax: 900,
+    calendarCompactMax: 640,
+    calendarNarrowMax: 820,
+    calendarTabletMax: 980,
+    tabletViewportMax: 900
+});
+
+// OCR is intentionally lazy-loaded from the CDN. Keep these pins in sync with
+// index.html's import map so the latest receipt pipeline has matching peer deps.
+export const OCR_CONFIG = Object.freeze({
+    dependencies: {
+        paddleOcrUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJsUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        modelDownloadLabel: '~5 MB OCR, PDF reader on demand'
+    },
+    recognition: {
+        strategy: 'cross-line'
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    thresholds: {
+        pdfTextChars: 12,
+        pdfTextLines: 2,
+        lowConfidence: 0.55,
+        maxRecognizedAmount: 100000,
+        maxInferredRowAmount: 500,
+        maxFallbackAmount: 10000
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    }
+});
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -1,5 +1,8 @@
 import { metaGet, metaPut } from './persist.js';
 
+// tag: privacy-device-key - autosave uses a non-extractable AES-GCM key stored
+// on this device. Export bundles use a separate extractable key in core/bundle.js.
+// Web Crypto requires https/localhost; index.html surfaces that boot constraint.
 const KEY_ID = 'ledger-key-v1';
 const ENC_VERSION = 1;
 

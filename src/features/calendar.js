@@ -1,4 +1,4 @@
-import { DAYS } from '../config.js';
+import { BREAKPOINTS, DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
@@ -81,11 +81,13 @@ function getCalendarDensity(colEl) {
     const col = colEl || document.getElementById('cal-col');
     const colW = col?.clientWidth || 0;
 
+    // tag: platform-calendar-density - width buckets trade detailed pills for
+    // dots/micro labels before the grid becomes cramped on phones and tablets.
     if (Utils.isMobile()) return 'mobile';
-    if (colW > 0 && colW < 640) return 'compact';
-    if (colW > 0 && colW < 820) return 'narrow';
-    if (colW > 0 && colW < 980) return 'tablet';
-    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+    if (colW > 0 && colW < BREAKPOINTS.calendarCompactMax) return 'compact';
+    if (colW > 0 && colW < BREAKPOINTS.calendarNarrowMax) return 'narrow';
+    if (colW > 0 && colW < BREAKPOINTS.calendarTabletMax) return 'tablet';
+    if (window.matchMedia(`(max-width: ${BREAKPOINTS.tabletViewportMax}px)`).matches) return 'tablet';
     return 'desktop';
 }
 
