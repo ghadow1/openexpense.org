@@ -77,18 +77,6 @@ function updateMonthTitle(currentDate) {
     }
 }
 
-function getCalendarDensity(colEl) {
-    const col = colEl || document.getElementById('cal-col');
-    const colW = col?.clientWidth || 0;
-
-    if (Utils.isMobile()) return 'mobile';
-    if (colW > 0 && colW < 640) return 'compact';
-    if (colW > 0 && colW < 820) return 'narrow';
-    if (colW > 0 && colW < 980) return 'tablet';
-    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
-    return 'desktop';
-}
-
 function syncDensityClass(density) {
     if (shellEl) shellEl.dataset.density = density;
 }
@@ -193,7 +181,7 @@ function renderGrid(y, m, events) {
             const body = document.createElement('div');
             body.className = 'cal-day-body';
 
-            const density = getCalendarDensity(document.getElementById('cal-col'));
+            const density = Utils.calendarDensity(document.getElementById('cal-col'));
 
             if (density === 'mobile' || density === 'compact') {
                 if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
@@ -222,7 +210,7 @@ export function renderCalendar(changedKeys) {
 
     ensureShell(calCol);
 
-    const density = getCalendarDensity(calCol);
+    const density = Utils.calendarDensity(calCol);
     syncDensityClass(density);
     if (density !== lastDensity) lastDensity = density;
 
@@ -241,7 +229,7 @@ let lastDensity = '';
 
 function refreshCalendarDensity() {
     const col = document.getElementById('cal-col');
-    const density = getCalendarDensity(col);
+    const density = Utils.calendarDensity(col);
     syncDensityClass(density);
     if (density === lastDensity) return;
     lastDensity = density;
@@ -261,6 +249,6 @@ export function bindResponsiveCalendar() {
         observer.observe(col);
     }
 
-    lastDensity = getCalendarDensity(col);
+    lastDensity = Utils.calendarDensity(col);
     syncDensityClass(lastDensity);
 }

@@ -38,6 +38,27 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform @perf
+    // Save heavy OCR preloads for devices/networks that can absorb them.
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (warmup.blockedEffectiveTypes?.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < (warmup.minDeviceMemoryGb || 0)) return false;
+        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < (warmup.minHardwareConcurrency || 0)) return false;
+        return true;
+    },
+    calendarDensity(colEl) {
+        const colW = colEl?.clientWidth || 0;
+
+        if (Utils.isMobile()) return 'mobile';
+        if (colW > 0 && colW < 640) return 'compact';
+        if (colW > 0 && colW < 820) return 'narrow';
+        if (colW > 0 && colW < 980) return 'tablet';
+        if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+        return 'desktop';
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

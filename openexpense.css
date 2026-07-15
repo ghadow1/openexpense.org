@@ -2562,7 +2562,6 @@ textarea:focus-visible {
     border-radius: 2px 2px 0 0;
     transition: background 0.15s, opacity 0.15s, height 0.2s ease;
     cursor: pointer;
-    will-change: height;
     background: var(--border-strong);
     opacity: 0.45;
     min-height: 4px;
@@ -2751,6 +2750,7 @@ textarea.text-input {
     flex-direction: column;
     overflow: hidden;
     padding: 0;
+    contain: layout paint;
 }
 
 .ocr-sheet-header {
@@ -3003,6 +3003,7 @@ body.modal-open .quick-fab {
     max-width: 360px;
     text-align: center;
     color: var(--text-strong);
+    contain: layout paint;
 }
 
 .ocr-progress strong {
@@ -3486,6 +3487,20 @@ body.modal-open .quick-fab {
 @media (display-mode: standalone) {
     .site-header {
         padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    }
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
     }
 }
 

@@ -6,6 +6,37 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform
+// Keep OCR/PDF runtime pins and browser capability thresholds in one readable
+// place. index.html import-map peer pins must stay in sync with peerImports.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            onnxRuntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            ppuOcvCanvas: 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    preprocess: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        pdfTextMinChars: 12,
+        pdfTextMinLines: 2,
+        jpegPreviewQuality: 0.85
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 3,
+        minHardwareConcurrency: 4,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

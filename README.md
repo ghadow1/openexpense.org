@@ -8,13 +8,11 @@
 ## Quick start
 
 ```bash
-# Start the local dev server (http://localhost:8765)
+# Install dependencies, then start the local dev server (http://localhost:8765)
+npm ci
 npm run serve
 
-# Kill the dev server when you're done
-pkill -f "http.server 8765"
-
-# Rebuild app.js after editing anything in src/
+# Rebuild deploy assets after editing anything in src/
 npm run build
 ```
 
@@ -22,15 +20,15 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **No backend** — no accounts, database, sync server, or app-controlled upload path.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — local OCR (PP-OCRv5); images, PDFs, extracted text, and parsed fields never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root deploy assets (`app.js` plus hashed `chunk-*.js` files) that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt assets after `npm run build`.
 
 ```
 src/
@@ -46,9 +44,14 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Generated split chunks (cleaned by prebuild)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform performance
+
+Receipt scanning lazy-loads pinned browser OCR/PDF libraries from jsDelivr on first use, then runs recognition locally. OpenExpense does not upload receipts, PDFs, OCR text, or ledger data. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the `@ocr-*`, `@platform`, `@perf`, and `@privacy` source tags and the cross-platform warmup/preprocessing policy.
 
 ## Data format
 
