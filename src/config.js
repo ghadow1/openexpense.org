@@ -6,6 +6,51 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const PLATFORM_CONFIG = {
+    breakpoints: {
+        mobile: 640,
+        cameraPreferred: 900,
+        compactCalendar: 640,
+        narrowCalendar: 820,
+        tabletCalendar: 980
+    },
+    ocrWarmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        skipConnectionTypes: ['slow-2g', '2g']
+    }
+};
+
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJsCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        // Keep these peer dependency pins in sync with index.html's import map.
+        peerImportMap: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400
+    },
+    pdf: {
+        maxRenderSide: 2400,
+        maxRenderScale: 2.5,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    confidence: {
+        low: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, PLATFORM_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -71,9 +71,14 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    if (Utils.shouldWarmOcr()) {
+        const warmOcr = () => { Receipt.warmEngine(); };
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(warmOcr, { timeout: PLATFORM_CONFIG.ocrWarmup.idleTimeoutMs });
+        } else {
+            setTimeout(warmOcr, PLATFORM_CONFIG.ocrWarmup.fallbackDelayMs);
+        }
+    }
 
     window.__oeBoot = { ok: true };
 }
@@ -92,6 +97,15 @@ function handleDelegatedClick(e) {
             case 'scan-receipt':
                 if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
                 Receipt.pickImage();
+                break;
+            case 'receipt-preview-close':
+                Receipt.closePreview();
+                break;
+            case 'receipt-preview-save':
+                Receipt.saveFromPreview(false);
+                break;
+            case 'receipt-preview-save-and-scan':
+                Receipt.saveFromPreview(true);
                 break;
             case 'quick-add-today': {
                 const now = new Date();

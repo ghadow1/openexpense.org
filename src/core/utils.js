@@ -1,3 +1,5 @@
+import { PLATFORM_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,8 +38,14 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isMobile: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.mobile}px)`).matches,
+    prefersCamera: () => window.matchMedia(`(max-width: ${PLATFORM_CONFIG.breakpoints.cameraPreferred}px), (pointer: coarse)`).matches,
+    shouldWarmOcr: () => {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection?.saveData) return false;
+        if (PLATFORM_CONFIG.ocrWarmup.skipConnectionTypes.includes(connection?.effectiveType)) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

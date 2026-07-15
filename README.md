@@ -8,13 +8,16 @@
 ## Quick start
 
 ```bash
+# Install dev tooling for rebuilds
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk-*.js after editing anything in src/
 npm run build
 ```
 
@@ -25,16 +28,16 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5 + ONNX Runtime); images never leave your device.
+- **Cross-platform** — responsive layout with desktop save-picker, mobile camera capture, and share/download fallbacks.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus code-split `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt browser assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, OCR_CONFIG, PLATFORM_CONFIG, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +48,28 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js, chunk-*.js     # Bundled browser assets (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR architecture
+
+Receipt scanning lives in `src/features/receipt.js` and is tuned by `OCR_CONFIG` in `src/config.js`.
+
+- **Lazy mobile-friendly runtime** — PP-OCRv5, ONNX Runtime, OpenCV canvas helpers, and PDF.js load from jsDelivr only when receipt scanning is used. `index.html` owns the import map for OCR peer dependencies; keep those pins in sync with `OCR_CONFIG.dependencies.peerImportMap`.
+- **Fast PDF path** — PDFs are checked for embedded text before OCR. Image-only PDFs render their first page to a bounded canvas and then use OCR.
+- **Canvas performance bounds** — receipt images are scaled up enough for OCR quality and capped at a maximum side length so phones, tablets, and desktops avoid runaway memory use.
+- **Idle warmup with network respect** — `src/main.js` warms OCR during idle time when the browser is not in data-saver mode or on very slow connections. Manual scanning always loads the engine on demand.
+- **Human review required** — OCR suggests merchant, amount, date, tax, and notes; nothing is saved until the user confirms the review sheet.
+
+For deeper implementation notes, see [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
+
+## Cross-platform behavior and code tags
+
+`PLATFORM_CONFIG` keeps breakpoints and OCR warmup timing in one place. `src/core/utils.js` exposes platform helpers such as `isMobile()`, `prefersCamera()`, `canUseSavePicker()`, and `shouldWarmOcr()`.
+
+Interactive controls should use readable `data-action` tags when they are handled by the global click router in `src/main.js` (for example, `scan-receipt`, `receipt-preview-save`, and `receipt-preview-save-and-scan`). Local component-only events can still use direct listeners when that keeps the code clearer.
 
 ## Data format
 
