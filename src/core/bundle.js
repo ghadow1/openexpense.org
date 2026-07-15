@@ -74,19 +74,19 @@ export function isKeyFile(obj) {
         && (obj.format === BUNDLE.KEY_FORMAT || (obj.kty && obj.k) || (obj.key && obj.key.kty));
 }
 
-export function zipBundle(enc, keyFile) {
+export function zipBundle(enc) {
     const files = {
         [BUNDLE.ENC_NAME]: strToU8(JSON.stringify(enc, null, 2)),
-        [BUNDLE.KEY_NAME]: strToU8(JSON.stringify(keyFile, null, 2)),
         [BUNDLE.README_NAME]: strToU8(
             'OpenExpense encrypted export\n' +
             '================================\n\n' +
             `${BUNDLE.ENC_NAME}  - your ledger, encrypted with AES-256-GCM.\n` +
-            `${BUNDLE.KEY_NAME}  - the key needed to decrypt it.\n\n` +
-            'To restore: open openexpense.org and use Import, then select this .zip\n' +
-            '(or load the two files individually).\n\n' +
-            'Security tip: anyone with BOTH files can read your data. For sensitive\n' +
-            'backups, store or send the key file separately from the encrypted file.\n'
+            'A matching *-key.json file is needed to decrypt it.\n\n' +
+            'This zip intentionally does not contain the key file. To restore:\n' +
+            'open openexpense.org and use Import, then select this .zip and the\n' +
+            'matching key JSON file.\n\n' +
+            'Security tip: anyone with BOTH files can read your data, so store or\n' +
+            'send the key file separately from the encrypted ledger zip.\n'
         )
     };
     return zipSync(files, { level: 6 });

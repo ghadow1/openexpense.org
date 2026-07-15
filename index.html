@@ -207,7 +207,7 @@
                   <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
                   <li><strong>Receipt scanning</strong> — photograph or upload a receipt or PDF; local OCR suggests fields you review before saving.</li>
                   <li><strong>Encrypted autosave</strong> — changes write to encrypted local storage automatically.</li>
-                  <li><strong>Encrypted export</strong> — download a backup zip you can move to another device.</li>
+                  <li><strong>Encrypted export</strong> — download an encrypted backup zip and a separate key file you can move to another device.</li>
                   <li><strong>Spending report PDF</strong> — export the current month from the sidebar.</li>
                 </ul>
 
@@ -263,7 +263,7 @@
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
                     <li><strong>Import</strong> — load an encrypted backup zip, separate key/ledger files, or a legacy plaintext <code>.json</code>.</li>
-                    <li><strong>Export</strong> — download an encrypted <code>.zip</code> backup of your full ledger.</li>
+                    <li><strong>Export</strong> — download an encrypted <code>.zip</code> backup plus its separate <code>*-key.json</code> file.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
@@ -373,12 +373,12 @@
                   <h3 class="docs-section-title">Backups &amp; moving between devices</h3>
                   <p>
                     Export is your manual backup. It produces an encrypted <code>.zip</code> containing
-                    <code>ledger.enc.json</code> (ciphertext), <code>ledger.key.json</code> (the decryption key),
-                    and a short <code>README.txt</code>.
+                    <code>ledger.enc.json</code> (ciphertext) and a short <code>README.txt</code>, then saves
+                    a matching <code>*-key.json</code> decryption key as a separate file.
                   </p>
                   <ol class="docs-list is-ordered">
-                    <li><strong>Export</strong> — download the encrypted zip from the calendar toolbar.</li>
-                    <li><strong>Split for safety</strong> — store the key file separately from the encrypted ledger; neither is useful alone.</li>
+                    <li><strong>Export</strong> — download the encrypted zip and matching key file from the calendar toolbar.</li>
+                    <li><strong>Store separately</strong> — keep the key file away from the encrypted ledger; neither is useful alone.</li>
                     <li><strong>Import</strong> — load the zip, or the two files in either order, on any device. Legacy plaintext <code>.json</code> exports still import.</li>
                   </ol>
                   <p>

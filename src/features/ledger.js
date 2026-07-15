@@ -58,6 +58,12 @@ export const Ledger = {
         return `${base}-${stamp}.zip`;
     },
 
+    keyFilename() {
+        const base = Utils.sanitizeFilename(getState().ledgerName) || 'ledger';
+        const stamp = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        return `${base}-${stamp}-key.json`;
+    },
+
     // Persist a Blob using the best available mechanism for the platform:
     // native save picker on desktop, share sheet on mobile, download fallback.
     async saveBlob(blob, filename, description, accept) {
@@ -102,21 +108,34 @@ export const Ledger = {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
 
-    // Export the ledger as an encrypted .zip set: an AES-256-GCM ciphertext of
-    // the ledger plus the key needed to decrypt it. No plaintext leaves the app.
+    // Export the encrypted ledger and its key separately; packaging them
+    // together would make the "encrypted" backup decryptable by anyone.
     async export() {
         try {
             const { enc, keyFile } = await encryptBundle(Ledger.exportPayload());
-            const zipped = zipBundle(enc, keyFile);
-            const blob = new Blob([zipped], { type: 'application/zip' });
-            const result = await Ledger.saveBlob(
-                blob,
+            const ledgerBlob = new Blob([zipBundle(enc)], { type: 'application/zip' });
+            const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
+
+            const ledgerResult = await Ledger.saveBlob(
+                ledgerBlob,
                 Ledger.zipFilename(),
                 'OpenExpense encrypted export',
                 { 'application/zip': ['.zip'] }
             );
-            if (result === 'abort') return;
-            Toast.show('Exported encrypted ledger + key as a .zip.', 'success');
+            if (ledgerResult === 'abort') return;
+
+            const keyResult = await Ledger.saveBlob(
+                keyBlob,
+                Ledger.keyFilename(),
+                'OpenExpense export key',
+                { 'application/json': ['.json'] }
+            );
+            if (keyResult === 'abort') {
+                Toast.show('Encrypted ledger saved, but the matching key export was canceled. Export again to make a restorable backup.', 'error', 7000);
+                return;
+            }
+
+            Toast.show('Exported encrypted ledger zip and separate key file. Store them separately.', 'success', 7000);
         } catch (err) {
             console.error('[OpenExpense] export failed:', err);
             Toast.show('Could not export. Encryption needs a secure (https) context.', 'error');

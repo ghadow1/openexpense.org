@@ -24,7 +24,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
-- **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
+- **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger, plus a separate key file to decrypt it. Import reads the zip and key in either order.
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
@@ -70,5 +70,5 @@ Calendar dates map to expense records. This is the shape used in exports and ins
 - **Autosave = encrypted local storage.** Changes are debounced and written to the `openexpense` IndexedDB (v2), encrypted with AES-256-GCM. No files are involved — autosave never touches the disk as plaintext. It's on by default; the header disk button pauses it (changes then stay in memory only until re-enabled).
 - The AES-GCM key is stored **non-extractable**, so its raw bytes can't be read back — even from devtools.
 - Only non-sensitive UI prefs (theme, autosave on/off, first-visit) use `localStorage`. The ledger name and entries never do.
-- **Export** is an encrypted `.zip` (via [`fflate`](https://github.com/101arrowz/fflate)) with `ledger.enc.json` (ciphertext) + `ledger.key.json` (the key) + `README.txt`. Anyone with both files can decrypt — for sensitive backups, store or send them separately.
+- **Export** is an encrypted `.zip` (via [`fflate`](https://github.com/101arrowz/fflate)) with `ledger.enc.json` (ciphertext) + `README.txt`, and a separate `*-key.json` key file. Anyone with both files can decrypt — store or send them separately.
 - **Import** auto-detects: a full zip, a key and encrypted file loaded separately (in any order), or a legacy plaintext `.json`.
