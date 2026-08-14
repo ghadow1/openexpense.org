@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,17 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    isSaveDataEnabled: () => Utils.connectionInfo()?.saveData === true,
+    isSlowConnection: () => /^(slow-2g|2g)$/i.test(Utils.connectionInfo()?.effectiveType || ''),
+    isLowMemoryDevice: () => typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 2,
+    shouldWarmOcr: () => !Utils.isSaveDataEnabled() && !Utils.isSlowConnection() && !Utils.isLowMemoryDevice(),
+    ocrCanvasMaxSide() {
+        if (Utils.isLowMemoryDevice()) return OCR_CONFIG.canvas.maxSideLowMemory;
+        if (Utils.prefersCamera()) return OCR_CONFIG.canvas.maxSideMobile;
+        return OCR_CONFIG.canvas.maxSideDesktop;
+    },
+    supportsImageBitmap: () => typeof window.createImageBitmap === 'function',
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

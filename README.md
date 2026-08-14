@@ -28,6 +28,17 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
+## OCR performance notes
+
+Receipt scanning is tuned for modern mobile and desktop browsers without sending
+images off-device. OCR dependency pins, canvas sizing, warmup timing, progress
+copy, and parser thresholds live in `src/config.js` under `OCR_CONFIG`.
+
+Contributor-facing source tags such as `@ocr-engine`, `@ocr-pdf`, `@ocr-parse`,
+`@platform`, `@perf`, and `@privacy` mark the receipt pipeline. See
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR
+dependencies, browser capability checks, or receipt parsing heuristics.
+
 ## How it works
 
 OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
@@ -45,6 +56,7 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/                  # contributor notes, including OCR performance tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 

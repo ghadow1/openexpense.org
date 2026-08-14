@@ -11,6 +11,57 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform
+// Keep these CDN pins aligned with the import map in index.html. The OCR
+// engine and PDF reader are loaded only when scanning is used.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    recognition: {
+        strategy: 'cross-line'
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    },
+    canvas: {
+        minSide: 1000,
+        maxSideDesktop: 2400,
+        maxSideMobile: 1800,
+        maxSideLowMemory: 1600,
+        pdfMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewJpegQuality: 0.9
+    },
+    progress: {
+        engineLoad: ['Loading OCR engine...', 0.08],
+        modelDownload: ['Downloading models (first scan only)...', 0.2],
+        warmup: ['Warming up...', 0.88],
+        ready: ['Ready', 1],
+        pdfLoad: ['Loading PDF...', 0.25],
+        previewRender: ['Rendering preview...', 0.55],
+        textRead: ['Reading text...', 0.55],
+        done: ['Done', 1]
+    },
+    parsing: {
+        minExtractedTextChars: 12,
+        minExtractedTextLines: 2,
+        lowConfidenceThreshold: 0.55,
+        maxMerchantLength: 60,
+        maxItemLength: 72,
+        maxReceiptAmount: 100000,
+        maxLineItemTotal: 500,
+        maxFallbackAmount: 10000
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',
