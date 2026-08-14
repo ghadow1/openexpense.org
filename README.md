@@ -45,10 +45,20 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── OCR-PERFORMANCE.md # OCR performance notes and searchable source tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt scanning is tagged in source with labels such as `@ocr-deps`,
+`@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`,
+`@platform`, `@perf`, and `@privacy`. See
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the dependency pins,
+mobile/desktop performance rules, and validation checklist.
 
 ## Data format
 
