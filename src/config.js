@@ -11,6 +11,37 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform
+// Keep these browser-side OCR pins in sync with index.html's import map and
+// docs/OCR-PERFORMANCE.md. The OCR stack is loaded only when a scan is needed.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrModule: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfModule: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewScaleMax: 2.5,
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleDelayMs: 3000,
+        idleTimeoutMs: 8000,
+        skipEffectiveTypes: ['slow-2g', '2g'],
+        lowMemoryDeviceGb: 2
+    },
+    copy: {
+        progressNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

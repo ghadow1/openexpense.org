@@ -44,11 +44,22 @@ src/
 │   └── utils.js
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
-└── app/               # render orchestration, view switching
+├── app/               # render orchestration, view switching
+└── docs/              # contributor notes, including OCR performance tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt scanning is documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
+The OCR code uses readable source tags such as `@ocr-deps`, `@ocr-engine`,
+`@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, `@perf`, and `@privacy`
+so dependency pins, browser fallbacks, and parsing heuristics are easy to find.
+
+After editing anything under `src/`, run `npm run build` and commit the rebuilt
+`app.js`/`chunk-*.js` files used by GitHub Pages.
 
 ## Data format
 

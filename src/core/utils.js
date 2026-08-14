@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,14 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr: () => {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.skipEffectiveTypes.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory <= OCR_CONFIG.warmup.lowMemoryDeviceGb) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
