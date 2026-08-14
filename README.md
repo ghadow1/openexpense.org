@@ -28,6 +28,19 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
+## Receipt OCR and platform performance
+
+Receipt reading is intentionally local and lazy-loaded. The OCR/PDF pins and canvas thresholds live in `OCR_CONFIG`
+inside `src/config.js`; the import map in `index.html` must stay in sync with `OCR_CONFIG.dependencies.peerImports`.
+
+- Mobile/coarse-pointer devices prefer the rear camera for scan input.
+- Desktop browsers keep file-upload and save-picker flows optimized for keyboard/mouse use.
+- Text PDFs are parsed directly before OCR runs.
+- Idle OCR warmup skips data-saver, 2G-class, and lower-memory sessions; user-initiated scans still load on demand.
+- Human-readable code tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, `@perf`, and `@privacy` mark the main decision points.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the deeper maintainer guide.
+
 ## How it works
 
 OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
@@ -49,6 +62,8 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+`npm run build` removes stale root `app.js` and `chunk-*.js` files before esbuild emits the deployable bundle. `npm run validate` currently delegates to the production build.
 
 ## Data format
 

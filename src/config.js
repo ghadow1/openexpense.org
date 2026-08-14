@@ -11,6 +11,39 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @perf
+// Keep lazy OCR/PDF dependency pins and canvas thresholds in one human-readable
+// place so mobile and desktop performance decisions stay auditable.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        smoothingQuality: 'high'
+    },
+    pdf: {
+        renderMaxSide: 2400,
+        renderMaxScale: 2.5,
+        previewQuality: 0.9,
+        minTextLength: 12,
+        minTextLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 3,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

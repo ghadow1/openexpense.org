@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,39 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform @perf
+    // Network and memory hints are advisory, but they help avoid surprise OCR
+    // model downloads on constrained mobile sessions.
+    connectionInfo() {
+        const nav = navigator;
+        return nav.connection || nav.mozConnection || nav.webkitConnection || null;
+    },
+    shouldWarmOcr() {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.blockedEffectiveTypes.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < OCR_CONFIG.warmup.minDeviceMemoryGb) return false;
+        return true;
+    },
+    ocrCanvasSize(width, height) {
+        const { minSide, maxSide } = OCR_CONFIG.image;
+        let w = width;
+        let h = height;
+        if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return { width: w, height: h };
+        const longest = Math.max(w, h);
+
+        if (longest < minSide) {
+            const scale = minSide / longest;
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+        } else if (longest > maxSide) {
+            const scale = maxSide / longest;
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+        }
+
+        return { width: w, height: h };
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
