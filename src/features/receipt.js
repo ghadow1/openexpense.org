@@ -1,21 +1,26 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
+import { OCR_CONFIG } from '../config.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps: Lazy-loaded CDN modules. Keep these pins aligned with
+    // OCR_CONFIG.dependencies.peerImports and the import map in index.html.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfjs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
+    _warmStarted: false,
+    _warmPromise: null,
+    _intentBound: false,
 
+    // @ocr-pipeline: PDF files use pdf.js text extraction first, then OCR only
+    // when the embedded text is too sparse for reliable receipt parsing.
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
@@ -23,6 +28,8 @@ export const Receipt = {
         return type === 'application/pdf' || name.endsWith('.pdf');
     },
 
+    // @platform: On mobile/coarse-pointer devices the file picker should prefer
+    // the rear camera; desktop keeps normal file selection for screenshots/PDFs.
     pickImage() {
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
@@ -32,13 +39,38 @@ export const Receipt = {
         input.click();
     },
 
+    // @perf: Warm the OCR engine when the browser is idle or the user shows scan
+    // intent, while allowing main.js to skip idle warmup on constrained devices.
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
-        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
+        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {
+            Receipt._warmStarted = false;
+            Receipt._warmPromise = null;
+        });
         return Receipt._warmPromise;
     },
 
+    bindIntentWarmup() {
+        if (Receipt._intentBound) return;
+        Receipt._intentBound = true;
+
+        const warmOnScanIntent = (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest('[data-action="scan-receipt"], #receipt-scan-input')) {
+                Receipt.warmEngine();
+            }
+        };
+
+        document.addEventListener('pointerover', warmOnScanIntent, { passive: true });
+        document.addEventListener('pointerdown', warmOnScanIntent, { passive: true });
+        document.addEventListener('touchstart', warmOnScanIntent, { passive: true });
+        document.addEventListener('focusin', warmOnScanIntent);
+    },
+
+    // @ocr-engine: The PP-OCR service and its model files are initialized once
+    // per page load and then reused for subsequent receipt scans.
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
@@ -91,6 +123,8 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf: Preserve PDF line breaks from native text before falling back to
+    // rendered-page OCR. This is faster and more accurate for digital invoices.
     linesFromPdfTextContent(textContent) {
         let block = '';
         const lines = [];
@@ -105,6 +139,16 @@ export const Receipt = {
         const tail = block.trim();
         if (tail) lines.push(tail);
         return lines;
+    },
+
+    async canvasToPreviewUrl(canvas) {
+        if (typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && URL.createObjectURL) {
+            const blob = await new Promise(resolve =>
+                canvas.toBlob(resolve, 'image/jpeg', OCR_CONFIG.canvas.previewQuality)
+            );
+            if (blob) return URL.createObjectURL(blob);
+        }
+        return canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality);
     },
 
     async pdfToCanvasAndText(file, onProgress) {
@@ -124,7 +168,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfRenderMaxScale,
+            OCR_CONFIG.canvas.pdfRenderMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +180,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -169,17 +216,33 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    async decodeImage(file, previewUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                try { return await createImageBitmap(file); } catch (_) { }
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = previewUrl;
+        });
+    },
+
+    // @ocr-pipeline @perf: Downscale large photos before OCR so current mobile
+    // and desktop browsers avoid unnecessary model/canvas memory pressure.
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let img = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            img = await Receipt.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.canvas.maxSide;
+            let width = img.width || img.naturalWidth;
+            let height = img.height || img.naturalHeight;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -196,12 +259,15 @@ export const Receipt = {
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            if (typeof img?.close === 'function') img.close();
         }
     },
 
+    // @perf: Normalize small screenshots upward for OCR legibility and cap giant
+    // mobile camera frames before they hit the recognizer.
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = OCR_CONFIG.canvas;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -291,8 +357,9 @@ export const Receipt = {
         return { ...ocr, previewUrl };
     },
 
+    // @privacy: OCR runs in-browser. Files are read into local canvases/PDF
+    // buffers and are never uploaded by OpenExpense.
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,11 +384,11 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
+    // @ocr-ui: Progress and review dialogs are DOM-built to match the existing
+    // modal system without introducing a framework dependency.
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
@@ -354,6 +421,8 @@ export const Receipt = {
         };
     },
 
+    // @ocr-parse: Receipt heuristics favor labeled totals, then invoice rows,
+    // then conservative amount inference for sparse photos/screenshots.
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -795,9 +864,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };

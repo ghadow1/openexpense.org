@@ -1,4 +1,4 @@
-import { CONFIG, STORAGE_KEYS } from './config.js';
+import { CONFIG, OCR_CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
@@ -70,10 +70,13 @@ async function initApplication() {
 
     initModalBindings();
     bindResponsiveCalendar();
+    Receipt.bindIntentWarmup();
 
-    const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    const warmOcr = () => {
+        if (Utils.shouldWarmOcr()) Receipt.warmEngine();
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: OCR_CONFIG.warmup.idleTimeoutMs });
+    else setTimeout(warmOcr, OCR_CONFIG.warmup.fallbackDelayMs);
 
     window.__oeBoot = { ok: true };
 }
@@ -91,6 +94,7 @@ function handleDelegatedClick(e) {
                 break;
             case 'scan-receipt':
                 if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
+                Receipt.warmEngine();
                 Receipt.pickImage();
                 break;
             case 'quick-add-today': {

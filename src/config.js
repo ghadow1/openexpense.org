@@ -6,6 +6,32 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @perf: Keep OCR dependency pins and tuning values centralized so
+// receipt.js, index.html, and contributor docs describe the same runtime.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfRenderMaxSide: 2400,
+        pdfRenderMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
