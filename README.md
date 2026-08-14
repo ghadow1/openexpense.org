@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Clean generated bundles, rebuild, and fail on bundling errors
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,16 +28,17 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images and PDFs never leave your device.
+- **Cross-platform OCR performance** — adaptive preprocessing keeps phone/tablet scans memory-safe while stronger desktop browsers preserve more detail.
+- **Cross-platform app shell** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root `app.js` plus generated `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, OCR_CONFIG, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +49,27 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/                  # contributor docs for OCR performance and readable source tags
+scripts/               # build hygiene helpers
+app.js, chunk-*.js     # Generated deployment assets (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance and source tags
+
+Receipt reading lives in `src/features/receipt.js` with platform policy in `src/config.js` (`OCR_CONFIG`) and browser capability helpers in `src/core/utils.js`.
+
+Human-readable source tags mark the code paths that matter most for OCR and performance reviews:
+
+- `@ocr-deps` — dependency pins and import-map coordination.
+- `@ocr-engine` — OCR engine loading, caching, and warmup.
+- `@ocr-pipeline` — image/PDF decoding, canvas sizing, OCR, and parsing flow.
+- `@platform` — mobile, tablet, desktop, PWA, and browser capability decisions.
+- `@perf` — memory, CPU, network, and render-cost decisions.
+- `@privacy` — code paths that keep receipt and ledger data local.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR dependency versions, preprocessing thresholds, or scan UX.
 
 ## Data format
 

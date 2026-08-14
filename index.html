@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps Bare-specifier resolution for lazy-loaded OCR peer dependencies. Keep in sync with OCR_CONFIG. -->
   <script type="importmap">
   {
     "imports": {
@@ -315,6 +315,10 @@
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                  </p>
+                  <p>
+                    On mobile, images are resized to reduce memory use before OCR. On larger desktop browsers, the
+                    app keeps more detail when the device can handle it, which can improve small-print receipt reads.
                   </p>
                   <div class="docs-note">
                     <p>
