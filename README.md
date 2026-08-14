@@ -14,7 +14,7 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk files after editing anything in src/
 npm run build
 ```
 
@@ -30,11 +30,11 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into tracked root assets that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js` and `chunk-*.js` files.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -46,9 +46,16 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Bundled split chunks
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR performance
+
+Receipt scanning uses lazy-loaded PP-OCRv5 and PDF.js modules so the base expense tracker stays fast on mobile and desktop. OCR warmup is skipped on data-saver, 2G-class, or very low-memory sessions; manual scanning still loads the engine on demand. Modern browsers use `createImageBitmap()` and blob-backed previews, while older browsers fall back to standard image and canvas APIs.
+
+For maintainers, OCR dependency pins, canvas limits, warmup thresholds, and human-readable code tags live in `src/config.js` under `OCR_CONFIG`. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the `@ocr-*`, `@platform`, `@perf`, and `@privacy` tag guide.
 
 ## Data format
 
