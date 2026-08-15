@@ -6,20 +6,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import 'fake-indexeddb/auto';
+import FDBFactory from 'fake-indexeddb/lib/FDBFactory';
 
 if (!globalThis.crypto) {
     Object.defineProperty(globalThis, 'crypto', {
         value: webcrypto,
         configurable: true
-    });
-}
-
-async function deleteDatabase(name) {
-    await new Promise((resolve, reject) => {
-        const req = indexedDB.deleteDatabase(name);
-        req.onerror = () => reject(req.error);
-        req.onblocked = () => reject(new Error(`Could not delete ${name}: blocked`));
-        req.onsuccess = () => resolve();
     });
 }
 
@@ -38,7 +30,7 @@ async function copyModuleTree() {
 }
 
 test('concurrent first-use encryption reuses one persisted device key', async () => {
-    await deleteDatabase('openexpense');
+    globalThis.indexedDB = new FDBFactory();
     const root = await copyModuleTree();
 
     try {
@@ -62,6 +54,5 @@ test('concurrent first-use encryption reuses one persisted device key', async ()
         assert.deepEqual(await reader.decryptJSON(encryptedB), payloadB);
     } finally {
         await rm(root, { recursive: true, force: true });
-        await deleteDatabase('openexpense');
     }
 });
