@@ -6,6 +6,40 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps Keep these CDN pins in sync with the import map in index.html.
+// The browser OCR build can use WebGPU automatically on capable desktop/mobile
+// browsers and falls back to WASM when hardware acceleration is unavailable.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    engineOptions: {
+        recognition: {
+            strategy: 'cross-line',
+            mainThreadYieldMs: 16
+        }
+    },
+    performance: {
+        minImageSide: 1000,
+        maxImageSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        pdfNativeTextMinChars: 12,
+        pdfNativeTextMinLines: 2,
+        previewMime: 'image/jpeg',
+        previewQuality: 0.9,
+        warmupCanvasSize: 64,
+        warmupIdleTimeoutMs: 8000,
+        warmupFallbackDelayMs: 3000
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

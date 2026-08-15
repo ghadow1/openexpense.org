@@ -38,9 +38,60 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform Chromium exposes Network Information and deviceMemory; other
+    // browsers simply return empty hints and follow the normal path.
+    connectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            saveData: !!connection?.saveData,
+            effectiveType: connection?.effectiveType || '',
+            deviceMemory: Number(navigator.deviceMemory) || null
+        };
+    },
+    // @perf Avoid speculative OCR model downloads on constrained sessions.
+    // Manual scans still lazy-load the engine on demand.
+    shouldWarmOcr() {
+        const { saveData, effectiveType, deviceMemory } = Utils.connectionInfo();
+        if (saveData) return false;
+        if (/^(slow-)?2g$/i.test(effectiveType)) return false;
+        if (deviceMemory != null && deviceMemory <= 2) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    async decodeImageFile(file, objectUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                // Fall back to HTMLImageElement for formats/browsers createImageBitmap cannot decode.
+            }
+        }
+
+        const url = objectUrl || URL.createObjectURL(file);
+        try {
+            return await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('Could not load image'));
+                el.src = url;
+            });
+        } catch (err) {
+            if (!objectUrl) URL.revokeObjectURL(url);
+            throw err;
+        }
+    },
+    canvasPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (typeof canvas.toBlob === 'function') {
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+                }, type, quality);
+            });
+        }
+        return Promise.resolve(canvas.toDataURL(type, quality));
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
