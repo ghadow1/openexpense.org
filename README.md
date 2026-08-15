@@ -8,6 +8,9 @@
 ## Quick start
 
 ```bash
+# Install dependencies before the first local build
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
@@ -25,7 +28,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **No backend** — no accounts, no database, and no expense data uploaded. Static libraries and OCR/PDF models are delivered by CDN and cached by the browser.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
 - **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
