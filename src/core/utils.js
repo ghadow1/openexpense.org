@@ -38,9 +38,61 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform @perf
+    // Network Information and Device Memory are optional browser APIs, so keep
+    // callers on a stable shape while using them when mobile engines expose them.
+    connectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            saveData: !!connection?.saveData,
+            effectiveType: String(connection?.effectiveType || '').toLowerCase(),
+            deviceMemory: Number(navigator.deviceMemory || 0)
+        };
+    },
+    shouldWarmOcr(config) {
+        const info = Utils.connectionInfo();
+        if (document.visibilityState === 'hidden') return false;
+        if (info.saveData) return false;
+        if (config?.warmup?.poorConnectionTypes?.includes(info.effectiveType)) return false;
+        if (info.deviceMemory && info.deviceMemory < (config?.warmup?.lowMemoryGiB || 0)) return false;
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    async decodeImageFile(file, objectUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return {
+                    image: bitmap,
+                    width: bitmap.width,
+                    height: bitmap.height,
+                    close: () => bitmap.close?.()
+                };
+            } catch (_) { }
+        }
+
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve({
+                image,
+                width: image.naturalWidth || image.width,
+                height: image.naturalHeight || image.height,
+                close: () => {}
+            });
+            image.onerror = () => reject(new Error('Could not load image'));
+            image.src = objectUrl;
+        });
+    },
+    canvasToPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (typeof canvas.toBlob !== 'function') return Promise.resolve(canvas.toDataURL(type, quality));
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

@@ -14,8 +14,8 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
-npm run build
+# Rebuild app.js and generated chunks after editing anything in src/
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,7 +30,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root `app.js` plus any `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets.
 
 ```
 src/
@@ -45,10 +45,15 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/OCR-PERFORMANCE.md # OCR pins, platform choices, and code tags
+app.js                 # Bundled entry (rebuild with `npm run validate`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR maintenance
+
+Receipt scanning lives in `src/features/receipt.js`, with dependency pins and raster/warmup thresholds in `OCR_CONFIG` (`src/config.js`). Search for tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf` when auditing OCR or cross-platform behavior. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the current mobile/desktop performance notes.
 
 ## Data format
 

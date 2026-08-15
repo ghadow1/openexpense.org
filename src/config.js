@@ -11,6 +11,57 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// Central OCR/platform settings keep dependency pins, raster limits, and warmup
+// policy auditable across mobile browsers, desktop browsers, and docs.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: '6.4.0',
+        pdfjs: '6.2.108',
+        onnxRuntime: '1.27.0',
+        opencv: '4.0.0',
+        ocrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    raster: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        pdfMaxSide: 2400,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdfText: {
+        minTextChars: 12,
+        minLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        lowMemoryGiB: 4,
+        poorConnectionTypes: ['slow-2g', '2g']
+    },
+    parsing: {
+        lowConfidence: 0.55,
+        maxLineItems: 6,
+        merchantSearchLines: 12
+    },
+    tags: {
+        dependencies: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        platform: '@platform',
+        performance: '@perf'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',
