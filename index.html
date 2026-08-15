@@ -222,9 +222,11 @@
                 <h3 class="docs-section-title">Privacy by architecture</h3>
                 <p>
                   Because OpenExpense never calls a backend, your records cannot be harvested in a corporate breach or
-                  sold to advertisers. Encryption keys are created on your device and marked non-extractable, so even
-                  casual inspection of browser storage shows only ciphertext. On shared or untrusted devices, you can
-                  pause autosave from the header disk button so changes stay in memory only for that session.
+                  sold to advertisers. The app may fetch static assets and OCR/PDF/font packages from CDN, but your
+                  ledger, receipt images, parsed text, and encryption keys stay on your device. Encryption keys are
+                  created on your device and marked non-extractable, so even casual inspection of browser storage shows
+                  only ciphertext. On shared or untrusted devices, you can pause autosave from the header disk button so
+                  changes stay in memory only for that session.
                 </p>
               </div>
             </article>
@@ -315,6 +317,11 @@
                     Desktop-class sessions may warm the engine during idle time, while data-saver, 2G-class, and
                     low-memory devices load it only when you scan. Text-based PDFs are read directly before OCR is
                     used, and processing never leaves your device.
+                  </p>
+                  <p>
+                    HEIC and HEIF files work when your browser can decode them. For multi-page PDFs, embedded text is
+                    read from every page when available; scanned-PDF preview and OCR fallback currently use the first
+                    page.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything

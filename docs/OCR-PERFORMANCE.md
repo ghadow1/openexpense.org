@@ -10,6 +10,12 @@ OpenExpense reads receipts entirely in the browser. The OCR path is tuned to use
 4. Image-only receipts and scanned PDFs pass through PP-OCRv5 with the `cross-line` recognition strategy.
 5. The review sheet shows merchant, amount, date, notes, confidence, preview, and raw text before anything is saved.
 
+## Current limitations
+
+- HEIC/HEIF files are accepted by the picker, but decoding depends on the browser and OS image stack. Browsers without HEIC support fall back to the scan failure message.
+- Multi-page PDFs extract embedded text from every page. If OCR is needed for a scanned PDF, the preview and OCR canvas use page one only.
+- Native PDF text receives a high parser confidence because it bypasses OCR image recognition; users still review every field before saving.
+
 ## Cross-platform behavior
 
 - **Desktop-class sessions:** idle warmup can download and initialize OCR after the app has booted, so the first scan feels faster.
