@@ -11,6 +11,51 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @perf
+// Keep lazy OCR/PDF dependency pins and sizing limits in one human-readable
+// place so mobile and desktop performance decisions stay auditable.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocr: {
+            package: 'ppu-paddle-ocr',
+            version: '6.4.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js'
+        },
+        pdfjs: {
+            package: 'pdfjs-dist',
+            version: '6.2.108',
+            moduleUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs'
+        },
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    recognition: {
+        strategy: 'cross-line',
+        warmupCanvasSize: 64
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        previewJpegQuality: 0.9
+    },
+    pdf: {
+        maxPreviewSide: 2400,
+        maxScale: 2.5,
+        minTextChars: 12,
+        minTextLines: 2
+    },
+    warmup: {
+        enabled: true,
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f2f3f7', surface: '#ffffff', surface2: '#eef0f5',

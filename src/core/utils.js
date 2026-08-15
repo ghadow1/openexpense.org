@@ -38,6 +38,24 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    deviceMemoryGb: () => Number(navigator.deviceMemory || 0),
+    shouldWarmOcr(config) {
+        // @platform @perf
+        // Idle preload helps desktop-class devices, but constrained mobile sessions
+        // should spend bandwidth and memory only after the user chooses Scan.
+        const warmup = config?.warmup;
+        if (!warmup?.enabled) return false;
+
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (warmup.skipEffectiveTypes?.includes(connection?.effectiveType)) return false;
+
+        const memory = Utils.deviceMemoryGb();
+        if (memory && memory < warmup.minDeviceMemoryGb) return false;
+
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Run the production build validation used by automation
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,7 +33,9 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus hashed chunks that
+`index.html` loads. There's no build step on GitHub Pages — commit the rebuilt
+browser assets.
 
 ```
 src/
@@ -49,6 +54,17 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR performance
+
+Receipt OCR is centered in `src/features/receipt.js` and configured in
+`OCR_CONFIG` inside `src/config.js`. The scanner lazy-loads PP-OCR and PDF.js,
+uses native PDF text when available, and skips idle OCR warmup on mobile,
+data-saver, slow-network, or low-memory sessions.
+
+Contributor docs live in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
+Search for human-readable tags such as `@ocr-deps`, `@ocr-pipeline`,
+`@ocr-parse`, `@platform`, and `@perf` when reviewing scanner behavior.
 
 ## Data format
 
