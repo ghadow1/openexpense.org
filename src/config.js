@@ -11,6 +11,38 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// OCR is lazy-loaded so the calendar stays fast, while these URLs stay
+// auditable from one place alongside the matching import-map peer pins.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            onnxruntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            opencvCanvas: 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        maxPdfRenderSide: 2400,
+        maxPdfScale: 2.5,
+        previewJpegQuality: 0.9
+    },
+    pdf: {
+        minExtractedTextChars: 12,
+        minExtractedTextLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 3,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

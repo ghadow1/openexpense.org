@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Run the production build validation
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +52,25 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR maintenance
+
+Receipt scanning lives in `src/features/receipt.js` with shared knobs in
+`OCR_CONFIG` (`src/config.js`). The OCR engine, PDF reader, and browser peer
+dependencies are lazy-loaded from the CDN so the calendar starts quickly on
+mobile and desktop.
+
+Searchable code tags mark the important areas:
+
+- `@ocr-deps` for CDN/import-map pins.
+- `@ocr-engine` for OCR loading and warmup.
+- `@ocr-pdf` for PDF text extraction and rendering.
+- `@ocr-pipeline` for image decoding, canvas sizing, and OCR execution.
+- `@ocr-parse` for merchant, total, date, tax, and item inference.
+- `@platform` and `@perf` for browser capability and performance tradeoffs.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR
+dependencies or device-specific behavior.
 
 ## Data format
 
