@@ -36,11 +36,28 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    // @platform Centralized checks keep mobile, tablet, and desktop affordances consistent.
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    connectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            saveData: !!connection?.saveData,
+            effectiveType: String(connection?.effectiveType || ''),
+            deviceMemory: Number(navigator.deviceMemory || 0)
+        };
+    },
+    shouldWarmOcr(ocrConfig) {
+        const warmup = ocrConfig?.warmup || {};
+        const { saveData, effectiveType, deviceMemory } = Utils.connectionInfo();
+        if (saveData) return false;
+        if (warmup.skipEffectiveTypes?.includes(effectiveType)) return false;
+        if (deviceMemory && warmup.minDeviceMemoryGb && deviceMemory < warmup.minDeviceMemoryGb) return false;
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

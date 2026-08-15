@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and validate the deployable bundle
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -34,7 +37,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +48,18 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── OCR-PERFORMANCE.md # OCR stack, cross-platform performance, searchable tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform notes
+
+Receipt scanning is local-only and browser-native: phone camera capture, desktop uploads, and PDF invoices all flow through `src/features/receipt.js`. OCR dependency pins, PDF thresholds, image sizing, preload gating, and parser confidence thresholds live in `OCR_CONFIG` inside `src/config.js`.
+
+Search the source for human-readable tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, and `@perf` when changing scanning or cross-platform behavior. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the current dependency stack and performance checklist.
 
 ## Data format
 

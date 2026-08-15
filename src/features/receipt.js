@@ -1,14 +1,15 @@
 import { Utils } from '../core/utils.js';
+import { OCR_CONFIG } from '../config.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps Lazy-loaded from CDN on first scan. index.html must define an
+    // import map for peer deps declared in OCR_CONFIG.dependencies.peerImports.
+    OCR_CDN: OCR_CONFIG.dependencies.engineUrl,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfUrl,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorkerUrl,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -51,10 +52,10 @@ export const Receipt = {
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.warmup.canvasSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -107,6 +108,7 @@ export const Receipt = {
         return lines;
     },
 
+    // @ocr-pdf Prefer embedded PDF text so invoices avoid unnecessary raster OCR.
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +126,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.pdf.maxPreviewScale,
+            OCR_CONFIG.pdf.maxPreviewSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +138,19 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.nativeTextMinChars
+                || lines.length >= OCR_CONFIG.pdf.nativeTextMinLines
         };
     },
 
+    // @ocr-engine Shared OCR invocation for camera images and rasterized PDFs.
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,17 +176,39 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
-    async fileToCanvas(file) {
+    // @platform Decode phone camera photos and desktop uploads through the
+    // fastest available browser path while keeping object URLs previewable.
+    async decodeImage(file) {
         const url = URL.createObjectURL(file);
         try {
-            const img = await new Promise((resolve, reject) => {
+            // @perf createImageBitmap decodes off the main document pipeline on
+            // supporting mobile and desktop browsers; Image is the compatibility fallback.
+            if (typeof createImageBitmap === 'function') {
+                try {
+                    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                    return { image: bitmap, previewUrl: url, close: () => bitmap.close?.() };
+                } catch (_) {
+                    // Some browsers expose createImageBitmap but not for every camera format.
+                }
+            }
+            const image = await new Promise((resolve, reject) => {
                 const el = new Image();
                 el.onload = () => resolve(el);
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
-            let { width, height } = img;
+            return { image, previewUrl: url, close: () => {} };
+        } catch (err) {
+            URL.revokeObjectURL(url);
+            throw err;
+        }
+    },
+
+    async fileToCanvas(file) {
+        const { image, previewUrl, close } = await Receipt.decodeImage(file);
+        try {
+            const maxSide = OCR_CONFIG.image.maxOcrSide;
+            let { width, height } = image;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,17 +220,33 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            ctx.drawImage(image, 0, 0, width, height);
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(previewUrl);
             throw err;
+        } finally {
+            close();
         }
     },
 
+    canvasToPreviewUrl(canvas) {
+        if (!canvas.toBlob) {
+            return Promise.resolve(canvas.toDataURL('image/jpeg', OCR_CONFIG.image.jpegPreviewQuality));
+        }
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (blob) resolve(URL.createObjectURL(blob));
+                else resolve(canvas.toDataURL('image/jpeg', OCR_CONFIG.image.jpegPreviewQuality));
+            }, 'image/jpeg', OCR_CONFIG.image.jpegPreviewQuality);
+        });
+    },
+
+    // @ocr-pipeline Normalize input size before OCR: small screenshots need
+    // enough pixels for recognition, while huge phone photos waste memory.
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.image.minOcrSide;
+        const maxSide = OCR_CONFIG.image.maxOcrSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -330,7 +375,7 @@ export const Receipt = {
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
                 <i class="ti ti-scan ocr-progress-icon"></i>
                 <strong>Reading receipt…</strong>
-                <p class="ocr-progress-note">First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.</p>
+                <p class="ocr-progress-note">First scan downloads OCR models and PDF tools on demand, then caches locally.</p>
                 <div class="bar"><span></span></div>
                 <small class="ocr-pct">Starting…</small>
             </div>`;
@@ -621,6 +666,7 @@ export const Receipt = {
         return items;
     },
 
+    // @ocr-parse Turn noisy OCR text into human-reviewable expense fields.
     parse(text, lines, confidence = 0) {
         const lineList = (lines && lines.length)
             ? lines
@@ -674,10 +720,12 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.parse.lowConfidenceThreshold
         };
     },
 
+    // @ocr-ui The preview sheet keeps OCR suggestions editable before anything
+    // is saved to the encrypted ledger.
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());

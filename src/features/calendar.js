@@ -238,7 +238,10 @@ export function renderCalendar(changedKeys) {
 
 let boundResize = false;
 let lastDensity = '';
+let densityFrame = 0;
 
+// @platform Responsive density keeps the same calendar code useful across
+// desktop, tablet, and phone layouts.
 function refreshCalendarDensity() {
     const col = document.getElementById('cal-col');
     const density = getCalendarDensity(col);
@@ -249,15 +252,25 @@ function refreshCalendarDensity() {
     renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events);
 }
 
+function scheduleCalendarDensityRefresh() {
+    if (densityFrame) return;
+    densityFrame = requestAnimationFrame(() => {
+        densityFrame = 0;
+        refreshCalendarDensity();
+    });
+}
+
 export function bindResponsiveCalendar() {
     if (boundResize) return;
     boundResize = true;
 
     const col = document.getElementById('cal-col');
-    window.addEventListener('resize', refreshCalendarDensity);
+    // @perf ResizeObserver and window resize can fire in bursts; keep redraws to
+    // one per frame so large desktop windows and mobile rotation stay smooth.
+    window.addEventListener('resize', scheduleCalendarDensityRefresh);
 
     if (col && typeof ResizeObserver !== 'undefined') {
-        const observer = new ResizeObserver(() => refreshCalendarDensity());
+        const observer = new ResizeObserver(() => scheduleCalendarDensityRefresh());
         observer.observe(col);
     }
 
