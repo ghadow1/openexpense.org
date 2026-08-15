@@ -41,6 +41,51 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    // Use optional browser hints to avoid speculative OCR work on constrained
+    // mobile sessions. Manual scans still lazy-load OCR on demand.
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr(config) {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (config?.blockedConnectionTypes?.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && config?.minDeviceMemoryGb && navigator.deviceMemory < config.minDeviceMemoryGb) {
+            return false;
+        }
+        return true;
+    },
+    async decodeImage(file) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                // Fall back for formats/browsers without ImageBitmap support (notably some HEIC paths).
+            }
+        }
+
+        const url = URL.createObjectURL(file);
+        try {
+            return await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('Could not load image'));
+                el.src = url;
+            });
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    },
+    canvasToObjectUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        return new Promise((resolve) => {
+            if (!canvas.toBlob) {
+                resolve(canvas.toDataURL(type, quality));
+                return;
+            }
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

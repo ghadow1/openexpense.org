@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and validate generated deploy assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +52,16 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR and platform notes
+
+Receipt OCR is local-only and lazy-loaded in `src/features/receipt.js`. Shared
+dependency pins, canvas limits, PDF thresholds, warmup gates, and readable source
+tags live in `OCR_CONFIG` inside `src/config.js`.
+
+For contributor guidance, see [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
+It documents the `@ocr-*`, `@platform`, and `@perf` tags plus the mobile/desktop
+performance decisions used by receipt scanning.
 
 ## Data format
 

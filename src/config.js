@@ -6,6 +6,50 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform
+// Browser OCR dependencies are lazy-loaded from the CDN at scan time. Keep these
+// pins in sync with the import map in index.html and docs/OCR-PERFORMANCE.md.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        warmupSide: 64
+    },
+    pdf: {
+        minExtractedTextLength: 12,
+        minExtractedLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        blockedConnectionTypes: ['slow-2g', '2g']
+    },
+    progress: {
+        firstScanNote: 'First scan downloads models (~5 MB OCR, PDF reader on demand), then caches locally.'
+    },
+    tags: {
+        '@ocr-deps': 'Lazy OCR/PDF dependency pins and import-map peer packages.',
+        '@ocr-engine': 'Engine loading, caching, and warmup behavior.',
+        '@ocr-pdf': 'PDF text extraction and preview rendering.',
+        '@ocr-pipeline': 'Image/PDF decode, canvas preparation, and OCR recognition flow.',
+        '@ocr-parse': 'Receipt text normalization and field extraction heuristics.',
+        '@platform': 'Desktop/mobile/browser capability branches.',
+        '@perf': 'Performance-sensitive limits and resource gates.'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
