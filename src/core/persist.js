@@ -55,12 +55,25 @@ function idbPut(storeName, key, value) {
     }));
 }
 
+function idbAdd(storeName, key, value) {
+    return openDb().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).add(value, key);
+        tx.onerror = () => reject(tx.error);
+        tx.oncomplete = () => resolve();
+    }));
+}
+
 export function metaGet(key) {
     return idbGet(META_STORE, key);
 }
 
 export function metaPut(key, value) {
     return idbPut(META_STORE, key, value);
+}
+
+export function metaAdd(key, value) {
+    return idbAdd(META_STORE, key, value);
 }
 
 export async function loadLedger() {

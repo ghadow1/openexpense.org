@@ -1,4 +1,4 @@
-import { metaGet, metaPut } from './persist.js';
+import { metaAdd, metaGet } from './persist.js';
 
 const KEY_ID = 'ledger-key-v1';
 const ENC_VERSION = 1;
@@ -29,8 +29,16 @@ async function loadOrCreateKey() {
         false,
         ['encrypt', 'decrypt']
     );
-    await metaPut(KEY_ID, key);
-    return key;
+    try {
+        await metaAdd(KEY_ID, key);
+        return key;
+    } catch (err) {
+        // Another tab may have created the device key first. Reuse that key so
+        // every tab encrypts ledgers with the same durable key.
+        const raced = await metaGet(KEY_ID);
+        if (raced) return raced;
+        throw err;
+    }
 }
 
 export function getCryptoKey() {
