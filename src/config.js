@@ -11,6 +11,42 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// Keep browser-only OCR dependencies and device-sensitive thresholds in one place.
+// The CDN pins should stay in sync with the import map in index.html.
+export const OCR_CONFIG = {
+    dependencies: {
+        engineUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupTimeoutMs: 8000,
+        fallbackWarmupDelayMs: 3000
+    },
+    image: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxRenderSide: 2400,
+        maxScale: 2.5,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    platform: {
+        constrainedEffectiveTypes: ['slow-2g', '2g'],
+        lowMemoryGb: 2,
+        lowCoreCount: 4
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

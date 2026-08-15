@@ -22,11 +22,11 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero app servers** — no backend, no database, no tracking, and no receipt uploads. Static assets and OCR packages load in the browser.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device, and text-based PDFs can skip OCR.
+- **Cross-platform** — responsive layout with desktop save-picker, mobile camera capture, and data-aware OCR warmup.
 
 ## How it works
 
@@ -34,7 +34,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES, OCR_CONFIG
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -45,10 +45,26 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── OCR-PERFORMANCE.md # OCR dependency, platform, and source-tag notes
+scripts/
+└── clean-build-assets.mjs
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR and platform notes
+
+Receipt OCR is lazy-loaded from CDN packages listed in `src/config.js` under `OCR_CONFIG`.
+The matching import-map peer pins live in `index.html`. Keep those two locations in sync.
+
+The codebase uses readable tags for OCR and platform work:
+
+- `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`
+- `@platform`, `@perf`
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the current runtime policy and registry commands.
 
 ## Data format
 
