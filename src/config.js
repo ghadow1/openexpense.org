@@ -6,6 +6,49 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform @perf
+// Centralize OCR/runtime knobs so mobile memory limits, desktop APIs, and CDN
+// pins stay visible to reviewers instead of being hidden inside the scan flow.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmCanvasSize: 64,
+        progress: {
+            load: 0.08,
+            download: 0.2,
+            warm: 0.88
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        textLengthThreshold: 12,
+        lineThreshold: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        slowConnectionTypes: ['slow-2g', '2g']
+    },
+    tags: ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf', '@privacy']
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

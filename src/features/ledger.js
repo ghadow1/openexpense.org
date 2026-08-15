@@ -58,6 +58,7 @@ export const Ledger = {
         return `${base}-${stamp}.zip`;
     },
 
+    // @platform
     // Persist a Blob using the best available mechanism for the platform:
     // native save picker on desktop, share sheet on mobile, download fallback.
     async saveBlob(blob, filename, description, accept) {
@@ -77,7 +78,7 @@ export const Ledger = {
         }
 
         const file = new File([blob], filename, { type: blob.type });
-        if (Utils.isMobile() && navigator.share && navigator.canShare?.({ files: [file] })) {
+        if (Utils.isMobile() && Utils.canShareFiles([file])) {
             try {
                 await navigator.share({ files: [file], title: getState().ledgerName || 'OpenExpense Export' });
                 return 'shared';
