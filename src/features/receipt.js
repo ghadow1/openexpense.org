@@ -1,14 +1,15 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps Lazy CDN imports keep the default app bundle fast; index.html
+    // must keep the peer import map aligned with OCR_CONFIG.dependencies.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -23,6 +24,8 @@ export const Receipt = {
         return type === 'application/pdf' || name.endsWith('.pdf');
     },
 
+    // @platform Prefer the device camera on touch/coarse-pointer layouts while
+    // preserving desktop file-picker behavior for scanned PDFs and images.
     pickImage() {
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
@@ -32,6 +35,8 @@ export const Receipt = {
         input.click();
     },
 
+    // @ocr-engine @perf Warmup runs opportunistically so the first user-visible
+    // scan avoids model initialization on capable devices.
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -47,14 +52,14 @@ export const Receipt = {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
             onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const service = new PaddleOcrService({ recognition: OCR_CONFIG.recognition });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.canvas.warmupSide;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, OCR_CONFIG.canvas.warmupSide, OCR_CONFIG.canvas.warmupSide);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -72,6 +77,7 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf PDF.js is loaded only when a scanned file is a PDF.
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -91,6 +97,8 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf Digital invoices often contain native text, which is faster and
+    // more accurate than raster OCR when enough lines are available.
     linesFromPdfTextContent(textContent) {
         let block = '';
         const lines = [];
@@ -124,7 +132,7 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(OCR_CONFIG.canvas.pdfMaxScale, OCR_CONFIG.canvas.maxSide / Math.max(baseViewport.width, baseViewport.height));
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +141,20 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Utils.canvasToPreviewUrl(canvas, OCR_CONFIG.preview.mimeType, OCR_CONFIG.preview.quality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.nativeTextMinChars
+                || lines.length >= OCR_CONFIG.pdf.nativeTextMinLines
         };
     },
 
+    // @ocr-engine Use structured OCR lines first; flatten is a compatibility
+    // fallback for engines/browsers that return only aggregate text.
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,16 +180,13 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // @perf createImageBitmap decodes off the DOM path where supported; the
+    // Image fallback keeps older mobile Safari/WebView builds working.
     async fileToCanvas(file) {
-        const url = URL.createObjectURL(file);
+        const decoded = await Utils.decodeImageFile(file);
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
+            const img = decoded.image;
+            const maxSide = OCR_CONFIG.canvas.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -192,16 +200,20 @@ export const Receipt = {
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: decoded.previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            decoded.revokePreview();
             throw err;
+        } finally {
+            decoded.close();
         }
     },
 
+    // @perf Normalize image dimensions for OCR model quality without keeping
+    // unnecessarily large mobile camera frames in memory.
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = OCR_CONFIG.canvas.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -230,6 +242,7 @@ export const Receipt = {
         return canvas;
     },
 
+    // @ocr-pipeline Normalize common OCR confusions before parser heuristics run.
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
             line.map(r => r.text).join(' ').replace(/\s{2,}/g, ' ').trim()
@@ -250,6 +263,7 @@ export const Receipt = {
 
     normalizeLines(lineList) {
         return lineList.map(line => line
+            // OCR often confuses Zoom branding and decimal separators on invoices.
             .replace(/\bzooml\b/gi, 'Zoom')
             .replace(/(\d)[|lI](\d{2})\b/g, '$1.$2')
             .replace(/\s+/g, ' ')
@@ -264,6 +278,8 @@ export const Receipt = {
         return body;
     },
 
+    // @ocr-pipeline Route PDFs through native text extraction first, then fall
+    // back to raster OCR for scanned documents and camera images.
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -291,6 +307,8 @@ export const Receipt = {
         return { ...ocr, previewUrl };
     },
 
+    // @ocr-pipeline Public scan flow: recognize, parse, and present editable
+    // suggestions without saving anything until the user confirms.
     async scan(file) {
         Receipt._lastFile = file;
         const progress = Receipt.showProgress();
@@ -322,6 +340,8 @@ export const Receipt = {
         }
     },
 
+    // @ocr-ui Keep progress copy explicit about local model caching because
+    // receipt images never leave the device.
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
@@ -354,6 +374,8 @@ export const Receipt = {
         };
     },
 
+    // @ocr-parse Money/date/merchant helpers prefer invoice totals while
+    // discounting addresses, tax rows, payment methods, and receipt metadata.
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -447,6 +469,8 @@ export const Receipt = {
     scoreAmount(line) {
         const lower = line.toLowerCase();
         let score = 0;
+        // Total-like labels outrank item rows; subtotal/tax/payment rows are
+        // valid money but usually not the expense amount the user wants.
         if (/grand\s*total|amount\s*due|balance\s*due|total\s*due|total\s*amount/i.test(lower)) score += 120;
         else if (/\btotal\b/i.test(lower) && !/sub|taxes|fees|surcharges/i.test(lower)) score += 90;
         else if (/\bamount\b/i.test(lower)) score += 70;
@@ -549,6 +573,8 @@ export const Receipt = {
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
+        // Known merchant aliases catch OCR and invoice-branding variants before
+        // the generic header-line fallback guesses a merchant.
         const known = [
             [/zoom\s+communications?,?\s*inc\.?/i, 'Zoom Communications, Inc.'],
             [/\bzoom[l1i]?\b/i, 'Zoom Communications, Inc.'],
@@ -626,6 +652,8 @@ export const Receipt = {
             ? lines
             : text.split('\n').map(l => l.trim()).filter(Boolean);
 
+        // Start with the strongest labeled total, then reconcile against row
+        // sums and invoice-style amount clusters for receipts without labels.
         let total = null;
         let bestScore = -Infinity;
         for (const line of lineList) {
@@ -678,6 +706,8 @@ export const Receipt = {
         };
     },
 
+    // @ocr-ui Human review is the safety gate between machine suggestions and
+    // encrypted ledger writes.
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());

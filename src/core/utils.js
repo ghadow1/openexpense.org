@@ -38,9 +38,62 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    getConnectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr(config = {}) {
+        const warmup = config.warmup || {};
+        const connection = Utils.getConnectionInfo();
+        if (connection?.saveData) return false;
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        if (effectiveType && (warmup.skipEffectiveTypes || []).includes(effectiveType)) return false;
+        const deviceMemory = Number(navigator.deviceMemory || 0);
+        return !deviceMemory || deviceMemory >= (warmup.minDeviceMemoryGb || 0);
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    async decodeImageFile(file) {
+        const previewUrl = URL.createObjectURL(file);
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const image = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return {
+                    image,
+                    previewUrl,
+                    close: () => image.close?.(),
+                    revokePreview: () => URL.revokeObjectURL(previewUrl)
+                };
+            } catch (_) { }
+        }
+
+        try {
+            const image = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('Could not load image'));
+                el.decoding = 'async';
+                el.src = previewUrl;
+            });
+            return {
+                image,
+                previewUrl,
+                close: () => { },
+                revokePreview: () => URL.revokeObjectURL(previewUrl)
+            };
+        } catch (err) {
+            URL.revokeObjectURL(previewUrl);
+            throw err;
+        }
+    },
+    canvasToPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (typeof canvas.toBlob !== 'function') {
+            return Promise.resolve(canvas.toDataURL(type, quality));
+        }
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
