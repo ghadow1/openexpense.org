@@ -6,6 +6,50 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform
+// Keep OCR and PDF dependency pins in one place. The peerImports block mirrors
+// index.html's import map because ppu-paddle-ocr lazy-loads these bare imports.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    image: {
+        // @perf: 2400px keeps OCR accuracy high without forcing huge canvas
+        // allocations on mobile Safari or low-memory Chromium devices.
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewMime: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        nativeTextMinChars: 12,
+        nativeTextMinLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000
+    },
+    tags: {
+        dependencies: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        ui: '@ocr-ui',
+        platform: '@platform',
+        performance: '@perf',
+        privacy: '@privacy'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

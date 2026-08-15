@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild with the same cleanup checks used before shipping
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -46,9 +49,12 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/OCR-PERFORMANCE.md # OCR performance notes and searchable source tags
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+Receipt OCR tuning, dependency pins, and human-readable code tags live in `src/config.js` under `OCR_CONFIG`; see `docs/OCR-PERFORMANCE.md` for the tag glossary and cross-platform performance notes.
 
 ## Data format
 

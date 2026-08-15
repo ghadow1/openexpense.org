@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -41,6 +43,23 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    // Browser support varies: Chromium exposes Network Information and
+    // deviceMemory, while Safari/Firefox simply return neutral values here.
+    connectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            saveData: !!connection?.saveData,
+            effectiveType: String(connection?.effectiveType || '').toLowerCase(),
+            deviceMemory: Number(navigator.deviceMemory) || null
+        };
+    },
+    shouldWarmOcr() {
+        const info = Utils.connectionInfo();
+        const is2gClass = /(^|\s)(slow-)?2g($|\s)/.test(info.effectiveType);
+        const lowMemory = info.deviceMemory != null && info.deviceMemory <= 2;
+        return !info.saveData && !is2gClass && !lowMemory && OCR_CONFIG.warmup.idleTimeoutMs > 0;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
