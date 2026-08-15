@@ -14,7 +14,7 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and referenced chunks after editing anything in src/
 npm run build
 ```
 
@@ -30,7 +30,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into root `app.js` plus any referenced `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt deploy assets.
 
 ```
 src/
@@ -49,6 +49,16 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR and cross-platform performance
+
+Receipt OCR runs locally in the browser. The first scan lazy-loads the OCR runtime and models; PDF support is also loaded on demand. Capable desktop/tablet sessions may warm OCR during idle time, while data-saver, 2G-class, and low-memory sessions wait for explicit scan intent.
+
+Human-readable code tags such as `@ocr-deps`, `@ocr-pipeline`, `@platform`, `@perf`, and `@privacy` mark important paths. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the source tag list, dependency pins, mobile/desktop behavior, HEIC/HEIF notes, and bundle hygiene workflow.
+
+## Build and deploy assets
+
+`npm run build` removes stale root `app.js`/`chunk-*.js` files, emits readable chunk names (`chunk-<name>-<hash>.js`), and checks that every generated chunk is referenced. If the check fails, rebuild before committing. GitHub Pages serves the committed root assets directly, so include the regenerated `app.js` and referenced chunks with source changes.
 
 ## Data format
 

@@ -6,6 +6,45 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const CODE_TAGS = Object.freeze({
+    ocrDeps: '@ocr-deps',
+    ocrEngine: '@ocr-engine',
+    ocrPdf: '@ocr-pdf',
+    ocrPipeline: '@ocr-pipeline',
+    ocrParse: '@ocr-parse',
+    ocrUi: '@ocr-ui',
+    platform: '@platform',
+    perf: '@perf',
+    privacy: '@privacy'
+});
+
+export const OCR_CONFIG = Object.freeze({
+    tag: CODE_TAGS.ocrPipeline,
+    dependencies: {
+        engine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@0.0.6/canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    },
+    unsupportedImageExtensions: ['.heic', '.heif'],
+    unsupportedImageTypes: ['image/heic', 'image/heif']
+});
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

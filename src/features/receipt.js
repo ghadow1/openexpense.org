@@ -2,13 +2,14 @@ import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
+import { OCR_CONFIG } from '../config.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps Lazy-loaded from CDN on first scan. index.html must define the
+    // peer import map listed in OCR_CONFIG.dependencies.peerImports.
+    OCR_CDN: OCR_CONFIG.dependencies.engine,
+    PDF_CDN: OCR_CONFIG.dependencies.pdf,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -37,6 +38,30 @@ export const Receipt = {
         Receipt._warmStarted = true;
         Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
         return Receipt._warmPromise;
+    },
+
+    scheduleWarmEngine() {
+        if (Receipt._warmScheduled || Receipt._warmStarted) return;
+        Receipt._warmScheduled = true;
+        const warm = () => Receipt.warmEngine();
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(warm, { timeout: OCR_CONFIG.warmup.idleTimeoutMs });
+        } else {
+            setTimeout(warm, OCR_CONFIG.warmup.fallbackDelayMs);
+        }
+    },
+
+    bindIntentWarmup() {
+        if (Receipt._intentWarmBound) return;
+        Receipt._intentWarmBound = true;
+        const maybeWarm = (event) => {
+            if (event.target?.closest?.('[data-action="scan-receipt"], #receipt-scan-input')) {
+                Receipt.warmEngine();
+            }
+        };
+        document.addEventListener('pointerover', maybeWarm, { passive: true });
+        document.addEventListener('focusin', maybeWarm);
+        document.addEventListener('touchstart', maybeWarm, { passive: true });
     },
 
     async ensureEngine(onProgress) {
@@ -124,7 +149,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfMaxScale,
+            OCR_CONFIG.canvas.maxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +161,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -170,16 +198,10 @@ export const Receipt = {
     },
 
     async fileToCanvas(file) {
-        const url = URL.createObjectURL(file);
+        const { image, previewUrl } = await Utils.decodeImageFile(file);
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            const maxSide = OCR_CONFIG.canvas.maxSide;
+            let { width, height } = image;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,17 +213,20 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            ctx.drawImage(image, 0, 0, width, height);
+            image.close?.();
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            image.close?.();
+            URL.revokeObjectURL(previewUrl);
             throw err;
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        // @perf Keep OCR input bounded for mobile memory while preserving text detail.
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = OCR_CONFIG.canvas.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -264,6 +289,13 @@ export const Receipt = {
         return body;
     },
 
+    isLikelyUnsupportedImage(file) {
+        const type = (file?.type || '').toLowerCase();
+        const name = (file?.name || '').toLowerCase();
+        return OCR_CONFIG.unsupportedImageTypes.includes(type)
+            || OCR_CONFIG.unsupportedImageExtensions.some(ext => name.endsWith(ext));
+    },
+
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -313,9 +345,12 @@ export const Receipt = {
                 URL.revokeObjectURL(Receipt._previewUrl);
             }
             Receipt._previewUrl = null;
-            const hint = Receipt.isPdf(file)
+            let hint = Receipt.isPdf(file)
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
+            if (!Receipt.isPdf(file) && Receipt.isLikelyUnsupportedImage(file)) {
+                hint = 'This HEIC/HEIF image could not be decoded here. Save or share it as JPEG/PNG, then scan again.';
+            }
             Toast.show(hint, 'error');
         } finally {
             Receipt._lastFile = null;

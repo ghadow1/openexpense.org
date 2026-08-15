@@ -37,10 +37,57 @@ export const Utils = {
         });
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    prefersTouch: () => window.matchMedia('(pointer: coarse)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    isConstrainedConnection(skipEffectiveTypes = ['slow-2g', '2g']) {
+        const conn = Utils.connectionInfo();
+        return !!conn?.saveData || skipEffectiveTypes.includes(conn?.effectiveType);
+    },
+    hasLowDeviceMemory(minGb = 4) {
+        return typeof navigator.deviceMemory === 'number' && navigator.deviceMemory > 0 && navigator.deviceMemory < minGb;
+    },
+    shouldWarmOcr(warmup = {}) {
+        return !Utils.isConstrainedConnection(warmup.skipEffectiveTypes)
+            && !Utils.hasLowDeviceMemory(warmup.minDeviceMemoryGb);
+    },
+    async decodeImageFile(file) {
+        const previewUrl = URL.createObjectURL(file);
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const image = await createImageBitmap(file);
+                return { image, previewUrl };
+            } catch (_) {
+                // Fall through to HTMLImageElement for browsers without full bitmap decoding.
+            }
+        }
+
+        try {
+            const image = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('Could not load image'));
+                el.src = previewUrl;
+            });
+            return { image, previewUrl };
+        } catch (err) {
+            URL.revokeObjectURL(previewUrl);
+            throw err;
+        }
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
-        && window.isSecureContext
-        && !Utils.isMobile(),
+        && window.isSecureContext,
+    canShareFiles(files) {
+        if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
+        try {
+            return navigator.canShare({ files });
+        } catch (_) {
+            return false;
+        }
+    },
+    prefersShareExport(files) {
+        return Utils.prefersTouch() && Utils.canShareFiles(files);
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
