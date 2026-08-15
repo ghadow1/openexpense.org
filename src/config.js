@@ -6,6 +6,45 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    // @ocr-deps Keep these pins aligned with the import map in index.html.
+    dependencies: {
+        engine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.9
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minimumDeviceMemoryGb: 3,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    },
+    extractedPdfText: {
+        minCharacters: 12,
+        minLines: 2
+    },
+    sourceTags: {
+        '@ocr-deps': 'OCR and PDF dependency pins.',
+        '@ocr-engine': 'OCR engine lifecycle and recognition calls.',
+        '@ocr-pdf': 'PDF text extraction and preview rendering.',
+        '@ocr-pipeline': 'File decode, canvas sizing, and OCR routing.',
+        '@ocr-parse': 'Merchant, amount, date, and note heuristics.',
+        '@ocr-ui': 'Receipt scan progress and review UI.',
+        '@platform': 'Mobile, desktop, and browser capability decisions.',
+        '@perf': 'Performance-sensitive work such as warmup, decode, and canvas memory.'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

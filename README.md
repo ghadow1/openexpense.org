@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build and clean generated deploy assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -33,8 +36,10 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
 
 ```
+docs/
+└── OCR-PERFORMANCE.md # OCR pipeline, platform notes, and searchable source tags
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -49,6 +54,12 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR and platform performance
+
+Receipt scanning lives in `src/features/receipt.js` with dependency and sizing constants in `src/config.js` under `OCR_CONFIG`. Search for the human-readable tags documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md), including `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, and `@perf`.
+
+The OCR path uses browser-native capabilities where available: mobile capture hints, `createImageBitmap()` image decoding, PDF text extraction before raster OCR, blob-backed previews, and idle warmup only on devices/networks that can handle it. Scanned values are always reviewed by the user before saving.
 
 ## Data format
 

@@ -77,7 +77,7 @@ export const Ledger = {
         }
 
         const file = new File([blob], filename, { type: blob.type });
-        if (Utils.isMobile() && navigator.share && navigator.canShare?.({ files: [file] })) {
+        if (Utils.isMobile() && Utils.canUseShareSheet() && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({ files: [file], title: getState().ledgerName || 'OpenExpense Export' });
                 return 'shared';

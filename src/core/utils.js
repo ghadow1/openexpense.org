@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -41,6 +43,31 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    canUseShareSheet: () => typeof navigator.share === 'function' && typeof navigator.canShare === 'function',
+    canUseImageBitmap: () => typeof createImageBitmap === 'function',
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    deviceMemory: () => Number(navigator.deviceMemory || 0),
+    shouldWarmOcr() {
+        // @platform @perf Avoid warming large OCR assets on constrained mobile sessions.
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.blockedEffectiveTypes.includes(connection?.effectiveType)) return false;
+
+        const memoryGb = Utils.deviceMemory();
+        return !memoryGb || memoryGb >= OCR_CONFIG.warmup.minimumDeviceMemoryGb;
+    },
+    canvasToObjectUrl(canvas, type = 'image/jpeg', quality = OCR_CONFIG.canvas.previewQuality) {
+        return new Promise((resolve) => {
+            if (typeof canvas.toBlob !== 'function') {
+                resolve(canvas.toDataURL(type, quality));
+                return;
+            }
+
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
