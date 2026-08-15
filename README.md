@@ -8,13 +8,16 @@
 ## Quick start
 
 ```bash
+# Install pinned build dependencies
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and deployment chunks after editing src/
 npm run build
 ```
 
@@ -30,7 +33,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and split `chunk-*.js` assets that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt deployment assets.
 
 ```
 src/
@@ -49,6 +52,12 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt OCR dependencies, image/PDF thresholds, and idle warmup policy live in `src/config.js` as `OCR_CONFIG`. Keep its dependency pins in sync with the import map in `index.html`.
+
+For review-friendly source navigation, OCR and platform hot paths use readable tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf`. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full tag guide and cross-platform scanning strategy.
 
 ## Data format
 

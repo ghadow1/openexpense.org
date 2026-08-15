@@ -77,6 +77,7 @@ function updateMonthTitle(currentDate) {
     }
 }
 
+// @platform @perf
 function getCalendarDensity(colEl) {
     const col = colEl || document.getElementById('cal-col');
     const colW = col?.clientWidth || 0;

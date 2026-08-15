@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,27 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform @perf
+    // Mobile browsers expose connection/memory hints inconsistently, so keep
+    // these helpers capability-based and use them only for optional work.
+    getConnection: () => {
+        if (typeof navigator === 'undefined') return null;
+        return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    },
+    isLowMemoryDevice: () => {
+        if (typeof navigator === 'undefined' || !('deviceMemory' in navigator)) return false;
+        return Number(navigator.deviceMemory || 0) > 0
+            && Number(navigator.deviceMemory) <= OCR_CONFIG.warmup.lowMemoryDeviceGb;
+    },
+    isConstrainedConnection: () => {
+        const connection = Utils.getConnection();
+        if (!connection) return false;
+        return connection.saveData === true
+            || OCR_CONFIG.warmup.blockedEffectiveTypes.includes(connection.effectiveType);
+    },
+    shouldWarmOcr: () => !Utils.isConstrainedConnection() && !Utils.isLowMemoryDevice(),
+    canDecodeImageBitmap: () => typeof window !== 'undefined'
+        && typeof window.createImageBitmap === 'function',
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
