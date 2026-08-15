@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Run the production build check
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,12 +28,12 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5) for images and PDFs; images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and lazy `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets. `npm run build` removes stale root bundles before esbuild emits the current set.
 
 ```
 src/
@@ -46,9 +49,20 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Lazy generated chunks (also committed for GitHub Pages)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR performance
+
+Receipt scanning is documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md). The short version:
+
+- OCR and PDF readers are lazy-loaded from pinned CDN versions and run entirely in the browser.
+- Desktop-class sessions warm OCR during idle time; Data Saver, 2G-class, and low-memory devices load it on demand.
+- Scan-button hover, touch, pointer, and focus intent warm OCR before the picker opens when possible.
+- Shared thresholds in `OCR_CONFIG.canvas` keep receipt canvases large enough for OCR while limiting mobile memory pressure.
+- Source tags such as `@ocr-engine`, `@ocr-pipeline`, `@ocr-parse`, and `@ocr-ui` mark the main receipt layers for quick navigation.
 
 ## Data format
 

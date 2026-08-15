@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -36,11 +38,25 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    // @platform
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr() {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (OCR_CONFIG.warmup.slowEffectiveTypes.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < OCR_CONFIG.warmup.lowDeviceMemoryGb) return false;
+        return true;
+    },
+    ocrCanvasMaxSide() {
+        return navigator.deviceMemory && navigator.deviceMemory < OCR_CONFIG.warmup.lowDeviceMemoryGb
+            ? OCR_CONFIG.canvas.lowMemoryMaxSide
+            : OCR_CONFIG.canvas.maxSide;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

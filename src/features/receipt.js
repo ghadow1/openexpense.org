@@ -1,20 +1,23 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps Lazy-loaded on first scan; peer deps are resolved by index.html's import map.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfJs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
+    _warmStarted: false,
+    _warmPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
+    _intentBound: false,
 
     isPdf(file) {
         if (!file) return false;
@@ -32,6 +35,20 @@ export const Receipt = {
         input.click();
     },
 
+    bindIntentWarmup(root = document) {
+        if (Receipt._intentBound || !root?.addEventListener) return;
+        Receipt._intentBound = true;
+        const warmOnIntent = (event) => {
+            if (!event.target?.closest?.('[data-action="scan-receipt"], .toolbar-scan-btn, #receipt-scan-input')) return;
+            Receipt.warmEngine();
+        };
+        root.addEventListener('pointerenter', warmOnIntent, true);
+        root.addEventListener('pointerdown', warmOnIntent, true);
+        root.addEventListener('touchstart', warmOnIntent, { capture: true, passive: true });
+        root.addEventListener('focusin', warmOnIntent, true);
+    },
+
+    // @ocr-engine @perf
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -72,6 +89,7 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -107,6 +125,14 @@ export const Receipt = {
         return lines;
     },
 
+    async canvasToPreviewUrl(canvas) {
+        if (typeof canvas.toBlob === 'function') {
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', OCR_CONFIG.canvas.previewQuality));
+            if (blob) return URL.createObjectURL(blob);
+        }
+        return canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.previewQuality);
+    },
+
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +150,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfMaxScale,
+            Utils.ocrCanvasMaxSide() / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,7 +162,7 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
@@ -144,6 +173,7 @@ export const Receipt = {
         };
     },
 
+    // @ocr-engine @ocr-pipeline
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,16 +199,24 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // @ocr-pipeline @platform
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
         try {
-            const img = await new Promise((resolve, reject) => {
+            const maxSide = Utils.ocrCanvasMaxSide();
+            let bitmap = null;
+            if (typeof createImageBitmap === 'function') {
+                try {
+                    bitmap = await createImageBitmap(file);
+                } catch (_) { }
+            }
+
+            const img = bitmap || await new Promise((resolve, reject) => {
                 const el = new Image();
                 el.onload = () => resolve(el);
                 el.onerror = () => reject(new Error('Could not load image'));
                 el.src = url;
             });
-            const maxSide = 2400;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -192,6 +230,7 @@ export const Receipt = {
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
+            bitmap?.close?.();
             return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
@@ -200,8 +239,8 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = Utils.ocrCanvasMaxSide();
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -354,34 +393,30 @@ export const Receipt = {
         };
     },
 
-    moneyOnLine(line) {
+    // @ocr-parse
+    amountsOnLine(line, { fallbackPlain = true } = {}) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
             const v = parseFloat(m[1].replace(',', '.'));
             if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
         }
-        if (amounts.length) return amounts[amounts.length - 1];
+
+        if (amounts.length || !fallbackPlain) return amounts;
 
         for (const m of line.matchAll(/(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g)) {
             const v = parseFloat(m[1].replace(',', '.'));
             if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
         }
+        return amounts;
+    },
+
+    moneyOnLine(line) {
+        const amounts = Receipt.amountsOnLine(line);
         return amounts.length ? amounts[amounts.length - 1] : null;
     },
 
     allMoneyOnLine(line) {
-        const amounts = [];
-        for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
-            const v = parseFloat(m[1].replace(',', '.'));
-            if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-        }
-        if (!amounts.length) {
-            for (const m of line.matchAll(/(?<!\d)(\d{1,4}[.,]\d{2})(?!\d)/g)) {
-                const v = parseFloat(m[1].replace(',', '.'));
-                if (!isNaN(v) && v >= 0 && v < 100_000) amounts.push(v);
-            }
-        }
-        return amounts;
+        return Receipt.amountsOnLine(line);
     },
 
     isAddressOrMeta(line) {
@@ -678,6 +713,7 @@ export const Receipt = {
         };
     },
 
+    // @ocr-ui
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -699,7 +735,7 @@ export const Receipt = {
                     <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
                 </div>
                 ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="Receipt preview"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-title">Title / Merchant</label>
