@@ -41,6 +41,46 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    // Network and memory hints are advisory only; browsers omit them freely.
+    getConnectionInfo() {
+        return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    },
+    isLowMemoryDevice(minGb = 2) {
+        return typeof navigator.deviceMemory === 'number' && navigator.deviceMemory > 0 && navigator.deviceMemory < minGb;
+    },
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = Utils.getConnectionInfo();
+        if (connection?.saveData) return false;
+        if (warmup.slowEffectiveTypes?.includes(connection?.effectiveType)) return false;
+        if (Utils.isLowMemoryDevice(warmup.minDeviceMemoryGb ?? 2)) return false;
+        return true;
+    },
+    async decodeImage(file, url) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                // Safari and older Chromium builds can reject options; fall back below.
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = url;
+        });
+    },
+    canvasToPreviewUrl(canvas, quality = 0.9) {
+        if (typeof canvas.toBlob !== 'function') return Promise.resolve(canvas.toDataURL('image/jpeg', quality));
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/jpeg', quality));
+            }, 'image/jpeg', quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

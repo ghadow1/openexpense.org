@@ -2,20 +2,22 @@ import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
+import { OCR_CONFIG } from '../config.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps
+    // Lazy-loaded from CDN on first scan. index.html defines the import map for
+    // onnxruntime-web and ppu-ocv/canvas-web peer dependencies.
+    OCR_CDN: OCR_CONFIG.dependencies.engine.url,
+    PDF_CDN: OCR_CONFIG.dependencies.pdf.url,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdf.workerUrl,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
-    _lastFile: null,
 
+    // @platform
     isPdf(file) {
         if (!file) return false;
         const type = (file.type || '').toLowerCase();
@@ -23,6 +25,7 @@ export const Receipt = {
         return type === 'application/pdf' || name.endsWith('.pdf');
     },
 
+    // @platform
     pickImage() {
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
@@ -32,6 +35,7 @@ export const Receipt = {
         input.click();
     },
 
+    // @ocr-engine @perf
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
@@ -39,6 +43,7 @@ export const Receipt = {
         return Receipt._warmPromise;
     },
 
+    // @ocr-engine
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
@@ -51,10 +56,10 @@ export const Receipt = {
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.warmup.canvasSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -72,6 +77,7 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
@@ -91,6 +97,7 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf
     linesFromPdfTextContent(textContent) {
         let block = '';
         const lines = [];
@@ -107,6 +114,7 @@ export const Receipt = {
         return lines;
     },
 
+    // @ocr-pdf @perf
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +132,7 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(OCR_CONFIG.pdf.maxRenderScale, OCR_CONFIG.image.maxSide / Math.max(baseViewport.width, baseViewport.height));
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +141,19 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Utils.canvasToPreviewUrl(canvas, OCR_CONFIG.image.previewQuality);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.minExtractedTextChars
+                || lines.length >= OCR_CONFIG.pdf.minExtractedTextLines
         };
     },
 
+    // @ocr-pipeline
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,16 +179,13 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // @platform @perf
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
+        let img = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
+            img = await Utils.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.image.maxSide;
             let { width, height } = img;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
@@ -196,12 +203,14 @@ export const Receipt = {
         } catch (err) {
             URL.revokeObjectURL(url);
             throw err;
+        } finally {
+            if (typeof img?.close === 'function') img.close();
         }
     },
 
+    // @ocr-pipeline @perf
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const { minSide, maxSide } = OCR_CONFIG.image;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -230,12 +239,14 @@ export const Receipt = {
         return canvas;
     },
 
+    // @ocr-pipeline
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
             line.map(r => r.text).join(' ').replace(/\s{2,}/g, ' ').trim()
         ).filter(Boolean);
     },
 
+    // @ocr-pipeline
     buildLineList(result, flatResult) {
         const fromRegions = Receipt.linesFromResult(result);
         const fromFlat = (flatResult?.text || '')
@@ -248,6 +259,7 @@ export const Receipt = {
         return Receipt.normalizeLines(lineList);
     },
 
+    // @ocr-pipeline
     normalizeLines(lineList) {
         return lineList.map(line => line
             .replace(/\bzooml\b/gi, 'Zoom')
@@ -257,6 +269,7 @@ export const Receipt = {
         ).filter(Boolean);
     },
 
+    // @ocr-pipeline
     normalizeText(text, lines) {
         const body = (text || lines.join('\n'))
             .replace(/\bzooml\b/gi, 'Zoom Communications')
@@ -264,6 +277,7 @@ export const Receipt = {
         return body;
     },
 
+    // @ocr-pipeline @ocr-pdf
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
@@ -274,7 +288,7 @@ export const Receipt = {
                 return {
                     text: pdf.text,
                     lines: pdf.lines,
-                    confidence: 0.95,
+                    confidence: OCR_CONFIG.confidence.pdfText,
                     previewUrl: pdf.previewUrl
                 };
             }
@@ -291,8 +305,8 @@ export const Receipt = {
         return { ...ocr, previewUrl };
     },
 
+    // @ocr-pipeline
     async scan(file) {
-        Receipt._lastFile = file;
         const progress = Receipt.showProgress();
         try {
             const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
@@ -317,11 +331,10 @@ export const Receipt = {
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
                 : 'Receipt scanning failed. Try a clearer photo with good lighting.';
             Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
         }
     },
 
+    // @ocr-ui
     showProgress() {
         const backdrop = document.createElement('div');
         backdrop.className = 'backdrop open';
@@ -354,6 +367,7 @@ export const Receipt = {
         };
     },
 
+    // @ocr-parse
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -369,6 +383,7 @@ export const Receipt = {
         return amounts.length ? amounts[amounts.length - 1] : null;
     },
 
+    // @ocr-parse
     allMoneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -384,6 +399,7 @@ export const Receipt = {
         return amounts;
     },
 
+    // @ocr-parse
     isAddressOrMeta(line) {
         return /\b(street|st\.|blvd|boulevard|ave|avenue|floor|suite|drive|road|rd\.)\b/i.test(line)
             || /,\s*[A-Z]{2}\s+\d{5}/.test(line)
@@ -396,6 +412,7 @@ export const Receipt = {
             || /^\d{5}(-\d{4})?$/.test(line.trim());
     },
 
+    // @ocr-parse
     fuzzyMonth(word) {
         const w = word.toLowerCase().replace(/[^a-z]/g, '');
         const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -410,6 +427,7 @@ export const Receipt = {
         return bestDist <= 2 ? best : null;
     },
 
+    // @ocr-parse
     parseDate(text, lines) {
         const months = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
         const iso = (y, m, d) => {
@@ -444,6 +462,7 @@ export const Receipt = {
         return null;
     },
 
+    // @ocr-parse
     scoreAmount(line) {
         const lower = line.toLowerCase();
         let score = 0;
@@ -460,6 +479,7 @@ export const Receipt = {
         return { amt, score, line };
     },
 
+    // @ocr-parse
     rowTotalFromAmounts(amounts) {
         if (amounts.length >= 3) return amounts[amounts.length - 1];
         if (amounts.length === 2) {
@@ -470,6 +490,7 @@ export const Receipt = {
         return amounts.length === 1 ? amounts[0] : null;
     },
 
+    // @ocr-parse
     collectInvoiceAmounts(lineList) {
         const rows = [];
         for (let i = 0; i < lineList.length; i++) {
@@ -501,6 +522,7 @@ export const Receipt = {
         return Math.round(positive.reduce((a, b) => a + b, 0) * 100) / 100;
     },
 
+    // @ocr-parse
     parseTotalFromText(text) {
         const triple = text.match(/\$\s*(\d+\.\d{2})\s+\$\s*(\d+\.\d{2})\s+\$\s*(\d+\.\d{2})/);
         if (triple) {
@@ -514,6 +536,7 @@ export const Receipt = {
         return null;
     },
 
+    // @ocr-parse
     sumInvoiceRowTotals(lineList) {
         let sum = 0;
         let rows = 0;
@@ -528,6 +551,7 @@ export const Receipt = {
         return rows > 0 ? Math.round(sum * 100) / 100 : null;
     },
 
+    // @ocr-parse
     inferTotalFromAmounts(lineList) {
         const amounts = [];
         for (const line of lineList) {
@@ -546,6 +570,7 @@ export const Receipt = {
         return Math.max(...positive);
     },
 
+    // @ocr-parse
     parseMerchant(lineList, text) {
         const companyPat = /\b(inc\.?|llc\.?|corp\.?|ltd\.?|communications|incorporated)\b/i;
         const skipPat = /^(invoice|zoom)$/i;
@@ -596,6 +621,7 @@ export const Receipt = {
         return lineList.find(l => l.length >= 3 && !/^\d+$/.test(l))?.slice(0, 60) || '';
     },
 
+    // @ocr-parse
     parseItems(lineList) {
         const skip = /sub\s*-?total|taxes|fees|surcharges|change|tender|payment|visa|mastercard|amex|debit|credit|tip|balance\s*forward|payment\s*terms|currency|certificate|charge\s*description|billing\s*period/i;
         const totalKey = /(grand\s*total|amount\s*due|balance\s*due|total\s*due|\btotal\b)/i;
@@ -621,6 +647,7 @@ export const Receipt = {
         return items;
     },
 
+    // @ocr-parse
     parse(text, lines, confidence = 0) {
         const lineList = (lines && lines.length)
             ? lines
@@ -674,10 +701,11 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.confidence.low
         };
     },
 
+    // @ocr-ui
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -757,6 +785,7 @@ export const Receipt = {
         backdrop.querySelector('#ocr-title').focus();
     },
 
+    // @ocr-ui
     closePreview() {
         document.getElementById('ocr-preview')?.remove();
         if (!document.getElementById('modal')?.classList.contains('open')) {
@@ -768,6 +797,7 @@ export const Receipt = {
         Receipt._previewUrl = null;
     },
 
+    // @ocr-ui
     saveFromPreview(scanAnother = false) {
         const dateStr = document.getElementById('ocr-date')?.value;
         const title = document.getElementById('ocr-title')?.value.trim();

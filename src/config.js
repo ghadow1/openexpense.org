@@ -6,6 +6,54 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @perf
+// Browser OCR dependencies stay CDN-loaded so the default app shell remains small.
+// Keep these pins aligned with index.html importmap entries and docs/OCR-PERFORMANCE.md.
+export const OCR_CONFIG = {
+    dependencies: {
+        engine: {
+            package: 'ppu-paddle-ocr',
+            version: '6.4.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js'
+        },
+        pdf: {
+            package: 'pdfjs-dist',
+            version: '6.2.108',
+            url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs'
+        },
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        minExtractedTextChars: 12,
+        minExtractedTextLines: 2
+    },
+    confidence: {
+        low: 0.55,
+        pdfText: 0.95
+    },
+    warmup: {
+        delayMs: 3000,
+        idleTimeoutMs: 8000,
+        canvasSize: 64,
+        slowEffectiveTypes: ['slow-2g', '2g'],
+        minDeviceMemoryGb: 2
+    },
+    meta: {
+        tags: ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf'],
+        document: 'docs/OCR-PERFORMANCE.md'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
