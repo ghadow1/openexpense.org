@@ -251,7 +251,7 @@ export function renderSidebar() {
     title.innerHTML = `<i class="ti ti-chart-pie" aria-hidden="true"></i> Monthly spending <span class="sidebar-month">${summary.shortMonth} ${summary.year}</span>`;
 
     const pdfBtn = UI.createButton('', () => { downloadSummaryPdf(); }, { icon: 'file-type-pdf', iconOnly: true });
-    pdfBtn.className = 'sidebar-print-btn';
+    pdfBtn.classList.add('sidebar-print-btn');
     pdfBtn.setAttribute('aria-label', 'Download monthly spending report PDF');
     pdfBtn.title = 'Download spending report';
 
