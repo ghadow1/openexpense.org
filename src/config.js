@@ -11,6 +11,52 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// Keep OCR dependency pins and device-sensitive tuning in one readable place.
+// index.html must mirror peerImports for bare-specifier resolution.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrUrl: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorkerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfPreviewMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        jpegQuality: 0.9
+    },
+    recognition: {
+        strategy: 'cross-line',
+        pdfTextMinChars: 12,
+        pdfTextMinLines: 2,
+        lowConfidenceThreshold: 0.55
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        skipEffectiveTypes: ['slow-2g', '2g'],
+        skipWhenSaveData: true
+    },
+    sourceTags: [
+        '@ocr-deps',
+        '@ocr-engine',
+        '@ocr-pdf',
+        '@ocr-pipeline',
+        '@ocr-parse',
+        '@ocr-ui',
+        '@platform',
+        '@perf',
+        '@privacy'
+    ]
+};
+
 export const THEMES = {
     light: {
         bg: '#f9f9fb', surface: '#ffffff', surface2: '#f1f5f9',

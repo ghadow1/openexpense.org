@@ -1,20 +1,17 @@
+import { OCR_CONFIG } from '../config.js';
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
     _service: null,
     _initPromise: null,
     _pdfjs: null,
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
+    _intentWarmupBound: false,
 
     isPdf(file) {
         if (!file) return false;
@@ -23,6 +20,7 @@ export const Receipt = {
         return type === 'application/pdf' || name.endsWith('.pdf');
     },
 
+    // @platform @ocr-ui
     pickImage() {
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
@@ -39,15 +37,29 @@ export const Receipt = {
         return Receipt._warmPromise;
     },
 
+    // @platform @perf @ocr-ui
+    bindIntentWarmup(root = document) {
+        if (Receipt._intentWarmupBound) return;
+        Receipt._intentWarmupBound = true;
+        const warmFromIntent = (event) => {
+            const target = event.target?.closest?.('[data-action="scan-receipt"], .toolbar-scan-btn, #receipt-scan-input');
+            if (target) Receipt.warmEngine();
+        };
+        root.addEventListener('pointerover', warmFromIntent, { passive: true });
+        root.addEventListener('touchstart', warmFromIntent, { passive: true });
+        root.addEventListener('focusin', warmFromIntent);
+    },
+
+    // @ocr-engine @ocr-deps
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
-            const { PaddleOcrService } = await import(Receipt.OCR_CDN);
+            const { PaddleOcrService } = await import(OCR_CONFIG.dependencies.ocrUrl);
             onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const service = new PaddleOcrService({ recognition: { strategy: OCR_CONFIG.recognition.strategy } });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
@@ -72,13 +84,14 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf @ocr-deps
     async loadPdfJs() {
         if (Receipt._pdfjs) return Receipt._pdfjs;
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
 
         Receipt._pdfjsPromise = (async () => {
-            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
-            pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
+            const pdfjs = await import(/* @vite-ignore */ OCR_CONFIG.dependencies.pdfUrl);
+            pdfjs.GlobalWorkerOptions.workerSrc = OCR_CONFIG.dependencies.pdfWorkerUrl;
             Receipt._pdfjs = pdfjs;
             return pdfjs;
         })();
@@ -107,6 +120,16 @@ export const Receipt = {
         return lines;
     },
 
+    async canvasToPreviewUrl(canvas) {
+        if (typeof canvas.toBlob === 'function') {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', OCR_CONFIG.canvas.jpegQuality));
+            const url = blob && Utils.createObjectUrl(blob);
+            if (url) return url;
+        }
+        return canvas.toDataURL('image/jpeg', OCR_CONFIG.canvas.jpegQuality);
+    },
+
+    // @ocr-pdf @perf
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +147,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.canvas.pdfMaxScale,
+            OCR_CONFIG.canvas.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +159,19 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Receipt.canvasToPreviewUrl(canvas);
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.recognition.pdfTextMinChars
+                || lines.length >= OCR_CONFIG.recognition.pdfTextMinLines
         };
     },
 
+    // @ocr-pipeline
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,17 +197,13 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // @platform @perf @ocr-pipeline
     async fileToCanvas(file) {
-        const url = URL.createObjectURL(file);
+        const image = await Utils.decodeImageFile(file);
+        let previewUrl = Utils.createObjectUrl(file);
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            const maxSide = OCR_CONFIG.canvas.maxSide;
+            let { width, height } = image;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,42 +215,31 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            ctx.drawImage(image, 0, 0, width, height);
+            if (!previewUrl) previewUrl = await Receipt.canvasToPreviewUrl(canvas);
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            Utils.revokeObjectUrl(previewUrl);
             throw err;
+        } finally {
+            if (typeof image.close === 'function') image.close();
         }
     },
 
+    // @perf @ocr-pipeline
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
-        let w = source.width;
-        let h = source.height;
-        const longest = Math.max(w, h);
-
-        if (longest < minSide) {
-            const scale = minSide / longest;
-            w = Math.round(w * scale);
-            h = Math.round(h * scale);
-        } else if (longest > maxSide) {
-            const scale = maxSide / longest;
-            w = Math.round(w * scale);
-            h = Math.round(h * scale);
-        }
-
-        if (w === source.width && h === source.height) return source;
+        const { width, height, resized } = Utils.ocrCanvasSize(source, OCR_CONFIG.canvas);
+        if (!resized) return source;
 
         const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, w, h);
+        ctx.fillRect(0, 0, width, height);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(source, 0, 0, w, h);
+        ctx.drawImage(source, 0, 0, width, height);
         return canvas;
     },
 
@@ -309,9 +322,7 @@ export const Receipt = {
         } catch (err) {
             console.error('OCR error:', err);
             progress.close();
-            if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
-                URL.revokeObjectURL(Receipt._previewUrl);
-            }
+            Utils.revokeObjectUrl(Receipt._previewUrl);
             Receipt._previewUrl = null;
             const hint = Receipt.isPdf(file)
                 ? 'Could not read this PDF. Try re-downloading the invoice or use a screenshot.'
@@ -354,6 +365,7 @@ export const Receipt = {
         };
     },
 
+    // @ocr-parse
     moneyOnLine(line) {
         const amounts = [];
         for (const m of line.matchAll(/\$\s*(\d{1,6}[.,]\d{2})/g)) {
@@ -674,10 +686,11 @@ export const Receipt = {
             items,
             rawText: text,
             confidence,
-            lowConfidence: confidence > 0 && confidence < 0.55
+            lowConfidence: confidence > 0 && confidence < OCR_CONFIG.recognition.lowConfidenceThreshold
         };
     },
 
+    // @ocr-ui @privacy
     showPreview(parsed, previewUrl) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
@@ -762,9 +775,7 @@ export const Receipt = {
         if (!document.getElementById('modal')?.classList.contains('open')) {
             document.body.classList.remove('modal-open');
         }
-        if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
-            URL.revokeObjectURL(Receipt._previewUrl);
-        }
+        Utils.revokeObjectUrl(Receipt._previewUrl);
         Receipt._previewUrl = null;
     },
 
