@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -41,6 +43,24 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    // Normalize optional browser hints so OCR warmup can adapt across mobile,
+    // tablet, and desktop without blocking manual scanning on any platform.
+    connectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            saveData: Boolean(connection?.saveData),
+            effectiveType: connection?.effectiveType || '',
+            deviceMemory: Number(navigator.deviceMemory || 0)
+        };
+    },
+    shouldWarmOcr() {
+        const info = Utils.connectionInfo();
+        if (info.saveData) return false;
+        if (OCR_CONFIG.warmup.blockedConnectionTypes.includes(info.effectiveType)) return false;
+        if (info.deviceMemory > 0 && info.deviceMemory < OCR_CONFIG.warmup.minDeviceMemoryGb) return false;
+        return true;
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

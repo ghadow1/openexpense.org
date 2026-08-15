@@ -6,6 +6,50 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform
+// Keep these browser-only OCR dependencies in sync with index.html's import map.
+// The app lazy-loads them on demand so normal ledger use stays fast offline.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrEngine: {
+            package: 'ppu-paddle-ocr',
+            version: '6.4.0',
+            url: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js'
+        },
+        pdfjs: {
+            package: 'pdfjs-dist',
+            version: '6.2.108',
+            moduleUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+            workerUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs'
+        },
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        maxPdfPreviewSide: 2400,
+        maxPdfScale: 2.5,
+        jpegPreviewQuality: 0.9
+    },
+    pdfText: {
+        minTextChars: 12,
+        minLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        blockedConnectionTypes: ['slow-2g', '2g']
+    },
+    recognition: {
+        strategy: 'cross-line',
+        lowConfidenceThreshold: 0.55
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

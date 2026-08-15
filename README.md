@@ -8,6 +8,9 @@
 ## Quick start
 
 ```bash
+# Install dependencies once
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
@@ -16,6 +19,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Validate the production bundle before committing
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +55,8 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+Receipt OCR dependency pins and platform thresholds live in `src/config.js` under `OCR_CONFIG`. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the OCR data flow, cross-platform performance notes, and searchable source tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf`.
 
 ## Data format
 
