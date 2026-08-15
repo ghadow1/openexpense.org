@@ -16,6 +16,7 @@
   <meta name="description"
     content="OpenExpense is a free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
   <meta name="author" content="Gregory Medina">
+  <meta name="ocr-engine" content="ppu-paddle-ocr">
   <link rel="canonical" href="https://www.openexpense.org/">
 
   <!-- Open Graph / social -->
@@ -36,8 +37,8 @@
   <script type="importmap">
   {
     "imports": {
-      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs",
-      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js"
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs",
+      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js"
     }
   }
   </script>
@@ -314,6 +315,11 @@
                     image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
                     it in your browser — processing never leaves your device.
                   </p>
+                  <ul class="docs-list">
+                    <li><strong>Mobile cameras</strong> — use the rear camera, keep the receipt flat, and fill the frame in bright light.</li>
+                    <li><strong>Desktop uploads</strong> — screenshots and PDF invoices work well; PDFs with embedded text can skip OCR entirely.</li>
+                    <li><strong>Performance</strong> — high-end mobile and desktop browsers may preload OCR while idle; low-data or low-memory devices load it only when you scan.</li>
+                  </ul>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.

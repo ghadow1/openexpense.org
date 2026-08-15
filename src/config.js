@@ -11,6 +11,44 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// Keep these pins in sync with index.html's import map so OCR peer
+// dependencies resolve consistently on mobile browsers and desktop engines.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        idleWarmupTimeoutMs: 8000,
+        fallbackWarmupDelayMs: 3000,
+        modelSizeLabel: '~5 MB OCR'
+    },
+    image: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        maxRenderSide: 2400,
+        minTextCharacters: 12,
+        minTextLines: 2
+    },
+    platform: {
+        skipWarmupOnSaveData: true,
+        skipWarmupEffectiveTypes: ['slow-2g', '2g'],
+        minWarmupDeviceMemoryGb: 2,
+        skipWarmupOnCoarsePointerBelowPx: 420
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f2f3f7', surface: '#ffffff', surface2: '#eef0f5',

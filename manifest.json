@@ -1,13 +1,13 @@
 {
   "name": "OpenExpense — Private Expense Tracker",
   "short_name": "OpenExpense",
-  "description": "Track expenses offline with encrypted local storage. Your financial data never leaves your device.",
+  "description": "Track expenses offline with encrypted local storage and local receipt OCR. Your financial data never leaves your device.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f9f9fb",
-  "theme_color": "#6366f1",
+  "theme_color": "#4f46e5",
   "categories": ["finance", "productivity"],
   "icons": [
     {
