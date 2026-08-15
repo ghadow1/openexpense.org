@@ -1,3 +1,5 @@
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
@@ -38,6 +40,19 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    // @platform @perf
+    // Idle OCR warm-up is helpful on desktops and current phones, but wasteful on
+    // data-saver, 2G-class, or very low-memory sessions. Manual scans still load
+    // the engine on demand through Receipt.ensureEngine().
+    shouldWarmOcr() {
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+        if (/^(slow-)?2g$/i.test(connection?.effectiveType || '')) return false;
+
+        const memoryGb = Number(navigator.deviceMemory || 0);
+        return !memoryGb || memoryGb > OCR_CONFIG.warmup.maxLowMemoryDeviceGb;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

@@ -32,7 +32,7 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps: peer imports for lazy-loaded OCR; keep in sync with OCR_CONFIG.dependencies.peerImports -->
   <script type="importmap">
   {
     "imports": {
@@ -307,10 +307,13 @@
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
                     Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    image file, or PDF invoice. Phones and tablets use the rear camera picker when the browser
+                    supports it; desktops use the normal file picker. On first use, the app downloads a local OCR
+                    engine (~5 MB) and caches it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    PDF invoices are checked for selectable text before OCR, which is faster on battery-powered
+                    devices. Photos are resized for readability without keeping huge camera frames in memory.
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
