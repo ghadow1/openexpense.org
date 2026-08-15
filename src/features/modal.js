@@ -1,4 +1,4 @@
-import { getState, patch, getColors } from '../core/store.js';
+import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
 
@@ -34,7 +34,6 @@ let addFormReady = false;
 function refreshEventList() {
     const { selectedKey, events } = getState();
     if (!selectedKey) return;
-    const c = getColors();
     const eventsContainer = document.getElementById('events-container');
     if (!eventsContainer) return;
 
@@ -54,7 +53,6 @@ function ensureAddForm(formContainer) {
     if (addFormReady && formContainer?.querySelector('#et')) return;
     if (!formContainer) return;
 
-    const c = getColors();
     formContainer.replaceChildren();
     addFormReady = false;
 
@@ -69,20 +67,18 @@ function ensureAddForm(formContainer) {
     splitRow.className = 'form-row-split';
 
     const costWrap = UI.createFieldGroup('ep', 'Cost', '', '0.00', 'number');
-    costWrap.style.flex = '0 0 45%';
+    costWrap.classList.add('input-group--cost');
     const costInput = costWrap.querySelector('input');
-    costInput.style.paddingLeft = '24px';
+    costInput.classList.add('amount-input');
     costInput.setAttribute('inputmode', 'decimal');
     const dollarSign = document.createElement('span');
     dollarSign.className = 'form-dollar';
-    dollarSign.style.cssText = `position:absolute; left:12px; top:31px; color:${c.text2}; font-weight:500; font-size:13px;`;
     dollarSign.textContent = '$';
-    costWrap.style.position = 'relative';
     costWrap.appendChild(dollarSign);
     splitRow.appendChild(costWrap);
 
     const optWrap = document.createElement('div');
-    optWrap.style.cssText = 'display:flex; gap:20px; flex:1; padding-bottom: 3px;';
+    optWrap.className = 'form-opt-row';
     optWrap.innerHTML = `
         <label class="custom-cb"><input type="checkbox" id="er"><span>Recurring</span></label>
         <label class="custom-cb"><input type="checkbox" id="epad"><span>Paid</span></label>
@@ -94,7 +90,6 @@ function ensureAddForm(formContainer) {
 
     const act = document.createElement('div');
     act.className = 'form-actions';
-    act.style.cssText = 'display:flex; justify-content:flex-end; margin-top: 6px;';
     const submitBtn = UI.createButton('Save expense', null, { icon: 'plus', accent: true });
     submitBtn.type = 'submit';
     act.appendChild(submitBtn);
@@ -229,34 +224,51 @@ export function buildRow(e, i) {
 }
 
 export function buildEditRow(e, i) {
-    const c = getColors(); const wrap = document.createElement('div'); wrap.id = `row-${i}`;
-    Object.assign(wrap.style, { padding: '16px', background: c.surface2, borderRadius: '8px', border: `1px solid ${c.borderStrong}`, marginBottom: '12px', marginTop: '12px' });
+    const wrap = document.createElement('div');
+    wrap.id = `row-${i}`;
+    wrap.className = 'event-edit-row';
 
-    const form = document.createElement('div'); form.className = 'form-grid'; form.style.margin = '0';
+    const form = document.createElement('div');
+    form.className = 'form-grid form-grid--flush';
     form.appendChild(UI.createFieldGroup(`edit-title-${i}`, 'Title', e.title));
 
-    const row2 = document.createElement('div'); row2.className = 'form-row';
+    const row2 = document.createElement('div');
+    row2.className = 'form-row';
 
     const pWrap = UI.createFieldGroup(`edit-price-${i}`, 'Cost', Utils.getPrice(e) || '', '0.00', 'number');
-    pWrap.querySelector('input').style.paddingLeft = '24px';
-    const dollar = document.createElement('span'); dollar.style.cssText = `position:absolute; left:10px; top:31px; color:${c.text2}; font-weight:500; font-size:13px;`; dollar.textContent = '$';
-    pWrap.style.position = 'relative'; pWrap.appendChild(dollar); row2.appendChild(pWrap);
+    pWrap.classList.add('input-group--cost');
+    pWrap.querySelector('input')?.classList.add('amount-input');
+    const dollar = document.createElement('span');
+    dollar.className = 'form-dollar';
+    dollar.textContent = '$';
+    pWrap.appendChild(dollar);
+    row2.appendChild(pWrap);
 
-    const optWrap = document.createElement('div'); optWrap.className = 'input-group'; optWrap.style.justifyContent = 'flex-end';
-    const optRow = document.createElement('div'); optRow.style.cssText = 'display:flex; gap:16px; height: 35px; align-items:center;';
+    const optWrap = document.createElement('div');
+    optWrap.className = 'input-group input-group--end';
+    const optRow = document.createElement('div');
+    optRow.className = 'form-opt-row form-opt-row--inline';
 
-    const recWrap = document.createElement('label'); recWrap.className = 'cb-wrap';
-    const recCb = UI.createInput(`edit-rec-${i}`, e.recurring, '', 'checkbox'); recWrap.append(recCb, Object.assign(document.createElement('span'), { textContent: 'Recurring' }));
+    const recWrap = document.createElement('label');
+    recWrap.className = 'cb-wrap';
+    const recCb = UI.createInput(`edit-rec-${i}`, e.recurring, '', 'checkbox');
+    recWrap.append(recCb, Object.assign(document.createElement('span'), { textContent: 'Recurring' }));
 
-    const paidWrap = document.createElement('label'); paidWrap.className = 'cb-wrap';
-    const paidCb = UI.createInput(`edit-paid-${i}`, e.paid, '', 'checkbox'); paidWrap.append(paidCb, Object.assign(document.createElement('span'), { textContent: 'Paid' }));
+    const paidWrap = document.createElement('label');
+    paidWrap.className = 'cb-wrap';
+    const paidCb = UI.createInput(`edit-paid-${i}`, e.paid, '', 'checkbox');
+    paidWrap.append(paidCb, Object.assign(document.createElement('span'), { textContent: 'Paid' }));
 
-    optRow.append(recWrap, paidWrap); optWrap.appendChild(optRow); row2.appendChild(optWrap); form.appendChild(row2);
+    optRow.append(recWrap, paidWrap);
+    optWrap.appendChild(optRow);
+    row2.appendChild(optWrap);
+    form.appendChild(row2);
 
     form.appendChild(UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea'));
     wrap.appendChild(form);
 
-    const act = document.createElement('div'); act.style.cssText = 'display:flex; gap:8px; margin-top:16px; justify-content:flex-end;';
+    const act = document.createElement('div');
+    act.className = 'form-actions';
     act.appendChild(UI.createButton('Cancel', () => { patch({ editingIndex: null }); renderModal(); }));
     act.appendChild(UI.createButton('Update', () => saveEdit(i), { icon: 'check', accent: true }));
     wrap.appendChild(act);
@@ -328,7 +340,7 @@ export function deleteEv(i) {
         patch({ events: nextEvents, editingIndex: null });
         renderModal();
     };
-    if (row) { Object.assign(row.style, { opacity: '0', maxHeight: '0', padding: '0', overflow: 'hidden' }); setTimeout(go, 120); } else go();
+    if (row) { row.classList.add('is-removing'); setTimeout(go, 160); } else go();
 }
 
 export function addEvent() {

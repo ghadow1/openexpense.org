@@ -7,7 +7,6 @@ export function applyTheme() {
     const { isDark } = getState();
 
     root.dataset.theme = isDark ? 'dark' : 'light';
-    document.body.style.background = c.bg;
 
     Object.keys(c).forEach(k => root.style.setProperty(`--${k.replace(/[A-Z]/g, m => "-" + m.toLowerCase())}`, c[k]));
     root.style.setProperty('--day-bg', c.dayBg);
