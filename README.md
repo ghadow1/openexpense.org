@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and validate generated assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -45,10 +48,26 @@ src/
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── OCR-PERFORMANCE.md # OCR architecture, platform notes, and source tags
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt scanning is local-only and lazy-loaded. OCR/PDF dependency pins, canvas
+thresholds, and warmup gates live in `src/config.js` under `OCR_CONFIG`; the
+import map in `index.html` should stay in sync with those pins. Platform helpers
+in `src/core/utils.js` prefer modern browser APIs such as `createImageBitmap()`,
+blob-backed previews, the File System Access API, and mobile share/camera
+signals while preserving fallbacks for older browsers.
+
+Human-readable source tags such as `@ocr-engine`, `@ocr-pipeline`, `@platform`,
+`@perf`, and `@privacy` mark cross-cutting receipt/OCR decisions in code. See
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing scanner
+dependencies, canvas limits, or startup warmup behavior.
 
 ## Data format
 

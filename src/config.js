@@ -6,7 +6,46 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
-// localStorage only holds non-sensitive UI preferences. The ledger itself
+// @ocr-deps @perf
+// OCR and PDF libraries are lazy-loaded so normal ledger use stays fast. Keep
+// these pins in sync with the import map in index.html when upgrading.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
+        pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupText: 'A',
+        warmupCanvasSize: 64
+    },
+    image: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        previewMime: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        maxRenderSide: 2400,
+        minNativeTextChars: 12,
+        minNativeTextLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        // Keep low-end phones responsive; scanning still loads OCR on demand.
+        minDeviceMemoryGb: 4,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
+// @privacy localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
