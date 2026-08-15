@@ -32,20 +32,20 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
   <script type="importmap">
   {
     "imports": {
-      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs",
-      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js"
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs",
+      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js"
     }
   }
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.2.8/wght.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
   <noscript>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.2.8/wght.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
   </noscript>
   <link rel="stylesheet" href="openexpense.css">
 
@@ -315,11 +315,21 @@
                     it in your browser — processing never leaves your device.
                   </p>
                   <p>
+                    For speed, PDFs with enough embedded text use the browser PDF reader without running OCR. Photos
+                    are resized to a receipt-friendly canvas before recognition, using modern browser image decoding
+                    on supported phones and desktops with a safe fallback for older browsers.
+                  </p>
+                  <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
                     before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
                     You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
                     Expand <em>View raw scanned text</em> if you want to verify what the parser read.
                   </p>
+                  <ul class="docs-list">
+                    <li>On phones, shoot receipts in even light and keep the paper flat in the frame.</li>
+                    <li>On desktop, upload the original PDF invoice when possible; embedded text is usually fastest.</li>
+                    <li>Data-saver, slow network, and low-memory devices skip background OCR warmup and load only on demand.</li>
+                  </ul>
                   <div class="docs-note">
                     <p>
                       Receipt parsing is a convenience, not an autopilot. You are always the one who decides what

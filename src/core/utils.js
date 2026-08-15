@@ -36,8 +36,25 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    // @platform
+    // Centralized device hints keep mobile camera flows and desktop save-picker
+    // paths easy to audit as browser capabilities evolve.
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    getConnectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    getDeviceMemoryGb: () => Number(navigator.deviceMemory || 0),
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = Utils.getConnectionInfo();
+        if (connection?.saveData) return false;
+        if (warmup.skipEffectiveTypes?.includes(connection?.effectiveType)) return false;
+
+        const deviceMemory = Utils.getDeviceMemoryGb();
+        if (deviceMemory && deviceMemory < warmup.minDeviceMemoryGb) return false;
+
+        return true;
+    },
+    canUseImageBitmap: () => typeof createImageBitmap === 'function',
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

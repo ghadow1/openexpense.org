@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and validate generated deployment assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,25 +33,35 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and `chunk-*.js` files that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Formatting + platform capability helpers
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/OCR-PERFORMANCE.md # OCR stack, source tags, and tuning notes
+app.js, chunk-*.js      # Bundled output (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR performance
+
+Receipt scanning is configured in `OCR_CONFIG` and implemented in `src/features/receipt.js`.
+The app uses modern browser APIs where available (`createImageBitmap`, PDF.js worker rendering,
+blob-backed preview URLs) with fallbacks for older mobile and desktop browsers. OCR warms during
+idle time only when device memory and network hints are suitable; manual scans always lazy-load on
+demand. See `docs/OCR-PERFORMANCE.md` for source tags such as `@ocr-engine`, `@ocr-pdf`,
+`@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf`.
 
 ## Data format
 
