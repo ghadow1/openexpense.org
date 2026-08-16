@@ -41,6 +41,41 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    // Network/device hints are coarse and optional, so use them only to avoid
+    // speculative warmup work. Manual receipt scans still load OCR on demand.
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    isConstrainedNetwork(ocrConfig) {
+        const connection = Utils.connectionInfo();
+        if (!connection) return false;
+        const slowTypes = ocrConfig?.warmup?.skipEffectiveTypes || [];
+        return connection.saveData || slowTypes.includes(connection.effectiveType);
+    },
+    hasLowMemory(ocrConfig) {
+        const min = ocrConfig?.warmup?.minDeviceMemoryGb;
+        return Number.isFinite(navigator.deviceMemory)
+            && Number.isFinite(min)
+            && navigator.deviceMemory < min;
+    },
+    hasLowHardwareConcurrency(ocrConfig) {
+        const min = ocrConfig?.warmup?.minHardwareConcurrency;
+        return Number.isFinite(navigator.hardwareConcurrency)
+            && Number.isFinite(min)
+            && navigator.hardwareConcurrency < min;
+    },
+    shouldWarmOcr(ocrConfig) {
+        return !Utils.isConstrainedNetwork(ocrConfig)
+            && !Utils.hasLowMemory(ocrConfig)
+            && !Utils.hasLowHardwareConcurrency(ocrConfig);
+    },
+    async canvasToPreviewUrl(canvas, ocrConfig) {
+        const type = ocrConfig?.canvas?.previewType || 'image/jpeg';
+        const quality = ocrConfig?.canvas?.previewQuality ?? 0.9;
+        if (typeof canvas.toBlob !== 'function') return canvas.toDataURL(type, quality);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, type, quality));
+        return blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality);
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

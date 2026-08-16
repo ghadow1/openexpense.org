@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build from a clean set of generated assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +52,17 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+### Receipt OCR performance notes
+
+Receipt scanning is configured in `src/config.js` under `OCR_CONFIG`. Keep those
+versions in sync with the `index.html` import map when updating browser OCR,
+PDF, ONNX, OpenCV, font, or icon CDN pins.
+
+OCR comments use searchable human-readable tags such as `@ocr-deps`,
+`@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`,
+`@platform`, and `@perf`. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md)
+for the tag glossary and cross-platform performance checklist.
 
 ## Data format
 

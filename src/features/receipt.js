@@ -1,14 +1,16 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
+import { OCR_CONFIG } from '../config.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps
+    // Lazy-loaded from CDN on first scan. index.html must define the matching
+    // import map for onnxruntime-web and ppu-ocv/canvas-web peer deps.
+    OCR_CDN: OCR_CONFIG.dependencies.ocrModuleUrl,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfModuleUrl,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorkerUrl,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -43,6 +45,9 @@ export const Receipt = {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
+        // @ocr-engine @perf
+        // Keep model loading lazy so low-end phones only pay this cost after the
+        // user explicitly scans; desktop-class devices may warm it during idle.
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
@@ -113,40 +118,55 @@ export const Receipt = {
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
 
-        const allLines = [];
-        for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-            onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
-            const page = await doc.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            allLines.push(...Receipt.linesFromPdfTextContent(textContent));
+        try {
+            // @ocr-pdf @perf
+            // Prefer native PDF text on invoices and fall back to OCR only when
+            // there is too little embedded text to trust.
+            const allLines = [];
+            for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+                onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
+                const page = await doc.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                allLines.push(...Receipt.linesFromPdfTextContent(textContent));
+            }
+
+            onProgress?.('Rendering preview…', 0.55);
+            const page = await doc.getPage(1);
+            const baseViewport = page.getViewport({ scale: 1 });
+            const maxSide = OCR_CONFIG.pdf.maxPreviewSide;
+            const scale = Math.min(
+                OCR_CONFIG.pdf.maxPreviewScale,
+                maxSide / Math.max(baseViewport.width, baseViewport.height)
+            );
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(viewport.width);
+            canvas.height = Math.round(viewport.height);
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+            const lines = Receipt.normalizeLines(allLines);
+            const text = Receipt.normalizeText(lines.join('\n'), lines);
+            const previewUrl = await Utils.canvasToPreviewUrl(canvas, OCR_CONFIG);
+
+            return {
+                canvas: Receipt.prepareForOcr(canvas),
+                text,
+                lines,
+                previewUrl,
+                hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.extractedTextMinChars
+                    || lines.length >= OCR_CONFIG.pdf.extractedTextMinLines
+            };
+        } finally {
+            doc.destroy?.();
         }
-
-        onProgress?.('Rendering preview…', 0.55);
-        const page = await doc.getPage(1);
-        const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
-        const viewport = page.getViewport({ scale });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(viewport.width);
-        canvas.height = Math.round(viewport.height);
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-
-        const lines = Receipt.normalizeLines(allLines);
-        const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
-
-        return {
-            canvas: Receipt.prepareForOcr(canvas),
-            text,
-            lines,
-            previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
-        };
     },
 
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
+        // @ocr-pipeline
+        // Try structured OCR first for line grouping; flatten only when the
+        // engine returns no usable text from the region result.
         let result = await service.recognize(canvas, { flatten: false });
         let flatResult = null;
         let lines = Receipt.linesFromResult(result);
@@ -169,17 +189,38 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    async decodeImageFile(file, url) {
+        // @platform @perf
+        // createImageBitmap decodes off the main thread in modern Chromium,
+        // Firefox, and desktop/mobile Safari; keep an Image fallback for older
+        // WebKit builds and constrained embedded browsers.
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return { image: bitmap, close: () => bitmap.close?.() };
+            } catch (_) {
+                // Fall through to the Image element path.
+            }
+        }
+
+        const image = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = url;
+        });
+        return { image, close: () => {} };
+    },
+
     async fileToCanvas(file) {
-        const url = URL.createObjectURL(file);
+        const previewUrl = URL.createObjectURL(file);
+        let decoded = null;
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            decoded = await Receipt.decodeImageFile(file, previewUrl);
+            const maxSide = OCR_CONFIG.canvas.maxSide;
+            let width = decoded.image.width || decoded.image.naturalWidth;
+            let height = decoded.image.height || decoded.image.naturalHeight;
+            if (!width || !height) throw new Error('Could not read image dimensions');
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,20 +232,26 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
+            ctx.drawImage(decoded.image, 0, 0, width, height);
+            return { canvas: Receipt.prepareForOcr(canvas), previewUrl };
         } catch (err) {
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(previewUrl);
             throw err;
+        } finally {
+            decoded?.close();
         }
     },
 
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        // @ocr-pipeline
+        // Normalize input size for OCR accuracy without sending oversized
+        // canvases through WASM on memory-constrained phones.
+        const minSide = OCR_CONFIG.canvas.minSide;
+        const maxSide = OCR_CONFIG.canvas.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
+        if (!longest) return source;
 
         if (longest < minSide) {
             const scale = minSide / longest;
@@ -622,6 +669,9 @@ export const Receipt = {
     },
 
     parse(text, lines, confidence = 0) {
+        // @ocr-parse
+        // Parse conservatively: suggest likely fields for human review instead
+        // of auto-logging receipt data.
         const lineList = (lines && lines.length)
             ? lines
             : text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -679,6 +729,8 @@ export const Receipt = {
     },
 
     showPreview(parsed, previewUrl) {
+        // @ocr-ui
+        // OCR suggestions always pass through this review sheet before saving.
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
         const noteParts = [...parsed.items];

@@ -6,6 +6,46 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @ocr-pipeline @platform
+// Centralized OCR/runtime pins and scan thresholds keep mobile and desktop
+// behavior in sync with the import map and receipt pipeline.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcrVersion: '6.4.0',
+        pdfjsVersion: '6.2.108',
+        peerImports: {
+            onnxruntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            ppuOcvCanvasWeb: 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxPreviewScale: 2.5,
+        maxPreviewSide: 2400,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        minHardwareConcurrency: 4,
+        skipEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
+OCR_CONFIG.dependencies.ocrModuleUrl =
+    `https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@${OCR_CONFIG.dependencies.paddleOcrVersion}/web/index.js`;
+OCR_CONFIG.dependencies.pdfModuleUrl =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_CONFIG.dependencies.pdfjsVersion}/build/pdf.mjs`;
+OCR_CONFIG.dependencies.pdfWorkerUrl =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${OCR_CONFIG.dependencies.pdfjsVersion}/build/pdf.worker.min.mjs`;
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
