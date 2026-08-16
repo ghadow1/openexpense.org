@@ -11,6 +11,51 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform
+// Keep browser-only OCR dependency pins in one place so index.html import maps,
+// lazy imports, and docs can be reviewed together when mobile/desktop engines move.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: '6.4.0',
+        pdfjs: '6.2.108',
+        peerImports: {
+            onnxruntimeWeb: '1.27.0',
+            ppuOcv: '4.0.0'
+        },
+        fontsourceInter: '5.3.0',
+        tablerIcons: '3.46.0'
+    },
+    get ocrCdn() {
+        return `https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@${this.dependencies.paddleOcr}/web/index.js`;
+    },
+    get pdfCdn() {
+        return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${this.dependencies.pdfjs}/build/pdf.mjs`;
+    },
+    get pdfWorker() {
+        return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${this.dependencies.pdfjs}/build/pdf.worker.min.mjs`;
+    },
+    canvas: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        maxPdfPreviewSide: 2400,
+        maxPdfScale: 2.5,
+        imagePreviewQuality: 0.9,
+        warmupSize: 64
+    },
+    pdf: {
+        nativeTextMinChars: 12,
+        nativeTextMinLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        minHardwareConcurrency: 4,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    },
+    tags: ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf']
+};
+
 export const THEMES = {
     light: {
         bg: '#f2f3f7', surface: '#ffffff', surface2: '#eef0f5',

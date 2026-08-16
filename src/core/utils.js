@@ -38,6 +38,24 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    getConnection: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup;
+        if (!warmup) return true;
+        const connection = Utils.getConnection();
+        if (connection?.saveData) return false;
+        if (warmup.blockedEffectiveTypes?.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < warmup.minDeviceMemoryGb) return false;
+        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < warmup.minHardwareConcurrency) return false;
+        return true;
+    },
+    async canvasToPreviewUrl(canvas, quality = 0.9) {
+        if (typeof canvas.toBlob === 'function') {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            if (blob) return URL.createObjectURL(blob);
+        }
+        return canvas.toDataURL('image/jpeg', quality);
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
