@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Clean and rebuild generated assets before submitting changes
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,7 +28,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device. OCR/PDF packages lazy-load only when needed.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -34,7 +37,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, DAYS, STORAGE_KEYS, OCR_CONFIG, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -49,6 +52,18 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt scanning is tuned for modern mobile and desktop browsers:
+
+- OCR, PDF.js, ONNX Runtime Web, and OpenCV peers are pinned in `OCR_CONFIG` and lazy-loaded from the CDN.
+- Native PDF text is used before OCR so invoices with embedded text avoid model startup.
+- Image input prefers `createImageBitmap()` when available and bounds canvas sizes for memory-conscious OCR.
+- Idle OCR warmup only runs on desktop-class sessions; data-saver, 2G-class, low-core, and low-memory devices load on demand.
+- Human-readable source tags such as `@ocr-deps`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf` mark OCR-sensitive code paths.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the dependency pins, tag glossary, and upgrade checklist.
 
 ## Data format
 

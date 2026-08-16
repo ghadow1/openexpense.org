@@ -11,6 +11,51 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform
+// Keep these CDN pins in sync with index.html's import map and docs/OCR-PERFORMANCE.md.
+// OCR/PDF stays lazy-loaded so the default expense tracker path remains light on phones
+// and desktops that never scan receipts.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocr: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdf: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        },
+        styles: {
+            inter: 'https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/wght.css',
+            tablerIcons: 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css'
+        }
+    },
+    engine: {
+        recognition: { strategy: 'cross-line' },
+        warmupCanvas: 64,
+        warmupGlyph: 'A'
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        maxRenderSide: 2400,
+        minTextChars: 12,
+        minTextLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minHardwareConcurrency: 4,
+        minDeviceMemoryGb: 4,
+        blockedConnectionTypes: ['slow-2g', '2g']
+    },
+    sourceTags: ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf']
+};
+
 export const THEMES = {
     light: {
         bg: '#f2f3f7', surface: '#ffffff', surface2: '#eef0f5',

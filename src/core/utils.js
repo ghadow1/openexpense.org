@@ -36,8 +36,42 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    // @platform
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    hasTouchInput: () => navigator.maxTouchPoints > 0
+        || window.matchMedia('(pointer: coarse)').matches,
+    getConnectionInfo() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return {
+            effectiveType: connection?.effectiveType || '',
+            saveData: !!connection?.saveData
+        };
+    },
+    // @perf @platform
+    shouldWarmOcr(ocrConfig) {
+        const policy = ocrConfig?.warmup || {};
+        const connection = Utils.getConnectionInfo();
+        const blockedTypes = policy.blockedConnectionTypes || [];
+
+        if (connection.saveData) return false;
+        if (blockedTypes.includes(connection.effectiveType)) return false;
+        if (navigator.hardwareConcurrency
+            && navigator.hardwareConcurrency < (policy.minHardwareConcurrency || 1)) return false;
+        if (navigator.deviceMemory
+            && navigator.deviceMemory < (policy.minDeviceMemoryGb || 0)) return false;
+
+        return true;
+    },
+    canvasToPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (!canvas) return Promise.resolve('');
+        if (typeof canvas.toBlob !== 'function') return Promise.resolve(canvas.toDataURL(type, quality));
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
