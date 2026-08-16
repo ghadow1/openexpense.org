@@ -6,6 +6,59 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps Keep OCR/PDF CDN pins and browser import-map peers in one place.
+// index.html must mirror dependencies.peerImports because import maps are static.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcrVersion: '6.4.0',
+        pdfjsVersion: '6.2.108',
+        onnxRuntimeVersion: '1.27.0',
+        ppuOcvVersion: '4.0.0',
+        ocrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    engine: {
+        recognition: { strategy: 'cross-line' }
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfRenderMaxSide: 2400,
+        pdfScaleCap: 2.5,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdfText: {
+        minChars: 12,
+        minLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        blockedEffectiveTypes: ['slow-2g', '2g'],
+        skipWhenSaveData: true
+    },
+    copy: {
+        modelFootprint: '~5 MB OCR, PDF reader on demand'
+    },
+    tags: {
+        deps: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        ui: '@ocr-ui',
+        platform: '@platform',
+        perf: '@perf'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

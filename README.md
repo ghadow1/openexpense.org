@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Rebuild and verify generated assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -49,6 +52,15 @@ app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR performance notes
+
+Receipt scanning is documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md). The short version:
+
+- OCR/PDF dependency pins live in `OCR_CONFIG` in `src/config.js`; the static import map in `index.html` mirrors the peer pins.
+- Source tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, and `@perf` mark the important scanner code paths.
+- The app warms OCR during idle time only when connection and device-memory hints say it is reasonable; scanning still loads OCR on demand everywhere.
+- Modern browser paths use `createImageBitmap` for image decode and blob-backed preview URLs when available.
 
 ## Data format
 

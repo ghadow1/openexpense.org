@@ -41,6 +41,41 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform Chromium exposes connection and device-memory hints; Safari/Firefox
+    // omit them, so missing values should keep the feature enabled.
+    connectionInfo() {
+        if (typeof navigator === 'undefined') return null;
+        return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    },
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = Utils.connectionInfo();
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+
+        if (warmup.skipWhenSaveData && connection?.saveData) return false;
+        if (warmup.blockedEffectiveTypes?.includes(effectiveType)) return false;
+        if (typeof navigator !== 'undefined'
+            && typeof navigator.deviceMemory === 'number'
+            && navigator.deviceMemory < (warmup.minDeviceMemoryGb || 0)) {
+            return false;
+        }
+
+        return true;
+    },
+    canvasToObjectUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (!canvas) return Promise.resolve('');
+        if (typeof canvas.toBlob !== 'function'
+            || typeof URL === 'undefined'
+            || typeof URL.createObjectURL !== 'function') {
+            return Promise.resolve(canvas.toDataURL(type, quality));
+        }
+
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
