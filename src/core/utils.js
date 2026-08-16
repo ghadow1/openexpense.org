@@ -38,6 +38,25 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    connectionInfo: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = Utils.connectionInfo();
+        const effectiveType = connection?.effectiveType;
+        const skipTypes = warmup.skipEffectiveTypes || [];
+
+        if (connection?.saveData) return false;
+        if (effectiveType && skipTypes.includes(effectiveType)) return false;
+
+        const deviceMemory = Number(navigator.deviceMemory);
+        if (Utils.isMobile()
+            && Number.isFinite(deviceMemory)
+            && deviceMemory <= (warmup.maxMobileDeviceMemoryGb || 0)) {
+            return false;
+        }
+
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),

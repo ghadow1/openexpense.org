@@ -6,6 +6,54 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @platform @perf
+// Central OCR resource contract. Keep these CDN pins and thresholds in sync
+// with index.html and docs/OCR-PERFORMANCE.md when changing the scanner.
+export const OCR_CONFIG = {
+    tags: [
+        '@ocr-deps',
+        '@ocr-engine',
+        '@ocr-pdf',
+        '@ocr-pipeline',
+        '@ocr-parse',
+        '@ocr-ui',
+        '@platform',
+        '@perf'
+    ],
+    dependencies: {
+        engineLabel: 'PP-OCRv5',
+        engineVersion: '6.4.0',
+        ocrCdn: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfjsVersion: '6.2.108',
+        pdfCdn: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            onnxruntimeWeb: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            ppuOcvCanvasWeb: 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    image: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        previewQuality: 0.88
+    },
+    pdf: {
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        skipEffectiveTypes: ['slow-2g', '2g'],
+        maxMobileDeviceMemoryGb: 2,
+        probeCanvasSize: 64
+    },
+    engineOptions: {
+        recognition: { strategy: 'cross-line' }
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
