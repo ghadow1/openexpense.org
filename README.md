@@ -16,6 +16,9 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build and refresh generated deploy assets
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,7 +33,7 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and hash chunks that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt root assets. `npm run build` first removes stale generated `app.js`/`chunk-*.js` files, then emits the current bundle.
 
 ```
 src/
@@ -46,9 +49,16 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/OCR-PERFORMANCE.md # OCR source tags, runtime pins, and cross-platform performance notes
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR development
+
+Receipt scanning lives in `src/features/receipt.js`, with OCR dependency pins and performance thresholds in `src/config.js` under `OCR_CONFIG`. Keep those pins aligned with the static import map in `index.html`.
+
+Human-readable source tags such as `@ocr-deps`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, and `@perf` mark the main OCR code paths. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full tag index and mobile/desktop performance rules.
 
 ## Data format
 

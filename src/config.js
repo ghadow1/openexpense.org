@@ -6,6 +6,48 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps @ocr-engine @ocr-pdf @platform @perf
+// Keep these dependency pins in sync with index.html's import map and stylesheet
+// URLs. Receipt OCR is lazy-loaded so first paint stays fast on mobile and desktop.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrModule: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfModule: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        },
+        stylesheets: {
+            inter: 'https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/wght.css',
+            tablerIcons: 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css'
+        }
+    },
+    engine: {
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64,
+        warmupText: 'A',
+        idleWarmupTimeoutMs: 8000,
+        fallbackWarmupDelayMs: 3000,
+        firstScanModelNote: '~5 MB OCR, PDF reader on demand'
+    },
+    image: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        maxPdfScale: 2.5,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9,
+        nativePdfTextMinChars: 12,
+        nativePdfTextMinLines: 2
+    },
+    performance: {
+        minWarmupDeviceMemoryGb: 4,
+        minWarmupHardwareConcurrency: 4,
+        skipWarmupEffectiveTypes: ['slow-2g', '2g']
+    },
+    sourceTags: ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf']
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

@@ -41,6 +41,35 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    connectionInfo() {
+        const nav = navigator;
+        return nav.connection || nav.mozConnection || nav.webkitConnection || null;
+    },
+    shouldWarmOcr(config) {
+        const perf = config?.performance || {};
+        const connection = Utils.connectionInfo();
+        if (connection?.saveData) return false;
+
+        const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+        if ((perf.skipWarmupEffectiveTypes || []).includes(effectiveType)) return false;
+
+        const minMemory = Number(perf.minWarmupDeviceMemoryGb || 0);
+        if (minMemory && navigator.deviceMemory && navigator.deviceMemory < minMemory) return false;
+
+        const minCores = Number(perf.minWarmupHardwareConcurrency || 0);
+        if (minCores && navigator.hardwareConcurrency && navigator.hardwareConcurrency < minCores) return false;
+
+        return true;
+    },
+    async canvasPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (typeof canvas.toBlob !== 'function') {
+            return canvas.toDataURL(type, quality);
+        }
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+        return blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality);
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
