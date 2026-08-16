@@ -11,6 +11,46 @@ export const CONFIG = {
 // core/crypto.js), never in plaintext localStorage.
 export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
 
+// @ocr-deps @platform @perf
+// Receipt OCR is lazy-loaded and tuned for browser-only processing. Keep these
+// pins in sync with index.html import-map peers and docs/OCR-PERFORMANCE.md.
+export const OCR_CONFIG = {
+    dependencies: {
+        ocrEngine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfReader: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs',
+        peerImports: {
+            'onnxruntime-web': 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs',
+            'ppu-ocv/canvas-web': 'https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js'
+        }
+    },
+    warmup: {
+        enabled: true,
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minDeviceMemoryGb: 4,
+        minHardwareConcurrency: 4,
+        blockedEffectiveTypes: ['slow-2g', '2g']
+    },
+    image: {
+        minOcrSide: 1000,
+        maxOcrSide: 2400,
+        maxInputSide: 2400,
+        previewQuality: 0.9,
+        smoothingQuality: 'high'
+    },
+    pdf: {
+        maxRenderSide: 2400,
+        maxRenderScale: 2.5,
+        nativeTextMinChars: 12,
+        nativeTextMinLines: 2
+    },
+    engine: {
+        options: { recognition: { strategy: 'cross-line' } },
+        warmupCanvasSize: 64
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#f2f3f7', surface: '#ffffff', surface2: '#eef0f5',

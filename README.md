@@ -8,14 +8,20 @@
 ## Quick start
 
 ```bash
+# Install dependencies in a fresh checkout
+npm ci
+
 # Start the local dev server (http://localhost:8765)
 npm run serve
 
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and chunk-*.js after editing anything in src/
 npm run build
+
+# Build validation used by automation
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -30,25 +36,36 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` and `chunk-*.js` assets that `index.html` loads. There's no build step on GitHub Pages — commit rebuilt root assets after source changes.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Platform helpers and OCR warmup/image decode guards
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+app.js, chunk-*.js     # Bundled root assets (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR development
+
+Receipt scanning is local-only browser OCR. The dependency pins and performance
+thresholds live in `OCR_CONFIG` (`src/config.js`), with peer import-map pins in
+`index.html`. Source comments use readable tags such as `@ocr-deps`,
+`@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`,
+`@platform`, and `@perf`.
+
+See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the tag catalog,
+current OCR/browser pins, and mobile/desktop performance notes.
 
 ## Data format
 

@@ -32,20 +32,20 @@
   <!-- Preconnect to the CDN for faster icon/font delivery -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
+  <!-- @ocr-deps: bare-specifier resolution for lazy-loaded OCR peer deps. -->
   <script type="importmap">
   {
     "imports": {
-      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.bundle.min.mjs",
-      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@3.2.2/index.canvas-web.js"
+      "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.bundle.min.mjs",
+      "ppu-ocv/canvas-web": "https://cdn.jsdelivr.net/npm/ppu-ocv@4.0.0/index.canvas-web.js"
     }
   }
   </script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.2.8/wght.css" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/wght.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css" media="print" onload="this.media='all'">
   <noscript>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.2.8/wght.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/wght.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.46.0/dist/tabler-icons.min.css">
   </noscript>
   <link rel="stylesheet" href="openexpense.css">
 
@@ -310,15 +310,18 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
-                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. On phones and
+                    tablets, Scan opens the environment camera when the browser allows it; on desktop, it behaves like
+                    a file picker. Choose a photo, image file, or PDF invoice. On first use, the app downloads local OCR
+                    and PDF modules as needed and caches them in your browser — processing never leaves your device.
                   </p>
                   <p>
-                    After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
-                    before saving; nothing is written to your ledger until you tap <strong>Save expense</strong>.
-                    You can also choose <strong>Save &amp; scan another</strong> to log multiple receipts in a row.
-                    Expand <em>View raw scanned text</em> if you want to verify what the parser read.
+                    Modern browsers use accelerated image decoding for large camera photos, while PDFs use embedded
+                    text when available before falling back to OCR. After scanning, a review sheet shows suggested
+                    merchant, amount, date, and notes. Edit anything before saving; nothing is written to your ledger
+                    until you tap <strong>Save expense</strong>. You can also choose
+                    <strong>Save &amp; scan another</strong> to log multiple receipts in a row. Expand
+                    <em>View raw scanned text</em> if you want to verify what the parser read.
                   </p>
                   <div class="docs-note">
                     <p>

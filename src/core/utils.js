@@ -41,6 +41,69 @@ export const Utils = {
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
+    // @platform @perf
+    connectionInfo() {
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        return conn ? {
+            saveData: !!conn.saveData,
+            effectiveType: conn.effectiveType || '',
+            downlink: conn.downlink || 0,
+            rtt: conn.rtt || 0
+        } : { saveData: false, effectiveType: '', downlink: 0, rtt: 0 };
+    },
+    isLowMemoryDevice(minGb = 4) {
+        return typeof navigator.deviceMemory === 'number' && navigator.deviceMemory < minGb;
+    },
+    hasLimitedCpu(minCores = 4) {
+        return typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency < minCores;
+    },
+    shouldWarmOcr(ocrConfig) {
+        const warmup = ocrConfig?.warmup || {};
+        if (warmup.enabled === false) return false;
+        const connection = Utils.connectionInfo();
+        if (connection.saveData) return false;
+        if ((warmup.blockedEffectiveTypes || []).includes(connection.effectiveType)) return false;
+        if (Utils.isLowMemoryDevice(warmup.minDeviceMemoryGb)) return false;
+        if (Utils.hasLimitedCpu(warmup.minHardwareConcurrency)) return false;
+        return true;
+    },
+    async decodeImageFile(file) {
+        const previewUrl = URL.createObjectURL(file);
+        if (typeof createImageBitmap === 'function') {
+            try {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                return {
+                    source: bitmap,
+                    width: bitmap.width,
+                    height: bitmap.height,
+                    previewUrl,
+                    close: () => bitmap.close?.()
+                };
+            } catch (_) {
+                // Fall back to HTMLImageElement for browsers without full codec support.
+            }
+        }
+
+        try {
+            const img = await new Promise((resolve, reject) => {
+                const el = new Image();
+                el.decoding = 'async';
+                el.onload = () => resolve(el);
+                el.onerror = () => reject(new Error('Could not load image'));
+                el.src = previewUrl;
+            });
+            return {
+                source: img,
+                width: img.naturalWidth || img.width,
+                height: img.naturalHeight || img.height,
+                previewUrl,
+                close: () => {}
+            };
+        } catch (err) {
+            URL.revokeObjectURL(previewUrl);
+            throw err;
+        }
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
