@@ -14,8 +14,11 @@ npm run serve
 # Kill the dev server when you're done
 pkill -f "http.server 8765"
 
-# Rebuild app.js after editing anything in src/
+# Rebuild app.js and remove stale generated chunks
 npm run build
+
+# Same build command, named for automation/CI-style checks
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
@@ -25,30 +28,41 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCRv5); images and PDFs never leave your device.
+- **Cross-platform** — responsive layout with desktop save-picker, mobile camera/share fallbacks, and resource-aware OCR warmup.
 
 ## How it works
 
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+OpenExpense is ES modules under `src/`, bundled into `app.js` plus hashed chunks that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt generated assets.
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
-├── main.js            # Bootstrap + store subscription
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── main.js            # Bootstrap, OCR idle warmup, store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Platform helpers, preview URLs, formatting
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/OCR-PERFORMANCE.md # OCR dependency, tag, and platform guidance
 app.js                 # Bundled entry (rebuild with `npm run build`)
+chunk-*.js             # Generated split chunks
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR development notes
+
+OCR dependency URLs and performance thresholds are centralized in `OCR_CONFIG`.
+Keep the `index.html` import map in sync with `OCR_CONFIG.dependencies.peerImports`
+when upgrading OCR packages. The source uses readable tags such as `@ocr-deps`,
+`@ocr-engine`, `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf`; see
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) for the full tag list and
+cross-platform validation checklist.
 
 ## Data format
 

@@ -1,14 +1,16 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
+import { OCR_CONFIG } from '../config.js';
 import { Toast } from '../ui/toast.js';
 import { saveExpense } from './modal.js';
 
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // @ocr-deps
+    // Lazy-loaded from CDN on first scan. index.html must define matching import
+    // map entries for ppu-paddle-ocr peer dependencies from OCR_CONFIG.
+    OCR_CDN: OCR_CONFIG.dependencies.paddleOcr,
+    PDF_CDN: OCR_CONFIG.dependencies.pdfjs,
+    PDF_WORKER: OCR_CONFIG.dependencies.pdfWorker,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -91,6 +93,7 @@ export const Receipt = {
         }
     },
 
+    // @ocr-pdf
     linesFromPdfTextContent(textContent) {
         let block = '';
         const lines = [];
@@ -107,6 +110,7 @@ export const Receipt = {
         return lines;
     },
 
+    // @ocr-pdf @perf
     async pdfToCanvasAndText(file, onProgress) {
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
@@ -124,7 +128,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.image.pdfMaxScale,
+            OCR_CONFIG.image.pdfMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -133,17 +140,23 @@ export const Receipt = {
 
         const lines = Receipt.normalizeLines(allLines);
         const text = Receipt.normalizeText(lines.join('\n'), lines);
-        const previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const previewUrl = await Utils.canvasToPreviewUrl(
+            canvas,
+            OCR_CONFIG.image.previewType,
+            OCR_CONFIG.image.previewQuality
+        );
 
         return {
             canvas: Receipt.prepareForOcr(canvas),
             text,
             lines,
             previewUrl,
-            hasExtractedText: text.trim().length >= 12 || lines.length >= 2
+            hasExtractedText: text.trim().length >= OCR_CONFIG.pdf.extractedTextMinChars
+                || lines.length >= OCR_CONFIG.pdf.extractedTextMinLines
         };
     },
 
+    // @ocr-engine @ocr-pipeline
     async ocrCanvas(service, canvas, onProgress) {
         onProgress?.('Reading text…', 0.55);
 
@@ -169,17 +182,13 @@ export const Receipt = {
         return { text, lines, confidence };
     },
 
+    // @ocr-pipeline @platform @perf
     async fileToCanvas(file) {
         const url = URL.createObjectURL(file);
         try {
-            const img = await new Promise((resolve, reject) => {
-                const el = new Image();
-                el.onload = () => resolve(el);
-                el.onerror = () => reject(new Error('Could not load image'));
-                el.src = url;
-            });
-            const maxSide = 2400;
-            let { width, height } = img;
+            const image = await Receipt.decodeImage(file, url);
+            const maxSide = OCR_CONFIG.image.maxSide;
+            let { width, height } = image;
             if (width > maxSide || height > maxSide) {
                 const scale = maxSide / Math.max(width, height);
                 width = Math.round(width * scale);
@@ -191,7 +200,8 @@ export const Receipt = {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.drawImage(image, 0, 0, width, height);
+            image.close?.();
             return { canvas: Receipt.prepareForOcr(canvas), previewUrl: url };
         } catch (err) {
             URL.revokeObjectURL(url);
@@ -199,9 +209,27 @@ export const Receipt = {
         }
     },
 
+    // @platform @perf
+    async decodeImage(file, objectUrl) {
+        if (typeof createImageBitmap === 'function') {
+            try {
+                return await createImageBitmap(file, { imageOrientation: 'from-image' });
+            } catch (_) {
+                // Fall through to HTMLImageElement for browsers without full decoder support.
+            }
+        }
+        return new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error('Could not load image'));
+            el.src = objectUrl;
+        });
+    },
+
+    // @ocr-pipeline @perf
     prepareForOcr(source) {
-        const minSide = 1000;
-        const maxSide = 2400;
+        const minSide = OCR_CONFIG.image.minSide;
+        const maxSide = OCR_CONFIG.image.maxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -230,12 +258,14 @@ export const Receipt = {
         return canvas;
     },
 
+    // @ocr-pipeline
     linesFromResult(result) {
         return (result?.lines || []).map(line =>
             line.map(r => r.text).join(' ').replace(/\s{2,}/g, ' ').trim()
         ).filter(Boolean);
     },
 
+    // @ocr-pipeline
     buildLineList(result, flatResult) {
         const fromRegions = Receipt.linesFromResult(result);
         const fromFlat = (flatResult?.text || '')
@@ -248,6 +278,7 @@ export const Receipt = {
         return Receipt.normalizeLines(lineList);
     },
 
+    // @ocr-parse
     normalizeLines(lineList) {
         return lineList.map(line => line
             .replace(/\bzooml\b/gi, 'Zoom')
@@ -257,6 +288,7 @@ export const Receipt = {
         ).filter(Boolean);
     },
 
+    // @ocr-parse
     normalizeText(text, lines) {
         const body = (text || lines.join('\n'))
             .replace(/\bzooml\b/gi, 'Zoom Communications')
@@ -264,6 +296,7 @@ export const Receipt = {
         return body;
     },
 
+    // @ocr-pipeline
     async recognizeText(file, onProgress) {
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);

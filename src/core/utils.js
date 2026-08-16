@@ -38,6 +38,29 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    // @platform
+    getConnectionInfo() {
+        return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    },
+    // @platform @ocr-engine @perf
+    shouldWarmOcr(config) {
+        const warmup = config?.warmup || {};
+        const connection = Utils.getConnectionInfo();
+        if (connection?.saveData) return false;
+        if (warmup.skipEffectiveTypes?.includes(connection?.effectiveType)) return false;
+        if (navigator.deviceMemory && navigator.deviceMemory < (warmup.minDeviceMemoryGb || 0)) return false;
+        if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < (warmup.minHardwareConcurrency || 0)) return false;
+        return true;
+    },
+    // @platform @ocr-ui @perf
+    canvasToPreviewUrl(canvas, type = 'image/jpeg', quality = 0.9) {
+        if (!canvas || typeof canvas.toBlob !== 'function') return Promise.resolve(canvas?.toDataURL?.(type, quality) || '');
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL(type, quality));
+            }, type, quality);
+        });
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
