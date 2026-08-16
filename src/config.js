@@ -6,6 +6,52 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// @ocr-deps — keep these CDN pins in sync with index.html's import map.
+// The scanner is still privacy-first: receipt pixels stay in the browser, while
+// engine/model assets are fetched and cached by the browser on first use.
+export const OCR_CONFIG = {
+    dependencies: {
+        paddleOcr: 'ppu-paddle-ocr@6.4.0',
+        pdfjs: 'pdfjs-dist@6.2.108',
+        peers: {
+            onnxruntime: 'onnxruntime-web@1.27.0',
+            opencv: 'ppu-ocv@4.0.0'
+        },
+        uiAssets: {
+            inter: '@fontsource-variable/inter@5.3.0',
+            tablerIcons: '@tabler/icons-webfont@3.46.0'
+        }
+    },
+    urls: {
+        ocrEngine: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@6.4.0/web/index.js',
+        pdfJs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.mjs',
+        pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs'
+    },
+    canvas: {
+        minSide: 1000,
+        maxSide: 2400,
+        pdfMaxScale: 2.5,
+        pdfMaxSide: 2400,
+        previewType: 'image/jpeg',
+        previewQuality: 0.9
+    },
+    pdf: {
+        nativeTextMinCharacters: 12,
+        nativeTextMinLines: 2,
+        nativeTextConfidence: 0.95
+    },
+    confidence: {
+        low: 0.55
+    },
+    warmup: {
+        idleTimeoutMs: 8000,
+        fallbackDelayMs: 3000,
+        minHardwareConcurrency: 4,
+        minDeviceMemoryGb: 4,
+        slowEffectiveTypes: ['slow-2g', '2g']
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

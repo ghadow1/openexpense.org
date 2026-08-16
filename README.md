@@ -1,6 +1,6 @@
 # [openexpense.org](https://www.openexpense.org)
 
-**A privacy-first, offline-only expense tracker. Your data never leaves your browser.**
+**A privacy-first, offline-capable expense tracker. Your data never leaves your browser.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Version](https://img.shields.io/badge/Version-2.1.0-blue)
@@ -16,16 +16,19 @@ pkill -f "http.server 8765"
 
 # Rebuild app.js after editing anything in src/
 npm run build
+
+# Build validation (also removes stale generated chunks first)
+npm run validate
 ```
 
 Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
+- **Zero app servers** — no backend and no database; your ledger stays local. CDN assets are fetched for fonts/icons and for OCR/PDF scanning on first use.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
+- **Receipt scanning** — client-side OCR (PP-OCRv5 via `ppu-paddle-ocr`); images never leave your device.
 - **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
 
 ## How it works
@@ -34,21 +37,31 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
 │   ├── persist.js     # Encrypted IndexedDB auto-save/load
 │   ├── crypto.js      # AES-256-GCM device key (at rest)
 │   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
+│   └── utils.js       # Platform helpers: mobile/camera/save-picker/OCR warmup
 ├── ui/                # components, theme, toast
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
+docs/
+└── OCR-PERFORMANCE.md # OCR pipeline, performance policy, and source tag glossary
+scripts/
+└── clean-build-assets.mjs
 app.js                 # Bundled entry (rebuild with `npm run build`)
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## OCR notes for contributors
+
+Receipt scanning lives in `src/features/receipt.js`, with dependency pins and tuning constants in `OCR_CONFIG` (`src/config.js`). Human-readable source tags such as `@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`, `@ocr-ui`, `@platform`, and `@perf` mark the scan flow. See [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md) before changing OCR packages, canvas sizes, PDF thresholds, or mobile warmup behavior.
+
+Use `test-receipt.png` as a quick manual smoke-test image after rebuilding. Browser HEIC/HEIF decoding varies; test JPEG/PNG/WebP plus a text-based PDF when changing the scanner.
 
 ## Data format
 

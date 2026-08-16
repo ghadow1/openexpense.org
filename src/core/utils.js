@@ -38,6 +38,21 @@ export const Utils = {
     },
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    getConnection: () => navigator.connection || navigator.mozConnection || navigator.webkitConnection || null,
+    shouldWarmOcr(config = {}) {
+        const policy = config.warmup || {};
+        const connection = Utils.getConnection();
+        if (connection?.saveData) return false;
+        if (policy.slowEffectiveTypes?.includes(connection?.effectiveType)) return false;
+
+        const memory = Number(navigator.deviceMemory || 0);
+        if (memory && policy.minDeviceMemoryGb && memory < policy.minDeviceMemoryGb) return false;
+
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        if (cores && policy.minHardwareConcurrency && cores < policy.minHardwareConcurrency) return false;
+
+        return true;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
