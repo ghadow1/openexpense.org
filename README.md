@@ -25,8 +25,8 @@ Then open http://localhost:8765 in your browser. (Open it through the server, no
 - **Zero servers** — no backend, no database, no third-party calls.
 - **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
 - **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Receipt scanning** — client-side OCR (PP-OCR); images and PDFs never leave your device.
+- **Cross-platform** — responsive layout, adaptive OCR warm-up/canvas sizing, desktop save-picker, and mobile share fallbacks.
 
 ## How it works
 
@@ -34,7 +34,7 @@ OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `ind
 
 ```
 src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
+├── config.js          # CONFIG, OCR_CONFIG, DAYS, STORAGE_KEYS, THEMES
 ├── main.js            # Bootstrap + store subscription
 ├── core/
 │   ├── store.js       # Central state: getState(), patch(), subscribe()
@@ -46,9 +46,16 @@ src/
 ├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
 └── app/               # render orchestration, view switching
 app.js                 # Bundled entry (rebuild with `npm run build`)
+docs/OCR-PERFORMANCE.md # OCR platform strategy + source tag glossary
 ```
 
 UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+
+## Receipt OCR and platform performance
+
+Receipt scanning is local-first: `src/features/receipt.js` lazy-loads PP-OCR and loads PDF.js only for PDF files. `OCR_CONFIG` in `src/config.js` keeps the OCR/PDF CDN pins, canvas budgets, PDF text thresholds, and warm-up policy in one place.
+
+Desktop-class browsers can warm the OCR engine during idle time. Mobile, data-saver, low-memory, low-core, and 2G-class sessions load OCR only after the user scans, with smaller canvas limits to avoid memory pressure. Source comments use readable tags such as `@ocr-pipeline`, `@ocr-parse`, `@platform`, and `@perf`; see `docs/OCR-PERFORMANCE.md` for the full glossary.
 
 ## Data format
 

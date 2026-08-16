@@ -85,7 +85,7 @@ export function drawSectionLabel(doc, theme, c, x, y, w, title) {
     return 18;
 }
 
-const INTER_BASE = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/files/inter-latin';
+const INTER_BASE = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.3.0/files/inter-latin';
 const INTER_FILES = [
     { weight: '400', style: 'normal' },
     { weight: '700', style: 'bold' }

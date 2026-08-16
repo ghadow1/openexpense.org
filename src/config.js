@@ -6,6 +6,62 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+export const OCR_CONFIG = {
+    // @ocr-deps Keep CDN pins together so import maps, docs, and lazy imports stay in sync.
+    dependencies: {
+        paddleOcr: '6.4.0',
+        pdfjs: '6.2.108',
+        peerImports: {
+            onnxruntimeWeb: '1.27.0',
+            ppuOcv: '4.0.0'
+        },
+        get ocrCdn() {
+            return `https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@${this.paddleOcr}/web/index.js`;
+        },
+        get pdfCdn() {
+            return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${this.pdfjs}/build/pdf.mjs`;
+        },
+        get pdfWorker() {
+            return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${this.pdfjs}/build/pdf.worker.min.mjs`;
+        }
+    },
+    engine: {
+        recognition: { strategy: 'cross-line' }
+    },
+    image: {
+        minSide: 1000,
+        mobileMaxSide: 1800,
+        desktopMaxSide: 2400,
+        lowMemoryMaxSide: 1600,
+        pdfPreviewMaxSide: 2200,
+        pdfRenderMaxScale: 2.5,
+        previewType: 'image/jpeg',
+        previewQuality: 0.86,
+        extractedTextMinChars: 12,
+        extractedTextMinLines: 2
+    },
+    // @platform Modern desktops can warm OCR eagerly; constrained phones should load on demand.
+    warmup: {
+        idleTimeoutMs: 8000,
+        desktopDelayMs: 1200,
+        mobileDelayMs: 3500,
+        minDeviceMemoryGb: 3,
+        minHardwareConcurrency: 4,
+        avoidEffectiveTypes: ['slow-2g', '2g']
+    },
+    // @perf/@ocr-tags Human-readable anchors used in source comments and docs.
+    tags: {
+        deps: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        ui: '@ocr-ui',
+        platform: '@platform',
+        perf: '@perf'
+    }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.

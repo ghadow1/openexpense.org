@@ -36,8 +36,55 @@ export const Utils = {
             tt.textContent = '';
         });
     },
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    matchesMedia: (query) => typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia(query).matches,
+    isMobile: () => Utils.matchesMedia('(max-width: 640px)'),
+    isCoarsePointer: () => Utils.matchesMedia('(pointer: coarse)'),
+    prefersCamera: () => Utils.matchesMedia('(max-width: 900px)') || Utils.isCoarsePointer(),
+    connectionInfo() {
+        const nav = typeof navigator !== 'undefined' ? navigator : {};
+        const connection = nav.connection || nav.mozConnection || nav.webkitConnection || {};
+        return {
+            effectiveType: String(connection.effectiveType || '').toLowerCase(),
+            saveData: !!connection.saveData
+        };
+    },
+    deviceMemoryGb: () => Number((typeof navigator !== 'undefined' && navigator.deviceMemory) || 0),
+    hardwareConcurrency: () => Number((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 0),
+    shouldWarmOcr(ocrConfig) {
+        const { warmup } = ocrConfig;
+        const connection = Utils.connectionInfo();
+        const memory = Utils.deviceMemoryGb();
+        const cores = Utils.hardwareConcurrency();
+
+        if (connection.saveData || warmup.avoidEffectiveTypes.includes(connection.effectiveType)) return false;
+        if (memory && memory < warmup.minDeviceMemoryGb) return false;
+        if (cores && cores < warmup.minHardwareConcurrency) return false;
+        return true;
+    },
+    ocrCanvasBudget(ocrConfig, sourceType = 'image') {
+        const { image } = ocrConfig;
+        const memory = Utils.deviceMemoryGb();
+        const mobileLike = Utils.prefersCamera();
+        let maxSide = mobileLike ? image.mobileMaxSide : image.desktopMaxSide;
+
+        if (memory && memory < ocrConfig.warmup.minDeviceMemoryGb) {
+            maxSide = Math.min(maxSide, image.lowMemoryMaxSide);
+        }
+        if (sourceType === 'pdf') {
+            maxSide = Math.min(maxSide, image.pdfPreviewMaxSide);
+        }
+
+        return { minSide: image.minSide, maxSide };
+    },
+    async canvasToPreviewUrl(canvas, type = 'image/jpeg', quality = 0.86) {
+        if (typeof canvas.toBlob === 'function') {
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+            if (blob) return URL.createObjectURL(blob);
+        }
+        return canvas.toDataURL(type, quality);
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isMobile(),
