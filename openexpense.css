@@ -4280,11 +4280,14 @@ body.modal-open .quick-fab {
     }
 
     .text-input,
+    .ledger-name-input,
     .ui-btn:not(.ui-btn--icon),
     .btn-primary,
     .btn-ghost,
     .btn-secondary {
         min-height: 44px;
+        font-size: 16px;
+    }
     }
 
     .toolbar-actions button {

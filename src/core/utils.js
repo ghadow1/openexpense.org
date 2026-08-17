@@ -44,11 +44,26 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    isIOS: () => {
+        const ua = navigator.userAgent || '';
+        return /iPad|iPhone|iPod/.test(ua)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    },
+    isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches,
+    isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
+        || /Android.+Mobile/i.test(navigator.userAgent || '')
+        || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
+    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
+        || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
-        && !Utils.isMobile(),
+        && !Utils.isPhone()
+        && !Utils.isIOS(),
+    canShareFiles: (files) => typeof navigator.share === 'function'
+        && typeof navigator.canShare === 'function'
+        && !!files?.length
+        && navigator.canShare({ files }),
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

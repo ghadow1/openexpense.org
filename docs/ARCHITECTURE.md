@@ -43,7 +43,7 @@ src/main.js         boot, event delegation, render subscription
 ## Persistence
 
 - **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
-- **Export** (`bundle.js` + `ledger.js` + `ledger-file.js`): new portable key per save. Writes encrypted `{name}.json` then `{name}.key.json`. The JWK is not cached. The same pair can be re-opened later; a later export mints a new pair.
+- **Export** (`bundle.js` + `ledger.js` + `ledger-file.js` + `folder.js`): new portable key per save. Writes both files into an **OpenExpense** folder when the directory picker exists; otherwise one share sheet (iPhone / Android) or downloads. The folder handle may be remembered in IndexedDB `meta` — that is not `key.json`. The JWK is not cached.
 - **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy zip, or confirmed plaintext. `ledger-file.js` validates, decrypts, sanitizes, and is reused on boot.
 
 `localStorage` never holds expenses or keys. It only stores `oe-theme`, `oe-autosave`, `hasVisited`, and the expense/income sidebar face.

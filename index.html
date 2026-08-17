@@ -373,8 +373,8 @@
                   </p>
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
-                    <li><strong>Import</strong> — open an encrypted ledger.json (the app asks for key.json). Older zip backups and confirmed plaintext JSON still work.</li>
-                    <li><strong>Export</strong> — save an encrypted <code>.json</code> (expenses and income together) and a sibling <code>key.json</code>. The key is not kept in this browser.</li>
+                    <li><strong>Import</strong> — open files from your OpenExpense folder. On iPhone and Android you can select the ledger and key.json together. Older zip backups still work.</li>
+                    <li><strong>Export</strong> — writes both files into an <strong>OpenExpense</strong> folder (default). Long-press Export to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
@@ -488,15 +488,16 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Backups &amp; moving between devices</h3>
                   <p>
-                    Export is your manual backup. It writes two files next to each other:
-                    an encrypted <code>.json</code> (ciphertext only — expenses and income in one ledger)
-                    and a <code>key.json</code>. OpenExpense never stores that portable key in the browser
-                    cache. Autosave still encrypts a copy in this browser with a separate, non-extractable device key.
+                    Export is your manual backup. It writes two files next to each other
+                    in an <strong>OpenExpense</strong> folder: an encrypted <code>.json</code>
+                    and a <code>key.json</code>. You can pick a different folder after the first save
+                    (long-press Export). The portable key is never stored in the browser cache.
+                    Autosave still encrypts a copy in this browser with a separate, non-extractable device key.
                   </p>
                   <ol class="docs-list is-ordered">
-                    <li><strong>Export</strong> — save the encrypted ledger, then save the matching key.json.</li>
+                    <li><strong>Default folder</strong> — <code>OpenExpense</code> inside Documents (or the folder you pick). iPhone and Android: use the share sheet → Save to Files → OpenExpense.</li>
                     <li><strong>Keep the pair</strong> — the key unlocks only that ledger file (they share an id). Neither file is useful alone.</li>
-                    <li><strong>Import</strong> — open the encrypted <code>.json</code>; the app asks for <code>key.json</code>. Older zip backups still import. Unencrypted JSON is imported only after you confirm, then it lives encrypted here.</li>
+                    <li><strong>Import</strong> — select one file or both from that folder. Unencrypted JSON is imported only after you confirm, then it lives encrypted here.</li>
                   </ol>
                   <p>
                     There is no cloud sync. Move backups manually — USB drive, encrypted cloud folder, or any method
@@ -553,6 +554,16 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — OpenExpense folder</h3>
+                  <p>
+                    Export now defaults to an <strong>OpenExpense</strong> folder. On a computer that folder
+                    is created (or reused) under Documents. On iPhone and Android, share both files at once
+                    and save them into OpenExpense in the Files app. Long-press Export to pick another folder.
+                    Import can open the ledger and key together.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Square controls</h3>
                   <p>
@@ -679,7 +690,7 @@
     </div>
   </div>
 
-  <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
+  <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" multiple hidden>
   <input type="file" id="ledger-key-input" accept=".json,application/json" hidden>
   <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.webp,.pdf,application/pdf" hidden>
 

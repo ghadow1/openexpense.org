@@ -14,10 +14,14 @@ import {
 } from '../core/bundle.js';
 import {
     validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
-    sanitizeLedger, countEntries, exportFilenames, readJsonFile
+    sanitizeLedger, countEntries, exportFilenames, readJsonFile, classifyJson
 } from '../core/ledger-file.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { saveLedger } from '../core/persist.js';
+import {
+    canUseDirectoryPicker, getSavedFolder, pickExportFolder,
+    writeBlobsToFolder, EXPORT_FOLDER_NAME
+} from '../core/folder.js';
 
 const PENDING_MS = 5 * 60 * 1000;
 const JSON_ACCEPT = { 'application/json': ['.json'] };
@@ -92,6 +96,7 @@ export const Ledger = {
             try {
                 const handle = await window.showSaveFilePicker({
                     suggestedName: filename,
+                    startIn: 'documents',
                     types: [{ description, accept }]
                 });
                 const writable = await handle.createWritable();
@@ -104,7 +109,7 @@ export const Ledger = {
         }
 
         const file = new File([blob], filename, { type: blob.type });
-        if (Utils.isMobile() && navigator.share && navigator.canShare?.({ files: [file] })) {
+        if (Utils.isMobile() && Utils.canShareFiles([file])) {
             try {
                 await navigator.share({ files: [file], title: getState().ledgerName || 'OpenExpense Export' });
                 return 'shared';
@@ -114,6 +119,56 @@ export const Ledger = {
         }
 
         Ledger.downloadFallback(blob, filename);
+        return 'downloaded';
+    },
+
+    async resolveExportFolder(pickFolder = false) {
+        if (!canUseDirectoryPicker()) return null;
+        if (!pickFolder) {
+            const saved = await getSavedFolder();
+            if (saved) return saved;
+        }
+
+        const choice = await confirmDialog({
+            title: pickFolder ? 'Choose a save folder' : `Save in ${EXPORT_FOLDER_NAME}?`,
+            message: pickFolder
+                ? `Pick any folder. To keep the default, choose a parent and OpenExpense will use (or create) the ${EXPORT_FOLDER_NAME} folder inside it.`
+                : `Exports go in an ${EXPORT_FOLDER_NAME} folder (Documents on most phones and computers). Check the box to pick a different folder instead.`,
+            confirmText: pickFolder ? 'Choose folder' : `Use ${EXPORT_FOLDER_NAME}`,
+            cancelText: 'Cancel',
+            checkbox: { label: 'Choose my own folder instead', checked: false }
+        });
+        if (!choice?.confirmed) return null;
+
+        try {
+            return await pickExportFolder({ useDefault: !choice.checked });
+        } catch (err) {
+            if (err?.name === 'AbortError') return null;
+            throw err;
+        }
+    },
+
+    async shareOrDownloadPair(encBlob, keyBlob, names) {
+        const files = [
+            new File([encBlob], names.ledger, { type: 'application/json' }),
+            new File([keyBlob], names.key, { type: 'application/json' })
+        ];
+        if (Utils.canShareFiles(files)) {
+            try {
+                await navigator.share({
+                    files,
+                    title: `${EXPORT_FOLDER_NAME} backup`,
+                    text: `Save both files in your ${EXPORT_FOLDER_NAME} folder in Files. Keep them together.`
+                });
+                return 'shared';
+            } catch (err) {
+                if (err?.name === 'AbortError') return 'abort';
+            }
+        }
+
+        Ledger.downloadFallback(encBlob, names.ledger);
+        await new Promise((resolve) => setTimeout(resolve, Utils.isIOS() ? 400 : 200));
+        Ledger.downloadFallback(keyBlob, names.key);
         return 'downloaded';
     },
 
@@ -131,12 +186,38 @@ export const Ledger = {
 
     // Encrypted ledger.json (expense + income) then a sibling key.json.
     // The JWK is not written to IndexedDB or localStorage.
-    async export() {
+    // Default location is the OpenExpense folder; long-press export to change it.
+    async export({ pickFolder = false } = {}) {
         try {
             const { enc, keyFile } = await encryptBundle(Ledger.exportPayload());
             const names = exportFilenames(getState().ledgerName);
             const encBlob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
             const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
+            const pair = [
+                { blob: encBlob, name: names.ledger },
+                { blob: keyBlob, name: names.key }
+            ];
+
+            const folder = await Ledger.resolveExportFolder(pickFolder);
+            if (folder) {
+                await writeBlobsToFolder(folder, pair);
+                Toast.show(`Saved both files in your ${EXPORT_FOLDER_NAME} folder. The key is only in key.json — not in this browser.`, 'success', 5200);
+                return;
+            }
+            if (canUseDirectoryPicker() && pickFolder) return;
+
+            if (Utils.isPhone() || Utils.isIOS() || Utils.isAndroid() || !Utils.canUseSavePicker()) {
+                const mobileResult = await Ledger.shareOrDownloadPair(encBlob, keyBlob, names);
+                if (mobileResult === 'abort') return;
+                Toast.show(
+                    mobileResult === 'shared'
+                        ? `Share both files into your ${EXPORT_FOLDER_NAME} folder in Files. Keep them together.`
+                        : `Saved ledger.json and key.json. On iPhone or Android, move both into an ${EXPORT_FOLDER_NAME} folder in Files.`,
+                    'success',
+                    5600
+                );
+                return;
+            }
 
             const ledgerResult = await Ledger.saveBlob(
                 encBlob,
@@ -202,11 +283,16 @@ export const Ledger = {
     },
 
     async handleImport(evt) {
-        const f = evt.target.files && evt.target.files[0];
+        const files = evt.target.files ? Array.from(evt.target.files) : [];
         if (evt.target) evt.target.value = '';
-        if (!f) return;
+        if (!files.length) return;
 
         try {
+            if (files.length > 1) {
+                await Ledger.importFileList(files);
+                return;
+            }
+            const f = files[0];
             const isZip = /\.zip$/i.test(f.name)
                 || f.type === 'application/zip'
                 || f.type === 'application/x-zip-compressed';
@@ -216,6 +302,44 @@ export const Ledger = {
             console.error('[OpenExpense] import failed:', err);
             Toast.show('Could not read that file.', 'error');
         }
+    },
+
+    async importFileList(files) {
+        let enc = null;
+        let keyFile = null;
+        let srcName = files[0]?.name || 'import';
+
+        for (const file of files) {
+            if (/\.zip$/i.test(file.name)) {
+                await Ledger.importZip(file);
+                return;
+            }
+            const parsed = await readJsonFile(file);
+            if (!parsed.ok) continue;
+            const kind = classifyJson(parsed.obj);
+            if (kind === 'enc' && !enc) {
+                enc = parsed.obj;
+                srcName = file.name;
+            } else if (kind === 'key' && !keyFile) {
+                keyFile = parsed.obj;
+            }
+        }
+
+        if (enc && keyFile) {
+            await Ledger.decryptAndApply(enc, keyFile, srcName);
+            return;
+        }
+        if (enc) {
+            Ledger.holdPending({ enc });
+            await Ledger.requestMatchingKey();
+            return;
+        }
+        if (keyFile) {
+            Ledger.holdPending({ key: keyFile });
+            Toast.show('Key held in memory only. Now Import the encrypted ledger.json.', 'info');
+            return;
+        }
+        Toast.show('No OpenExpense ledger and key pair in that selection.', 'error');
     },
 
     async handleKeyImport(evt) {

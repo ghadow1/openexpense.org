@@ -17,6 +17,32 @@ let gridHeadEl = null;
 let gridEl = null;
 let lastMonthKey = '';
 
+function bindExportFolderGesture(btn) {
+    let timer = 0;
+    let opened = false;
+    const start = () => {
+        opened = false;
+        timer = window.setTimeout(() => {
+            opened = true;
+            Ledger.export({ pickFolder: true });
+        }, 550);
+    };
+    const cancel = () => { window.clearTimeout(timer); };
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('pointerup', cancel);
+    btn.addEventListener('pointerleave', cancel);
+    btn.addEventListener('pointercancel', cancel);
+    btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        cancel();
+        opened = true;
+        Ledger.export({ pickFolder: true });
+    });
+    btn.addEventListener('click', (e) => {
+        if (opened) e.stopImmediatePropagation();
+    }, true);
+}
+
 function changeMonth(delta) {
     const { currentDate } = getState();
     patch({
@@ -48,13 +74,15 @@ function ensureShell(calCol) {
 
     const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event', iconOnly: true });
     const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload', iconOnly: true });
-    const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download', iconOnly: true });
+    const exportBtn = UI.createButton('Export', () => Ledger.export(), { icon: 'download', iconOnly: true });
+    bindExportFolderGesture(exportBtn);
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true, iconOnly: true });
     const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true, iconOnly: true });
     scanBtn.classList.add('toolbar-scan-btn');
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
-    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger or key.json'], [exportBtn, 'Export encrypted ledger + key.json'],
+    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger and key.json from your OpenExpense folder'],
+    [exportBtn, 'Export to the OpenExpense folder. Long-press to choose another folder'],
     [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt — photo or PDF']].forEach(([btn, label]) => {
         btn.setAttribute('aria-label', label);
         btn.title = label;
