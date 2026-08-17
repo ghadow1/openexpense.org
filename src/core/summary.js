@@ -1,8 +1,10 @@
 /**
  * OpenExpense — monthly summary math
  *
- * Pure functions over `events`. The sidebar and PDF exporter both consume
- * computeMonthlySummary(); money display goes through Utils.formatMoney.
+ * Pure functions over `events`. The sidebar, snapshot chips, and PDF
+ * exporter all consume computeMonthlySummary(). Year cards are year-to-date
+ * through the viewed month. Month totals are the calendar register for that
+ * month. Money display goes through Utils.formatMoney.
  */
 import { Utils } from './utils.js';
 
@@ -83,6 +85,14 @@ function sumItems(items) {
             .map((row) => ({ ...row, amount: Utils.fromCents(row.amount) }))
             .sort((a, b) => b.amount - a.amount)
     };
+}
+
+function addMoney(...values) {
+    return Utils.fromCents(values.reduce((sum, value) => sum + Utils.toCents(value), 0));
+}
+
+function subMoney(left, right) {
+    return Utils.fromCents(Utils.toCents(left) - Utils.toCents(right));
 }
 
 function monthTotal(events, y, m, kind = 'expense') {
@@ -173,11 +183,11 @@ function weekdayTotals(items) {
     return { totals: totals.map((cents) => Utils.fromCents(cents)), counts };
 }
 
-export function computeMonthlySummary(events, currentDate, kind = 'expense') {
+export function computeMonthlySummary(events, currentDate, kind = 'expense', asOf = new Date()) {
     const face = kind === 'income' ? 'income' : 'expense';
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
-    const today = new Date();
+    const today = asOf instanceof Date && !Number.isNaN(asOf.getTime()) ? asOf : new Date();
 
     const items = collectMonthItems(events, y, m, face);
     const stats = sumItems(items);
@@ -186,9 +196,11 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
     const actualPrevTotal = monthTotal(events, prevY, prevM, face);
 
     const monthTotals = yearMonthTotals(events, y, face);
-    const activeMonths = monthTotals.filter(v => v > 0).length || 1;
-    const yearTotal = monthTotals.reduce((a, b) => a + b, 0);
-    const yearAvg = yearTotal / activeMonths;
+    const ytdTotals = monthTotals.slice(0, m + 1);
+    const ytdActiveMonths = ytdTotals.filter((value) => value > 0).length;
+    const yearScheduled = addMoney(...monthTotals);
+    const yearTotal = addMoney(...ytdTotals);
+    const yearAvg = ytdActiveMonths ? yearTotal / ytdActiveMonths : 0;
 
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const isCurrentMonth = y === today.getFullYear() && m === today.getMonth();
@@ -203,15 +215,14 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
         if (item.date <= asOfKey) elapsedCents += cents;
         else futureCents += cents;
     });
-    const remainingDays = Math.max(0, daysInMonth - daysElapsed);
     const dailyPace = daysElapsed > 0 ? Utils.fromCents(elapsedCents) / daysElapsed : 0;
-    const impliedUnscheduledCents = Math.max(
-        0,
-        Utils.toCents(dailyPace * remainingDays) - futureCents
-    );
-    const projectedTotal = isCurrentMonth
-        ? Utils.fromCents(elapsedCents + futureCents + impliedUnscheduledCents)
-        : stats.total;
+    // The calendar is the source of truth. Recurring copies are already
+    // seeded, so do not invent a rest-of-month pace on top of logged bills.
+    const projectedTotal = stats.total;
+    const dayDivisor = isCurrentMonth ? Math.max(1, daysElapsed) : daysInMonth;
+    const avgPerDay = dayDivisor
+        ? Utils.fromCents(isCurrentMonth ? elapsedCents : Utils.toCents(stats.total)) / dayDivisor
+        : 0;
 
     const pctPaid = stats.total ? (stats.paid / stats.total) * 100 : 0;
     const pctPending = stats.total ? (stats.pending / stats.total) * 100 : 0;
@@ -228,8 +239,10 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
         ...stats,
         pctPaid,
         pctPending,
-        avgPerEntry: stats.itemCount ? stats.total / stats.itemCount : 0,
-        avgPerDay: stats.activeDays ? stats.total / stats.activeDays : 0,
+        avgPerEntry: stats.itemCount
+            ? Utils.fromCents(Math.round(Utils.toCents(stats.total) / stats.itemCount))
+            : 0,
+        avgPerDay,
         largest: largestItem(items),
         topMerchants: stats.byTitle.slice(0, 4),
         allMerchants: stats.byTitle,
@@ -240,9 +253,16 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
         monthTotals,
         yearTotal,
         yearAvg,
+        yearScheduled,
+        ytdActiveMonths,
+        ytdThroughMonth: m,
         daysInMonth,
         daysElapsed,
         dailyPace,
+        oneTimePace: 0,
+        impliedUnscheduled: 0,
+        elapsedTotal: Utils.fromCents(elapsedCents),
+        futureTotal: Utils.fromCents(futureCents),
         projectedTotal,
         isCurrentMonth,
         pendingItems,
@@ -319,10 +339,11 @@ export function pendingInWindow(events, fromKey, toKey, kind) {
     return { total: Utils.fromCents(total), count };
 }
 
-function averageActiveNets(incomeTotals, spendTotals) {
+function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
     let sum = 0;
     let count = 0;
-    for (let i = 0; i < 12; i++) {
+    const end = Math.min(11, Math.max(-1, throughMonth));
+    for (let i = 0; i <= end; i++) {
         const incoming = Utils.toCents(incomeTotals[i] || 0);
         const outgoing = Utils.toCents(spendTotals[i] || 0);
         if (incoming <= 0 && outgoing <= 0) continue;
@@ -335,17 +356,18 @@ function averageActiveNets(incomeTotals, spendTotals) {
 /**
  * Homepage snapshot. Current funds are settled cash. Projected income is
  * the viewed month’s scheduled income (recurring copies already on the
- * calendar). Cashflow and monthly avg stay month/year nets. Does not persist.
+ * calendar). Year totals and monthly averages stop at the viewed month so
+ * later recurring copies do not inflate “expense months.” Does not persist.
  */
 export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
-    const spend = computeMonthlySummary(events, currentDate, 'expense');
-    const income = computeMonthlySummary(events, currentDate, 'income');
+    const spend = computeMonthlySummary(events, currentDate, 'expense', asOf);
+    const income = computeMonthlySummary(events, currentDate, 'income', asOf);
     const funds = settledFundsThrough(events, asOf);
     const asOfKey = dateKeyOf(asOf);
     const dueSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'expense');
     const incomeSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'income');
-    const monthNet = Utils.fromCents(Utils.toCents(income.total) - Utils.toCents(spend.total));
-    const yearNet = Utils.fromCents(Utils.toCents(income.yearTotal) - Utils.toCents(spend.yearTotal));
+    const monthNet = subMoney(income.total, spend.total);
+    const yearNet = subMoney(income.yearTotal, spend.yearTotal);
     const savingsRate = income.total > 0
         ? (monthNet / income.total) * 100
         : null;
@@ -355,8 +377,10 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         monthOut: spend.total,
         monthNet,
         yearNet,
-        monthAvg: averageActiveNets(income.monthTotals, spend.monthTotals),
+        monthAvg: averageActiveNets(income.monthTotals, spend.monthTotals, currentDate.getMonth()),
         monthLabel: spend.shortMonth,
+        ytdIn: income.yearTotal,
+        ytdOut: spend.yearTotal,
         currentFunds: funds.net,
         fundsIn: funds.incoming,
         fundsOut: funds.outgoing,

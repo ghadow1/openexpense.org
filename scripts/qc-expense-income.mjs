@@ -134,7 +134,8 @@ test('estimated month total does not double-count future calendar copies', () =>
         '2026-08-21': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: false })],
         '2026-08-28': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: false })]
     };
-    const income = computeMonthlySummary(events, new Date(2026, 7, 17), 'income');
+    const asOf = new Date(2026, 7, 17);
+    const income = computeMonthlySummary(events, asOf, 'income', asOf);
     assert.equal(income.total, 3844);
     assert.ok(income.projectedTotal <= income.total + 0.001);
     assert.equal(income.projectedTotal, 3844);
@@ -358,6 +359,65 @@ test('changing cadence rebuilds the series from the edited day', () => {
     assert.equal(next['2026-08-24'].some((e) => e.title === 'Rent' && e.repeat === 'weekly'), true);
     assert.equal(countSeriesOccurrences(next, { title: 'Rent', recurring: true, repeat: 'weekly' }) > 2, true);
     assert.equal(next['2026-08-17'].some((e) => e.title === 'Coffee'), true);
+});
+
+function cents(value) {
+    return Utils.toCents(value);
+}
+
+test('month tables keep paid, pending, and net identities', () => {
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(ledger.events, date, 'expense', date);
+    const income = computeMonthlySummary(ledger.events, date, 'income', date);
+    const snap = computeNetSnapshot(ledger.events, date, date);
+
+    assert.equal(cents(spend.paid) + cents(spend.pending), cents(spend.total));
+    assert.equal(cents(spend.recurring) + cents(spend.oneTime), cents(spend.total));
+    assert.equal(cents(income.paid) + cents(income.pending), cents(income.total));
+    assert.equal(cents(snap.spendPaid) + cents(snap.leftToPay), cents(snap.monthOut));
+    assert.equal(cents(snap.incomeReceived) + cents(snap.incomeDue), cents(snap.monthIn));
+    assert.equal(cents(snap.monthIn) - cents(snap.monthOut), cents(snap.monthNet));
+    assert.equal(cents(snap.ytdIn) - cents(snap.ytdOut), cents(snap.yearNet));
+    assert.equal(snap.monthOut, spend.total);
+    assert.equal(snap.monthIn, income.total);
+});
+
+test('year to date ignores later recurring copies', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'Rent', price: 1400, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-09-01': [entry({ title: 'Rent', price: 1400, recurring: true, repeat: 'monthly', paid: false })],
+        '2026-10-01': [entry({ title: 'Rent', price: 1400, recurring: true, repeat: 'monthly', paid: false })],
+        '2026-11-01': [entry({ title: 'Rent', price: 1400, recurring: true, repeat: 'monthly', paid: false })],
+        '2026-12-01': [entry({ title: 'Rent', price: 1400, recurring: true, repeat: 'monthly', paid: false })]
+    };
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(events, date, 'expense', date);
+    assert.equal(spend.total, 1400);
+    assert.equal(spend.yearTotal, 1400);
+    assert.equal(spend.yearAvg, 1400);
+    assert.equal(spend.yearScheduled, 7000);
+    assert.equal(spend.ytdActiveMonths, 1);
+    assert.deepEqual(spend.monthTotals.slice(7), [1400, 1400, 1400, 1400, 1400]);
+});
+
+test('estimated month total does not replay early bills across the rest of the month', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'Rent', price: 1800, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-08-02': [entry({ title: 'Car', price: 450, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-08-03': [entry({ title: 'Insurance', price: 200, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-08-05': [entry({ title: 'Utilities', price: 250, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-08-07': [entry({ title: 'Groceries', price: 200, recurring: true, repeat: 'weekly', paid: true })],
+        '2026-08-10': [entry({ title: 'Phone', price: 80, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-08-14': [entry({ title: 'Groceries', price: 200, recurring: true, repeat: 'weekly', paid: true })],
+        '2026-08-16': [entry({ title: 'Coffee', price: 50, paid: true })],
+        '2026-08-21': [entry({ title: 'Groceries', price: 200, recurring: true, repeat: 'weekly', paid: false })],
+        '2026-08-28': [entry({ title: 'Groceries', price: 200, recurring: true, repeat: 'weekly', paid: false })]
+    };
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(events, date, 'expense', date);
+    assert.equal(spend.total, 3630);
+    assert.equal(spend.projectedTotal, 3630);
+    assert.ok(spend.avgPerDay < 250, `daily average ${spend.avgPerDay} used active days instead of calendar days`);
 });
 
 test('same-title expense and income stay separate groups', () => {

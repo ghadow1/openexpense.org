@@ -297,7 +297,11 @@ function insightCards(summary, copy) {
         {
             label: 'Avg per active day',
             value: formatMoney(summary.avgPerDay),
-            hint: summary.activeDays ? `${summary.activeDays} ${copy.daysHint}` : '—'
+            hint: summary.itemCount
+                ? (summary.isCurrentMonth
+                    ? `First ${summary.daysElapsed} days`
+                    : `Full ${summary.daysInMonth}-day month`)
+                : '—'
         },
         {
             label: 'Avg per entry',
@@ -316,11 +320,11 @@ function insightCards(summary, copy) {
         }
     ];
 
-    if (summary.isCurrentMonth && summary.itemCount) {
+    if (summary.isCurrentMonth && summary.itemCount && summary.projectedTotal > summary.total + 0.005) {
         cards.push({
             label: 'Projected',
             value: formatMoney(summary.projectedTotal),
-            hint: `${formatMoney(summary.dailyPace)}/day  ·  ${summary.daysElapsed}/${summary.daysInMonth} days`
+            hint: `${formatMoney(summary.oneTimePace)}/day leftover  ·  ${summary.daysElapsed}/${summary.daysInMonth} days`
         });
     }
 
@@ -393,14 +397,14 @@ function drawYearBand(state) {
     const leftW = 150;
     setDocFont(doc, theme, 'normal', 8);
     setText(doc, c.muted);
-    doc.text('Year total', MARGIN + 16, y + 28);
+    doc.text('Year to date', MARGIN + 16, y + 28);
     setDocFont(doc, theme, 'bold', 18);
     setText(doc, c.text);
     doc.text(formatMoney(summary.yearTotal ?? 0), MARGIN + 16, y + 50);
 
     setDocFont(doc, theme, 'normal', 8);
     setText(doc, c.muted);
-    doc.text('Avg active month', MARGIN + 16, y + 78);
+    doc.text('Avg month to date', MARGIN + 16, y + 78);
     setDocFont(doc, theme, 'bold', 14);
     setText(doc, c.text);
     doc.text(formatMoney(summary.yearAvg ?? 0), MARGIN + 16, y + 98);

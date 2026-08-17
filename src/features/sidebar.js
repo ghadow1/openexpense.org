@@ -153,7 +153,11 @@ function renderStatsGrid(summary, copy) {
 
     grid.append(
         statCard('calendar-stats', 'Daily average', Utils.formatMoney(summary.avgPerDay),
-            summary.activeDays ? `Across ${summary.activeDays} ${copy.daysHint}` : copy.startHint, ''),
+            summary.itemCount
+                ? (summary.isCurrentMonth
+                    ? `First ${summary.daysElapsed} days of ${summary.shortMonth}`
+                    : `Full ${summary.daysInMonth}-day month`)
+                : copy.startHint, ''),
         statCard('receipt-2', 'Average entry', Utils.formatMoney(summary.avgPerEntry),
             summary.itemCount ? `${summary.itemCount} entries` : '—', ''),
         statCard('chart-arrows-vertical', 'Vs last month', summary.prevMonthTotal || summary.total ? formatDelta(summary.monthDelta) : '—',
@@ -162,9 +166,9 @@ function renderStatsGrid(summary, copy) {
             summary.oneTime ? `${Utils.formatMoney(summary.oneTime)} ${copy.oneTime}` : copy.noOneTime, '')
     );
 
-    if (summary.isCurrentMonth && summary.itemCount) {
+    if (summary.isCurrentMonth && summary.itemCount && summary.projectedTotal > summary.total + 0.005) {
         grid.appendChild(statCard('trending-up', 'Estimated month total', Utils.formatMoney(summary.projectedTotal),
-            `${Utils.formatMoney(summary.dailyPace)}/day pace · ${summary.daysElapsed}/${summary.daysInMonth} days`, 'accent'));
+            `${Utils.formatMoney(summary.oneTimePace)}/day leftover one-time · ${summary.daysElapsed}/${summary.daysInMonth} days`, 'accent'));
     }
 
     if (summary.largest) {
@@ -205,12 +209,16 @@ function renderTopMerchants(summary, copy) {
 function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-section');
     section.appendChild(el('div', 'summary-section-title', `${summary.year} at a glance`));
-    section.appendChild(el('p', 'summary-section-description', 'Compare months and tap a column to open it.'));
+    section.appendChild(el('p', 'summary-section-description', 'Year-to-date through this month. Later bars are scheduled copies only.'));
 
     const cards = el('div', 'summary-stats-grid is-compact');
+    const ytdHint = `January–${summary.shortMonth}`;
+    const avgHint = summary.ytdActiveMonths
+        ? `${summary.ytdActiveMonths} month${summary.ytdActiveMonths === 1 ? '' : 's'} through ${summary.shortMonth}`
+        : ytdHint;
     cards.append(
-        statCard('chart-bar', 'Year total', Utils.formatMoney(summary.yearTotal), `All activity in ${summary.year}`, 'accent'),
-        statCard('chart-dots', 'Monthly average', Utils.formatMoney(summary.yearAvg), 'Across active months', '')
+        statCard('chart-bar', 'Year to date', Utils.formatMoney(summary.yearTotal), ytdHint, 'accent'),
+        statCard('chart-dots', 'Monthly average', Utils.formatMoney(summary.yearAvg), avgHint, '')
     );
     section.appendChild(cards);
 

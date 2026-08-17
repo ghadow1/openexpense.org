@@ -192,7 +192,7 @@ function overviewSlide(snap) {
                     label: 'Avg monthly net',
                     value: snap.monthAvg,
                     tone: toneFor(snap.monthAvg),
-                    hint: 'Across active months'
+                    hint: `Through ${snap.monthLabel}`
                 })
             ]
         }),
@@ -308,7 +308,7 @@ function expenseSlide(snap) {
                     label: 'Month spending',
                     value: snap.monthOut,
                     tone: snap.monthOut > 0 ? 'flat' : 'up',
-                    hint: snap.monthLabel,
+                    hint: `Logged in ${snap.monthLabel}`,
                     signed: false
                 }),
                 chip({
