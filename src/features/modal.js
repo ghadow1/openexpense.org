@@ -1,6 +1,8 @@
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
+import { confirmDialog } from '../ui/confirm.js';
+import { countSeriesOccurrences, groupExpenses, normalizeTitle, removeSeriesOccurrences } from '../core/series.js';
 
 export function openModal(key) {
     patch({ selectedKey: key, editingIndex: null });
@@ -44,9 +46,44 @@ function refreshEventList() {
         p.className = 'modal-empty';
         p.textContent = 'No expenses logged on this date.';
         eventsContainer.appendChild(p);
-    } else {
-        list.forEach((e, i) => eventsContainer.appendChild(buildRow(e, i)));
+        return;
     }
+
+    groupExpenses(list).forEach((group) => {
+        const showHead = group.count > 1 || group.recurring;
+        if (!showHead) {
+            group.items.forEach(({ e, i }) => eventsContainer.appendChild(buildRow(e, i)));
+            return;
+        }
+
+        const wrap = document.createElement('section');
+        wrap.className = `expense-group${group.recurring ? ' is-recurring' : ''}`;
+
+        const head = document.createElement('div');
+        head.className = 'expense-group-head';
+        const meta = [
+            group.recurring ? 'Recurring' : `${group.count} items`,
+            group.total > 0 ? Utils.formatMoney(group.total) : null
+        ].filter(Boolean).join(' · ');
+        head.innerHTML = `
+            <div class="expense-group-copy">
+                <span class="expense-group-title">${Utils.escapeHtml(group.title)}</span>
+                <span class="expense-group-meta">${group.recurring ? '<i class="ti ti-refresh" aria-hidden="true"></i>' : ''}${meta}</span>
+            </div>`;
+
+        if (group.recurring) {
+            const seriesBtn = document.createElement('button');
+            seriesBtn.type = 'button';
+            seriesBtn.className = 'expense-group-remove';
+            seriesBtn.textContent = 'Remove series';
+            seriesBtn.onclick = () => deleteSeries(group.items[0].e);
+            head.appendChild(seriesBtn);
+        }
+
+        wrap.appendChild(head);
+        group.items.forEach(({ e, i }) => wrap.appendChild(buildRow(e, i)));
+        eventsContainer.appendChild(wrap);
+    });
 }
 
 function ensureAddForm(formContainer) {
@@ -281,11 +318,7 @@ export function buildEditRow(e, i) {
 
 export function startEdit(i) {
     patch({ editingIndex: i });
-    const listEl = document.getElementById('events-container');
-    const { selectedKey, events } = getState();
-    const list = events[selectedKey] || [];
-    listEl.innerHTML = '';
-    list.forEach((e, idx) => listEl.appendChild(buildRow(e, idx)));
+    refreshEventList();
 }
 
 export function propagateRecurring(baseEvent, startKey) {
@@ -329,17 +362,77 @@ export function saveEdit(i) {
     renderModal();
 }
 
-export function deleteEv(i) {
+function applyDelete(nextEvents) {
+    patch({ events: nextEvents, editingIndex: null });
+    renderModal();
+}
+
+function removeOneOccurrence(index) {
+    const { selectedKey, events } = getState();
+    const nextEvents = { ...events };
+    nextEvents[selectedKey] = [...(nextEvents[selectedKey] || [])];
+    nextEvents[selectedKey].splice(index, 1);
+    if (!nextEvents[selectedKey].length) delete nextEvents[selectedKey];
+    applyDelete(nextEvents);
+}
+
+export async function deleteSeries(item) {
+    const { events } = getState();
+    const count = countSeriesOccurrences(events, item);
+    const result = await confirmDialog({
+        title: 'Remove recurring payment?',
+        message: count > 1
+            ? `“${item.title}” is on ${count} days. Remove every copy of this re-accruing payment?`
+            : `Remove “${item.title}” from this ledger?`,
+        confirmText: 'Remove series',
+        cancelText: 'Cancel',
+        danger: true,
+        checkbox: {
+            label: 'Remove all recurring copies of this payment',
+            checked: true
+        }
+    });
+    if (!result?.confirmed) return;
+    if (result.checked) applyDelete(removeSeriesOccurrences(events, item));
+    else {
+        const { selectedKey } = getState();
+        const list = events[selectedKey] || [];
+        const index = list.findIndex((entry) => entry === item || (
+            entry.recurring && normalizeTitle(entry.title) === normalizeTitle(item.title)
+        ));
+        if (index >= 0) removeOneOccurrence(index);
+    }
+}
+
+export async function deleteEv(i) {
+    const { selectedKey, events } = getState();
+    const item = events[selectedKey]?.[i];
+    if (!item) return;
+
+    if (item.recurring) {
+        const count = countSeriesOccurrences(events, item);
+        const result = await confirmDialog({
+            title: 'Remove this payment?',
+            message: count > 1
+                ? `“${item.title}” is a re-accruing payment on ${count} days. Leave the box unchecked to remove only this day.`
+                : `Remove “${item.title}” from this day?`,
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            danger: true,
+            checkbox: {
+                label: 'Remove all recurring copies of this payment',
+                checked: false
+            }
+        });
+        if (!result?.confirmed) return;
+        if (result.checked) {
+            applyDelete(removeSeriesOccurrences(events, item));
+            return;
+        }
+    }
+
     const row = document.getElementById(`row-${i}`);
-    const go = () => {
-        const { selectedKey, events } = getState();
-        const nextEvents = { ...events };
-        nextEvents[selectedKey] = [...nextEvents[selectedKey]];
-        nextEvents[selectedKey].splice(i, 1);
-        if (!nextEvents[selectedKey].length) delete nextEvents[selectedKey];
-        patch({ events: nextEvents, editingIndex: null });
-        renderModal();
-    };
+    const go = () => removeOneOccurrence(i);
     if (row) { row.classList.add('is-removing'); setTimeout(go, 160); } else go();
 }
 

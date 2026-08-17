@@ -92,6 +92,9 @@
   <!-- Welcome Modal -->
   <div class="backdrop" id="welcome-modal">
     <div class="modal-shell welcome-card" role="dialog" aria-labelledby="welcome-title">
+      <div class="welcome-brand">
+        <img class="brand-mark brand-mark--lg" src="icons/icon.svg" width="48" height="48" alt="">
+      </div>
       <div class="modal-header">
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
       </div>
@@ -110,6 +113,7 @@
     <header class="site-header">
 
       <div class="brand" aria-label="OpenExpense.org — Private expense tracker">
+        <img class="brand-mark" src="icons/icon.svg" width="32" height="32" alt="">
         <p class="brand-wordmark">
           <span class="brand-title">OpenExpense.org</span>
           <span class="brand-tag">Private expense tracker</span>
@@ -286,7 +290,9 @@
                     <li><strong>Notes</strong> — optional context (line items, invoice numbers, etc.).</li>
                   </ul>
                   <p>
-                    Existing entries can be edited inline or deleted. Nothing leaves the panel until you save.
+                    Same-day charges with the same title are grouped together. Recurring payments show a series
+                    badge. When you delete a re-accruing payment, check <strong>Remove all recurring copies of this
+                    payment</strong> to wipe the whole series — leave it unchecked to remove only that day.
                   </p>
                 </section>
 

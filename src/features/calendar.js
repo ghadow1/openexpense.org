@@ -1,6 +1,7 @@
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
+import { groupExpenses } from '../core/series.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -119,27 +120,29 @@ function appendCompactMobileDay(body, dayEvents) {
 }
 
 function appendPills(body, dayEvents, dateKey, maxVisible, density) {
-    const visible = dayEvents.slice(0, maxVisible);
-    visible.forEach(e => {
+    const groups = groupExpenses(dayEvents);
+    const visible = groups.slice(0, maxVisible);
+    visible.forEach((group) => {
         const pill = document.createElement('div');
-        pill.className = `pill ${e.paid ? 'is-paid' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
-        const amt = Utils.getPrice(e);
-        const title = Utils.escapeHtml(e.title);
+        pill.className = `pill${group.allPaid ? ' is-paid' : ''}${group.recurring ? ' is-recurring' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
+        const title = Utils.escapeHtml(group.title);
+        const count = group.count > 1 ? `<span class="pill-count">×${group.count}</span>` : '';
+        const amt = group.total > 0 ? `<span class="pill-amt">$${group.total.toFixed(2)}</span>` : '';
+        const rec = group.recurring ? '<i class="ti ti-refresh pill-rec" aria-hidden="true"></i>' : '';
         if (density === 'narrow') {
-            pill.innerHTML = amt > 0
-                ? `<span class="pill-amt">$${amt.toFixed(2)}</span><span class="title">${title}</span>`
-                : `<span class="title">${title}</span>`;
+            pill.innerHTML = `${amt}<span class="title">${rec}${title}${count}</span>`;
         } else {
-            pill.innerHTML = `<span class="title">${title}</span>${amt > 0 ? `<span class="pill-amt">$${amt.toFixed(2)}</span>` : ''}`;
+            pill.innerHTML = `<span class="title">${rec}${title}${count}</span>${amt}`;
         }
         pill.onclick = (ev) => { ev.stopPropagation(); openModal(dateKey); };
         body.appendChild(pill);
     });
 
-    if (dayEvents.length > maxVisible) {
+    const hidden = groups.slice(maxVisible).reduce((sum, group) => sum + group.count, 0);
+    if (hidden > 0) {
         const more = document.createElement('div');
         more.className = 'cal-more';
-        more.textContent = `+${dayEvents.length - maxVisible} more`;
+        more.textContent = `+${hidden} more`;
         body.appendChild(more);
     }
 }

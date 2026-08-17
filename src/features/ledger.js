@@ -146,7 +146,7 @@ export const Ledger = {
             cancelText: 'Cancel',
             danger: true
         });
-        if (!ok) return;
+        if (!ok?.confirmed) return;
 
         patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
         // Clearing must remove the stored copy too, even if autosave is paused.
