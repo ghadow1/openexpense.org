@@ -246,15 +246,12 @@
               <div class="dash-actions" role="toolbar" aria-label="Quick actions">
                 <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">
                   <i class="ti ti-plus" aria-hidden="true"></i>
-                  <span>Add</span>
                 </button>
-                <button type="button" class="dash-act" data-action="scan-receipt" data-lockable>
+                <button type="button" class="dash-act" data-action="scan-receipt" data-lockable aria-label="Scan receipt" title="Scan receipt">
                   <i class="ti ti-camera" aria-hidden="true"></i>
-                  <span>Scan</span>
                 </button>
-                <button type="button" class="dash-act" data-action="export-ledger" data-lockable>
+                <button type="button" class="dash-act" data-action="export-ledger" data-lockable aria-label="Export ledger" title="Export ledger">
                   <i class="ti ti-download" aria-hidden="true"></i>
-                  <span>Export</span>
                 </button>
               </div>
               <div class="dash-status" role="status" aria-label="Ledger status">
@@ -402,9 +399,18 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">Quick actions</h3>
+                  <p>
+                    Plus, camera, and download sit under the snapshot chips as icon-only squares.
+                    Hover or long-press for the name. After a folder is linked, download becomes a disk
+                    and saves over the existing JSON pair.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">Status badges</h3>
                   <p>
-                    On the same row as Add, Scan, and Export — snapped to their right, under Monthly avg —
+                    On the same row as the Add, Scan, and Export icons — snapped to their right, under Monthly avg —
                     two pills show status: <strong>You own your data</strong> (green when encryption and
                     autosave are on; amber if autosave is paused or encryption is unavailable) and
                     <strong>File loaded</strong> / <strong>Not loaded</strong> (whether a named ledger or
@@ -415,14 +421,14 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">The calendar</h3>
                   <p>
-                    The main view is a month calendar. Use the arrows to change months, or tap <strong>Today</strong>
-                    to jump back to the current month. Days with items show that day’s net (up or down); tap a day
+                    The main view is a month calendar. Use the arrows to change months, or tap the calendar
+                    icon to jump back to the current month. Days with items show that day’s net (up or down); tap a day
                     to open its sheet. On a phone that sheet snaps to the bottom and shows spent vs income before the list.
                   </p>
-                  <p>Toolbar actions on the calendar:</p>
+                  <p>Toolbar icons on the calendar (names are on hover):</p>
                   <ul class="docs-list">
                     <li><strong>Import</strong> — open files from your OpenExpense folder. On iPhone and Android you can select the ledger and key.json together. Older zip backups still work.</li>
-                    <li><strong>Export / Save</strong> — first time, writes both files into an <strong>OpenExpense</strong> folder. After that folder is linked, the button becomes <strong>Save</strong> and overwrites the existing JSON pair. Long-press to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
+                    <li><strong>Export / Save</strong> — first time, writes both files into an <strong>OpenExpense</strong> folder. After that folder is linked, the download icon becomes a disk and overwrites the existing JSON pair. Long-press to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
@@ -603,6 +609,14 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Icon-only actions</h3>
+                  <p>
+                    Add, Scan, and Export under the chips, and the calendar toolbar, are icon-only
+                    squares. The GitHub, disk, and theme controls in the header stay the same size.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Tablet and iPad sizing</h3>
                   <p>
@@ -814,7 +828,6 @@
 
     <button type="button" class="quick-fab" data-action="scan-receipt" aria-label="Scan receipt" title="Scan receipt">
       <i class="ti ti-camera" aria-hidden="true"></i>
-      <span class="quick-fab-label">Scan</span>
     </button>
 
     <footer class="site-footer">

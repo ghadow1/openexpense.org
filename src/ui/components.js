@@ -18,7 +18,12 @@ export const UI = {
         btn.className = classes.join(' ');
 
         if (opts.icon) {
-            btn.innerHTML = `<i class="ti ti-${opts.icon}" aria-hidden="true"></i>${label ? `<span>${label}</span>` : ''}`;
+            const showLabel = !!label && !opts.iconOnly;
+            btn.innerHTML = `<i class="ti ti-${opts.icon}" aria-hidden="true"></i>${showLabel ? `<span>${label}</span>` : ''}`;
+            if (opts.iconOnly && label) {
+                btn.setAttribute('aria-label', label);
+                btn.title = label;
+            }
         } else {
             btn.textContent = label;
         }

@@ -1,8 +1,9 @@
 /**
- * OpenExpense — Export / Save button labels
+ * OpenExpense — Export / Save button state
  *
  * When a directory handle is linked, both Export controls become Save and
- * write over the existing JSON in that folder.
+ * write over the existing JSON in that folder. The visible chrome stays
+ * icon-only; the name lives in aria-label and title.
  */
 import { getSavedFolder } from '../core/folder.js';
 

@@ -281,6 +281,11 @@ textarea:focus:not(:focus-visible) {
     width: var(--control);
     min-width: var(--control);
     padding: 0;
+    gap: 0;
+}
+
+.ui-btn--icon span {
+    display: none;
 }
 
 .ui-btn--accent {
@@ -994,13 +999,15 @@ textarea,
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 0;
     flex: 0 0 auto;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 16px;
+    width: var(--control);
+    min-width: var(--control);
+    height: var(--control);
+    min-height: var(--control);
+    padding: 0;
     border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
-    border-radius: 2px;
+    border-radius: var(--control-radius);
     background: var(--surface);
     color: var(--accent);
     font: inherit;
@@ -1010,12 +1017,17 @@ textarea,
     cursor: pointer;
     white-space: nowrap;
     box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
     transition:
         background var(--dur-fast) var(--ease-out),
         border-color var(--dur-fast) var(--ease-out),
         color var(--dur-fast) var(--ease-out),
         transform var(--dur-fast) var(--ease-out),
         box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.dash-act span {
+    display: none;
 }
 
 .dash-act i {
@@ -1034,10 +1046,10 @@ textarea,
 }
 
 .dash-act--add {
-    width: auto;
-    min-width: 0;
-    padding: 0 16px;
-    border-radius: 2px;
+    width: var(--control);
+    min-width: var(--control);
+    padding: 0;
+    border-radius: var(--control-radius);
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
@@ -4305,7 +4317,7 @@ html.oe-scroll-lock body {
     }
 
     .dash-act {
-        padding: 0 12px;
+        padding: 0;
     }
 
     .sidebar {
@@ -4491,7 +4503,7 @@ html.oe-scroll-lock body {
 
     .dash-act {
         flex: 0 0 auto;
-        padding: 0 12px;
+        padding: 0;
     }
 
     .brand-tag {
