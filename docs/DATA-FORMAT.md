@@ -75,7 +75,7 @@ The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 
-The portable key is wiped from memory after unlock, on timeout, and when the page unloads. It is never written to IndexedDB or `localStorage`. Exporting again creates a **new** key pair; the previous `key.json` still unlocks the earlier file.
+OpenExpense drops its portable-key references after unlock, on timeout, and when the page unloads. JavaScript cannot guarantee physical memory erasure. The portable key is never intentionally written to IndexedDB or `localStorage`. Exporting again creates a **new** key pair; the previous `key.json` still unlocks the earlier file.
 
 ## IndexedDB
 

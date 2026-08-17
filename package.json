@@ -1,7 +1,8 @@
 {
   "name": "openexpense.org",
   "version": "2.2.0",
-  "private": false,
+  "private": true,
+  "type": "module",
   "description": "Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves the browser.",
   "license": "MIT",
   "homepage": "https://www.openexpense.org",
@@ -32,6 +33,9 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
-    "jspdf": "^4.2.1"
+    "jspdf": "^4.2.1",
+    "onnxruntime-web": "^1.27.0",
+    "pdfjs-dist": "^6.2.108",
+    "ppu-paddle-ocr": "^6.4.0"
   }
 }

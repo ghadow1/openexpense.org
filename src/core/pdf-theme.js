@@ -172,47 +172,12 @@ export function drawKicker(doc, theme, c, x, y, text) {
     doc.text(safePdfText(text).toUpperCase(), x, y);
 }
 
-const INTER_BASE = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/files/inter-latin';
-const INTER_FILES = [
-    { weight: '400', style: 'normal' },
-    { weight: '700', style: 'bold' }
-];
-
-let fontCache = null;
 let interAvailable = false;
 
-async function fetchInterFonts() {
-    const loaded = [];
-    for (const { weight, style } of INTER_FILES) {
-        const file = `inter-latin-${weight}-normal.ttf`;
-        const res = await fetch(`${INTER_BASE}-${weight}-normal.ttf`);
-        if (!res.ok) return null;
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-        loaded.push({ file, style, b64: btoa(binary) });
-    }
-    return loaded;
-}
-
-/** Load Inter into this jsPDF document (font bytes cached). */
-export async function loadPdfFonts(doc) {
-    try {
-        if (!fontCache) fontCache = await fetchInterFonts();
-        if (!fontCache) {
-            interAvailable = false;
-            return false;
-        }
-        for (const { file, style, b64 } of fontCache) {
-            doc.addFileToVFS(file, b64);
-            doc.addFont(file, 'Inter', style);
-        }
-        interAvailable = !!doc.getFontList().Inter;
-        return interAvailable;
-    } catch {
-        interAvailable = false;
-        return false;
-    }
+/** PDF generation stays offline and uses jsPDF's built-in Helvetica. */
+export async function loadPdfFonts() {
+    interAvailable = false;
+    return false;
 }
 
 export function getActiveFontName(theme) {

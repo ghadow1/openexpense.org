@@ -55,7 +55,15 @@ async function initApplication() {
 
     bootPatch.storageEncrypted = cryptoAvailable();
 
-    const saved = await loadLedger();
+    let saved = null;
+    let localLoadFailed = false;
+    try {
+        saved = await loadLedger();
+    } catch (err) {
+        localLoadFailed = true;
+        bootPatch.autosaveEnabled = false;
+        console.error('[OpenExpense] encrypted local ledger could not be opened:', err);
+    }
     const cleaned = saved ? sanitizeLedger(saved) : null;
     if (cleaned) {
         bootPatch.ledgerName = cleaned.name;
@@ -65,6 +73,14 @@ async function initApplication() {
     patch(bootPatch);
 
     initPersist(store);
+    window.addEventListener('openexpense:storage-purged', () => {
+        patch({ autosaveEnabled: false });
+        Toast.show(
+            'Another OpenExpense tab cleared local storage. Autosave is paused here to prevent restoring deleted data. Reload this tab.',
+            'error',
+            9000
+        );
+    });
 
     const versionBadge = document.getElementById('app-version');
     if (versionBadge && CONFIG.version) {
@@ -81,6 +97,13 @@ async function initApplication() {
 
     await refreshExportButtons().catch(() => {});
     switchView('app');
+    if (localLoadFailed) {
+        Toast.show(
+            'Encrypted local data could not be opened. Autosave is paused to preserve it. Import a known-good backup or use another browser profile.',
+            'error',
+            9000
+        );
+    }
 
     const importInput = document.getElementById('ledger-import-input');
     if (importInput && !importInput.dataset.bound) {
@@ -111,16 +134,6 @@ async function initApplication() {
     bindResponsiveCalendar();
 
     Ledger.bindFolderGesture(document.querySelector('[data-action="export-ledger"]'));
-
-    const warmOcr = () => { Receipt.warmEngine(); };
-    const armOcrWarm = () => {
-        window.removeEventListener('pointerdown', armOcrWarm, true);
-        window.removeEventListener('keydown', armOcrWarm, true);
-        if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 12000 });
-        else setTimeout(warmOcr, 2500);
-    };
-    window.addEventListener('pointerdown', armOcrWarm, { once: true, capture: true, passive: true });
-    window.addEventListener('keydown', armOcrWarm, { once: true, capture: true });
 
     window.__oeBoot = { ok: true };
 }

@@ -12,12 +12,22 @@ import { saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
 import { actionBusy, runLocked } from '../core/action-lock.js';
 
+const RECEIPT_LIMITS = {
+    maxFileBytes: 15 * 1024 * 1024,
+    maxPdfPages: 20,
+    maxExtractedLines: 5000,
+    maxExtractedChars: 250000
+};
+
 export const Receipt = {
-    // Lazy-loaded from CDN on first scan. index.html must define an import map for
-    // onnxruntime-web and ppu-ocv/canvas-web (peer deps of ppu-paddle-ocr).
-    OCR_CDN: 'https://cdn.jsdelivr.net/npm/ppu-paddle-ocr@5.8.0/web/index.js',
-    PDF_CDN: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs',
-    PDF_WORKER: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs',
+    // Executable OCR/PDF code and models are bundled or served from this origin.
+    PDF_WORKER: '/vendor/pdfjs/pdf.worker.min.mjs',
+    OCR_ASSETS: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -45,38 +55,26 @@ export const Receipt = {
         input.click();
     },
 
-    hintCdn() {
-        if (document.querySelector('link[data-oe-cdn]')) return;
-        const add = (rel) => {
-            const link = document.createElement('link');
-            link.rel = rel;
-            link.href = 'https://cdn.jsdelivr.net';
-            if (rel === 'preconnect') link.crossOrigin = 'anonymous';
-            link.dataset.oeCdn = '1';
-            document.head.appendChild(link);
-        };
-        add('dns-prefetch');
-        add('preconnect');
-    },
-
-    warmEngine() {
-        if (Receipt._warmStarted) return Receipt._warmPromise;
-        Receipt._warmStarted = true;
-        Receipt.hintCdn();
-        Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
-        return Receipt._warmPromise;
-    },
-
     async ensureEngine(onProgress) {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
-        Receipt.hintCdn();
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
-            const { PaddleOcrService } = await import(Receipt.OCR_CDN);
-            onProgress?.('Downloading models (first scan only)…', 0.2);
-            const service = new PaddleOcrService({ recognition: { strategy: 'cross-line' } });
+            const ort = await import('onnxruntime-web');
+            ort.env.wasm.wasmPaths = Receipt.OCR_ASSETS.wasm;
+            ort.env.wasm.numThreads = 1;
+            const { PaddleOcrService } = await import('ppu-paddle-ocr/web');
+            onProgress?.('Loading local OCR models…', 0.2);
+            const service = new PaddleOcrService({
+                session: { executionProviders: ['wasm'] },
+                model: {
+                    detection: Receipt.OCR_ASSETS.detection,
+                    recognition: Receipt.OCR_ASSETS.recognition,
+                    charactersDictionary: Receipt.OCR_ASSETS.dictionary
+                },
+                recognition: { strategy: 'cross-line' }
+            });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
@@ -106,7 +104,7 @@ export const Receipt = {
         if (Receipt._pdfjsPromise) return Receipt._pdfjsPromise;
 
         Receipt._pdfjsPromise = (async () => {
-            const pdfjs = await import(/* @vite-ignore */ Receipt.PDF_CDN);
+            const pdfjs = await import('pdfjs-dist/build/pdf.mjs');
             pdfjs.GlobalWorkerOptions.workerSrc = Receipt.PDF_WORKER;
             Receipt._pdfjs = pdfjs;
             return pdfjs;
@@ -141,6 +139,9 @@ export const Receipt = {
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
         const doc = await pdfjs.getDocument({ data }).promise;
+        if (doc.numPages > RECEIPT_LIMITS.maxPdfPages) {
+            throw new Error('PDF_PAGE_LIMIT');
+        }
 
         const allLines = [];
         for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
@@ -148,6 +149,10 @@ export const Receipt = {
             const page = await doc.getPage(pageNum);
             const textContent = await page.getTextContent();
             allLines.push(...Receipt.linesFromPdfTextContent(textContent));
+            if (allLines.length > RECEIPT_LIMITS.maxExtractedLines
+                || allLines.join('\n').length > RECEIPT_LIMITS.maxExtractedChars) {
+                throw new Error('PDF_TEXT_LIMIT');
+            }
         }
 
         onProgress?.('Rendering preview…', 0.55);
@@ -381,6 +386,10 @@ export const Receipt = {
 
     async scan(file) {
         return runLocked('scan', async () => {
+            if (!file || (typeof file.size === 'number' && file.size > RECEIPT_LIMITS.maxFileBytes)) {
+                Toast.show('That receipt file is too large. Use a file under 15 MB.', 'error', 5200);
+                return;
+            }
             Receipt._lastFile = file;
             const progress = Receipt.showProgress();
             try {

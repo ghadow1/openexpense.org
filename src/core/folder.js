@@ -7,7 +7,13 @@
  */
 import { metaGet, metaPut } from './persist.js';
 import { Utils } from './utils.js';
-import { matchLedgerPairNames } from './ledger-file.js';
+import {
+    FILE_LIMITS,
+    kidsMatch,
+    matchLedgerPairNames,
+    validateEncFile,
+    validateKeyFile
+} from './ledger-file.js';
 
 export const EXPORT_FOLDER_NAME = 'OpenExpense';
 const META_KEY = 'export-folder-v1';
@@ -100,7 +106,39 @@ export async function listFolderFileNames(folder) {
 
 export async function resolveOverwriteNames(folder, ledgerName) {
     const names = await listFolderFileNames(folder);
-    return matchLedgerPairNames(names, ledgerName);
+    const pair = matchLedgerPairNames(names, ledgerName);
+    const set = new Set(names);
+    const ledgerExists = set.has(pair.ledger);
+    const keyExists = set.has(pair.key);
+    if (!ledgerExists && !keyExists) return pair;
+    if (!ledgerExists || !keyExists) {
+        const conflict = new Error('FOLDER_CONFLICT');
+        conflict.code = 'FOLDER_CONFLICT';
+        throw conflict;
+    }
+
+    try {
+        const [enc, keyFile] = await Promise.all([
+            readFolderJson(folder, pair.ledger),
+            readFolderJson(folder, pair.key)
+        ]);
+        if (!validateEncFile(enc).ok || !validateKeyFile(keyFile).ok || !kidsMatch(enc, keyFile)) {
+            throw new Error('not an OpenExpense pair');
+        }
+    } catch (err) {
+        const conflict = new Error('FOLDER_CONFLICT');
+        conflict.code = 'FOLDER_CONFLICT';
+        conflict.cause = err;
+        throw conflict;
+    }
+    return pair;
+}
+
+async function readFolderJson(folder, name) {
+    const handle = await folder.getFileHandle(name);
+    const file = await handle.getFile();
+    if (file.size > FILE_LIMITS.maxBytes) throw new Error('existing file is too large');
+    return JSON.parse(await file.text());
 }
 
 function isOpenExpenseName(name) {
@@ -126,13 +164,50 @@ export async function pickExportFolder({ useDefault = true } = {}) {
 }
 
 export async function writeBlobsToFolder(folder, files) {
-    try {
-        for (const { blob, name } of files) {
-            const handle = await folder.getFileHandle(name, { create: true });
-            const writable = await handle.createWritable();
+    const stamp = `${Date.now()}-${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`;
+    const staged = files.map(({ blob, name }) => ({
+        blob,
+        name: `.openexpense-recovery-${stamp}-${name}`
+    }));
+
+    const writeOne = async ({ blob, name }) => {
+        const handle = await folder.getFileHandle(name, { create: true });
+        const writable = await handle.createWritable();
+        try {
             await writable.write(blob);
             await writable.close();
+        } catch (err) {
+            try { await writable.abort?.(); } catch (_) { }
+            throw err;
         }
+        const written = await handle.getFile();
+        if (written.size !== blob.size) throw new Error('FOLDER_WRITE_VERIFY_FAILED');
+    };
+
+    const removeStaged = async () => {
+        if (!folder?.removeEntry) return;
+        await Promise.all(staged.map(({ name }) => folder.removeEntry(name).catch(() => {})));
+    };
+
+    try {
+        try {
+            for (const file of staged) await writeOne(file);
+        } catch (err) {
+            await removeStaged();
+            throw err;
+        }
+
+        try {
+            for (const file of files) await writeOne(file);
+        } catch (err) {
+            const partial = new Error('FOLDER_PARTIAL_SAVE');
+            partial.code = 'FOLDER_PARTIAL_SAVE';
+            partial.recoveryNames = staged.map(({ name }) => name);
+            partial.cause = err;
+            throw partial;
+        }
+
+        await removeStaged();
     } catch (err) {
         if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
             await clearSavedFolder();

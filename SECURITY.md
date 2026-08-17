@@ -30,7 +30,7 @@ Please include:
 
 - Someone with this browser profile (or its unencrypted disk image) opening DevTools
 - A stolen encrypted ledger.json when the recipient also has the matching key.json
-- CDN availability for optional OCR/PDF engines (those hosts never receive ledger data)
+- Availability of the same-origin OCR/PDF runtime assets and models
 - Opening the app as `file://` (not a supported secure context)
 
 ## Design notes
@@ -38,6 +38,6 @@ Please include:
 - Autosave ciphertext uses a **non-extractable** Web Crypto key in IndexedDB (`src/core/crypto.js`). That key is never written as `key.json`.
 - Export creates a **new** AES-256-GCM key per save and downloads it only as `key.json` beside the encrypted ledger (`src/core/bundle.js`). The JWK is not stored in the browser. Treat the two files as one secret, or keep them apart.
 - `localStorage` holds only theme, autosave on/off, first-visit, and sidebar face.
-- Receipt images are drawn to a canvas and parsed in-page. They are not uploaded.
+- Receipt images are drawn to a canvas and parsed in-page. Executable OCR/PDF code, models, fonts, and icons are served from the OpenExpense origin; receipt contents are not uploaded by the application.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+See [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md), [`docs/SECURITY-AUDIT-2026-08-17.md`](docs/SECURITY-AUDIT-2026-08-17.md), and [`docs/SOC2-READINESS.md`](docs/SOC2-READINESS.md).

@@ -10,14 +10,15 @@ import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
 import {
     encryptBundle, decryptBundle, unzipBundle, entryToJson,
-    isEncFile, isKeyFile, BUNDLE
+    isEncFile, isKeyFile, BUNDLE, ZIP_LIMITS
 } from '../core/bundle.js';
 import {
     validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
     sanitizeLedger, countEntries, exportFilenames, readJsonFile, classifyJson
 } from '../core/ledger-file.js';
 import { confirmDialog } from '../ui/confirm.js';
-import { saveLedger } from '../core/persist.js';
+import { purgeStoredLedger, saveLedger } from '../core/persist.js';
+import { clearCachedDeviceKey } from '../core/crypto.js';
 import {
     canUseDirectoryPicker, getSavedFolder, pickExportFolder,
     writeBlobsToFolder, resolveOverwriteNames, EXPORT_FOLDER_NAME
@@ -291,6 +292,22 @@ export const Ledger = {
                 Toast.show('Folder access was removed. Tap Export to save again or long-press to pick a folder.', 'error', 5600);
                 return;
             }
+            if (err?.code === 'FOLDER_CONFLICT') {
+                Toast.show(
+                    'Matching filenames already exist but are not a valid OpenExpense pair. Choose another folder or rename those files.',
+                    'error',
+                    7600
+                );
+                return;
+            }
+            if (err?.code === 'FOLDER_PARTIAL_SAVE') {
+                Toast.show(
+                    'The update did not finish. A complete encrypted recovery pair was kept in the folder with “.openexpense-recovery” filenames.',
+                    'error',
+                    9000
+                );
+                return;
+            }
             console.error('[OpenExpense] export failed:', err);
             Toast.show('Could not export. Encryption needs a secure (https) context.', 'error');
         }
@@ -329,10 +346,17 @@ export const Ledger = {
             if (!ok?.confirmed) return;
 
             Ledger.clearPending();
+            try {
+                await purgeStoredLedger();
+                clearCachedDeviceKey();
+            } catch (err) {
+                console.error('[OpenExpense] could not clear encrypted storage:', err);
+                Toast.show('Could not clear encrypted storage. Nothing was removed.', 'error', 5200);
+                return;
+            }
             offerDeleteUndo(getState(), { count: countEntries(events) });
             patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
-            saveLedger({ name: '', events: {}, savedAt: Date.now() });
-            Toast.show('Calendar cleared.', 'success');
+            Toast.show('Calendar and device encryption key cleared.', 'success');
         });
     },
 
@@ -413,12 +437,17 @@ export const Ledger = {
     },
 
     async importZip(file) {
+        if (typeof file?.size === 'number' && file.size > ZIP_LIMITS.maxCompressedBytes) {
+            Toast.show('That ZIP is too large to import safely.', 'error');
+            return;
+        }
         const buf = new Uint8Array(await file.arrayBuffer());
         let entries;
         try {
             entries = unzipBundle(buf);
-        } catch {
-            Toast.show('That .zip could not be opened.', 'error');
+        } catch (err) {
+            const limited = err?.message === 'ZIP_TOO_LARGE' || err?.message === 'ZIP_EXPANSION_LIMIT';
+            Toast.show(limited ? 'That ZIP expands beyond the safe import limit.' : 'That ZIP could not be opened.', 'error');
             return;
         }
 

@@ -1,0 +1,8 @@
+* @ghadow1
+/.github/ @ghadow1
+/src/core/crypto.js @ghadow1
+/src/core/persist.js @ghadow1
+/src/core/bundle.js @ghadow1
+/src/core/ledger-file.js @ghadow1
+/src/core/folder.js @ghadow1
+/src/features/ledger.js @ghadow1

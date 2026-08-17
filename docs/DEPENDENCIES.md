@@ -1,6 +1,6 @@
 # Dependencies
 
-OpenExpense’s ledger path is local. Some **engines and fonts** load from public CDNs so the git repo stays small. Those requests are for library files, not expenses.
+OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtimes and models, fonts, and icons are bundled or served from the OpenExpense origin.
 
 ## npm (bundled into `app.js` / chunks)
 
@@ -9,29 +9,14 @@ OpenExpense’s ledger path is local. Some **engines and fonts** load from publi
 | [esbuild](https://esbuild.github.io/) | Dev-time bundler (`npm run build`) |
 | [fflate](https://github.com/101arrowz/fflate) | Export/import zip |
 | [jspdf](https://github.com/parallax/jsPDF) | Brochure monthly PDF |
+| [ppu-paddle-ocr](https://www.npmjs.com/package/ppu-paddle-ocr) | On-device OCR, lazy bundled |
+| [onnxruntime-web](https://www.npmjs.com/package/onnxruntime-web) | Local OCR inference runtime |
+| [pdfjs-dist](https://www.npmjs.com/package/pdfjs-dist) | Embedded PDF text and page raster |
 
-## Loaded by `index.html`
+## Vendored assets
 
-| Resource | Host | Why |
-| --- | --- | --- |
-| Inter Variable | jsDelivr (`@fontsource-variable/inter`) | UI type |
-| Tabler Icons | jsDelivr (`@tabler/icons-webfont`) | Header and button icons |
-
-These stylesheets are requested for every page load (with `preconnect` + print-media swap). They do not see ledger data.
-
-## Lazy-loaded on first receipt scan
-
-| Resource | Host | Why |
-| --- | --- | --- |
-| [ppu-paddle-ocr](https://www.npmjs.com/package/ppu-paddle-ocr) | jsDelivr | On-device OCR |
-| onnxruntime-web, ppu-ocv | jsDelivr (import map in `index.html`) | OCR peers |
-| pdf.js | jsDelivr | Embedded PDF text + page raster |
-
-Constants live on `Receipt` in `src/features/receipt.js`. If the CDN is blocked, typing an expense still works; only scan is unavailable.
+Runtime binaries, reviewed OCR models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed.
 
 ## Design rule
 
-A new dependency must either:
-
-1. Be bundled (npm + esbuild), or
-2. Be optional and documented here, and must never receive ledger JSON, receipt pixels, or key material.
+A new dependency must be version-locked, reviewed, documented here, pass the security workflow, and be bundled or served from the application origin. No dependency may receive ledger JSON, receipt pixels, or key material.

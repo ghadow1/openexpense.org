@@ -10,8 +10,9 @@ import {
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
-import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
+import { encryptBundle, decryptBundle, unzipBundle, ZIP_LIMITS } from '../src/core/bundle.js';
 import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
+import { zipSync } from 'fflate';
 
 const sample = {
     name: 'Home ledger',
@@ -63,6 +64,32 @@ test('sanitizeEntry drops unknown fields and empty titles', () => {
     assert.equal(row.kind, 'income');
     assert.equal(row.note.length, FILE_LIMITS.maxNote);
     assert.equal(row.evil, undefined);
+});
+
+test('portable key validation requires exactly 256 bits', () => {
+    const base = {
+        format: 'openexpense-key',
+        version: 1,
+        kid: '0123456789abcdef0123456789abcdef',
+        alg: 'AES-GCM'
+    };
+    const weak = {
+        ...base,
+        key: { kty: 'oct', k: Buffer.alloc(16).toString('base64url'), alg: 'A128GCM' }
+    };
+    const strong = {
+        ...base,
+        key: { kty: 'oct', k: Buffer.alloc(32).toString('base64url'), alg: 'A256GCM' }
+    };
+    assert.equal(validateKeyFile(weak).ok, false);
+    assert.equal(validateKeyFile(strong).ok, true);
+});
+
+test('ZIP import rejects entries that expand beyond the per-entry cap', () => {
+    const oversized = new Uint8Array(ZIP_LIMITS.maxEntryBytes + 1);
+    const zipped = zipSync({ 'ledger.json': oversized }, { level: 9 });
+    assert.ok(zipped.byteLength < ZIP_LIMITS.maxCompressedBytes);
+    assert.throws(() => unzipBundle(zipped), /ZIP_EXPANSION_LIMIT/);
 });
 
 test('isValidDateKey rejects non-calendar days', () => {

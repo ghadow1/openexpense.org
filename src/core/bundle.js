@@ -15,6 +15,13 @@ export const BUNDLE = {
     VERSION: 1
 };
 
+export const ZIP_LIMITS = {
+    maxCompressedBytes: 8 * 1024 * 1024,
+    maxExpandedBytes: 16 * 1024 * 1024,
+    maxEntryBytes: 8 * 1024 * 1024,
+    maxEntries: 8
+};
+
 export function newKid() {
     const bytes = new Uint8Array(16);
     const c = globalThis.crypto;
@@ -116,9 +123,32 @@ export function zipBundle(enc, keyFile) {
 }
 
 export function unzipBundle(u8) {
-    const entries = unzipSync(u8);
+    if (!(u8 instanceof Uint8Array) || u8.byteLength > ZIP_LIMITS.maxCompressedBytes) {
+        throw new Error('ZIP_TOO_LARGE');
+    }
+    let count = 0;
+    let expectedBytes = 0;
+    const entries = unzipSync(u8, {
+        filter(file) {
+            count += 1;
+            const size = Number(file?.originalSize ?? 0);
+            expectedBytes += size;
+            if (count > ZIP_LIMITS.maxEntries
+                || size > ZIP_LIMITS.maxEntryBytes
+                || expectedBytes > ZIP_LIMITS.maxExpandedBytes) {
+                throw new Error('ZIP_EXPANSION_LIMIT');
+            }
+            return true;
+        }
+    });
     const out = {};
+    let expandedBytes = 0;
     for (const name of Object.keys(entries)) {
+        expandedBytes += entries[name].byteLength;
+        if (entries[name].byteLength > ZIP_LIMITS.maxEntryBytes
+            || expandedBytes > ZIP_LIMITS.maxExpandedBytes) {
+            throw new Error('ZIP_EXPANSION_LIMIT');
+        }
         out[name] = entries[name];
     }
     return out;

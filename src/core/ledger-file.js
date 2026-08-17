@@ -94,6 +94,16 @@ function kidOk(value) {
     return value == null || (typeof value === 'string' && KID_KEY.test(value));
 }
 
+function base64ByteLength(value, { urlSafe = false } = {}) {
+    if (typeof value !== 'string' || !value) return -1;
+    const pattern = urlSafe ? /^[A-Za-z0-9_-]+$/ : /^[A-Za-z0-9+/]+={0,2}$/;
+    if (!pattern.test(value)) return -1;
+    const raw = value.replace(/=+$/, '');
+    const remainder = raw.length % 4;
+    if (remainder === 1) return -1;
+    return Math.floor((raw.length * 6) / 8);
+}
+
 export function isValidDateKey(key) {
     if (typeof key !== 'string' || !DATE_KEY.test(key)) return false;
     const y = Number(key.slice(0, 4));
@@ -122,7 +132,7 @@ export function validateEncFile(obj) {
     if (typeof obj.iv !== 'string' || !obj.iv || typeof obj.ct !== 'string' || !obj.ct) {
         return { ok: false, error: 'Encrypted ledger is missing ciphertext.' };
     }
-    if (obj.iv.length > 64 || obj.ct.length > FILE_LIMITS.maxBytes) {
+    if (base64ByteLength(obj.iv) !== 12 || base64ByteLength(obj.ct) < 16 || obj.ct.length > FILE_LIMITS.maxBytes) {
         return { ok: false, error: 'Encrypted ledger ciphertext is not usable.' };
     }
     return { ok: true };
@@ -145,8 +155,8 @@ export function validateKeyFile(obj) {
         return { ok: false, error: 'key.json has an invalid key id.' };
     }
     const jwk = obj.key && obj.key.kty ? obj.key : obj;
-    if (jwk.kty !== 'oct' || typeof jwk.k !== 'string' || jwk.k.length < 16 || jwk.k.length > 512) {
-        return { ok: false, error: 'key.json does not contain a usable AES key.' };
+    if (jwk.kty !== 'oct' || base64ByteLength(jwk.k, { urlSafe: true }) !== 32) {
+        return { ok: false, error: 'key.json does not contain a 256-bit AES key.' };
     }
     if (jwk.alg && jwk.alg !== 'A256GCM') {
         return { ok: false, error: 'key.json is not an AES-256-GCM key.' };

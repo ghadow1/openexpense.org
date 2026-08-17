@@ -5,7 +5,7 @@
  * That key cannot be exported as JWK and is not the user's key.json.
  * Portable export keys live only in a downloaded key.json (see bundle.js).
  */
-import { metaGet, metaPut } from './persist.js';
+import { metaGetOrCreate } from './persist.js';
 
 const KEY_ID = 'ledger-key-v1';
 const ENC_VERSION = 1;
@@ -28,16 +28,16 @@ async function loadOrCreateKey() {
     const c = subtleCrypto();
     if (!c) throw new Error('Web Crypto API unavailable (requires a secure context)');
 
-    const existing = await metaGet(KEY_ID);
-    if (existing) return existing;
-
-    const key = await c.subtle.generateKey(
+    const candidate = await c.subtle.generateKey(
         { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
     );
-    await metaPut(KEY_ID, key);
-    return key;
+    return metaGetOrCreate(KEY_ID, candidate);
+}
+
+export function clearCachedDeviceKey() {
+    keyPromise = null;
 }
 
 function getCryptoKey() {
