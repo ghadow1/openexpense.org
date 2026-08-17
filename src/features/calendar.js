@@ -98,11 +98,11 @@ function getCalendarDensity(colEl) {
     const col = colEl || document.getElementById('cal-col');
     const colW = col?.clientWidth || 0;
 
-    if (Utils.isMobile()) return 'mobile';
-    if (colW > 0 && colW < 640) return 'compact';
-    if (colW > 0 && colW < 820) return 'narrow';
-    if (colW > 0 && colW < 980) return 'tablet';
-    if (window.matchMedia('(max-width: 900px)').matches) return 'tablet';
+    if (Utils.isMobile() && colW > 0 && colW < 520) return 'mobile';
+    if (colW > 0 && colW < 560) return 'mobile';
+    if (colW > 0 && colW < 720) return 'compact';
+    if (colW > 0 && colW < 900) return 'narrow';
+    if (colW > 0 && colW < 1100) return 'tablet';
     return 'desktop';
 }
 
@@ -177,7 +177,8 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
     visible.forEach((group) => {
         const pill = document.createElement('div');
         const income = group.kind === 'income';
-        pill.className = `pill${income ? ' is-income' : ''}${group.allPaid ? ' is-paid' : ''}${group.recurring ? ' is-recurring' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
+        const compact = density === 'narrow' || density === 'tablet';
+        pill.className = `pill${income ? ' is-income' : ''}${group.allPaid ? ' is-paid' : ''}${group.recurring ? ' is-recurring' : ''}${compact ? ' is-compact' : ''}`;
         const title = Utils.escapeHtml(group.title);
         const count = group.count > 1 ? `<span class="pill-count">×${group.count}</span>` : '';
         const amt = group.total > 0 ? `<span class="pill-amt">$${group.total.toFixed(2)}</span>` : '';
@@ -185,7 +186,7 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
         const tips = [income ? 'Income' : 'Expense'];
         if (group.recurring) tips.push(repeatLabel(group.repeat));
         pill.title = tips.join(' · ');
-        if (density === 'narrow') {
+        if (compact) {
             pill.innerHTML = `${amt}<span class="title">${rec}${title}${count}</span>`;
         } else {
             pill.innerHTML = `<span class="title">${rec}${title}${count}</span>${amt}`;
@@ -274,7 +275,7 @@ function renderGrid(y, m, events) {
             if (density === 'mobile' || density === 'compact') {
                 if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
             } else {
-                const maxVisible = density === 'narrow' ? 1 : density === 'tablet' ? 2 : 3;
+                const maxVisible = density === 'narrow' ? 1 : density === 'tablet' ? 1 : 3;
                 appendPills(body, dayEvents, dateKey, maxVisible, density);
             }
 

@@ -881,7 +881,8 @@ textarea,
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
     height: 28px;
     padding: 0 10px;
     border-radius: 0;
@@ -892,6 +893,7 @@ textarea,
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    overflow: hidden;
     cursor: default;
     user-select: none;
     transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
@@ -900,6 +902,14 @@ textarea,
 .privacy-chip .privacy-chip-icon {
     font-size: 14px;
     color: inherit;
+    flex-shrink: 0;
+}
+
+.privacy-chip-text,
+.file-status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .privacy-chip.is-warn,
@@ -930,9 +940,24 @@ textarea,
 
 .dash {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
     gap: clamp(16px, 2vw, 24px);
     align-items: start;
+    min-width: 0;
+    width: 100%;
+}
+
+.ledger-name-field {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
 .dash-center {
@@ -940,6 +965,7 @@ textarea,
     flex-direction: column;
     gap: 14px;
     min-width: 0;
+    position: relative;
 }
 
 .dash-head {
@@ -950,12 +976,12 @@ textarea,
 }
 
 .dash-toolbar {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    column-gap: 12px;
     min-width: 0;
+    width: 100%;
 }
 
 .dash-actions {
@@ -963,19 +989,17 @@ textarea,
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 10px;
-    flex: 0 0 auto;
+    gap: 8px;
     min-width: 0;
     padding: 0;
 }
 
 .dash-status {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    margin-left: auto;
     min-width: 0;
 }
 
@@ -1012,7 +1036,7 @@ textarea,
 }
 
 .dash-act i {
-    font-size: 18px;
+    font-size: clamp(15px, 2.1vw, 18px);
     line-height: 1;
 }
 
@@ -1086,12 +1110,15 @@ html.is-action-busy [data-lockable] {
 }
 
 .dash-chip-value {
-    font-size: 1.25rem;
+    font-size: clamp(0.92rem, 1.6vw, 1.25rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.15;
     color: var(--text-strong);
     font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dash-chip-hint {
@@ -1195,11 +1222,16 @@ html.is-action-busy [data-lockable] {
 
 @media (max-width: 1200px) {
     .dash {
-        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(240px, 300px);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
     .sidebar {
+        position: static;
+        top: auto;
+        width: 100%;
+        max-width: 720px;
+        margin-inline: 0;
         padding: 18px;
     }
 }
@@ -1396,9 +1428,10 @@ html.is-action-busy [data-lockable] {
 }
 
 .month-title {
-    font-size: var(--fs-md);
+    font-size: clamp(0.8rem, 2.2vw, var(--fs-md));
     font-weight: 600;
-    min-width: 150px;
+    min-width: 0;
+    flex: 1 1 8rem;
     text-align: center;
     color: var(--text-strong);
     letter-spacing: var(--tracking-tight);
@@ -1410,6 +1443,11 @@ html.is-action-busy [data-lockable] {
     min-width: var(--control);
     height: var(--control);
     padding: 0;
+}
+
+.toolbar .ui-btn i,
+.toolbar-actions .ui-btn i {
+    font-size: clamp(16px, 2vw, 18px);
 }
 
 .toolbar-actions .ui-btn span {
@@ -4279,17 +4317,23 @@ html.oe-scroll-lock body {
    ========================================================================== */
 @media (max-width: 1024px) {
     .dash {
-        grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
-    .dash-toolbar {
-        flex-wrap: wrap;
+    .dash-act {
+        padding: 0 12px;
     }
 
     .sidebar {
         position: static;
         top: auto;
+        max-width: none;
+    }
+
+    .cal-shell[data-density="tablet"] .cal-day-total,
+    .cal-shell[data-density="narrow"] .cal-day-total {
+        font-size: 11px;
     }
 
     .cal-grid {
@@ -4417,38 +4461,54 @@ html.oe-scroll-lock body {
         display: flex;
         flex-direction: column;
         gap: 12px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .dash-center,
+    .sidebar {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .dash-chips {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
+        gap: 6px;
     }
 
     .dash-chip {
-        padding: 10px 8px;
+        padding: 8px 6px;
+    }
+
+    .dash-chip-label,
+    .dash-chip-hint {
+        font-size: 9px;
+        letter-spacing: 0.04em;
     }
 
     .dash-chip-value {
-        font-size: 0.95rem;
+        font-size: clamp(0.72rem, 3.6vw, 0.95rem);
     }
 
     .dash-toolbar {
-        flex-wrap: wrap;
-        row-gap: 8px;
+        grid-template-columns: max-content minmax(0, 1fr);
+        column-gap: 8px;
     }
 
     .dash-actions {
         position: static;
         padding: 0;
+        gap: 6px;
     }
 
     .dash-status {
-        margin-left: auto;
+        justify-content: flex-end;
     }
 
     .dash-act {
         flex: 0 0 auto;
-        padding: 0 14px;
+        padding: 0 12px;
     }
 
     .brand-tag {
@@ -4483,16 +4543,19 @@ html.oe-scroll-lock body {
 
     .status-chip,
     .privacy-chip {
-        height: auto;
+        height: 28px;
         min-height: 28px;
-        padding: 5px 10px;
-        white-space: normal;
-        line-height: 1.3;
+        padding: 0 8px;
+        white-space: nowrap;
+        line-height: 1;
+        font-size: 10px;
     }
 
     .privacy-chip-text,
     .file-status-text {
-        overflow-wrap: anywhere;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 11em;
     }
 
     .toolbar {
@@ -4546,6 +4609,12 @@ html.oe-scroll-lock body {
         background: color-mix(in srgb, var(--pill-bg) 45%, var(--day-bg));
     }
 
+    .cal-day-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+    }
+
     .cal-day-num {
         width: 16px;
         height: 16px;
@@ -4555,9 +4624,10 @@ html.oe-scroll-lock body {
     }
 
     .cal-day-total {
-        font-size: 8px;
+        font-size: 9px;
         gap: 1px;
-        max-width: calc(100% - 18px);
+        max-width: 100%;
+        justify-content: flex-start;
     }
 
     .cal-day-spark {
@@ -4781,6 +4851,17 @@ html.oe-scroll-lock body {
 
     .close-modal:hover {
         transform: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .dash-toolbar {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
+    }
+
+    .dash-status {
+        justify-content: flex-end;
     }
 }
 
