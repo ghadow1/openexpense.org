@@ -9,6 +9,7 @@ Each module starts with a short header describing what it owns.
 | File | Role |
 | --- | --- |
 | [`main.js`](main.js) | Boot, delegated clicks, render subscription |
+| [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet |
 | [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |
 
 ## `app/` — shell

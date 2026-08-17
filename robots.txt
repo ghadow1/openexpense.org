@@ -1,0 +1,7 @@
+# OpenExpense — GitHub Pages
+# The app is a static site. Ledger data never lives on this host.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://www.openexpense.org/sitemap.xml

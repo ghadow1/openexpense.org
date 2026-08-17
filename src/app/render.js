@@ -74,7 +74,7 @@ function updatePrivacyStatus() {
             "Autosave is off, so changes this session aren't written to your device. Turn it back on with the disk button, or export a backup.");
     } else {
         setChip(false, 'lock', 'You own your data',
-            'Auto-saving encrypted on this device with AES-256-GCM. Your key never leaves your browser.');
+            'Auto-saving an encrypted local wallet with AES-256-GCM. The portable key.json is never stored in this browser.');
     }
 }
 

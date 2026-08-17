@@ -1,7 +1,7 @@
 {
-  "name": "OpenExpense — Private Expense Tracker",
+  "name": "OpenExpense — Open-Source Expense Ledger",
   "short_name": "OpenExpense",
-  "description": "Track expenses offline with encrypted local storage. Your financial data never leaves your device.",
+  "description": "Open expense tracking in a mobile-friendly encrypted wallet. Your financial data never leaves your device.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -14,6 +14,12 @@
       "src": "icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

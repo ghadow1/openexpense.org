@@ -1,11 +1,11 @@
 # [openexpense.org](https://www.openexpense.org)
 
-**A privacy-first, offline-only expense tracker. Your data never leaves your browser.**
+**Open-source expense ledger and mobile-friendly encrypted wallet. Your data never leaves your browser.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.1.0-blue)](src/config.js)
 
-OpenExpense is a static web app. There is no backend, no account, and no analytics. The ledger lives encrypted in this browser’s IndexedDB. Export writes an encrypted zip you can keep or move yourself.
+OpenExpense is a static GitHub Pages app. There is no backend, no account, and no analytics. The ledger lives encrypted in this browser’s IndexedDB. Export writes an encrypted ledger.json plus a sibling key.json you keep yourself.
 
 ## What’s new
 
@@ -53,10 +53,12 @@ src/                   # Application source (edit here)
   features/            # Calendar, day editor, ledger files, receipts, sidebar
   ui/                  # Buttons, theme, toasts, confirm dialog
 docs/                  # Architecture, data format, sample ledger
-index.html             # Shell: header, two views, welcome, day modal
+index.html             # Shell: header, two views, welcome, day modal + SEO head
 openexpense.css        # Design tokens and layout
 app.js + chunk-*.js    # esbuild output for GitHub Pages — do not edit by hand
-icons/                 # Graphic mark (no wordmark in the header)
+og-image.jpg           # Open Graph / Twitter card
+robots.txt sitemap.xml # Crawler files (sitemap rewritten on build)
+icons/                 # Graphic mark (header also shows a compact lockup)
 ```
 
 A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
