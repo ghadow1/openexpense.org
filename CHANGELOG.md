@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Square controls
+
+The header mark, GitHub / autosave / theme buttons, calendar arrows, toolbar actions, close buttons, and other icon chrome now share one 40×40 square. Labeled form buttons keep their width and use the same height.
+
 ## 2026-08-17 — SEO, branding, and trust
 
 Search and social cards describe OpenExpense as an open-source expense ledger and mobile-friendly wallet. The header lockup, welcome trust row, and ledger status line make local-only security easier to see. Layout containers are unchanged. GitHub Pages now ships `robots.txt`, `sitemap.xml`, and a complete Open Graph / JSON-LD head.

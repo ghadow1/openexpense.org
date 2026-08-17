@@ -14,7 +14,7 @@ export const UI = {
         const classes = ['ui-btn'];
         if (opts.accent) classes.push('ui-btn--accent');
         else if (opts.danger) classes.push('ui-btn--danger');
-        if (opts.icon && !label) classes.push('ui-btn--icon');
+        if (opts.icon && (!label || opts.iconOnly)) classes.push('ui-btn--icon');
         btn.className = classes.join(' ');
 
         if (opts.icon) {
