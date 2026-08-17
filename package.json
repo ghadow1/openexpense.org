@@ -2,7 +2,7 @@
   "name": "openexpense.org",
   "version": "2.1.0",
   "private": false,
-  "description": "Privacy-first, offline-only expense tracker. The ledger never leaves the browser.",
+  "description": "Open-source expense ledger and mobile-friendly encrypted wallet. The ledger never leaves the browser.",
   "license": "MIT",
   "homepage": "https://www.openexpense.org",
   "repository": {
@@ -21,7 +21,7 @@
     "pwa"
   ],
   "scripts": {
-    "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
+    "build": "node scripts/write-sitemap.mjs && npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
     "serve": "python3 -m http.server 8765",
     "test": "node --test scripts/qc-ledger-file.mjs"
   },

@@ -21,13 +21,15 @@ export function applyTheme() {
     root.style.setProperty('--thumb-bg', c.thumbBg);
     root.style.setProperty('--modal-shadow', c.modalShadow);
 
-    let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-        meta = document.createElement('meta');
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    if (!metas.length) {
+        const meta = document.createElement('meta');
         meta.name = 'theme-color';
         document.head.appendChild(meta);
+        meta.content = c.bg;
+    } else {
+        metas.forEach((meta) => { meta.content = c.bg; });
     }
-    meta.content = c.bg;
 }
 
 export function setTheme(isDark) {

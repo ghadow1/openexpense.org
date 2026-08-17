@@ -77,6 +77,10 @@ npx esbuild src/main.js --bundle --format=esm --minify --splitting --outdir=.
 
 Output names: `app.js`, `chunk-[hash].js`. Pages has no build job — commit the new files and delete stale chunks that `app.js` no longer imports.
 
+`npm run build` also writes `sitemap.xml` (static, GitHub Pages). Crawlers read `index.html` directly: Privacy & Help copy is in the first HTML response, so no SSR is required.
+
+SEO metadata (Open Graph, Twitter, JSON-LD) lives in `index.html` and is documented in [`SEO-HEAD.html`](SEO-HEAD.html).
+
 ## What not to add
 
 - A server, database, or auth provider

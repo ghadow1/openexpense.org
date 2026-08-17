@@ -9,31 +9,100 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f3f7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0c10">
+  <meta name="application-name" content="OpenExpense">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OpenExpense">
   <meta name="format-detection" content="telephone=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="googlebot" content="index,follow">
 
-  <title>openexpense.org — Simple Private Expense Tracker</title>
+  <title>OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet</title>
   <meta name="description"
-    content="OpenExpense is a free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
+    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud. Mobile-friendly financial security tooling.">
+  <meta name="keywords"
+    content="open expense tracking, open-source expense ledger, free financial security tooling, mobile-friendly expense wallet, private expense tracker, offline ledger, encrypted local storage">
   <meta name="author" content="Gregory Medina">
   <link rel="canonical" href="https://www.openexpense.org/">
+  <link rel="sitemap" type="application/xml" href="https://www.openexpense.org/sitemap.xml">
 
-  <!-- Open Graph / social -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="openexpense.org — Private Expense Tracker">
+  <meta property="og:site_name" content="OpenExpense">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet">
   <meta property="og:description"
-    content="A free, privacy-first, offline-only expense tracker. Your financial data never leaves your browser.">
+    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud.">
   <meta property="og:url" content="https://www.openexpense.org/">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="https://www.openexpense.org/og-image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OpenExpense — open-source expense ledger with a local encrypted wallet">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet">
+  <meta name="twitter:description"
+    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud.">
+  <meta name="twitter:image" content="https://www.openexpense.org/og-image.jpg">
+  <meta name="twitter:image:alt" content="OpenExpense — open-source expense ledger with a local encrypted wallet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://www.openexpense.org/#website",
+        "url": "https://www.openexpense.org/",
+        "name": "OpenExpense",
+        "description": "Open-source expense ledger and mobile-friendly encrypted wallet that never leaves your browser.",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://www.openexpense.org/#org" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://www.openexpense.org/#app",
+        "name": "OpenExpense",
+        "url": "https://www.openexpense.org/",
+        "applicationCategory": "FinanceApplication",
+        "applicationSubCategory": "Expense tracker",
+        "operatingSystem": "Any (mobile and desktop browsers)",
+        "browserRequirements": "Requires JavaScript and a secure context (HTTPS).",
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Open expense tracking on a calendar ledger",
+          "Encrypted local wallet (AES-256-GCM)",
+          "Portable key.json kept only on the user's device",
+          "Offline-only, no accounts or cloud sync",
+          "Income and expense in one ledger file"
+        ],
+        "screenshot": "https://www.openexpense.org/og-image.jpg",
+        "image": "https://www.openexpense.org/og-image.jpg",
+        "author": { "@id": "https://www.openexpense.org/#org" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://www.openexpense.org/#org",
+        "name": "OpenExpense",
+        "url": "https://www.openexpense.org/",
+        "logo": "https://www.openexpense.org/apple-touch-icon.png",
+        "sameAs": ["https://github.com/ghadow1/openexpense.org"]
+      }
+    ]
+  }
+  </script>
 
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="512x512">
   <link rel="manifest" href="manifest.json">
 
-  <!-- Preconnect to the CDN for faster icon/font delivery -->
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
   <!-- Bare-specifier resolution for lazy-loaded OCR (ppu-paddle-ocr peer deps) -->
@@ -92,6 +161,7 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#view-app">Skip to expense ledger</a>
 
   <!-- Welcome Modal -->
   <div class="backdrop" id="welcome-modal">
@@ -103,9 +173,14 @@
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
       </div>
       <p class="welcome-copy">
-        Track spending without giving up your data. Your ledger is encrypted on this device — nothing
-        is uploaded, synced, or sold. Tap any day on the calendar to log an expense.
+        Open expense tracking in a local encrypted wallet. Your ledger stays on this phone or
+        computer — nothing is uploaded, synced, or sold. Tap any day on the calendar to log an expense.
       </p>
+      <ul class="welcome-trust">
+        <li>Open source</li>
+        <li>Encrypted locally</li>
+        <li>Any mobile browser</li>
+      </ul>
       <button class="btn-primary welcome-cta" type="button" data-action="close-welcome">
         Get Started
       </button>
@@ -116,8 +191,12 @@
 
     <header class="site-header">
 
-      <div class="brand" aria-label="OpenExpense.org — Private expense tracker">
-        <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="OpenExpense">
+      <div class="brand" aria-label="OpenExpense.org — Open-source expense ledger">
+        <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="">
+        <div class="brand-lockup">
+          <h1 class="brand-name">OpenExpense</h1>
+          <p class="brand-tag">Local encrypted wallet</p>
+        </div>
       </div>
 
       <div class="header-actions">
@@ -157,6 +236,7 @@
             <span class="file-status-text">Not loaded</span>
           </span>
         </div>
+        <p class="ledger-trust">Open-source · encrypted on this device · key.json stays with you</p>
       </div>
       <div class="layout-wrapper">
         <div class="cal-main" id="cal-col"></div>
@@ -206,8 +286,9 @@
                 <p class="docs-eyebrow">Chapter 1</p>
                 <h2 class="docs-hero-title">Introduction</h2>
                 <p class="docs-hero-lead">
-                  OpenExpense is a privacy-first, open-source expense tracker. There are no accounts, no cloud sync,
-                  and no data mining — only an encrypted ledger that lives in your browser.
+                  OpenExpense is a privacy-first, open-source expense ledger and mobile-friendly wallet.
+                  There are no accounts, no cloud sync, and no data mining — only an encrypted ledger
+                  that lives in your browser.
                 </p>
               </header>
 
@@ -228,7 +309,7 @@
                   <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
                   <li><strong>Receipt scanning</strong> — photograph or upload a receipt or PDF; local OCR suggests fields you review before saving.</li>
                   <li><strong>Encrypted autosave</strong> — changes write to encrypted local storage automatically.</li>
-                  <li><strong>Encrypted export</strong> — download a backup zip you can move to another device.</li>
+                  <li><strong>Encrypted export</strong> — download a ledger.json plus key.json you can move to another device.</li>
                   <li><strong>Spending report PDF</strong> — export the current month from the sidebar.</li>
                 </ul>
 
@@ -238,6 +319,14 @@
                   <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">GitHub</a>
                   under the MIT license. You can read exactly how encryption, storage, and receipt parsing work.
                   The project is free to use — no subscriptions, ads, or upsells.
+                </p>
+
+                <h3 class="docs-section-title">Device-agnostic wallet</h3>
+                <p>
+                  The same encrypted wallet works in any modern mobile or desktop browser. There is no app store
+                  install and no hardware wallet to pair. Export the encrypted ledger and keep <code>key.json</code>
+                  on your device; open both files on the next phone or laptop. OpenExpense never stores that
+                  portable key in browser cache.
                 </p>
 
                 <h3 class="docs-section-title">Privacy by architecture</h3>
@@ -465,6 +554,15 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — SEO, branding, and trust</h3>
+                  <p>
+                    Search and social cards now describe OpenExpense as an open-source expense ledger and
+                    mobile-friendly wallet. The header lockup, welcome trust row, and status line make the
+                    local-only security model easier to see. Layout containers are unchanged.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Encrypted files</h3>
                   <p>
                     Export now saves an encrypted <strong>ledger.json</strong> (expenses and income in the same
@@ -533,7 +631,7 @@
     <footer class="site-footer">
       <div class="footer-left">
         <p class="footer-sovereignty">Your expenses never leave this device.</p>
-        <span>&copy; 2026 openexpense.org &bull; MIT License</span>
+        <span>&copy; 2026 openexpense.org &bull; MIT License &bull; Free financial security tooling</span>
       </div>
       <div class="footer-right">
         <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">
@@ -579,6 +677,16 @@
 
   <div id="global-tooltip"></div>
 
+  <noscript>
+    <article class="noscript-seo">
+      <h2>Open-source expense ledger</h2>
+      <p>
+        OpenExpense is free financial security tooling for open expense tracking.
+        The mobile-friendly expense wallet encrypts your ledger on this device.
+        Enable JavaScript to use the calendar.
+      </p>
+    </article>
+  </noscript>
   <script type="module" src="app.js"></script>
 </body>
 
