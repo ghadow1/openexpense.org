@@ -9,8 +9,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0F172A">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#002244">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#081c38">
   <meta name="application-name" content="OpenExpense">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -240,26 +240,27 @@
             </div>
             <p class="ledger-trust">Open-source · encrypted on this device · key.json stays with you</p>
           </div>
-          <div class="dash-actions" role="toolbar" aria-label="Quick actions">
-            <button type="button" class="dash-act" data-action="quick-add-today">
-              <span class="dash-act-ico" aria-hidden="true">＋</span>
-              <span>Add entry</span>
-            </button>
-            <button type="button" class="dash-act" data-action="scan-receipt">
-              <span class="dash-act-ico" aria-hidden="true">◎</span>
-              <span>Scan</span>
-            </button>
-            <button type="button" class="dash-act" data-action="export-ledger">
-              <span class="dash-act-ico" aria-hidden="true">↗</span>
-              <span>Export</span>
-            </button>
-          </div>
         </aside>
         <div class="dash-center">
-          <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
-            <div class="skel skel-chip" aria-hidden="true"></div>
-            <div class="skel skel-chip" aria-hidden="true"></div>
-            <div class="skel skel-chip" aria-hidden="true"></div>
+          <div class="dash-head">
+            <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
+              <div class="skel skel-chip" aria-hidden="true"></div>
+              <div class="skel skel-chip" aria-hidden="true"></div>
+              <div class="skel skel-chip" aria-hidden="true"></div>
+            </div>
+            <div class="dash-actions" role="toolbar" aria-label="Quick actions">
+              <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" aria-label="Add entry" title="Add entry">
+                <i class="ti ti-plus" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="dash-act" data-action="scan-receipt">
+                <i class="ti ti-camera" aria-hidden="true"></i>
+                <span>Scan</span>
+              </button>
+              <button type="button" class="dash-act" data-action="export-ledger">
+                <i class="ti ti-download" aria-hidden="true"></i>
+                <span>Export</span>
+              </button>
+            </div>
           </div>
           <div class="cal-main" id="cal-col">
             <div class="skel-board" aria-hidden="true">
@@ -594,6 +595,15 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Chase quick actions</h3>
+                  <p>
+                    Add, Scan, and Export are now Chase-style pills under the snapshot chips — a circular plus
+                    and labeled chips with the same icons as the rest of the app. The navy header and Chase
+                    blue accent are the live look again.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Fintech dashboard</h3>
                   <p>
