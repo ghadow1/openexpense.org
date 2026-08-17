@@ -62,7 +62,7 @@ function updatePrivacyStatus() {
         setChip(true, 'alert-triangle', 'Not saving — session only',
             "Autosave is off, so changes this session aren't written to your device. Turn it back on with the disk button, or export a backup.");
     } else {
-        setChip(false, 'lock', 'Encrypted — data stays here',
+        setChip(false, 'lock', 'You own your data',
             'Auto-saving encrypted on this device with AES-256-GCM. Your key never leaves your browser.');
     }
 }
