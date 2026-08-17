@@ -127,6 +127,51 @@ function syncDensityClass(density) {
     if (shellEl) shellEl.dataset.density = density;
 }
 
+function sumDay(dayEvents) {
+    let expense = 0;
+    let income = 0;
+    (dayEvents || []).forEach((e) => {
+        const amount = Utils.getPrice(e);
+        if (!Number.isFinite(amount) || amount <= 0) return;
+        if (Utils.entryKind(e) === 'income') income += amount;
+        else expense += amount;
+    });
+    return { expense, income, net: income - expense };
+}
+
+function formatDayTotal(amount) {
+    const abs = Math.abs(amount);
+    if (abs >= 10000) return `$${(abs / 1000).toFixed(0)}k`;
+    if (abs >= 1000) return `$${(abs / 1000).toFixed(1)}k`;
+    return `$${Math.round(abs)}`;
+}
+
+function appendDayTotal(head, dayEvents) {
+    const { expense, income, net } = sumDay(dayEvents);
+    if (expense <= 0 && income <= 0) return;
+
+    const up = net > 0;
+    const down = net < 0;
+    const shown = up ? income : (down ? expense : expense || income);
+    const label = up ? 'income' : (down ? 'spent' : 'balanced');
+
+    const total = document.createElement('span');
+    total.className = `cal-day-total${up ? ' is-up' : ''}${down ? ' is-down' : ''}`;
+    total.title = up
+        ? `Income ${Utils.formatMoney(income)}`
+        : (down ? `Spent ${Utils.formatMoney(expense)}` : `Spent ${Utils.formatMoney(expense)} · income ${Utils.formatMoney(income)}`);
+    total.setAttribute('aria-label', `${Utils.formatMoney(shown)} ${label} this day`);
+    total.innerHTML = `
+        <svg class="cal-day-spark" viewBox="0 0 12 8" width="12" height="8" aria-hidden="true">
+            <polyline points="${up ? '1,6 4.5,3.5 7,5 11,1.5' : '1,2 4.5,4.5 7,3 11,6.5'}"
+                fill="none" stroke="currentColor" stroke-width="1.4"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="cal-day-total-amt">${formatDayTotal(shown)}</span>
+    `;
+    head.appendChild(total);
+}
+
 function appendCompactMobileDay(body, dayEvents) {
     const dots = document.createElement('div');
     dots.className = 'cal-day-dots';
@@ -217,16 +262,10 @@ function renderGrid(y, m, events) {
 
             cell.setAttribute('role', 'button');
             cell.setAttribute('tabindex', '0');
-            cell.setAttribute('aria-label', `Log expense for ${dateKey}`);
             cell.onclick = () => openModal(dateKey);
             cell.onkeydown = (ev) => {
                 if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openModal(dateKey); }
             };
-
-            const numLabel = document.createElement('div');
-            numLabel.className = `cal-day-num${isToday ? ' is-today' : ''}`;
-            numLabel.textContent = d;
-            cell.appendChild(numLabel);
 
             const dayEvents = events[dateKey] || [];
             if (dayEvents.length) {
@@ -234,6 +273,21 @@ function renderGrid(y, m, events) {
                 if (dayEvents.some((e) => Utils.entryKind(e) === 'expense')) cell.classList.add('has-expense');
                 if (dayEvents.some((e) => Utils.entryKind(e) === 'income')) cell.classList.add('has-income');
             }
+
+            const head = document.createElement('div');
+            head.className = 'cal-day-head';
+            const numLabel = document.createElement('div');
+            numLabel.className = `cal-day-num${isToday ? ' is-today' : ''}`;
+            numLabel.textContent = d;
+            head.appendChild(numLabel);
+            if (dayEvents.length) appendDayTotal(head, dayEvents);
+            cell.appendChild(head);
+
+            const { net } = sumDay(dayEvents);
+            const moneyHint = net > 0
+                ? `, ${Utils.formatMoney(net)} income`
+                : (net < 0 ? `, ${Utils.formatMoney(Math.abs(net))} spent` : '');
+            cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}`);
 
             const body = document.createElement('div');
             body.className = 'cal-day-body';
