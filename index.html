@@ -241,7 +241,9 @@
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
+              <div class="skel skel-chip" aria-hidden="true"></div>
             </div>
+            <div id="dash-insights" class="dash-insights" role="list" aria-label="Tracking points" hidden></div>
             <div class="dash-toolbar">
               <div class="dash-actions" role="toolbar" aria-label="Quick actions">
                 <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">
@@ -398,6 +400,24 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Snapshot chips</h3>
+                  <p>
+                    Four numbers sit above the calendar. <strong>Current funds</strong> is settled cash:
+                    paid income minus paid spend through today — pending and future days do not count.
+                    <strong>Projected income</strong> is this month’s scheduled income (recurring copies
+                    already on the calendar), with how much has been received. <strong>Cashflow</strong>
+                    is this month’s income minus spend. <strong>Monthly avg</strong> is the net across
+                    months that have activity.
+                  </p>
+                  <p>
+                    Under those chips, three tracking points stay small on purpose:
+                    <strong>Due soon</strong> (unpaid spend in the next 7 days),
+                    <strong>Left to pay</strong> (unpaid spend in the month on screen), and
+                    <strong>Saved</strong> (this month’s net as a percent of income).
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Quick actions</h3>
                   <p>
@@ -611,6 +631,16 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Current funds and projected income</h3>
+                  <p>
+                    The snapshot row now leads with <strong>Current funds</strong> (settled paid-in minus
+                    paid-out). The old year-net Balance chip is <strong>Projected income</strong> for the
+                    month on screen. Cashflow and monthly avg stay. Due soon, left to pay, and saved
+                    sit as compact tracking points under the chips.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Recurring edits apply to all</h3>
                   <p>

@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Current funds and projected income
+
+The snapshot row now leads with **Current funds** — paid income minus paid spend through today. The old year-net Balance chip is **Projected income** for the month on screen. Cashflow and monthly avg stay. Due soon, left to pay, and saved sit under the chips as compact tracking points.
+
 ## 2026-08-17 — Edit one recurring copy, update all
 
 Changing the title, date, amount, or cadence on one recurring entry now updates every copy in that series. Paid / received stays on each day. A date change shifts every copy by the same number of days.

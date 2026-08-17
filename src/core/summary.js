@@ -241,17 +241,89 @@ export function formatChipMoney(value) {
     return `${sign}${Utils.formatMoney(abs)}`;
 }
 
-/** Derived month/year net for the dashboard chips. Does not persist. */
-export function computeNetSnapshot(events, currentDate) {
+function dateKeyOf(date) {
+    return Utils.dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDaysKey(key, days) {
+    const [y, m, d] = String(key).split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
+    return Utils.dateKey(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+}
+
+/** Paid income minus paid spend on or before asOf. Pending and future dates do not count. */
+export function settledFundsThrough(events, asOf = new Date()) {
+    const asOfKey = dateKeyOf(asOf);
+    let incoming = 0;
+    let outgoing = 0;
+
+    Object.keys(events || {}).forEach((date) => {
+        if (date > asOfKey) return;
+        (events[date] || []).forEach((e) => {
+            if (!e.paid) return;
+            const amount = Utils.getPrice(e);
+            if (!Number.isFinite(amount) || amount <= 0) return;
+            if (Utils.entryKind(e) === 'income') incoming += amount;
+            else outgoing += amount;
+        });
+    });
+
+    return { incoming, outgoing, net: incoming - outgoing };
+}
+
+/** Unpaid entries in an inclusive date window, optionally one kind. */
+export function pendingInWindow(events, fromKey, toKey, kind) {
+    let total = 0;
+    let count = 0;
+
+    Object.keys(events || {}).forEach((date) => {
+        if (date < fromKey || date > toKey) return;
+        (events[date] || []).forEach((e) => {
+            if (e.paid) return;
+            if (kind && Utils.entryKind(e) !== kind) return;
+            const amount = Utils.getPrice(e);
+            if (!Number.isFinite(amount) || amount <= 0) return;
+            total += amount;
+            count += 1;
+        });
+    });
+
+    return { total, count };
+}
+
+/**
+ * Homepage snapshot. Current funds are settled cash. Projected income is
+ * the viewed month’s scheduled income (recurring copies already on the
+ * calendar). Cashflow and monthly avg stay month/year nets. Does not persist.
+ */
+export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
     const spend = computeMonthlySummary(events, currentDate, 'expense');
     const income = computeMonthlySummary(events, currentDate, 'income');
+    const funds = settledFundsThrough(events, asOf);
+    const asOfKey = dateKeyOf(asOf);
+    const dueSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'expense');
+    const savingsRate = income.total > 0
+        ? ((income.total - spend.total) / income.total) * 100
+        : null;
+
     return {
         monthIn: income.total,
         monthOut: spend.total,
         monthNet: income.total - spend.total,
         yearNet: (income.yearTotal || 0) - (spend.yearTotal || 0),
         monthAvg: (income.yearAvg || 0) - (spend.yearAvg || 0),
-        monthLabel: spend.shortMonth
+        monthLabel: spend.shortMonth,
+        currentFunds: funds.net,
+        fundsIn: funds.incoming,
+        fundsOut: funds.outgoing,
+        projectedIncome: income.total,
+        incomeReceived: income.paid,
+        incomeDue: income.pending,
+        dueSoon: dueSoon.total,
+        dueSoonCount: dueSoon.count,
+        leftToPay: spend.pending,
+        savingsRate
     };
 }
 

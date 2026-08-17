@@ -76,13 +76,36 @@ test('snapshot chips compact large nets', () => {
 });
 
 test('dashboard snapshot nets income against spend', () => {
-    const snap = computeNetSnapshot(ledger.events, new Date(2026, 7, 17));
+    const asOf = new Date(2026, 7, 24);
+    const snap = computeNetSnapshot(ledger.events, new Date(2026, 7, 17), asOf);
     assert.equal(snap.monthIn, 1600);
     assert.equal(snap.monthOut, 1460);
     assert.equal(snap.monthNet, 140);
     assert.equal(snap.yearNet, 140);
     assert.equal(snap.monthAvg, 140);
     assert.equal(snap.monthLabel, 'Aug');
+    assert.equal(snap.currentFunds, 140);
+    assert.equal(snap.projectedIncome, 1600);
+    assert.equal(snap.incomeReceived, 1600);
+    assert.equal(snap.leftToPay, 0);
+    assert.equal(snap.dueSoon, 0);
+    assert.equal(Math.round(snap.savingsRate), 9);
+});
+
+test('current funds ignore pending and future paid entries', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'Paycheck', price: 1000, kind: 'income', paid: true })],
+        '2026-08-10': [entry({ title: 'Groceries', price: 400, paid: true })],
+        '2026-08-20': [entry({ title: 'Rent', price: 400, paid: false })],
+        '2026-09-01': [entry({ title: 'Paycheck', price: 1000, kind: 'income', paid: true })]
+    };
+    const asOf = new Date(2026, 7, 17);
+    const snap = computeNetSnapshot(events, asOf, asOf);
+    assert.equal(snap.currentFunds, 600);
+    assert.equal(snap.projectedIncome, 1000);
+    assert.equal(snap.dueSoon, 400);
+    assert.equal(snap.dueSoonCount, 1);
+    assert.equal(snap.leftToPay, 400);
 });
 
 test('sumDay splits spend down and income up', () => {

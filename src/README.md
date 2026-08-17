@@ -33,7 +33,7 @@ Each module starts with a short header describing what it owns.
 | [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, series-wide update / date shift, series delete |
-| [`core/summary.js`](core/summary.js) | Month/year totals |
+| [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |
 
@@ -48,7 +48,7 @@ Each module starts with a short header describing what it owns.
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary (coin-flip card) |
-| [`features/dash-strip.js`](features/dash-strip.js) | Balance / cashflow / monthly-avg chips |
+| [`features/dash-strip.js`](features/dash-strip.js) | Current funds, projected income, cashflow, monthly avg, tracking points |
 
 ## `ui/` — chrome
 
