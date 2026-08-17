@@ -1,8 +1,8 @@
 /**
  * OpenExpense — dashboard snapshot chips
  *
- * Paints derived funds and month totals into #dash-chips as one family of
- * blocks. Read-only over events. Does not persist or change ledger data.
+ * Paints derived funds and month totals into two labeled block groups.
+ * Read-only over events. Does not persist or change ledger data.
  */
 import { getState } from '../core/store.js';
 import { computeNetSnapshot, formatMoney, formatChipMoney } from '../core/summary.js';
@@ -69,6 +69,32 @@ function textChip({ label, value, hint, tone, track = false }) {
     return article;
 }
 
+function blockGroup({ title, description, items, className = '' }) {
+    const section = document.createElement('section');
+    section.className = `dash-block-group${className ? ` ${className}` : ''}`;
+
+    const header = document.createElement('header');
+    header.className = 'dash-block-head';
+
+    const heading = document.createElement('h2');
+    heading.className = 'dash-block-title';
+    heading.textContent = title;
+
+    const copy = document.createElement('p');
+    copy.className = 'dash-block-description';
+    copy.textContent = description;
+    header.append(heading, copy);
+
+    const grid = document.createElement('div');
+    grid.className = 'dash-block-grid';
+    grid.setAttribute('role', 'list');
+    grid.setAttribute('aria-label', title);
+    grid.append(...items);
+
+    section.append(header, grid);
+    return section;
+}
+
 function toneFor(n) {
     if (n > 0) return 'up';
     if (n < 0) return 'down';
@@ -98,52 +124,65 @@ export function renderDashStrip() {
         : 'Next 7 days';
 
     root.replaceChildren(
-        chip({
-            label: 'Current funds',
-            value: snap.currentFunds,
-            tone: toneFor(snap.currentFunds),
-            hint: 'Settled'
+        blockGroup({
+            title: 'Account overview',
+            description: 'What is settled now and how this month is tracking.',
+            items: [
+                chip({
+                    label: 'Available funds',
+                    value: snap.currentFunds,
+                    tone: toneFor(snap.currentFunds),
+                    hint: 'Paid income − paid spending'
+                }),
+                chip({
+                    label: 'Scheduled income',
+                    value: snap.projectedIncome,
+                    tone: snap.projectedIncome > 0 ? 'up' : 'flat',
+                    hint: incomeHint(snap)
+                }),
+                chip({
+                    label: 'Month net',
+                    value: snap.monthNet,
+                    tone: toneFor(snap.monthNet),
+                    hint: 'Income − spending'
+                }),
+                chip({
+                    label: 'Avg monthly net',
+                    value: snap.monthAvg,
+                    tone: toneFor(snap.monthAvg),
+                    hint: 'Across active months'
+                })
+            ]
         }),
-        chip({
-            label: 'Projected income',
-            value: snap.projectedIncome,
-            tone: snap.projectedIncome > 0 ? 'up' : 'flat',
-            hint: incomeHint(snap)
-        }),
-        chip({
-            label: 'Cashflow',
-            value: snap.monthNet,
-            tone: toneFor(snap.monthNet),
-            hint: snap.monthLabel
-        }),
-        chip({
-            label: 'Monthly avg',
-            value: snap.monthAvg,
-            tone: toneFor(snap.monthAvg),
-            hint: 'Active months'
-        }),
-        chip({
-            label: 'Due soon',
-            value: snap.dueSoon,
-            tone: snap.dueSoon > 0 ? 'flat' : 'up',
-            hint: dueHint,
-            signed: false,
-            track: true
-        }),
-        chip({
-            label: 'Left to pay',
-            value: snap.leftToPay,
-            tone: snap.leftToPay > 0 ? 'flat' : 'up',
-            hint: snap.monthLabel,
-            signed: false,
-            track: true
-        }),
-        textChip({
-            label: 'Saved',
-            value: saved,
-            hint: snap.monthLabel,
-            tone: snap.savingsRate > 0 ? 'up' : 'flat',
-            track: true
+        blockGroup({
+            title: 'Upcoming & savings',
+            description: 'Bills still ahead and the share of income left after spending.',
+            className: 'is-planning',
+            items: [
+                chip({
+                    label: 'Due next 7 days',
+                    value: snap.dueSoon,
+                    tone: snap.dueSoon > 0 ? 'flat' : 'up',
+                    hint: dueHint,
+                    signed: false,
+                    track: true
+                }),
+                chip({
+                    label: 'Unpaid this month',
+                    value: snap.leftToPay,
+                    tone: snap.leftToPay > 0 ? 'flat' : 'up',
+                    hint: snap.monthLabel,
+                    signed: false,
+                    track: true
+                }),
+                textChip({
+                    label: 'Income left',
+                    value: saved,
+                    hint: 'After this month’s spending',
+                    tone: snap.savingsRate > 0 ? 'up' : 'flat',
+                    track: true
+                })
+            ]
         })
     );
     root.classList.add('is-ready');

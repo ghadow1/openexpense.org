@@ -248,7 +248,7 @@
           <input id="ledger-name-input" class="ledger-name-field" type="text"
             spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
           <div class="dash-head">
-            <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
+            <div id="dash-chips" class="dash-chips" role="region" aria-label="Ledger snapshot" aria-live="polite">
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
@@ -417,20 +417,27 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
-                  <h3 class="docs-section-title">Snapshot chips</h3>
+                  <h3 class="docs-section-title">17 August 2026 — Dashboard groups and plain-language labels</h3>
                   <p>
-                    Four numbers sit above the calendar. <strong>Current funds</strong> is settled cash:
+                    The top blocks are grouped into <strong>Account overview</strong> and
+                    <strong>Upcoming &amp; savings</strong>, each with a short explanation. The sidebar
+                    now uses “This month at a glance,” “Where your money went,” and “Year at a glance.”
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Account overview and planning</h3>
+                  <p>
+                    The first group answers “where am I now?” <strong>Available funds</strong> is settled cash:
                     paid income minus paid spend through today — pending and future days do not count.
-                    <strong>Projected income</strong> is this month’s scheduled income (recurring copies
-                    already on the calendar), with how much has been received. <strong>Cashflow</strong>
-                    is this month’s income minus spend. <strong>Monthly avg</strong> is the net across
-                    months that have activity.
+                    <strong>Scheduled income</strong> is this month’s income already on the calendar.
+                    <strong>Month net</strong> is income minus spending, and
+                    <strong>Avg monthly net</strong> compares active months.
                   </p>
                   <p>
-                    The same blocks continue underneath:
-                    <strong>Due soon</strong> (unpaid spend in the next 7 days),
-                    <strong>Left to pay</strong> (unpaid spend in the month on screen), and
-                    <strong>Saved</strong> (this month’s net as a percent of income).
+                    <strong>Upcoming &amp; savings</strong> groups the planning numbers:
+                    <strong>Due next 7 days</strong>, <strong>Unpaid this month</strong>, and
+                    <strong>Income left</strong> after this month’s spending.
                     Positive nets stay on the green blocks; amounts still due stay navy, not alarm red.
                   </p>
                 </section>
@@ -513,9 +520,9 @@
                   </p>
                   <ul class="docs-list">
                     <li><strong>Total spent</strong> with paid vs pending breakdown.</li>
-                    <li><strong>Insights</strong> — averages, month-over-month trend, recurring vs one-time spend, and a projected total for the current month.</li>
-                    <li><strong>Top spend</strong> — your largest merchants by amount.</li>
-                    <li><strong>Year overview</strong> — labeled month columns; tap a column to jump to that month. Paid vs pending is a two-block track, not a hairline.</li>
+                    <li><strong>This month at a glance</strong> — daily average, average entry, change from last month, recurring total, and an estimated month total.</li>
+                    <li><strong>Where your money went</strong> — your largest merchants by amount.</li>
+                    <li><strong>Year at a glance</strong> — labeled month columns; tap a column to jump to that month. Paid vs pending is a two-block track.</li>
                     <li><strong>This month</strong> — pending and paid entries; click any row to open that day.</li>
                   </ul>
                   <p>

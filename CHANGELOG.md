@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — User-friendly dashboard groups
+
+The top blocks are now grouped as **Account overview** and **Upcoming & savings**, with a one-line explanation for each group. Labels use plain language: Available funds, Scheduled income, Month net, Due next 7 days, Unpaid this month, and Income left. The sidebar follows the same pattern with “This month at a glance,” “Where your money went,” and “Year at a glance.”
+
 ## 2026-08-17 — Sidebar chart and mobile chrome
 
 The year overview is a labeled 12-month column chart. Paid vs pending is a two-block track. Insight cards match the green snapshot blocks. Calendar toolbar icons share one square style (clear only turns red on hover). On a phone, Saved spans the full second row.

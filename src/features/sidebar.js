@@ -21,7 +21,7 @@ const FACE_COPY = {
         empty: 'No expenses this month.',
         emptyHint: 'Tap a calendar day to log spending.',
         emptyIcon: 'receipt',
-        top: 'Top spend',
+        top: 'Where your money went',
         pdfLabel: 'Download spending report',
         paid: 'Paid',
         pending: 'Pending',
@@ -39,7 +39,7 @@ const FACE_COPY = {
         empty: 'No income this month.',
         emptyHint: 'Tap a calendar day and save an income entry.',
         emptyIcon: 'coin',
-        top: 'Top sources',
+        top: 'Where income came from',
         pdfLabel: 'Download income report',
         paid: 'Received',
         pending: 'Expected',
@@ -152,23 +152,23 @@ function renderStatsGrid(summary, copy) {
         : 'No prior month data';
 
     grid.append(
-        statCard('calendar-stats', 'Avg / active day', Utils.formatMoney(summary.avgPerDay),
-            summary.activeDays ? `${summary.activeDays} ${copy.daysHint}` : copy.startHint, ''),
-        statCard('receipt-2', 'Avg / entry', Utils.formatMoney(summary.avgPerEntry),
+        statCard('calendar-stats', 'Daily average', Utils.formatMoney(summary.avgPerDay),
+            summary.activeDays ? `Across ${summary.activeDays} ${copy.daysHint}` : copy.startHint, ''),
+        statCard('receipt-2', 'Average entry', Utils.formatMoney(summary.avgPerEntry),
             summary.itemCount ? `${summary.itemCount} entries` : '—', ''),
-        statCard('chart-arrows-vertical', 'Month trend', summary.prevMonthTotal || summary.total ? formatDelta(summary.monthDelta) : '—',
+        statCard('chart-arrows-vertical', 'Vs last month', summary.prevMonthTotal || summary.total ? formatDelta(summary.monthDelta) : '—',
             deltaHint, deltaTone),
-        statCard('repeat', 'Recurring', Utils.formatMoney(summary.recurring),
+        statCard('repeat', 'Recurring total', Utils.formatMoney(summary.recurring),
             summary.oneTime ? `${Utils.formatMoney(summary.oneTime)} ${copy.oneTime}` : copy.noOneTime, '')
     );
 
     if (summary.isCurrentMonth && summary.itemCount) {
-        grid.appendChild(statCard('trending-up', 'Projected', Utils.formatMoney(summary.projectedTotal),
+        grid.appendChild(statCard('trending-up', 'Estimated month total', Utils.formatMoney(summary.projectedTotal),
             `${Utils.formatMoney(summary.dailyPace)}/day pace · ${summary.daysElapsed}/${summary.daysInMonth} days`, 'accent'));
     }
 
     if (summary.largest) {
-        grid.appendChild(statCard('arrow-big-up-lines', 'Largest', Utils.formatMoney(summary.largest.amount),
+        grid.appendChild(statCard('arrow-big-up-lines', 'Largest entry', Utils.formatMoney(summary.largest.amount),
             `${Utils.escapeHtml(summary.largest.title)} · ${summary.largest.date}`, ''));
     }
 
@@ -204,12 +204,13 @@ function renderTopMerchants(summary, copy) {
 
 function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-section');
-    section.appendChild(el('div', 'summary-section-title', `${summary.year} overview`));
+    section.appendChild(el('div', 'summary-section-title', `${summary.year} at a glance`));
+    section.appendChild(el('p', 'summary-section-description', 'Compare months and tap a column to open it.'));
 
     const cards = el('div', 'summary-stats-grid is-compact');
     cards.append(
-        statCard('chart-bar', 'Year total', Utils.formatMoney(summary.yearTotal), '', 'accent'),
-        statCard('chart-dots', 'Avg month', Utils.formatMoney(summary.yearAvg), `${summary.year}`, '')
+        statCard('chart-bar', 'Year total', Utils.formatMoney(summary.yearTotal), `All activity in ${summary.year}`, 'accent'),
+        statCard('chart-dots', 'Monthly average', Utils.formatMoney(summary.yearAvg), 'Across active months', '')
     );
     section.appendChild(cards);
 
@@ -333,7 +334,8 @@ function paintFace(faceEl, kind) {
     faceEl.appendChild(renderProgress(summary, copy));
 
     const statsSection = el('section', 'summary-section');
-    statsSection.appendChild(el('div', 'summary-section-title', 'Insights'));
+    statsSection.appendChild(el('div', 'summary-section-title', 'This month at a glance'));
+    statsSection.appendChild(el('p', 'summary-section-description', 'Averages and patterns from the month on screen.'));
     statsSection.appendChild(renderStatsGrid(summary, copy));
     faceEl.appendChild(statsSection);
 
