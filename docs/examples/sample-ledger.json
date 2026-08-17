@@ -50,7 +50,8 @@
       {
         "title": "Coffee",
         "price": 4.5,
-        "recurring": false,
+        "recurring": true,
+        "repeat": "weekly",
         "paid": true,
         "note": ""
       },

@@ -36,7 +36,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `title` | string | — | Required to save. Compared case-insensitively when grouping a series. |
 | `price` | number or string | `0` | Parsed with `parseFloat`. Legacy notes may still contain `$12.00`; `Utils.getPrice` reads that fallback. |
 | `recurring` | boolean | `false` | Marks a re-accruing payment. Series delete matches title + this flag + `repeat`. |
-| `repeat` | string | `"monthly"` | How often a recurring payment copies forward: `monthly`, `bimonthly` (every 2 months), or `quarterly`. Omitted on one-time expenses. Missing on older ledgers means monthly. |
+| `repeat` | string | `"monthly"` | How often a recurring payment or income copies forward: `weekly`, `monthly`, `bimonthly` (every 2 months), or `quarterly`. Omitted on one-time entries. Missing on older ledgers means monthly. |
 | `kind` | string | `"expense"` | `expense` (default, omitted) or `income`. Calendar colors and the sidebar face use this. |
 | `paid` | boolean | `false` | Used by the summary paid / pending split. Receipts save as paid. On income, the UI label is Received. |
 | `note` | string | `""` | Free text. HTML is escaped before render. |

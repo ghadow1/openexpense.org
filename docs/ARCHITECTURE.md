@@ -61,7 +61,7 @@ src/main.js         boot, event delegation, render subscription
 
 ## Recurring series
 
-`src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step and can remove every occurrence across the ledger.
+`src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger.
 
 The right-hand card flips between an expense face and an income face. The calendar stays one grid and paints income pills green.
 
