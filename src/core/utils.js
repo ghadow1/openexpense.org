@@ -7,10 +7,22 @@
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
+    toCents(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100);
+    },
+    fromCents(cents) {
+        return (Number(cents) || 0) / 100;
+    },
     getPrice: (e) => {
-        if (e.price !== undefined && e.price !== null && e.price !== "") return parseFloat(e.price);
-        const match = e.note?.match(/\$(\d+\.?\d*)/);
-        return match ? parseFloat(match[1]) : 0;
+        let raw = 0;
+        if (e.price !== undefined && e.price !== null && e.price !== "") raw = parseFloat(e.price);
+        else {
+            const match = e.note?.match(/\$(\d+\.?\d*)/);
+            raw = match ? parseFloat(match[1]) : 0;
+        }
+        return Utils.fromCents(Utils.toCents(raw));
     },
     /** Legacy entries without `kind` are expenses. */
     entryKind: (e) => (e?.kind === 'income' ? 'income' : 'expense'),

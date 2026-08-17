@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Snapshot math and three dashboard views
+
+The top snapshot now slides between Overview, Income, and Expenses. Unpaid paychecks appear on Income as Still expected; Overview’s Unpaid bills stays expense-only. Totals add in cents, monthly average uses each month’s net, and estimated month totals no longer double-count future calendar copies.
+
 ## 2026-08-17 — Security hardening and audit
 
 Encrypted autosave now fails closed, serializes writes, atomically creates its device key, and preserves unreadable ciphertext. Clear durably removes ciphertext and its key. Linked-folder saves verify existing files and stage a recovery pair before overwrite. Imports and receipt/PDF processing have strict resource limits. OCR/PDF runtimes, models, fonts, and icons are now self-hosted. The repository adds security CI, dependency monitoring, a threat model, incident guidance, a security audit, and a SOC 2 readiness gap assessment.

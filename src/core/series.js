@@ -234,7 +234,7 @@ export function groupExpenses(list) {
     });
 
     return [...map.values()].map((group) => {
-        const total = group.items.reduce((sum, row) => sum + Utils.getPrice(row.e), 0);
+        const total = Utils.fromCents(group.items.reduce((sum, row) => sum + Utils.toCents(Utils.getPrice(row.e)), 0));
         return {
             ...group,
             total,

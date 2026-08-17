@@ -1118,6 +1118,66 @@ html.is-action-busy [data-lockable] {
     gap: 16px;
 }
 
+.dash-deck {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.dash-deck-tabs {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface2);
+    gap: 2px;
+}
+
+.dash-deck-tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.dash-deck-tab.is-active {
+    background: var(--surface);
+    color: var(--text-strong);
+    box-shadow: 0 0 0 1px var(--border);
+}
+
+.dash-deck-viewport {
+    overflow: hidden;
+    min-width: 0;
+    touch-action: pan-y;
+}
+
+.dash-deck-track {
+    display: flex;
+    width: 100%;
+    transition: transform 280ms var(--ease-out);
+    will-change: transform;
+}
+
+.dash-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .dash-chips:not(.is-ready) {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4845,6 +4905,19 @@ html.oe-scroll-lock body {
     }
 
     .dash-chips {
+        gap: 6px;
+    }
+
+    .dash-deck {
+        gap: 8px;
+    }
+
+    .dash-deck-tab {
+        padding: 7px 11px;
+        font-size: 11px;
+    }
+
+    .dash-slide {
         gap: 6px;
     }
 

@@ -71,7 +71,7 @@ test('monthly summary splits expense and income paths', () => {
 
 test('snapshot chips compact large nets', () => {
     assert.equal(formatChipMoney(18980.38), '+$19.0k');
-    assert.equal(formatChipMoney(-3364.42), '-$3364');
+    assert.equal(formatChipMoney(-3364.42), '-$3364.42');
     assert.equal(formatChipMoney(12.5), '+$12.50');
     assert.equal(formatChipMoney(0), '$0.00');
 });
@@ -91,6 +91,65 @@ test('dashboard snapshot nets income against spend', () => {
     assert.equal(snap.leftToPay, 0);
     assert.equal(snap.dueSoon, 0);
     assert.equal(Math.round(snap.savingsRate), 9);
+});
+
+test('unpaid paychecks are expected income, not unpaid bills', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'mTicket', price: 195, paid: true })],
+        '2026-08-06': [entry({ title: 'Rental', price: 400, paid: true })],
+        '2026-08-15': [entry({ title: 'Kayla Birthday', price: 100, paid: true })],
+        '2026-08-17': [
+            entry({ title: 'Mint', price: 130.22, paid: false }),
+            entry({ title: 'Coffee', price: 300, paid: false })
+        ],
+        '2026-08-21': [entry({ title: 'Paycheck', price: 961.40, kind: 'income', paid: false })],
+        '2026-08-28': [entry({ title: 'Paycheck', price: 961.40, kind: 'income', paid: false })]
+    };
+    const asOf = new Date(2026, 7, 17);
+    const snap = computeNetSnapshot(events, asOf, asOf);
+    assert.equal(snap.leftToPay, 430.22);
+    assert.equal(snap.leftToPayCount, 2);
+    assert.equal(snap.incomeDue, 1922.80);
+    assert.equal(snap.incomeDueCount, 2);
+    assert.equal(snap.incomeSoon, 961.40);
+    assert.equal(snap.incomeSoonCount, 1);
+    assert.notEqual(snap.leftToPay, snap.incomeDue);
+});
+
+test('monthly average uses each month net, not income avg minus spend avg', () => {
+    const events = {
+        '2026-01-01': [entry({ title: 'Paycheck', price: 4000, kind: 'income', paid: true })],
+        '2026-01-02': [entry({ title: 'Rent', price: 1000, paid: true })],
+        '2026-02-02': [entry({ title: 'Rent', price: 1000, paid: true })],
+        '2026-03-02': [entry({ title: 'Rent', price: 1000, paid: true })]
+    };
+    const snap = computeNetSnapshot(events, new Date(2026, 2, 2), new Date(2026, 2, 2));
+    assert.equal(snap.monthAvg, (3000 - 1000 - 1000) / 3);
+});
+
+test('estimated month total does not double-count future calendar copies', () => {
+    const events = {
+        '2026-08-07': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: true })],
+        '2026-08-14': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: true })],
+        '2026-08-21': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: false })],
+        '2026-08-28': [entry({ title: 'Paycheck', price: 961, kind: 'income', paid: false })]
+    };
+    const income = computeMonthlySummary(events, new Date(2026, 7, 17), 'income');
+    assert.equal(income.total, 3844);
+    assert.ok(income.projectedTotal <= income.total + 0.001);
+    assert.equal(income.projectedTotal, 3844);
+});
+
+test('money totals stay on whole cents', () => {
+    const events = {
+        '2026-08-01': [
+            entry({ title: 'A', price: 0.1, paid: true }),
+            entry({ title: 'B', price: 0.2, paid: true })
+        ]
+    };
+    const spend = computeMonthlySummary(events, new Date(2026, 7, 1), 'expense');
+    assert.equal(spend.total, 0.3);
+    assert.equal(Utils.getPrice({ price: 10.005 }), 10.01);
 });
 
 test('current funds ignore pending and future paid entries', () => {

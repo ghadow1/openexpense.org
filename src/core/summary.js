@@ -49,36 +49,39 @@ function sumItems(items) {
     const byTitle = new Map();
 
     items.forEach(item => {
-        total += item.amount;
+        const cents = Utils.toCents(item.amount);
+        total += cents;
         activeDays.add(item.date);
         if (item.paid) {
-            paid += item.amount;
+            paid += cents;
             paidCount += 1;
         } else {
-            pending += item.amount;
+            pending += cents;
             pendingCount += 1;
         }
-        if (item.recurring) recurring += item.amount;
-        else oneTime += item.amount;
+        if (item.recurring) recurring += cents;
+        else oneTime += cents;
 
         const label = item.title.trim() || 'Untitled';
         const prev = byTitle.get(label) || { title: label, amount: 0, count: 0 };
-        prev.amount += item.amount;
+        prev.amount += cents;
         prev.count += 1;
         byTitle.set(label, prev);
     });
 
     return {
-        total,
-        paid,
-        pending,
+        total: Utils.fromCents(total),
+        paid: Utils.fromCents(paid),
+        pending: Utils.fromCents(pending),
         paidCount,
         pendingCount,
-        recurring,
-        oneTime,
+        recurring: Utils.fromCents(recurring),
+        oneTime: Utils.fromCents(oneTime),
         itemCount: items.length,
         activeDays: activeDays.size,
-        byTitle: [...byTitle.values()].sort((a, b) => b.amount - a.amount)
+        byTitle: [...byTitle.values()]
+            .map((row) => ({ ...row, amount: Utils.fromCents(row.amount) }))
+            .sort((a, b) => b.amount - a.amount)
     };
 }
 
@@ -93,15 +96,15 @@ function yearMonthTotals(events, y, kind = 'expense') {
         const monthIdx = parseInt(date.split('-')[1], 10) - 1;
         events[date].forEach(e => {
             if (Utils.entryKind(e) !== kind) return;
-            const amount = Utils.getPrice(e);
-            if (amount > 0) totals[monthIdx] += amount;
+            const cents = Utils.toCents(Utils.getPrice(e));
+            if (cents > 0) totals[monthIdx] += cents;
         });
     });
-    return totals;
+    return totals.map((cents) => Utils.fromCents(cents));
 }
 
 function deltaPercent(current, previous) {
-    if (previous <= 0) return current > 0 ? 100 : 0;
+    if (previous <= 0) return current > 0 ? null : 0;
     return ((current - previous) / previous) * 100;
 }
 
@@ -114,7 +117,7 @@ function dailyTotals(items, y, m, daysInMonth) {
     const byDate = new Map();
     items.forEach(item => {
         const prev = byDate.get(item.date) || { amount: 0, count: 0 };
-        prev.amount += item.amount;
+        prev.amount += Utils.toCents(item.amount);
         prev.count += 1;
         byDate.set(item.date, prev);
     });
@@ -123,7 +126,7 @@ function dailyTotals(items, y, m, daysInMonth) {
     for (let d = 1; d <= daysInMonth; d++) {
         const date = `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`;
         const row = byDate.get(date) || { amount: 0, count: 0 };
-        days.push({ day: d, date, amount: row.amount, count: row.count });
+        days.push({ day: d, date, amount: Utils.fromCents(row.amount), count: row.count });
     }
     return days;
 }
@@ -133,12 +136,16 @@ export function sumDay(dayEvents) {
     let expense = 0;
     let income = 0;
     (dayEvents || []).forEach((e) => {
-        const amount = Utils.getPrice(e);
-        if (!Number.isFinite(amount) || amount <= 0) return;
-        if (Utils.entryKind(e) === 'income') income += amount;
-        else expense += amount;
+        const cents = Utils.toCents(Utils.getPrice(e));
+        if (cents <= 0) return;
+        if (Utils.entryKind(e) === 'income') income += cents;
+        else expense += cents;
     });
-    return { expense, income, net: income - expense };
+    return {
+        expense: Utils.fromCents(expense),
+        income: Utils.fromCents(income),
+        net: Utils.fromCents(income - expense)
+    };
 }
 
 /** Calendar corner: net up / down / even, not raw spend or income. */
@@ -160,10 +167,10 @@ function weekdayTotals(items) {
     items.forEach(item => {
         const [yy, mm, dd] = item.date.split('-').map(Number);
         const wd = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
-        totals[wd] += item.amount;
+        totals[wd] += Utils.toCents(item.amount);
         counts[wd] += 1;
     });
-    return { totals, counts };
+    return { totals: totals.map((cents) => Utils.fromCents(cents)), counts };
 }
 
 export function computeMonthlySummary(events, currentDate, kind = 'expense') {
@@ -186,8 +193,25 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const isCurrentMonth = y === today.getFullYear() && m === today.getMonth();
     const daysElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
-    const dailyPace = daysElapsed > 0 ? stats.total / daysElapsed : 0;
-    const projectedTotal = isCurrentMonth ? dailyPace * daysInMonth : stats.total;
+    const asOfKey = isCurrentMonth
+        ? dateKeyOf(today)
+        : `${y}-${Utils.pad(m + 1)}-${Utils.pad(daysInMonth)}`;
+    let elapsedCents = 0;
+    let futureCents = 0;
+    items.forEach((item) => {
+        const cents = Utils.toCents(item.amount);
+        if (item.date <= asOfKey) elapsedCents += cents;
+        else futureCents += cents;
+    });
+    const remainingDays = Math.max(0, daysInMonth - daysElapsed);
+    const dailyPace = daysElapsed > 0 ? Utils.fromCents(elapsedCents) / daysElapsed : 0;
+    const impliedUnscheduledCents = Math.max(
+        0,
+        Utils.toCents(dailyPace * remainingDays) - futureCents
+    );
+    const projectedTotal = isCurrentMonth
+        ? Utils.fromCents(elapsedCents + futureCents + impliedUnscheduledCents)
+        : stats.total;
 
     const pctPaid = stats.total ? (stats.paid / stats.total) * 100 : 0;
     const pctPending = stats.total ? (stats.pending / stats.total) * 100 : 0;
@@ -233,11 +257,10 @@ export function formatMoney(value) {
 
 /** Snapshot chips: keep large nets readable on tablet and phone. */
 export function formatChipMoney(value) {
-    const n = Number(value) || 0;
+    const n = Utils.fromCents(Utils.toCents(value));
     const abs = Math.abs(n);
     const sign = n > 0 ? '+' : n < 0 ? '-' : '';
     if (abs >= 10000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
-    if (abs >= 1000) return `${sign}$${abs.toFixed(0)}`;
     return `${sign}${Utils.formatMoney(abs)}`;
 }
 
@@ -262,14 +285,18 @@ export function settledFundsThrough(events, asOf = new Date()) {
         if (date > asOfKey) return;
         (events[date] || []).forEach((e) => {
             if (!e.paid) return;
-            const amount = Utils.getPrice(e);
-            if (!Number.isFinite(amount) || amount <= 0) return;
-            if (Utils.entryKind(e) === 'income') incoming += amount;
-            else outgoing += amount;
+            const cents = Utils.toCents(Utils.getPrice(e));
+            if (cents <= 0) return;
+            if (Utils.entryKind(e) === 'income') incoming += cents;
+            else outgoing += cents;
         });
     });
 
-    return { incoming, outgoing, net: incoming - outgoing };
+    return {
+        incoming: Utils.fromCents(incoming),
+        outgoing: Utils.fromCents(outgoing),
+        net: Utils.fromCents(incoming - outgoing)
+    };
 }
 
 /** Unpaid entries in an inclusive date window, optionally one kind. */
@@ -282,14 +309,27 @@ export function pendingInWindow(events, fromKey, toKey, kind) {
         (events[date] || []).forEach((e) => {
             if (e.paid) return;
             if (kind && Utils.entryKind(e) !== kind) return;
-            const amount = Utils.getPrice(e);
-            if (!Number.isFinite(amount) || amount <= 0) return;
-            total += amount;
+            const cents = Utils.toCents(Utils.getPrice(e));
+            if (cents <= 0) return;
+            total += cents;
             count += 1;
         });
     });
 
-    return { total, count };
+    return { total: Utils.fromCents(total), count };
+}
+
+function averageActiveNets(incomeTotals, spendTotals) {
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < 12; i++) {
+        const incoming = Utils.toCents(incomeTotals[i] || 0);
+        const outgoing = Utils.toCents(spendTotals[i] || 0);
+        if (incoming <= 0 && outgoing <= 0) continue;
+        sum += incoming - outgoing;
+        count += 1;
+    }
+    return count ? Utils.fromCents(sum) / count : 0;
 }
 
 /**
@@ -303,16 +343,19 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
     const funds = settledFundsThrough(events, asOf);
     const asOfKey = dateKeyOf(asOf);
     const dueSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'expense');
+    const incomeSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'income');
+    const monthNet = Utils.fromCents(Utils.toCents(income.total) - Utils.toCents(spend.total));
+    const yearNet = Utils.fromCents(Utils.toCents(income.yearTotal) - Utils.toCents(spend.yearTotal));
     const savingsRate = income.total > 0
-        ? ((income.total - spend.total) / income.total) * 100
+        ? (monthNet / income.total) * 100
         : null;
 
     return {
         monthIn: income.total,
         monthOut: spend.total,
-        monthNet: income.total - spend.total,
-        yearNet: (income.yearTotal || 0) - (spend.yearTotal || 0),
-        monthAvg: (income.yearAvg || 0) - (spend.yearAvg || 0),
+        monthNet,
+        yearNet,
+        monthAvg: averageActiveNets(income.monthTotals, spend.monthTotals),
         monthLabel: spend.shortMonth,
         currentFunds: funds.net,
         fundsIn: funds.incoming,
@@ -320,15 +363,23 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         projectedIncome: income.total,
         incomeReceived: income.paid,
         incomeDue: income.pending,
+        incomeDueCount: income.pendingCount,
+        incomeSoon: incomeSoon.total,
+        incomeSoonCount: incomeSoon.count,
+        incomeRecurring: income.recurring,
+        spendPaid: spend.paid,
+        spendRecurring: spend.recurring,
         dueSoon: dueSoon.total,
         dueSoonCount: dueSoon.count,
         leftToPay: spend.pending,
+        leftToPayCount: spend.pendingCount,
         savingsRate
     };
 }
 
 export function formatDelta(value) {
-    const n = Number(value || 0);
+    if (value == null || !Number.isFinite(Number(value))) return '—';
+    const n = Number(value);
     const sign = n > 0 ? '+' : '';
     return `${sign}${n.toFixed(1)}%`;
 }

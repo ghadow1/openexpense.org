@@ -19,7 +19,8 @@ export const STORAGE_KEYS = {
     theme: 'oe-theme',
     visited: 'hasVisited',
     autosave: 'oe-autosave',
-    ledgerFace: 'oe-ledger-face'
+    ledgerFace: 'oe-ledger-face',
+    dashView: 'oe-dash-view'
 };
 
 export const THEMES = {

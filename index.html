@@ -236,7 +236,7 @@
           <input id="ledger-name-input" class="ledger-name-field" type="text"
             spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
           <div class="dash-head">
-            <div id="dash-chips" class="dash-chips" role="region" aria-label="Ledger snapshot" aria-live="polite">
+            <div id="dash-chips" class="dash-chips" role="region" aria-label="Ledger snapshot">
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
@@ -416,16 +416,19 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Account overview and planning</h3>
                   <p>
-                    The first group answers “where am I now?” <strong>Available funds</strong> is settled cash:
-                    paid income minus paid spend through today — pending and future days do not count.
+                    The snapshot area has three slides: <strong>Overview</strong>, <strong>Income</strong>,
+                    and <strong>Expenses</strong>. Use the pills or swipe sideways to rotate them.
+                    <strong>Available funds</strong> is settled cash: paid income minus paid spend through
+                    today — pending and future days do not count.
                     <strong>Scheduled income</strong> is this month’s income already on the calendar.
                     <strong>Month net</strong> is income minus spending, and
-                    <strong>Avg monthly net</strong> compares active months.
+                    <strong>Avg monthly net</strong> averages each month’s net across months with activity.
                   </p>
                   <p>
-                    <strong>Upcoming &amp; savings</strong> groups the planning numbers:
-                    <strong>Due next 7 days</strong>, <strong>Unpaid this month</strong>, and
-                    <strong>Income left</strong> after this month’s spending.
+                    Overview planning numbers are bills only:
+                    <strong>Due next 7 days</strong> and <strong>Unpaid bills</strong>.
+                    Unpaid paychecks live on the Income slide as <strong>Still expected</strong>.
+                    <strong>Income left</strong> is the share of this month’s income remaining after spending.
                     Positive nets stay on the green blocks; amounts still due stay navy, not alarm red.
                   </p>
                 </section>

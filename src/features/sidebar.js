@@ -35,7 +35,7 @@ const FACE_COPY = {
     income: {
         title: 'Monthly income',
         icon: 'wallet',
-        hero: 'Total received',
+        hero: 'Month income',
         empty: 'No income this month.',
         emptyHint: 'Tap a calendar day and save an income entry.',
         emptyIcon: 'coin',
