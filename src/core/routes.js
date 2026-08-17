@@ -4,7 +4,7 @@
  * The product has two in-app views (Expenses, Privacy & Help) on the homepage.
  * Any other URL is a missing page and should serve 404.html.
  */
-const STATIC_LEAF = /^(index\.html|404\.html)$/i;
+const STATIC_LEAF = /^(index\.html|404\.html|embed\.html)$/i;
 const STATIC_ASSET = /\.(js|css|json|xml|txt|svg|png|jpe?g|webp|ico|webmanifest|map)$/i;
 
 export function shouldShowNotFound(pathname = '/') {

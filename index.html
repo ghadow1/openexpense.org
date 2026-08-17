@@ -124,7 +124,7 @@
       var parts = (location.pathname || '/').split('/').filter(Boolean);
       if (!parts.length) return;
       var leaf = parts[parts.length - 1];
-      if (/^(index\.html|404\.html)$/i.test(leaf)) return;
+      if (/^(index\.html|404\.html|embed\.html)$/i.test(leaf)) return;
       if (parts.length === 1 && /\.(js|css|json|xml|txt|svg|png|jpe?g|webp|ico|webmanifest|map)$/i.test(leaf)) return;
       location.replace(location.origin + '/404.html');
     })();

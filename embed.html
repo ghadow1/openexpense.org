@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>OpenExpense embed</title>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      q.set('embed', '1');
+      location.replace('/?' + q.toString());
+    })();
+  </script>
+</head>
+<body>
+  <p>Opening the OpenExpense embed…</p>
+</body>
+</html>

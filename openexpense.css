@@ -5494,3 +5494,10 @@ html.oe-scroll-lock body {
     border-radius: 4px;
     border: 1px solid #e5e5e5;
 }
+
+/* Embed host: same theme, hide the standalone docs tab only. */
+body.is-embed #vt-docs,
+body.is-embed #view-docs,
+body.is-embed #welcome-modal {
+    display: none !important;
+}

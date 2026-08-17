@@ -1,0 +1,78 @@
+# Embed and host API
+
+OpenExpense stays a standalone encrypted calendar. This layer lets a banking app **prefetch** transactions (Plaid or any core) and inject them. OpenExpense does not call bank APIs and does not change the current theme or pages.
+
+## 1. Headless engine (`/engine.js`)
+
+```js
+import {
+  categorize,
+  mapTransaction,
+  mapTransactions,
+  mergeTransactions,
+  createSession,
+  snapshot,
+  detectRecurring,
+  flagAnomalies,
+  budgetStatus
+} from 'https://www.openexpense.org/engine.js';
+
+const session = createSession({ name: 'Bank ledger' });
+session.importTransactions([
+  { amount: 45.2, merchant: "Trader Joe's", date: '2026-08-17', transaction_id: 'tx_1' },
+  { amount: -961, merchant: 'Payroll', date: '2026-08-21', transaction_id: 'tx_2' }
+]);
+
+session.get();          // { name, events }
+session.getSnapshot();  // same math as the dashboard
+```
+
+Plaid-style amounts: positive is spend, negative is income. Override with `kind: 'income' | 'expense'`.
+
+## 2. Live calendar hooks (`window.OpenExpense`)
+
+After the page boots:
+
+```js
+OpenExpense.get()
+OpenExpense.set({ name, events })
+OpenExpense.importTransactions(rawRows)
+OpenExpense.getSnapshot()
+OpenExpense.subscribe((ledger) => { /* host copy */ })
+OpenExpense.categorize(row)
+OpenExpense.allowOrigin('https://bank.example')
+```
+
+Every write is sanitized with the same allowlist as import/autosave.
+
+## 3. iframe
+
+```html
+<iframe src="https://www.openexpense.org/embed.html?origin=https://bank.example"></iframe>
+```
+
+```js
+iframe.contentWindow.postMessage({
+  channel: 'openexpense',
+  type: 'oe:import',
+  transactions: rawRows
+}, 'https://www.openexpense.org');
+```
+
+The iframe only accepts `channel: 'openexpense'` from the `origin` query (or `allowOrigin`). It does not load the visitor’s IndexedDB ledger and does not autosave unless the user turns autosave on.
+
+| type | payload | reply |
+| --- | --- | --- |
+| `oe:hello` | | `oe:ready` |
+| `oe:get` | | `oe:state` |
+| `oe:set` | `ledger` | `oe:state` |
+| `oe:import` | `transactions` | `oe:state` |
+| `oe:snapshot` | optional `date` | `oe:snapshot` |
+
+## Host responsibilities
+
+1. Ingest bank data and hold credentials.
+2. Pass transaction arrays into `importTransactions` / `oe:import`.
+3. Render OpenExpense as the calendar and analytics layer.
+
+Optional entry fields `category`, `source`, and `sourceId` are stored for idempotent updates. They are not shown in the current UI.

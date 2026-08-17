@@ -8,7 +8,8 @@ Each module starts with a short header describing what it owns.
 
 | File | Role |
 | --- | --- |
-| [`main.js`](main.js) | Boot, delegated clicks, render subscription, 404 path guard |
+| [`main.js`](main.js) | Boot, delegated clicks, render subscription, 404 path guard, host API |
+| [`engine/`](engine/) | Headless map/categorize/session plus live `window.OpenExpense` hooks |
 | [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet (navy tokens) |
 | [`../scripts/write-brand-thumbs.py`](../scripts/write-brand-thumbs.py) | Regenerates `og-image.jpg` and `apple-touch-icon.png` |
 | [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |

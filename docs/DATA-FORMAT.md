@@ -40,6 +40,9 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `kind` | string | `"expense"` | `expense` (default, omitted) or `income`. Calendar colors and the sidebar face use this. |
 | `paid` | boolean | `false` | Used by the summary paid / pending split. Receipts save as paid. On income, the UI label is Received. |
 | `note` | string | `""` | Free text. HTML is escaped before render. |
+| `category` | string | omitted | Optional host/API label (max 40). Not shown in the current UI. |
+| `source` | string | omitted | Optional origin, e.g. `bank` or `ocr` (max 24). |
+| `sourceId` | string | omitted | Optional bank transaction id for idempotent host imports (max 80). |
 
 Unknown fields are dropped on load and import. Quality control keeps only the fields above.
 

@@ -21,6 +21,7 @@ import { Toast } from './ui/toast.js';
 import { actionBusy } from './core/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
 import { restoreDeleteUndo } from './features/undo-delete.js';
+import { attachHostApi, isEmbedMode } from './engine/host.js';
 
 const LOCKED_ACTIONS = new Set(['export-ledger', 'scan-receipt', 'quick-add-today']);
 
@@ -55,19 +56,24 @@ async function initApplication() {
 
     bootPatch.storageEncrypted = cryptoAvailable();
 
+    const embed = isEmbedMode();
     let saved = null;
     let localLoadFailed = false;
-    try {
-        saved = await loadLedger();
-    } catch (err) {
-        localLoadFailed = true;
+    if (embed) {
         bootPatch.autosaveEnabled = false;
-        console.error('[OpenExpense] encrypted local ledger could not be opened:', err);
-    }
-    const cleaned = saved ? sanitizeLedger(saved) : null;
-    if (cleaned) {
-        bootPatch.ledgerName = cleaned.name;
-        bootPatch.events = cleaned.events;
+    } else {
+        try {
+            saved = await loadLedger();
+        } catch (err) {
+            localLoadFailed = true;
+            bootPatch.autosaveEnabled = false;
+            console.error('[OpenExpense] encrypted local ledger could not be opened:', err);
+        }
+        const cleaned = saved ? sanitizeLedger(saved) : null;
+        if (cleaned) {
+            bootPatch.ledgerName = cleaned.name;
+            bootPatch.events = cleaned.events;
+        }
     }
 
     patch(bootPatch);
@@ -135,6 +141,7 @@ async function initApplication() {
 
     Ledger.bindFolderGesture(document.querySelector('[data-action="export-ledger"]'));
 
+    attachHostApi();
     window.__oeBoot = { ok: true };
 }
 
@@ -221,5 +228,5 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('[OpenExpense] init failed:', err);
         Toast.show('Failed to start OpenExpense. Try refreshing the page.', 'error', 6000);
     });
-    showWelcome();
+    if (!isEmbedMode()) showWelcome();
 });

@@ -21,7 +21,10 @@ export const FILE_LIMITS = {
     maxEntries: 25000,
     maxTitle: 200,
     maxNote: 2000,
-    maxPrice: 1e9
+    maxPrice: 1e9,
+    maxCategory: 40,
+    maxSource: 24,
+    maxSourceId: 80
 };
 
 export function ledgerFileBase(ledgerName) {
@@ -237,6 +240,12 @@ export function sanitizeEntry(raw) {
     if (raw.paid) entry.paid = true;
     if (raw.kind === 'income') entry.kind = 'income';
     if (raw.recurring) entry.repeat = normalizeRepeat(raw.repeat);
+    const category = String(raw.category ?? '').trim().slice(0, FILE_LIMITS.maxCategory);
+    if (category) entry.category = category;
+    const source = String(raw.source ?? '').trim().slice(0, FILE_LIMITS.maxSource);
+    if (source) entry.source = source;
+    const sourceId = String(raw.sourceId ?? raw.source_id ?? '').trim().slice(0, FILE_LIMITS.maxSourceId);
+    if (sourceId) entry.sourceId = sourceId;
     return entry;
 }
 
