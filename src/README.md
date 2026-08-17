@@ -50,7 +50,7 @@ Each module starts with a short header describing what it owns.
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary (coin-flip card) |
-| [`features/dash-strip.js`](features/dash-strip.js) | Current funds, projected income, cashflow, monthly avg, tracking points |
+| [`features/dash-strip.js`](features/dash-strip.js) | Snapshot blocks: funds, income, cashflow, avg, due soon, left to pay, saved |
 | [`features/undo-delete.js`](features/undo-delete.js) | Short-lived Undo after delete or clear (memory snapshot only) |
 
 ## `ui/` — chrome

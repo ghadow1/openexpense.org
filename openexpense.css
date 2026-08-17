@@ -1114,63 +1114,16 @@ html.is-action-busy [data-lockable] {
 
 .dash-chips {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 10px;
-}
-
-.dash-insights {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
 }
 
 .dash-insights[hidden] {
     display: none !important;
 }
 
-.dash-insight {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text);
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.dash-insight-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text2);
-}
-
-.dash-insight-value {
-    font-variant-numeric: tabular-nums;
-    color: var(--text-strong);
-}
-
-.dash-insight-hint {
-    color: var(--text2);
-    font-weight: 500;
-}
-
-.dash-insight.is-up .dash-insight-value {
-    color: var(--income);
-}
-
-.dash-insight.is-down .dash-insight-value {
-    color: var(--danger-text);
+.dash-chips > .skel-chip {
+    grid-column: span 3;
 }
 
 .dash-chip {
@@ -1178,9 +1131,14 @@ html.is-action-busy [data-lockable] {
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    grid-column: span 3;
     padding: 12px 14px;
     border-radius: var(--radius-md);
     animation: dashIn var(--dur-med) var(--ease-out);
+}
+
+.dash-chip.is-track {
+    grid-column: span 4;
 }
 
 .dash-chip-label,
@@ -1208,6 +1166,11 @@ html.is-action-busy [data-lockable] {
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: none;
+}
+
+.dash-chip.is-up {
+    background: color-mix(in srgb, var(--income) 7%, var(--surface));
+    border-color: color-mix(in srgb, var(--income) 22%, var(--border));
 }
 
 .dash-chip.is-up .dash-chip-value {
@@ -4618,6 +4581,11 @@ html.oe-scroll-lock body {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .dash-chip,
+    .dash-chip.is-track {
+        grid-column: auto;
+    }
+
     .dash-act {
         padding: 0;
     }
@@ -4772,6 +4740,11 @@ html.oe-scroll-lock body {
     .dash-chips {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
+    }
+
+    .dash-chip,
+    .dash-chip.is-track {
+        grid-column: auto;
     }
 
     .dash-chip {

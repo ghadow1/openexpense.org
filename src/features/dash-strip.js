@@ -1,22 +1,23 @@
 /**
  * OpenExpense — dashboard snapshot chips
  *
- * Paints derived funds and month totals into #dash-chips, plus compact
- * tracking points in #dash-insights. Read-only over events.
- * Does not persist or change ledger data.
+ * Paints derived funds and month totals into #dash-chips as one family of
+ * blocks. Read-only over events. Does not persist or change ledger data.
  */
 import { getState } from '../core/store.js';
 import { computeNetSnapshot, formatMoney, formatChipMoney } from '../core/summary.js';
 
-function chip({ label, value, tone, hint }) {
+function chip({ label, value, tone, hint, signed = true, track = false }) {
     const article = document.createElement('article');
-    article.className = `dash-chip${tone ? ` is-${tone}` : ''}`;
+    article.className = `dash-chip${tone ? ` is-${tone}` : ''}${track ? ' is-track' : ''}`;
     article.setAttribute('role', 'listitem');
 
-    const shown = formatChipMoney(value);
-    const exact = tone === 'flat'
+    const shown = signed ? formatChipMoney(value) : formatMoney(value);
+    const exact = !signed
         ? formatMoney(value)
-        : `${tone === 'up' ? '+' : tone === 'down' ? '-' : ''}${formatMoney(Math.abs(value))}`;
+        : (tone === 'flat'
+            ? formatMoney(value)
+            : `${tone === 'up' ? '+' : tone === 'down' ? '-' : ''}${formatMoney(Math.abs(value))}`);
 
     article.setAttribute('aria-label', `${label} ${exact}${hint ? `, ${hint}` : ''}`);
     article.title = exact;
@@ -41,28 +42,31 @@ function chip({ label, value, tone, hint }) {
     return article;
 }
 
-function insight({ label, value, hint, tone }) {
-    const el = document.createElement('span');
-    el.className = `dash-insight${tone ? ` is-${tone}` : ''}`;
-    el.setAttribute('role', 'listitem');
-    el.title = hint || `${label} ${value}`;
+function textChip({ label, value, hint, tone, track = false }) {
+    const article = document.createElement('article');
+    article.className = `dash-chip${tone ? ` is-${tone}` : ''}${track ? ' is-track' : ''}`;
+    article.setAttribute('role', 'listitem');
+    article.setAttribute('aria-label', `${label} ${value}${hint ? `, ${hint}` : ''}`);
+    article.title = hint || `${label} ${value}`;
 
     const kicker = document.createElement('span');
-    kicker.className = 'dash-insight-label';
+    kicker.className = 'dash-chip-label';
     kicker.textContent = label;
 
     const amount = document.createElement('strong');
-    amount.className = 'dash-insight-value';
+    amount.className = 'dash-chip-value';
     amount.textContent = value;
 
-    el.append(kicker, amount);
+    article.append(kicker, amount);
+
     if (hint) {
         const meta = document.createElement('span');
-        meta.className = 'dash-insight-hint';
+        meta.className = 'dash-chip-hint';
         meta.textContent = hint;
-        el.appendChild(meta);
+        article.appendChild(meta);
     }
-    return el;
+
+    return article;
 }
 
 function toneFor(n) {
@@ -86,6 +90,12 @@ export function renderDashStrip() {
 
     const { events, currentDate } = getState();
     const snap = computeNetSnapshot(events, currentDate);
+    const saved = snap.savingsRate == null
+        ? '—'
+        : `${snap.savingsRate > 0 ? '+' : ''}${snap.savingsRate.toFixed(0)}%`;
+    const dueHint = snap.dueSoonCount
+        ? `${snap.dueSoonCount} bill${snap.dueSoonCount === 1 ? '' : 's'}`
+        : 'Next 7 days';
 
     root.replaceChildren(
         chip({
@@ -111,39 +121,36 @@ export function renderDashStrip() {
             value: snap.monthAvg,
             tone: toneFor(snap.monthAvg),
             hint: 'Active months'
+        }),
+        chip({
+            label: 'Due soon',
+            value: snap.dueSoon,
+            tone: snap.dueSoon > 0 ? 'flat' : 'up',
+            hint: dueHint,
+            signed: false,
+            track: true
+        }),
+        chip({
+            label: 'Left to pay',
+            value: snap.leftToPay,
+            tone: snap.leftToPay > 0 ? 'flat' : 'up',
+            hint: snap.monthLabel,
+            signed: false,
+            track: true
+        }),
+        textChip({
+            label: 'Saved',
+            value: saved,
+            hint: snap.monthLabel,
+            tone: snap.savingsRate > 0 ? 'up' : 'flat',
+            track: true
         })
     );
     root.classList.add('is-ready');
 
     const tools = document.getElementById('dash-insights');
-    if (!tools) return;
-
-    const dueHint = snap.dueSoonCount
-        ? `${snap.dueSoonCount} bill${snap.dueSoonCount === 1 ? '' : 's'}`
-        : 'Next 7 days';
-    const saved = snap.savingsRate == null
-        ? '—'
-        : `${snap.savingsRate > 0 ? '+' : ''}${snap.savingsRate.toFixed(0)}%`;
-
-    tools.hidden = false;
-    tools.replaceChildren(
-        insight({
-            label: 'Due soon',
-            value: formatMoney(snap.dueSoon),
-            hint: dueHint,
-            tone: snap.dueSoon > 0 ? 'down' : ''
-        }),
-        insight({
-            label: 'Left to pay',
-            value: formatMoney(snap.leftToPay),
-            hint: snap.monthLabel,
-            tone: snap.leftToPay > 0 ? 'down' : ''
-        }),
-        insight({
-            label: 'Saved',
-            value: saved,
-            hint: snap.monthLabel,
-            tone: snap.savingsRate > 0 ? 'up' : snap.savingsRate < 0 ? 'down' : ''
-        })
-    );
+    if (tools) {
+        tools.hidden = true;
+        tools.replaceChildren();
+    }
 }
