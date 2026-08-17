@@ -28,7 +28,6 @@ const VIEW_COPY = {
 };
 
 let activeView = readStoredView();
-let lastGrowthScore = null;
 
 function readStoredView() {
     try {
@@ -155,105 +154,6 @@ function savingsChip(snap) {
     });
 }
 
-function prefersReducedMotion() {
-    try {
-        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch (_) {
-        return false;
-    }
-}
-
-function growthMeter(growth) {
-    const section = document.createElement('section');
-    section.className = 'growth-meter';
-    const score = Number(growth?.score) || 0;
-    const label = growth?.label || 'Getting started';
-    const blurb = growth?.blurb || '';
-    const factors = growth?.factors || [];
-    section.setAttribute('aria-label', `Growth potential ${score} of 100, ${label}`);
-
-    // Sweep the ring only when the number actually moved, so a theme swap
-    // or an unrelated edit does not replay the animation.
-    const animate = !prefersReducedMotion() && lastGrowthScore !== score;
-    lastGrowthScore = score;
-
-    const circ = 2 * Math.PI * 52;
-    const offset = circ * (1 - Math.min(100, Math.max(0, score)) / 100);
-
-    const wheel = document.createElement('div');
-    wheel.className = 'growth-meter-wheel';
-    wheel.innerHTML = `
-        <svg viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="growth-wheel-track" cx="60" cy="60" r="52"></circle>
-            <circle class="growth-wheel-value" cx="60" cy="60" r="52"
-                stroke-dasharray="${circ.toFixed(2)}"
-                stroke-dashoffset="${(animate ? circ : offset).toFixed(2)}"></circle>
-        </svg>
-        <div class="growth-meter-score">
-            <strong>${animate ? 0 : score}</strong>
-            <span>Growth</span>
-        </div>
-    `;
-
-    const copy = document.createElement('div');
-    copy.className = 'growth-meter-copy';
-    const heading = document.createElement('h3');
-    heading.className = 'growth-meter-title';
-    heading.textContent = label;
-    const note = document.createElement('p');
-    note.className = 'growth-meter-blurb';
-    note.textContent = blurb;
-    const list = document.createElement('div');
-    list.className = 'growth-factors';
-    list.setAttribute('role', 'list');
-    factors.forEach((row) => {
-        const item = document.createElement('div');
-        item.className = 'growth-factor';
-        item.setAttribute('role', 'listitem');
-        item.title = row.hint || row.label;
-        const pct = row.max ? Math.round((row.score / row.max) * 100) : 0;
-        item.innerHTML = `
-            <span class="growth-factor-label">${row.label}</span>
-            <span class="growth-factor-score">${row.score}</span>
-            <span class="growth-factor-bar" aria-hidden="true"><i style="--pct:${animate ? 0 : pct}%"></i></span>
-        `;
-        item.dataset.pct = String(pct);
-        list.appendChild(item);
-    });
-    copy.append(heading, note, list);
-    section.append(wheel, copy);
-
-    if (animate) {
-        requestAnimationFrame(() => {
-            if (!section.isConnected) return;
-            const ring = section.querySelector('.growth-wheel-value');
-            if (ring) ring.setAttribute('stroke-dashoffset', offset.toFixed(2));
-            section.querySelectorAll('.growth-factor').forEach((item) => {
-                const bar = item.querySelector('.growth-factor-bar i');
-                if (bar) bar.style.setProperty('--pct', `${item.dataset.pct}%`);
-            });
-            countUp(section.querySelector('.growth-meter-score strong'), score);
-        });
-    }
-
-    return section;
-}
-
-/** Ease the score up to its value so growth reads as motion, not a jump. */
-function countUp(node, target) {
-    if (!node) return;
-    const start = performance.now();
-    const dur = 620;
-    const step = (now) => {
-        if (!node.isConnected) return;
-        const t = Math.min(1, (now - start) / dur);
-        const eased = 1 - Math.pow(1 - t, 3);
-        node.textContent = String(Math.round(target * eased));
-        if (t < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-}
-
 function overviewSlide(snap) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
@@ -266,7 +166,6 @@ function overviewSlide(snap) {
         : (snap.incomeReceived > 0 ? `${formatMoney(snap.incomeReceived)} received` : snap.monthLabel);
 
     return [
-        growthMeter(snap.growth),
         blockGroup({
             title: 'Account overview',
             description: 'What is settled now and how this month is tracking.',

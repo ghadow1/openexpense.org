@@ -420,27 +420,6 @@ test('estimated month total does not replay early bills across the rest of the m
     assert.ok(spend.avgPerDay < 250, `daily average ${spend.avgPerDay} used active days instead of calendar days`);
 });
 
-test('growth potential stays in 0–100 and rewards income plus a keep rate', () => {
-    const empty = computeNetSnapshot({}, new Date(2026, 7, 17), new Date(2026, 7, 17));
-    assert.ok(empty.growth.score >= 0 && empty.growth.score <= 100);
-    assert.equal(empty.growth.factors.reduce((sum, row) => sum + row.max, 0), 100);
-    assert.equal(empty.growth.label, 'Getting started');
-
-    const growing = {
-        '2026-08-01': [entry({ title: 'Paycheck', price: 4000, kind: 'income', recurring: true, repeat: 'monthly', paid: true })],
-        '2026-08-02': [entry({ title: 'Rent', price: 1200, recurring: true, repeat: 'monthly', paid: true })],
-        '2026-08-10': [entry({ title: 'Bonus', price: 400, kind: 'income', paid: true })]
-    };
-    const snap = computeNetSnapshot(growing, new Date(2026, 7, 17), new Date(2026, 7, 17));
-    assert.ok(snap.growth.score > empty.growth.score);
-    assert.ok(snap.growth.score >= 65);
-    assert.ok(snap.savingsRate > 15);
-    assert.match(snap.growth.label, /runway|Compounding|rise/i);
-    snap.growth.factors.forEach((row) => {
-        assert.ok(row.score >= 0 && row.score <= row.max);
-    });
-});
-
 test('same-title expense and income stay separate groups', () => {
     const groups = groupExpenses([
         entry({ title: 'Transfer', price: 20 }),

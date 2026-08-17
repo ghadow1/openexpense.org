@@ -124,7 +124,7 @@
     --danger-bg: #fef2f2;
     --danger-text: #b91c1c;
     --danger-border: #fca5a5;
-    --success: #16a34a;
+    --success: #059669;
     --shadow-sm: none;
     --shadow-md: none;
     --shadow-lg: none;
@@ -134,7 +134,7 @@
     --accent-ring: rgba(17, 112, 207, 0.24);
     --thumb-bg: #ffffff;
     --modal-shadow: 0 0 0 1px #c5d0dc;
-    --success-bg: rgba(22, 163, 74, 0.12);
+    --success-bg: rgba(5, 150, 105, 0.12);
     --danger-bg-soft: rgba(185, 28, 28, 0.1);
     --income: #059669;
     --income-soft: rgba(5, 150, 105, 0.12);
@@ -181,7 +181,7 @@
     --day-bg: #000000;
     --day-border: #2e2e2e;
     --pill-bg: #111111;
-    --pill-text: #e8ff4d;
+    --pill-text: #c6f135;
     --pill-border: #3a3a3a;
 
     --overlay: rgba(0, 0, 0, 0.78);
@@ -201,7 +201,7 @@
     --danger-bg-soft: rgba(253, 164, 175, 0.12);
     --income: #c6f135;
     --income-soft: rgba(198, 241, 53, 0.12);
-    --income-text: #e8ff4d;
+    --income-text: #c6f135;
     --income-border: #84994a;
 
     --docs-bg-pane: #000000;
@@ -1179,151 +1179,6 @@ html.is-action-busy [data-lockable] {
     display: flex;
     flex-direction: column;
     gap: 16px;
-}
-
-.growth-meter {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 16px 20px;
-    align-items: center;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    transition:
-        background var(--dur-med) var(--ease-out),
-        border-color var(--dur-med) var(--ease-out);
-}
-
-.growth-meter-wheel {
-    position: relative;
-    width: 108px;
-    height: 108px;
-    flex-shrink: 0;
-}
-
-.growth-meter-wheel svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-}
-
-.growth-wheel-track,
-.growth-wheel-value {
-    fill: none;
-    stroke-width: 8;
-    stroke-linecap: round;
-}
-
-.growth-wheel-track {
-    stroke: color-mix(in srgb, var(--border) 80%, var(--surface2));
-}
-
-.growth-wheel-value {
-    stroke: var(--income);
-    transition: stroke-dashoffset 640ms var(--ease-out);
-}
-
-.growth-meter-score {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.growth-meter-score strong {
-    font-size: 1.55rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 1;
-    color: var(--text-strong);
-    font-variant-numeric: tabular-nums;
-}
-
-.growth-meter-score span {
-    margin-top: 3px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text2);
-}
-
-.growth-meter-title {
-    margin: 0 0 4px;
-    font-size: var(--fs-md);
-    font-weight: 750;
-    letter-spacing: -0.02em;
-    color: var(--text-strong);
-}
-
-.growth-meter-blurb {
-    margin: 0 0 12px;
-    font-size: var(--fs-xs);
-    line-height: 1.45;
-    color: var(--text2);
-}
-
-.growth-factors {
-    display: grid;
-    gap: 7px;
-}
-
-.growth-factor {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    column-gap: 8px;
-    row-gap: 3px;
-    align-items: baseline;
-}
-
-.growth-factor-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text2);
-}
-
-.growth-factor-score {
-    font-size: 10px;
-    font-weight: 800;
-    color: var(--text-strong);
-    font-variant-numeric: tabular-nums;
-}
-
-.growth-factor-bar {
-    grid-column: 1 / -1;
-    height: 6px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.growth-factor-bar i {
-    display: block;
-    height: 100%;
-    width: var(--pct, 0%);
-    background: linear-gradient(90deg, var(--accent), var(--income));
-    transition: width 520ms var(--ease-out);
-}
-
-[data-theme="dark"] .growth-meter {
-    background: #000;
-    border-color: rgba(255, 255, 255, 0.16);
-}
-
-[data-theme="dark"] .growth-wheel-value {
-    stroke: #c6f135;
-}
-
-[data-theme="dark"] .growth-factor-bar i {
-    background: linear-gradient(90deg, #7dd3fc, #c6f135);
 }
 
 .dash-chips:not(.is-ready) {
@@ -2735,9 +2590,9 @@ html.is-action-busy [data-lockable] {
     width: 72px;
     height: 72px;
     border-radius: 14px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 24%, var(--surface2)), var(--surface2));
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-    color: var(--accent);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
     flex-shrink: 0;
 }
 
@@ -4215,7 +4070,7 @@ textarea:focus-visible {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--success)));
+    background: var(--accent);
     transition: width 420ms var(--ease-out);
 }
 
@@ -4431,21 +4286,10 @@ textarea:focus-visible {
 }
 
 .year-chart-col.is-hot .year-chart-fill {
+    background: var(--accent);
     border-color: transparent;
 }
 
-.year-chart-col:nth-child(1).is-hot .year-chart-fill { background: #0a4d9a; }
-.year-chart-col:nth-child(2).is-hot .year-chart-fill { background: #1170cf; }
-.year-chart-col:nth-child(3).is-hot .year-chart-fill { background: #38bdf8; }
-.year-chart-col:nth-child(4).is-hot .year-chart-fill { background: #0284c7; }
-.year-chart-col:nth-child(5).is-hot .year-chart-fill { background: #0d9488; }
-.year-chart-col:nth-child(6).is-hot .year-chart-fill { background: #059669; }
-.year-chart-col:nth-child(7).is-hot .year-chart-fill { background: #16a34a; }
-.year-chart-col:nth-child(8).is-hot .year-chart-fill { background: #65a30d; }
-.year-chart-col:nth-child(9).is-hot .year-chart-fill { background: #2563eb; }
-.year-chart-col:nth-child(10).is-hot .year-chart-fill { background: #4f46e5; }
-.year-chart-col:nth-child(11).is-hot .year-chart-fill { background: #0891b2; }
-.year-chart-col:nth-child(12).is-hot .year-chart-fill { background: #047857; }
 
 .year-chart-col.is-current .year-chart-fill {
     background: var(--accent);
@@ -4472,7 +4316,7 @@ textarea:focus-visible {
 }
 
 /* ==========================================================================
-   Dark theme — OLED black, hairlines, colored graphic wheels
+   Dark theme — OLED black, hairlines, single accent
    Light theme tokens and layout stay unchanged. This only paints dark.
    ========================================================================== */
 [data-theme="dark"] .site-header {
@@ -4506,13 +4350,13 @@ textarea:focus-visible {
 [data-theme="dark"] .pill {
     background: #111;
     color: #fff;
-    border-left-color: #7dd3fc;
+    border-left-color: var(--accent);
 }
 
 [data-theme="dark"] .pill.is-income {
     background: #111;
-    color: #c6f135;
-    border-left-color: #c6f135;
+    color: var(--income);
+    border-left-color: var(--income);
 }
 
 [data-theme="dark"] .summary-section,
@@ -4531,9 +4375,9 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .cal-day-num.is-today {
-    background: #c6f135;
+    background: var(--income);
     color: #000;
-    box-shadow: 0 0 0 2px #000, 0 0 0 3px #c6f135;
+    box-shadow: 0 0 0 2px #000, 0 0 0 3px var(--income);
 }
 
 [data-theme="dark"] .cal-day-dot,
@@ -4553,7 +4397,7 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .dash-chip.is-down .dash-chip-value {
-    color: #fda4af;
+    color: var(--danger-text);
 }
 
 [data-theme="dark"] .dash-chip-value {
@@ -4570,7 +4414,7 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .summary-hero.is-income .summary-hero-amount {
-    color: #c6f135;
+    color: var(--income);
 }
 
 [data-theme="dark"] .budget-bar {
@@ -4579,11 +4423,11 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .budget-fill-paid {
-    background: #c6f135;
+    background: var(--income);
 }
 
 [data-theme="dark"] .budget-fill-pending {
-    background: #7dd3fc;
+    background: var(--accent);
 }
 
 [data-theme="dark"] .year-chart-col::before {
@@ -4596,21 +4440,9 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .year-chart-col.is-hot .year-chart-fill {
+    background: var(--accent);
     border-color: transparent;
 }
-
-[data-theme="dark"] .year-chart-col:nth-child(1).is-hot .year-chart-fill { background: #5eead4; }
-[data-theme="dark"] .year-chart-col:nth-child(2).is-hot .year-chart-fill { background: #67e8f9; }
-[data-theme="dark"] .year-chart-col:nth-child(3).is-hot .year-chart-fill { background: #7dd3fc; }
-[data-theme="dark"] .year-chart-col:nth-child(4).is-hot .year-chart-fill { background: #93c5fd; }
-[data-theme="dark"] .year-chart-col:nth-child(5).is-hot .year-chart-fill { background: #c4b5fd; }
-[data-theme="dark"] .year-chart-col:nth-child(6).is-hot .year-chart-fill { background: #f0abfc; }
-[data-theme="dark"] .year-chart-col:nth-child(7).is-hot .year-chart-fill { background: #fda4af; }
-[data-theme="dark"] .year-chart-col:nth-child(8).is-hot .year-chart-fill { background: #fdba74; }
-[data-theme="dark"] .year-chart-col:nth-child(9).is-hot .year-chart-fill { background: #fde047; }
-[data-theme="dark"] .year-chart-col:nth-child(10).is-hot .year-chart-fill { background: #bef264; }
-[data-theme="dark"] .year-chart-col:nth-child(11).is-hot .year-chart-fill { background: #86efac; }
-[data-theme="dark"] .year-chart-col:nth-child(12).is-hot .year-chart-fill { background: #6ee7b7; }
 
 [data-theme="dark"] .year-chart-col.is-current .year-chart-fill,
 [data-theme="dark"] .sidebar-face--income .year-chart-col.is-current .year-chart-fill {
@@ -4623,7 +4455,7 @@ textarea:focus-visible {
 
 [data-theme="dark"] .year-chart-col:hover .year-chart-fill,
 [data-theme="dark"] .year-chart-col:focus-visible .year-chart-fill {
-    box-shadow: 0 0 0 2px #000, 0 0 0 3px #c6f135;
+    box-shadow: 0 0 0 2px #000, 0 0 0 3px var(--accent);
 }
 
 [data-theme="dark"] .summary-merchant-track {
@@ -4632,7 +4464,7 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .summary-merchant-track span {
-    background: #c6f135;
+    background: var(--accent);
 }
 
 /* ==========================================================================
@@ -5049,7 +4881,7 @@ html.oe-scroll-lock body {
     display: block;
     height: 100%;
     width: 0;
-    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    background: var(--accent);
     transition: width 0.2s ease;
     border-radius: 999px;
 }
@@ -5240,17 +5072,6 @@ html.oe-scroll-lock body {
     .year-chart {
         height: 92px;
         gap: 2px;
-    }
-
-    .growth-meter {
-        grid-template-columns: 1fr;
-        justify-items: center;
-        text-align: center;
-    }
-
-    .growth-meter-copy {
-        width: 100%;
-        text-align: left;
     }
 
     .toolbar {
