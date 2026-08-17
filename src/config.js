@@ -7,7 +7,7 @@
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CONFIG = {
-    version: "Version 2.1.0",
+    version: "Version 2.2.0",
     buildEnv: "Production",
     defaultTheme: "light"
 };

@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2.2.0 — 2026-08-17 — Navy social cards and SEO
+
+Search titles, Open Graph / Twitter cards, the PWA manifest, and the home-screen icon now use the live navy `#002244` and accent `#1170cf`. The preview image shows current funds, projected income, and cashflow on a white canvas — not the old purple lock art. The in-app theme is unchanged.
+
 ## 2026-08-17 — Current funds and projected income
 
 The snapshot row now leads with **Current funds** — paid income minus paid spend through today. The old year-net Balance chip is **Projected income** for the month on screen. Cashflow and monthly avg stay. Due soon, left to pay, and saved sit under the chips as compact tracking points.

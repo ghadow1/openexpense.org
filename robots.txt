@@ -1,5 +1,5 @@
 # OpenExpense — GitHub Pages
-# The app is a static site. Ledger data never lives on this host.
+# Encrypted local expense ledger. Ledger data never lives on this host.
 
 User-agent: *
 Allow: /

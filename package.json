@@ -1,8 +1,8 @@
 {
   "name": "openexpense.org",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": false,
-  "description": "Open-source expense ledger and mobile-friendly encrypted wallet. The ledger never leaves the browser.",
+  "description": "Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves the browser.",
   "license": "MIT",
   "homepage": "https://www.openexpense.org",
   "repository": {
@@ -16,9 +16,11 @@
     "expense-tracker",
     "privacy",
     "offline",
+    "encrypted-wallet",
     "indexeddb",
     "aes-gcm",
-    "pwa"
+    "pwa",
+    "open-source"
   ],
   "scripts": {
     "build": "node scripts/write-sitemap.mjs && npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",

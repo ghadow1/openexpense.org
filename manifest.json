@@ -1,13 +1,13 @@
 {
-  "name": "OpenExpense — Open-Source Expense Ledger",
+  "name": "OpenExpense — Encrypted Local Expense Ledger",
   "short_name": "OpenExpense",
-  "description": "Open expense tracking in a mobile-friendly encrypted wallet. Your financial data never leaves your device.",
+  "description": "Track expenses and income in a private calendar wallet. AES-256 on this device. No accounts. No cloud.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f2f3f7",
-  "theme_color": "#4f46e5",
+  "background_color": "#ffffff",
+  "theme_color": "#002244",
   "categories": ["finance", "productivity"],
   "icons": [
     {

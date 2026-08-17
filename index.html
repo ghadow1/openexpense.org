@@ -21,34 +21,38 @@
   <meta name="robots" content="index,follow,max-image-preview:large">
   <meta name="googlebot" content="index,follow">
 
-  <title>OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet</title>
+  <title>OpenExpense — Encrypted Local Expense Ledger</title>
   <meta name="description"
-    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud. Mobile-friendly financial security tooling.">
+    content="Track expenses and income in a private calendar wallet. AES-256 on this device, no accounts, no cloud. See current funds and projected income.">
   <meta name="keywords"
-    content="open expense tracking, open-source expense ledger, free financial security tooling, mobile-friendly expense wallet, private expense tracker, offline ledger, encrypted local storage">
+    content="encrypted local expense ledger, private calendar wallet, current funds, projected income, offline expense tracker, no account finance app, AES-256-GCM, open-source MIT">
   <meta name="author" content="Gregory Medina">
+  <meta name="msapplication-TileColor" content="#002244">
+  <meta name="msapplication-TileImage" content="https://www.openexpense.org/apple-touch-icon.png">
   <link rel="canonical" href="https://www.openexpense.org/">
   <link rel="sitemap" type="application/xml" href="https://www.openexpense.org/sitemap.xml">
+  <link rel="image_src" href="https://www.openexpense.org/og-image.jpg">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="OpenExpense">
   <meta property="og:locale" content="en_US">
-  <meta property="og:title" content="OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet">
+  <meta property="og:title" content="OpenExpense — Encrypted Local Expense Ledger">
   <meta property="og:description"
-    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud.">
+    content="Private expense and income ledger that never leaves this browser. Encrypted locally. No accounts. No cloud.">
   <meta property="og:url" content="https://www.openexpense.org/">
   <meta property="og:image" content="https://www.openexpense.org/og-image.jpg">
+  <meta property="og:image:secure_url" content="https://www.openexpense.org/og-image.jpg">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="OpenExpense — open-source expense ledger with a local encrypted wallet">
+  <meta property="og:image:alt" content="OpenExpense navy header with current funds, projected income, and cashflow">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="OpenExpense — Open-Source Expense Ledger &amp; Mobile Wallet">
+  <meta name="twitter:title" content="OpenExpense — Encrypted Local Expense Ledger">
   <meta name="twitter:description"
-    content="Free, open-source expense tracking that stays on your device. Encrypted local wallet, no accounts, no cloud.">
+    content="Private expense and income ledger that never leaves this browser. Encrypted locally. No accounts. No cloud.">
   <meta name="twitter:image" content="https://www.openexpense.org/og-image.jpg">
-  <meta name="twitter:image:alt" content="OpenExpense — open-source expense ledger with a local encrypted wallet">
+  <meta name="twitter:image:alt" content="OpenExpense navy header with current funds, projected income, and cashflow">
 
   <script type="application/ld+json">
   {
@@ -59,7 +63,8 @@
         "@id": "https://www.openexpense.org/#website",
         "url": "https://www.openexpense.org/",
         "name": "OpenExpense",
-        "description": "Open-source expense ledger and mobile-friendly encrypted wallet that never leaves your browser.",
+        "alternateName": "openexpense.org",
+        "description": "Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves your browser.",
         "inLanguage": "en",
         "publisher": { "@id": "https://www.openexpense.org/#org" }
       },
@@ -67,20 +72,25 @@
         "@type": "SoftwareApplication",
         "@id": "https://www.openexpense.org/#app",
         "name": "OpenExpense",
+        "alternateName": "openexpense.org",
         "url": "https://www.openexpense.org/",
         "applicationCategory": "FinanceApplication",
         "applicationSubCategory": "Expense tracker",
         "operatingSystem": "Any (mobile and desktop browsers)",
         "browserRequirements": "Requires JavaScript and a secure context (HTTPS).",
+        "softwareVersion": "2.2.0",
+        "dateModified": "2026-08-17",
         "isAccessibleForFree": true,
         "license": "https://opensource.org/licenses/MIT",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "featureList": [
-          "Open expense tracking on a calendar ledger",
+          "Current funds and projected income on the home calendar",
           "Encrypted local wallet (AES-256-GCM)",
           "Portable key.json kept only on the user's device",
           "Offline-only, no accounts or cloud sync",
-          "Income and expense in one ledger file"
+          "Income and expense in one ledger file",
+          "Weekly through quarterly recurring series",
+          "Local receipt OCR"
         ],
         "screenshot": "https://www.openexpense.org/og-image.jpg",
         "image": "https://www.openexpense.org/og-image.jpg",
@@ -92,6 +102,7 @@
         "name": "OpenExpense",
         "url": "https://www.openexpense.org/",
         "logo": "https://www.openexpense.org/apple-touch-icon.png",
+        "brand": { "@type": "Brand", "name": "OpenExpense", "slogan": "Encrypted local expense wallet" },
         "sameAs": ["https://github.com/ghadow1/openexpense.org"]
       }
     ]
@@ -183,8 +194,8 @@
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
       </div>
       <p class="welcome-copy">
-        Open expense tracking in a local encrypted wallet. Your ledger stays on this phone or
-        computer — nothing is uploaded, synced, or sold. Tap any day on the calendar to log an expense.
+        Encrypted local expense wallet. Current funds and projected income stay on this phone
+        or computer — nothing is uploaded, synced, or sold. Tap any day on the calendar to log an entry.
       </p>
       <ul class="welcome-trust">
         <li>Open source</li>
@@ -200,7 +211,7 @@
   <div class="app-shell">
     <header class="site-header">
       <div class="site-header-inner">
-        <div class="brand" aria-label="OpenExpense.org — Open-source expense ledger">
+        <div class="brand" aria-label="OpenExpense.org — Encrypted local expense ledger">
           <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="">
           <div class="brand-lockup">
             <h1 class="brand-name">OpenExpense</h1>
@@ -352,7 +363,8 @@
 
                 <h3 class="docs-section-title">What you get</h3>
                 <ul class="docs-list">
-                  <li><strong>Calendar ledger</strong> — tap any day to log one or more expenses.</li>
+                  <li><strong>Current funds</strong> — settled paid-in minus paid-out, plus projected income for the month on screen.</li>
+                  <li><strong>Calendar ledger</strong> — tap any day to log one or more expenses or income.</li>
                   <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
                   <li><strong>Receipt scanning</strong> — photograph or upload a receipt or PDF; local OCR suggests fields you review before saving.</li>
                   <li><strong>Encrypted autosave</strong> — changes write to encrypted local storage automatically.</li>
@@ -632,6 +644,15 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — 2.2.0 navy social cards</h3>
+                  <p>
+                    Search titles, social previews, and the home-screen icon now use the same navy and
+                    accent as the live header. The preview shows current funds, projected income, and
+                    cashflow. The in-app theme is unchanged.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Current funds and projected income</h3>
                   <p>
                     The snapshot row now leads with <strong>Current funds</strong> (settled paid-in minus
@@ -873,8 +894,8 @@
 
     <footer class="site-footer">
       <div class="footer-left">
-        <p class="footer-sovereignty">Your expenses never leave this device.</p>
-        <span>&copy; 2026 openexpense.org &bull; MIT License &bull; Free financial security tooling</span>
+        <p class="footer-sovereignty">Your ledger never leaves this device.</p>
+        <span>&copy; 2026 openexpense.org &bull; MIT License &bull; Encrypted local wallet</span>
       </div>
       <div class="footer-right">
         <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener">

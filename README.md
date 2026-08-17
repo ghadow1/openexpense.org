@@ -1,15 +1,15 @@
 # [openexpense.org](https://www.openexpense.org)
 
-**Open-source expense ledger and mobile-friendly encrypted wallet. Your data never leaves your browser.**
+**Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves your browser.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2.1.0-blue)](src/config.js)
+[![License: MIT](https://img.shields.io/badge/License-MIT-002244.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-2.2.0-1170cf.svg)](src/config.js)
 
 OpenExpense is a static GitHub Pages app. There is no backend, no account, and no analytics. The ledger lives encrypted in this browser’s IndexedDB. Export writes an encrypted ledger.json plus a sibling key.json you keep yourself.
 
 ## What’s new
 
-**17 August 2026** — Linked-folder **Save** overwrites the existing encrypted JSON, a branded 404 for unknown URLs, income tracking, recurring cadence, and status pills.
+**17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
 - Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
 - In the app: **Privacy & Help → Updates**
