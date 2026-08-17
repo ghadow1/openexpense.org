@@ -3374,7 +3374,7 @@ textarea:focus-visible {
     color: var(--text2);
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 2px;
     padding: 2px 8px;
     margin-left: 4px;
     letter-spacing: 0.02em;
