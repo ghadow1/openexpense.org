@@ -119,8 +119,10 @@ function updateThemeToggle() {
 
     const { isDark } = getState();
     const face = themeFace(isDark);
-    if (!themeToggleBtn) {
-        toggleSlot.innerHTML = '';
+    // Rebuild when the cached button is missing or detached, otherwise a slot
+    // that got cleared would leave the header with no toggle at all.
+    if (themeToggleBtn?.parentElement !== toggleSlot) {
+        toggleSlot.replaceChildren();
         themeToggleBtn = createHeaderIconBtn(face.nextIcon, () => setTheme(!getState().isDark));
         toggleSlot.appendChild(themeToggleBtn);
     }
@@ -136,8 +138,8 @@ function updateAutosaveToggle() {
     if (!slot) return;
 
     const { autosaveEnabled } = getState();
-    if (!autosaveToggleBtn) {
-        slot.innerHTML = '';
+    if (autosaveToggleBtn?.parentElement !== slot) {
+        slot.replaceChildren();
         autosaveToggleBtn = createHeaderIconBtn('device-floppy', () => Ledger.toggleAutosave());
         slot.appendChild(autosaveToggleBtn);
     }
