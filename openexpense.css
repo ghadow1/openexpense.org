@@ -69,6 +69,11 @@
     --radius-2xl: 24px;
     --radius-full: 999px;
 
+    /* One square for the mark and every icon control */
+    --control: 40px;
+    --control-radius: 12px;
+    --control-icon: 18px;
+
     /* Motion */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -230,13 +235,15 @@ textarea:focus:not(:focus-visible) {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 36px;
+    height: var(--control);
+    min-height: var(--control);
     padding: 0 12px;
     font-size: var(--fs-sm);
     font-weight: 500;
     font-family: inherit;
     line-height: 1;
-    border-radius: var(--radius-sm);
+    border-radius: var(--control-radius);
+    box-sizing: border-box;
     border: 1px solid var(--btn-border);
     background: var(--btn-bg);
     color: var(--btn-text);
@@ -252,7 +259,7 @@ textarea:focus:not(:focus-visible) {
 }
 
 .ui-btn i {
-    font-size: 15px;
+    font-size: var(--control-icon);
     line-height: 1;
 }
 
@@ -273,7 +280,8 @@ textarea:focus:not(:focus-visible) {
 }
 
 .ui-btn--icon {
-    width: 36px;
+    width: var(--control);
+    min-width: var(--control);
     padding: 0;
 }
 
@@ -502,7 +510,7 @@ textarea,
     align-items: center;
     gap: 12px;
     margin-bottom: 1.25rem;
-    --header-control: 36px;
+    --header-control: var(--control);
     min-height: var(--header-control);
 }
 
@@ -517,10 +525,10 @@ textarea,
 }
 
 .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: var(--control);
+    height: var(--control);
     flex-shrink: 0;
-    border-radius: 11px;
+    border-radius: var(--control-radius);
     box-shadow:
         var(--shadow-sm),
         0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
@@ -598,16 +606,22 @@ textarea,
     transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 
+.header-btn-label {
+    display: none;
+}
+
 .header-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0;
+    width: var(--header-control);
+    min-width: var(--header-control);
     height: var(--header-control);
     min-height: var(--header-control);
-    padding: 0 12px;
+    padding: 0;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--control-radius);
     background: var(--surface-glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -668,12 +682,12 @@ textarea,
     min-height: var(--header-control);
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--control-radius);
     background: var(--surface-glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     color: var(--text2);
-    font-size: 15px;
+    font-size: var(--control-icon);
     line-height: 1;
     cursor: pointer;
     box-sizing: border-box;
@@ -711,7 +725,7 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: var(--control-icon);
     pointer-events: none;
 }
 
@@ -733,7 +747,7 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: var(--control-icon);
     line-height: 1;
 }
 
@@ -1085,8 +1099,9 @@ textarea,
 }
 
 .sidebar-print-btn {
-    height: 32px;
-    width: 32px;
+    height: var(--control);
+    width: var(--control);
+    min-width: var(--control);
     padding: 0;
     flex-shrink: 0;
 }
@@ -1101,7 +1116,9 @@ textarea,
     padding: 12px 16px;
     border-radius: var(--radius-md);
     margin-bottom: 24px;
-    height: 60px;
+    height: auto;
+    min-height: calc(var(--control) + 24px);
+    box-sizing: border-box;
 }
 
 .nav-group {
@@ -1126,18 +1143,19 @@ textarea,
     letter-spacing: var(--tracking-tight);
 }
 
-/* When the calendar column is too narrow for full labels, collapse the
-   toolbar action buttons to icon-only so nothing overflows or clips. */
+.toolbar .ui-btn,
+.toolbar-actions .ui-btn {
+    width: var(--control);
+    min-width: var(--control);
+    height: var(--control);
+    padding: 0;
+}
+
+.toolbar-actions .ui-btn span {
+    display: none;
+}
+
 @container (max-width: 820px) {
-    .toolbar-actions button span {
-        display: none !important;
-    }
-
-    .toolbar-actions button {
-        padding-left: 9px !important;
-        padding-right: 9px !important;
-    }
-
     .toolbar .month-title {
         min-width: 0;
     }
@@ -1568,9 +1586,9 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
+    width: var(--control);
+    height: var(--control);
+    border-radius: var(--control-radius);
     background: var(--surface2);
     color: var(--text2);
     flex-shrink: 0;
@@ -2355,10 +2373,10 @@ body:has(.backdrop.open) #global-tooltip {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control);
+    height: var(--control);
     padding: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--control-radius);
     transition:
         color var(--dur-fast) var(--ease-out),
         background var(--dur-fast) var(--ease-out),
@@ -2581,13 +2599,17 @@ body:has(.backdrop.open) #global-tooltip {
 .btn-icon-edit,
 .btn-icon-delete {
     background: transparent;
-    border-radius: 6px;
-    padding: 6px;
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    border-radius: var(--control-radius);
+    padding: 0;
     cursor: pointer;
     transition: all 0.12s;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .btn-icon-edit {
@@ -3720,12 +3742,14 @@ body.modal-open {
     z-index: 450;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    min-width: 56px;
-    min-height: 56px;
-    padding: 0 18px;
+    gap: 0;
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    min-height: var(--control);
+    padding: 0;
     border: none;
-    border-radius: var(--radius-full);
+    border-radius: var(--control-radius);
     background: var(--accent);
     color: #fff;
     font-size: var(--fs-md);
@@ -3738,8 +3762,12 @@ body.modal-open {
 }
 
 .quick-fab i {
-    font-size: 22px;
+    font-size: var(--control-icon);
     line-height: 1;
+}
+
+.quick-fab-label {
+    display: none;
 }
 
 .quick-fab:hover {
@@ -3845,9 +3873,9 @@ body.modal-open .quick-fab {
     font-size: 12px;
 }
 
-/* Toolbar: touch-friendly on phones */
+/* Toolbar: same square as the rest of the chrome */
 .toolbar-actions button {
-    min-height: 36px;
+    min-height: var(--control);
 }
 
 /* ==========================================================================
@@ -3929,8 +3957,8 @@ body.modal-open .quick-fab {
     }
 
     .docs-nav-icon {
-        width: 34px;
-        height: 34px;
+        width: var(--control);
+        height: var(--control);
         flex-shrink: 0;
     }
 
@@ -3975,13 +4003,13 @@ body.modal-open .quick-fab {
         backdrop-filter: blur(16px) saturate(1.15);
         -webkit-backdrop-filter: blur(16px) saturate(1.15);
         border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-        --header-control: 40px;
+        --header-control: var(--control);
     }
 
     .brand-mark {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
+        width: var(--control);
+        height: var(--control);
+        border-radius: var(--control-radius);
     }
 
     .brand-tag {
@@ -3994,20 +4022,10 @@ body.modal-open .quick-fab {
 
     .header-icon-btn,
     .header-btn {
-        --header-control: 40px;
-        width: 40px;
-        min-width: 40px;
-        height: 40px;
-    }
-
-    .header-btn-label {
-        display: none;
-    }
-
-    .header-btn {
-        min-width: var(--header-control);
-        padding: 0 10px;
-        justify-content: center;
+        width: var(--control);
+        min-width: var(--control);
+        height: var(--control);
+        padding: 0;
     }
 
     .view-segment-bar {
@@ -4262,7 +4280,7 @@ body.modal-open .quick-fab {
     }
 
     .text-input,
-    .ui-btn,
+    .ui-btn:not(.ui-btn--icon),
     .btn-primary,
     .btn-ghost,
     .btn-secondary {
@@ -4270,8 +4288,9 @@ body.modal-open .quick-fab {
     }
 
     .toolbar-actions button {
-        min-height: 40px;
-        padding: 8px 10px;
+        min-height: var(--control);
+        width: var(--control);
+        padding: 0;
     }
 
     .docs-container {
@@ -4295,8 +4314,8 @@ body.modal-open .quick-fab {
     }
 
     .docs-nav-icon {
-        width: 30px;
-        height: 30px;
+        width: var(--control);
+        height: var(--control);
     }
 
     .docs-nav-label {
@@ -4351,7 +4370,7 @@ body.modal-open .quick-fab {
     }
 
     .header-btn {
-        padding: 0 8px;
+        padding: 0;
     }
 
     .brand-lockup {
@@ -4457,11 +4476,11 @@ body.modal-open .quick-fab {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control);
+    height: var(--control);
     padding: 0;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: var(--control-radius);
     background: #f5f5f5;
     color: #525252;
     font-size: 20px;

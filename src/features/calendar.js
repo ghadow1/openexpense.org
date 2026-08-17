@@ -46,11 +46,11 @@ function ensureShell(calCol) {
     actions.className = 'nav-group toolbar-actions';
     const divider = () => Object.assign(document.createElement('div'), { className: 'nav-divider' });
 
-    const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event' });
-    const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload' });
-    const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download' });
-    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true });
-    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true });
+    const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event', iconOnly: true });
+    const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload', iconOnly: true });
+    const exportBtn = UI.createButton('Export', Ledger.export, { icon: 'download', iconOnly: true });
+    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true, iconOnly: true });
+    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true, iconOnly: true });
     scanBtn.classList.add('toolbar-scan-btn');
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
