@@ -152,63 +152,63 @@
 [data-theme="dark"] {
     color-scheme: dark;
 
-    --bg: #0b0f19;
-    --bg-mesh: #0b0f19;
-    --surface: #131b2e;
-    --surface2: #1e293b;
-    --surface-glass: #131b2e;
-    --border: #334155;
-    --border-strong: #475569;
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text-muted: #64748b;
-    --text-strong: #f8fafc;
-    --header: #081c38;
-    --header-text: #f8fafc;
+    --bg: #000000;
+    --bg-mesh: #000000;
+    --surface: #000000;
+    --surface2: #0a0a0a;
+    --surface-glass: #000000;
+    --border: #3a3a3a;
+    --border-strong: #6b6b6b;
+    --text: #f5f5f5;
+    --text2: #a3a3a3;
+    --text-muted: #737373;
+    --text-strong: #ffffff;
+    --header: #000000;
+    --header-text: #ffffff;
 
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft: rgba(59, 130, 246, 0.16);
-    --glass: #131b2e;
-    --glass-border: #334155;
+    --accent: #7dd3fc;
+    --accent-hover: #bae6fd;
+    --accent-soft: rgba(125, 211, 252, 0.12);
+    --glass: #000000;
+    --glass-border: #3a3a3a;
 
-    --btn-bg: #131b2e;
-    --btn-text: #f8fafc;
-    --btn-border: #334155;
-    --input-bg: #131b2e;
-    --input-border: #334155;
+    --btn-bg: #000000;
+    --btn-text: #ffffff;
+    --btn-border: #3a3a3a;
+    --input-bg: #000000;
+    --input-border: #3a3a3a;
 
-    --day-bg: #131b2e;
-    --day-border: #1e293b;
-    --pill-bg: #1e3a5f;
-    --pill-text: #93c5fd;
-    --pill-border: #1d4ed8;
+    --day-bg: #000000;
+    --day-border: #2e2e2e;
+    --pill-bg: #111111;
+    --pill-text: #e8ff4d;
+    --pill-border: #3a3a3a;
 
-    --overlay: rgba(2, 6, 16, 0.72);
-    --danger-bg: #450a0a;
-    --danger-text: #fca5a5;
+    --overlay: rgba(0, 0, 0, 0.78);
+    --danger-bg: #1a0a0a;
+    --danger-text: #fda4af;
     --danger-border: #7f1d1d;
-    --success: #22c55e;
+    --success: #c6f135;
     --shadow-sm: none;
     --shadow-md: none;
     --shadow-lg: none;
     --shadow-hover: transparent;
 
-    --accent-ring: rgba(59, 130, 246, 0.32);
-    --thumb-bg: #1e293b;
-    --modal-shadow: 0 0 0 1px #334155;
-    --success-bg: rgba(34, 197, 94, 0.14);
-    --danger-bg-soft: rgba(248, 113, 113, 0.12);
-    --income: #34d399;
-    --income-soft: rgba(52, 211, 153, 0.14);
-    --income-text: #6ee7b7;
-    --income-border: #059669;
+    --accent-ring: rgba(125, 211, 252, 0.28);
+    --thumb-bg: #111111;
+    --modal-shadow: 0 0 0 1px #3a3a3a;
+    --success-bg: rgba(198, 241, 53, 0.14);
+    --danger-bg-soft: rgba(253, 164, 175, 0.12);
+    --income: #c6f135;
+    --income-soft: rgba(198, 241, 53, 0.12);
+    --income-text: #e8ff4d;
+    --income-border: #84994a;
 
-    --docs-bg-pane: #14161c;
-    --docs-code-bg: #1c1f28;
-    --docs-note-bg: #3d1b1b;
-    --docs-info-bg: #1c2530;
-    --docs-text-main: #e0e0e0;
+    --docs-bg-pane: #000000;
+    --docs-code-bg: #0a0a0a;
+    --docs-note-bg: #1a0a0a;
+    --docs-info-bg: #0a1218;
+    --docs-text-main: #f5f5f5;
 }
 
 [data-theme="light"] {
@@ -4278,6 +4278,195 @@ textarea:focus-visible {
 .year-chart-col:focus-visible .year-chart-fill,
 .year-chart-col:hover .year-chart-fill {
     border-color: var(--border-strong);
+}
+
+/* ==========================================================================
+   Dark theme — OLED black, hairlines, colored graphic wheels
+   Light theme tokens and layout stay unchanged. This only paints dark.
+   ========================================================================== */
+[data-theme="dark"] .site-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .surface-card,
+[data-theme="dark"] .toolbar,
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .docs-container,
+[data-theme="dark"] .dash-chip,
+[data-theme="dark"] .summary-stat,
+[data-theme="dark"] .summary-hero,
+[data-theme="dark"] .event-edit-row,
+[data-theme="dark"] .modal-shell,
+[data-theme="dark"] .ui-btn {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .dash-deck-tabs {
+    background: #000;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .dash-deck-tab.is-active {
+    background: #111;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="dark"] .pill {
+    background: #111;
+    color: #fff;
+    border-left-color: #7dd3fc;
+}
+
+[data-theme="dark"] .pill.is-income {
+    background: #111;
+    color: #c6f135;
+    border-left-color: #c6f135;
+}
+
+[data-theme="dark"] .summary-section,
+[data-theme="dark"] .site-footer,
+[data-theme="dark"] .dash-block-head {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .cal-day {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: #000;
+}
+
+[data-theme="dark"] .cal-day.has-items {
+    background: #050505;
+}
+
+[data-theme="dark"] .cal-day-num.is-today {
+    background: #c6f135;
+    color: #000;
+    box-shadow: 0 0 0 2px #000, 0 0 0 3px #c6f135;
+}
+
+[data-theme="dark"] .cal-day-dot,
+[data-theme="dark"] .legend-dot {
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .legend-dot {
+    width: 10px;
+    height: 10px;
+}
+
+[data-theme="dark"] .dash-chip.is-up {
+    background: #000;
+    border-color: rgba(198, 241, 53, 0.35);
+}
+
+[data-theme="dark"] .dash-chip.is-down .dash-chip-value {
+    color: #fda4af;
+}
+
+[data-theme="dark"] .dash-chip-value {
+    color: #fff;
+}
+
+[data-theme="dark"] .summary-hero {
+    background: #000;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .summary-hero-amount {
+    color: #fff;
+}
+
+[data-theme="dark"] .summary-hero.is-income .summary-hero-amount {
+    color: #c6f135;
+}
+
+[data-theme="dark"] .budget-bar {
+    background: #0a0a0a;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .budget-fill-paid {
+    background: #c6f135;
+}
+
+[data-theme="dark"] .budget-fill-pending {
+    background: #7dd3fc;
+}
+
+[data-theme="dark"] .year-chart {
+    gap: 2px;
+}
+
+[data-theme="dark"] .year-chart-col {
+    position: relative;
+}
+
+[data-theme="dark"] .year-chart-col::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    bottom: 18px;
+    left: 50%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+[data-theme="dark"] .year-chart-fill {
+    position: relative;
+    z-index: 1;
+    width: 12px;
+    max-width: 12px;
+    height: 12px !important;
+    min-height: 12px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    transform: scale(calc(0.62 + (var(--month-pct, 0) * 0.7)));
+    transform-origin: center bottom;
+}
+
+[data-theme="dark"] .year-chart-col.is-hot .year-chart-fill {
+    border-color: transparent;
+}
+
+[data-theme="dark"] .year-chart-col:nth-child(1).is-hot .year-chart-fill { background: #5eead4; }
+[data-theme="dark"] .year-chart-col:nth-child(2).is-hot .year-chart-fill { background: #67e8f9; }
+[data-theme="dark"] .year-chart-col:nth-child(3).is-hot .year-chart-fill { background: #7dd3fc; }
+[data-theme="dark"] .year-chart-col:nth-child(4).is-hot .year-chart-fill { background: #93c5fd; }
+[data-theme="dark"] .year-chart-col:nth-child(5).is-hot .year-chart-fill { background: #c4b5fd; }
+[data-theme="dark"] .year-chart-col:nth-child(6).is-hot .year-chart-fill { background: #f0abfc; }
+[data-theme="dark"] .year-chart-col:nth-child(7).is-hot .year-chart-fill { background: #fda4af; }
+[data-theme="dark"] .year-chart-col:nth-child(8).is-hot .year-chart-fill { background: #fdba74; }
+[data-theme="dark"] .year-chart-col:nth-child(9).is-hot .year-chart-fill { background: #fde047; }
+[data-theme="dark"] .year-chart-col:nth-child(10).is-hot .year-chart-fill { background: #bef264; }
+[data-theme="dark"] .year-chart-col:nth-child(11).is-hot .year-chart-fill { background: #86efac; }
+[data-theme="dark"] .year-chart-col:nth-child(12).is-hot .year-chart-fill { background: #6ee7b7; }
+
+[data-theme="dark"] .year-chart-col.is-current .year-chart-fill,
+[data-theme="dark"] .sidebar-face--income .year-chart-col.is-current .year-chart-fill {
+    box-shadow: 0 0 0 2px #000, 0 0 0 3px #ffffff;
+}
+
+[data-theme="dark"] .year-chart-col.is-current .year-chart-label {
+    color: #fff;
+}
+
+[data-theme="dark"] .year-chart-col:hover .year-chart-fill,
+[data-theme="dark"] .year-chart-col:focus-visible .year-chart-fill {
+    box-shadow: 0 0 0 2px #000, 0 0 0 3px #c6f135;
+}
+
+[data-theme="dark"] .summary-merchant-track {
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .summary-merchant-track span {
+    background: #c6f135;
 }
 
 /* ==========================================================================

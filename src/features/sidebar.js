@@ -242,6 +242,7 @@ function renderYearChart(summary, currentDate, copy) {
         const fill = el('span', 'year-chart-fill');
         const pct = amt > 0 ? Math.max(12, (amt / maxMonth) * 100) : 4;
         fill.style.height = `${pct}%`;
+        fill.style.setProperty('--month-pct', String(amt > 0 ? amt / maxMonth : 0));
 
         const label = el('span', 'year-chart-label');
         label.textContent = monthName.slice(0, 1);

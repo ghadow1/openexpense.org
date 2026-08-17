@@ -2,6 +2,7 @@
  * OpenExpense — theme application
  *
  * Writes THEMES tokens onto :root CSS variables and persists the choice.
+ * Light stays the navy banking skin. Dark is the OLED black swap.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch, getColors } from '../core/store.js';
