@@ -93,7 +93,7 @@
   <div class="backdrop" id="welcome-modal">
     <div class="modal-shell welcome-card" role="dialog" aria-labelledby="welcome-title">
       <div class="welcome-brand">
-        <img class="brand-mark brand-mark--lg" src="icons/icon.svg" width="48" height="48" alt="">
+        <img class="brand-mark brand-mark--lg" src="icons/icon.svg" width="56" height="56" alt="OpenExpense">
       </div>
       <div class="modal-header">
         <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
@@ -113,11 +113,7 @@
     <header class="site-header">
 
       <div class="brand" aria-label="OpenExpense.org — Private expense tracker">
-        <img class="brand-mark" src="icons/icon.svg" width="32" height="32" alt="">
-        <p class="brand-wordmark">
-          <span class="brand-title">OpenExpense.org</span>
-          <span class="brand-tag">Private expense tracker</span>
-        </p>
+        <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="OpenExpense">
       </div>
 
       <div class="header-actions">
@@ -316,9 +312,11 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
-                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Choose a photo,
-                    image file, or PDF invoice. On first use, the app downloads a local OCR engine (~5 MB) and caches
-                    it in your browser — processing never leaves your device.
+                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Paper receipts,
+                    PDF invoices, emailed bills, and screenshots all work. On first use, the app downloads a local
+                    OCR engine (~5 MB) and caches it in your browser — processing never leaves your device. The
+                    reader enhances low-light photos and prefers labeled totals so tax lines are less likely to
+                    be mistaken for the amount due.
                   </p>
                   <p>
                     After scanning, a review sheet shows suggested merchant, amount, date, and notes. Edit anything
@@ -483,7 +481,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
-  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.pdf,application/pdf" hidden>
+  <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.webp,.pdf,application/pdf" hidden>
 
   <div id="global-tooltip"></div>
 

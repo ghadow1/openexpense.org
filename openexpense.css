@@ -469,27 +469,35 @@ textarea,
 }
 
 .brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     height: var(--header-control);
+    text-decoration: none;
+    color: inherit;
 }
 
 .brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 11px;
+    box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
     display: block;
+    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.brand:hover .brand-mark,
+.brand:focus-visible .brand-mark {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .brand-mark--lg {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
     box-shadow: var(--shadow-md);
 }
 
@@ -3642,21 +3650,21 @@ body.modal-open .quick-fab {
         backdrop-filter: blur(16px) saturate(1.15);
         -webkit-backdrop-filter: blur(16px) saturate(1.15);
         border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-        --header-control: 36px;
-    }
-
-    .brand-wordmark {
-        font-size: 12px;
+        --header-control: 40px;
     }
 
     .brand-mark {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
     }
 
-    .brand-tag {
-        display: none;
+    .header-icon-btn,
+    .header-btn {
+        --header-control: 40px;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
     }
 
     .header-btn-label {
@@ -3739,6 +3747,16 @@ body.modal-open .quick-fab {
 
     .privacy-chip {
         align-self: flex-start;
+        max-width: 100%;
+        height: auto;
+        min-height: 28px;
+        padding: 5px 10px;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    .privacy-chip-text {
+        overflow-wrap: anywhere;
     }
 
     .toolbar {
@@ -3893,6 +3911,27 @@ body.modal-open .quick-fab {
 
     .ocr-grid {
         grid-template-columns: 1fr;
+    }
+
+    .ocr-sheet-header {
+        padding: 16px 16px 0;
+    }
+
+    .ocr-body {
+        padding: 14px 16px;
+    }
+
+    .ocr-hint {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .text-input,
+    .ui-btn,
+    .btn-primary,
+    .btn-ghost,
+    .btn-secondary {
+        min-height: 44px;
     }
 
     .toolbar-actions button {
