@@ -13,7 +13,7 @@ const VIEW_COPY = {
     overview: {
         tab: 'Overview',
         title: 'Account overview',
-        description: 'Settled cash and how this month is tracking.'
+        description: 'Growth potential, settled cash, and how this month is tracking.'
     },
     income: {
         tab: 'Income',
@@ -154,6 +154,62 @@ function savingsChip(snap) {
     });
 }
 
+function growthMeter(growth) {
+    const section = document.createElement('section');
+    section.className = 'growth-meter';
+    const score = Number(growth?.score) || 0;
+    const label = growth?.label || 'Getting started';
+    const blurb = growth?.blurb || '';
+    const factors = growth?.factors || [];
+    section.setAttribute('aria-label', `Growth potential ${score} of 100, ${label}`);
+
+    const circ = 2 * Math.PI * 52;
+    const offset = circ * (1 - Math.min(100, Math.max(0, score)) / 100);
+
+    const wheel = document.createElement('div');
+    wheel.className = 'growth-meter-wheel';
+    wheel.innerHTML = `
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="growth-wheel-track" cx="60" cy="60" r="52"></circle>
+            <circle class="growth-wheel-value" cx="60" cy="60" r="52"
+                stroke-dasharray="${circ.toFixed(2)}"
+                stroke-dashoffset="${offset.toFixed(2)}"></circle>
+        </svg>
+        <div class="growth-meter-score">
+            <strong>${score}</strong>
+            <span>Growth</span>
+        </div>
+    `;
+
+    const copy = document.createElement('div');
+    copy.className = 'growth-meter-copy';
+    const heading = document.createElement('h3');
+    heading.className = 'growth-meter-title';
+    heading.textContent = label;
+    const note = document.createElement('p');
+    note.className = 'growth-meter-blurb';
+    note.textContent = blurb;
+    const list = document.createElement('div');
+    list.className = 'growth-factors';
+    list.setAttribute('role', 'list');
+    factors.forEach((row) => {
+        const item = document.createElement('div');
+        item.className = 'growth-factor';
+        item.setAttribute('role', 'listitem');
+        item.title = row.hint || row.label;
+        const pct = row.max ? Math.round((row.score / row.max) * 100) : 0;
+        item.innerHTML = `
+            <span class="growth-factor-label">${row.label}</span>
+            <span class="growth-factor-score">${row.score}</span>
+            <span class="growth-factor-bar" aria-hidden="true"><i style="--pct:${pct}%"></i></span>
+        `;
+        list.appendChild(item);
+    });
+    copy.append(heading, note, list);
+    section.append(wheel, copy);
+    return section;
+}
+
 function overviewSlide(snap) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
@@ -166,6 +222,7 @@ function overviewSlide(snap) {
         : (snap.incomeReceived > 0 ? `${formatMoney(snap.incomeReceived)} received` : snap.monthLabel);
 
     return [
+        growthMeter(snap.growth),
         blockGroup({
             title: 'Account overview',
             description: 'What is settled now and how this month is tracking.',

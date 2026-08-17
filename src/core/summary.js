@@ -371,6 +371,7 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
     const savingsRate = income.total > 0
         ? (monthNet / income.total) * 100
         : null;
+    const growth = scoreGrowthPotential({ income, spend, monthNet, savingsRate, currentFunds: funds.net });
 
     return {
         monthIn: income.total,
@@ -397,8 +398,91 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         dueSoonCount: dueSoon.count,
         leftToPay: spend.pending,
         leftToPayCount: spend.pendingCount,
-        savingsRate
+        savingsRate,
+        growth
     };
+}
+
+function clamp(value, lo, hi) {
+    return Math.min(hi, Math.max(lo, value));
+}
+
+/**
+ * Growth potential — CFPB-style well-being (control, buffer, on-track)
+ * plus a CFP keep-rate of about 15–20%. Always framed as progress.
+ * Factors sum to 100.
+ */
+function scoreGrowthPotential({ income, spend, monthNet, savingsRate, currentFunds }) {
+    let pay = 0;
+    if (income.total > 0) pay += 10;
+    if (income.recurring > 0 && income.total > 0) {
+        pay += 6 + Math.round(6 * clamp(income.recurring / income.total, 0, 1));
+    } else if (income.total > 0) {
+        pay += 3;
+    }
+    if (income.paid > 0) pay += 4;
+    pay = clamp(pay, 0, 22);
+
+    let keep;
+    if (!(income.total > 0)) {
+        keep = spend.itemCount ? 8 : 4;
+    } else if (savingsRate >= 20) keep = 24;
+    else if (savingsRate >= 15) keep = 21;
+    else if (savingsRate >= 10) keep = 17;
+    else if (savingsRate >= 5) keep = 13;
+    else if (savingsRate >= 0) keep = 10;
+    else keep = 7;
+
+    let buffer;
+    if (currentFunds >= 2500) buffer = 20;
+    else if (currentFunds >= 1000) buffer = 17;
+    else if (currentFunds >= 250) buffer = 14;
+    else if (currentFunds > 0) buffer = 10;
+    else if (income.total > 0 || spend.itemCount) buffer = 6;
+    else buffer = 3;
+
+    let steward;
+    if (!spend.itemCount) steward = income.itemCount ? 9 : 5;
+    else if (spend.total <= 0) steward = 9;
+    else steward = 6 + Math.round(12 * clamp(spend.paid / spend.total, 0, 1));
+
+    const active = (spend.activeDays || 0) + (income.activeDays || 0);
+    const sources = (income.allMerchants || []).length;
+    let rhythm = 4;
+    if (active >= 1) rhythm += 3;
+    if (active >= 4) rhythm += 3;
+    if (income.recurring > 0) rhythm += 3;
+    if (sources >= 2) rhythm += 3;
+    rhythm = clamp(rhythm, 0, 16);
+
+    const factors = [
+        { id: 'pay', label: 'Pay engine', score: pay, max: 22, hint: 'Scheduled and recurring income' },
+        { id: 'keep', label: 'Keep rate', score: keep, max: 24, hint: 'Share of income still yours' },
+        { id: 'buffer', label: 'Cash buffer', score: buffer, max: 20, hint: 'Settled funds you can choose with' },
+        { id: 'steward', label: 'Bill care', score: steward, max: 18, hint: 'Paying what is on the calendar' },
+        { id: 'rhythm', label: 'Money rhythm', score: rhythm, max: 16, hint: 'Showing up and planning ahead' }
+    ];
+    const score = factors.reduce((sum, row) => sum + row.score, 0);
+
+    let label = 'Getting started';
+    if (score >= 80) label = 'Compounding';
+    else if (score >= 65) label = 'Strong runway';
+    else if (score >= 45) label = 'On the rise';
+    else if (score >= 25) label = 'Building momentum';
+
+    const STRENGTH = {
+        pay: 'Recurring pay on the calendar is a net-worth engine.',
+        keep: 'Keeping a share of income is how wealth compounds.',
+        buffer: 'Settled cash gives you room to choose the next step.',
+        steward: 'Caring for bills, one by one, builds financial calm.',
+        rhythm: 'A steady calendar habit is a growth practice.'
+    };
+    const best = [...factors].sort((a, b) => (b.score / b.max) - (a.score / a.max))[0];
+    const blurb = score < 25
+        ? 'Log a paycheck or a bill to light up your growth meter. Every entry counts.'
+        : STRENGTH[best.id];
+
+    return { score, label, blurb, monthNet, factors };
 }
 
 export function formatDelta(value) {

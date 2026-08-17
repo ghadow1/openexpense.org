@@ -4,7 +4,7 @@
  * Applies theme, paints the calendar, snapshot chips, and sidebar, and
  * keeps the header chips (privacy + file-loaded) in sync with store state.
  */
-import { applyTheme, setTheme } from '../ui/theme.js';
+import { applyTheme, setTheme, themeFace } from '../ui/theme.js';
 import { renderCalendar } from '../features/calendar.js';
 import { renderSidebar } from '../features/sidebar.js';
 import { renderDashStrip } from '../features/dash-strip.js';
@@ -118,15 +118,16 @@ function updateThemeToggle() {
     if (!toggleSlot) return;
 
     const { isDark } = getState();
+    const face = themeFace(isDark);
     if (!themeToggleBtn) {
         toggleSlot.innerHTML = '';
-        themeToggleBtn = createHeaderIconBtn(isDark ? 'sun' : 'moon', () => setTheme(!getState().isDark));
+        themeToggleBtn = createHeaderIconBtn(face.nextIcon, () => setTheme(!getState().isDark));
         toggleSlot.appendChild(themeToggleBtn);
     }
 
-    themeToggleBtn.innerHTML = `<i class="ti ti-${isDark ? 'sun' : 'moon'}" aria-hidden="true"></i>`;
-    themeToggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
-    themeToggleBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    themeToggleBtn.innerHTML = `<i class="ti ti-${face.nextIcon}" aria-hidden="true"></i>`;
+    themeToggleBtn.setAttribute('aria-label', `Switch to ${face.nextLabel} theme`);
+    themeToggleBtn.title = `${face.label} theme · tap for ${face.nextLabel}`;
     themeToggleBtn.onclick = () => setTheme(!getState().isDark);
 }
 

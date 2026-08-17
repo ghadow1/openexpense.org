@@ -12,6 +12,12 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+/** User-facing theme names. Storage still uses light / dark. */
+export const THEME_FACES = {
+    light: { id: 'professional', label: 'Professional', nextLabel: 'Black Card', nextIcon: 'credit-card' },
+    dark: { id: 'black-card', label: 'Black Card', nextLabel: 'Professional', nextIcon: 'briefcase' }
+};
+
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
