@@ -625,23 +625,6 @@ textarea,
     transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 
-.header-btn-label {
-    display: none;
-}
-
-@media (min-width: 900px) {
-    .header-btn-label {
-        display: inline;
-    }
-
-    .header-btn {
-        width: auto;
-        min-width: var(--header-control);
-        padding: 0 12px;
-        gap: 8px;
-    }
-}
-
 .header-btn {
     display: inline-flex;
     align-items: center;
