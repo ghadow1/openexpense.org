@@ -6,7 +6,7 @@
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { groupExpenses } from '../core/series.js';
+import { groupExpenses, repeatLabel } from '../core/series.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -134,6 +134,7 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
         const count = group.count > 1 ? `<span class="pill-count">×${group.count}</span>` : '';
         const amt = group.total > 0 ? `<span class="pill-amt">$${group.total.toFixed(2)}</span>` : '';
         const rec = group.recurring ? '<i class="ti ti-refresh pill-rec" aria-hidden="true"></i>' : '';
+        if (group.recurring) pill.title = repeatLabel(group.repeat);
         if (density === 'narrow') {
             pill.innerHTML = `${amt}<span class="title">${rec}${title}${count}</span>`;
         } else {

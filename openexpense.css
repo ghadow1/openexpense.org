@@ -2321,6 +2321,17 @@ body:has(.backdrop.open) #global-tooltip {
     align-items: center;
 }
 
+.event-repeat {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: var(--accent-soft);
+    border: 1px solid var(--pill-border);
+    color: var(--pill-text);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+}
+
 .row-actions {
     display: flex;
     gap: 6px;
@@ -2597,6 +2608,74 @@ body:has(.backdrop.open) #global-tooltip {
 
 .custom-cb input[type="checkbox"]:checked~span {
     color: var(--text-strong);
+}
+
+.repeat-prompt {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+}
+
+.repeat-prompt[hidden] {
+    display: none;
+}
+
+.repeat-prompt-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text2);
+}
+
+.repeat-prompt-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.repeat-choice {
+    display: flex;
+    cursor: pointer;
+    user-select: none;
+}
+
+.repeat-choice input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.repeat-choice span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+    transition: background var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out);
+}
+
+.repeat-choice input:checked + span {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text-strong);
+}
+
+.repeat-choice input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 button:focus-visible,

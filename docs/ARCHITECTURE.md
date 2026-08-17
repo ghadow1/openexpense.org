@@ -61,7 +61,7 @@ src/main.js         boot, event delegation, render subscription
 
 ## Recurring series
 
-`src/core/series.js` treats two expenses as the same series when both are `recurring` and their titles match after trim + lower-case. The day editor can remove every occurrence across the ledger.
+`src/core/series.js` treats two expenses as the same series when both are `recurring`, their titles match after trim + lower-case, and they share the same `repeat` cadence (`monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step and can remove every occurrence across the ledger.
 
 ## Receipts
 

@@ -27,7 +27,7 @@ Each module starts with a short header describing what it owns.
 | [`core/crypto.js`](core/crypto.js) | Device AES-256-GCM key |
 | [`core/bundle.js`](core/bundle.js) | Encrypted export zip |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
-| [`core/series.js`](core/series.js) | Recurring grouping and series delete |
+| [`core/series.js`](core/series.js) | Recurring grouping, cadence (monthly / bi-monthly / quarterly), series delete |
 | [`core/summary.js`](core/summary.js) | Month/year totals |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | PDF layout |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |

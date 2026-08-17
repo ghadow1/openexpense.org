@@ -6,6 +6,7 @@
         "title": "Rent",
         "price": 1450,
         "recurring": true,
+        "repeat": "monthly",
         "paid": true,
         "note": "First of month"
       }
@@ -31,6 +32,7 @@
         "title": "Internet",
         "price": 70,
         "recurring": true,
+        "repeat": "monthly",
         "paid": true,
         "note": ""
       }
@@ -49,6 +51,16 @@
         "recurring": false,
         "paid": true,
         "note": "Afternoon"
+      }
+    ],
+    "2026-06-15": [
+      {
+        "title": "Car insurance",
+        "price": 186,
+        "recurring": true,
+        "repeat": "quarterly",
+        "paid": true,
+        "note": "Every 3 months"
       }
     ],
     "2026-06-24": [

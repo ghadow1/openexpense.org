@@ -9,7 +9,7 @@ OpenExpense is a static web app. There is no backend, no account, and no analyti
 
 ## What’s new
 
-**17 August 2026** — Recurring series removal, better on-device receipt reading, “You own your data” / “File loaded” status pills, and a documented public repo.
+**17 August 2026** — Recurring cadence (monthly, every 2 months, or quarterly), series removal, better on-device receipt reading, “You own your data” / “File loaded” status pills, and a documented public repo.
 
 - Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
 - In the app: **Privacy & Help → Updates**
