@@ -8,8 +8,7 @@ const origin = 'https://www.openexpense.org';
 const lastmod = new Date().toISOString().slice(0, 10);
 
 const urls = [
-    { loc: `${origin}/`, changefreq: 'weekly', priority: '1.0' },
-    { loc: `${origin}/robots.txt`, changefreq: 'yearly', priority: '0.2' }
+    { loc: `${origin}/`, changefreq: 'weekly', priority: '1.0' }
 ];
 
 const body = urls.map((u) => `  <url>
