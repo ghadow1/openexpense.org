@@ -4,11 +4,11 @@ User-facing notes for [openexpense.org](https://www.openexpense.org). Newest fir
 
 The app stays offline-only. Your ledger still never leaves this browser.
 
-Full source history: [compare `main`…this branch](https://github.com/ghadow1/openexpense.org/compare/main...cursor/modern-design-system-25ec). Pull request: [#83](https://github.com/ghadow1/openexpense.org/pull/83).
+These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
 ## 2026-08-17 — Design, receipts, and public docs
 
-Shipped on branch `cursor/modern-design-system-25ec` (PR [#83](https://github.com/ghadow1/openexpense.org/pull/83)).
+On `main`. Related PRs: [#67](https://github.com/ghadow1/openexpense.org/pull/67), [#83](https://github.com/ghadow1/openexpense.org/pull/83).
 
 ### For people using the app
 
@@ -43,6 +43,7 @@ Unused sample files (`ledger.json`, `avatar.jpeg`, `test-receipt.png`) were remo
 | [`3f05369`](https://github.com/ghadow1/openexpense.org/commit/3f05369) | Privacy pill: “You own your data” |
 | [`e298f67`](https://github.com/ghadow1/openexpense.org/commit/e298f67) | File loaded / Not loaded pill |
 | [`4b467e4`](https://github.com/ghadow1/openexpense.org/commit/4b467e4) | Module labels, OSS docs, dead-code sweep |
+| [`802696c`](https://github.com/ghadow1/openexpense.org/commit/802696c) | CHANGELOG.md and Privacy & Help → Updates |
 
 ## 2.1.0
 

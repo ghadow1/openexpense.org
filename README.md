@@ -13,7 +13,7 @@ OpenExpense is a static web app. There is no backend, no account, and no analyti
 
 - Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
 - In the app: **Privacy & Help → Updates**
-- Pull request: [#83](https://github.com/ghadow1/openexpense.org/pull/83)
+- Related PRs: [#67](https://github.com/ghadow1/openexpense.org/pull/67), [#83](https://github.com/ghadow1/openexpense.org/pull/83)
 
 ## Quick start
 
