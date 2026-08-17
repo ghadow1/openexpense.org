@@ -785,11 +785,12 @@ textarea,
 
 .ledger-name-bar {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     width: 100%;
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
 }
 
 .ledger-name-label {
@@ -803,11 +804,19 @@ textarea,
 }
 
 .ledger-name-input {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     margin: 0;
 }
 
+.ledger-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-chip,
 .privacy-chip {
     display: inline-flex;
     align-items: center;
@@ -816,31 +825,47 @@ textarea,
     height: 28px;
     padding: 0 10px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--success) 8%, var(--surface2));
-    color: var(--text2);
+    border: 1px solid color-mix(in srgb, var(--success) 22%, var(--border));
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
     font-size: var(--fs-2xs);
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
     cursor: default;
     user-select: none;
-    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .privacy-chip .privacy-chip-icon {
     font-size: 14px;
-    color: var(--success);
+    color: inherit;
 }
 
-.privacy-chip.is-warn {
-    border-color: var(--danger-border);
-    background: var(--danger-bg);
-    color: var(--danger-text);
+.privacy-chip.is-warn,
+.status-chip.is-empty {
+    border-color: color-mix(in srgb, var(--danger-text) 22%, var(--border));
+    background: color-mix(in srgb, var(--danger-text) 8%, var(--surface));
+    color: color-mix(in srgb, var(--danger-text) 70%, var(--text-strong));
 }
 
 .privacy-chip.is-warn .privacy-chip-icon {
-    color: var(--danger-text);
+    color: inherit;
+}
+
+.status-chip.is-loaded {
+    border-color: color-mix(in srgb, var(--success) 22%, var(--border));
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+    flex-shrink: 0;
 }
 
 .layout-wrapper {
@@ -3726,10 +3751,12 @@ body.modal-open .quick-fab {
     }
 
     .ledger-name-bar {
-        flex-direction: column;
-        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .ledger-status-row {
         gap: 6px;
-        padding: 10px 12px;
     }
 
     .expense-group-head {
@@ -3745,9 +3772,8 @@ body.modal-open .quick-fab {
         align-items: flex-start;
     }
 
+    .status-chip,
     .privacy-chip {
-        align-self: flex-start;
-        max-width: 100%;
         height: auto;
         min-height: 28px;
         padding: 5px 10px;
@@ -3755,7 +3781,8 @@ body.modal-open .quick-fab {
         line-height: 1.3;
     }
 
-    .privacy-chip-text {
+    .privacy-chip-text,
+    .file-status-text {
         overflow-wrap: anywhere;
     }
 
