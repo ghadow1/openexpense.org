@@ -24,6 +24,7 @@ import {
 } from '../core/folder.js';
 import { runLocked } from '../core/action-lock.js';
 import { refreshExportButtons } from './export-buttons.js';
+import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 
 const PENDING_MS = 5 * 60 * 1000;
 const JSON_ACCEPT = { 'application/json': ['.json'] };
@@ -328,6 +329,7 @@ export const Ledger = {
             if (!ok?.confirmed) return;
 
             Ledger.clearPending();
+            offerDeleteUndo(getState(), { count: countEntries(events) });
             patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
             saveLedger({ name: '', events: {}, savedAt: Date.now() });
             Toast.show('Calendar cleared.', 'success');
@@ -577,6 +579,7 @@ export const Ledger = {
         const hasData = Object.keys(current).length > 0 || ledgerName;
         if (hasData && !confirm('Import will replace your current ledger. Continue?')) return;
 
+        dismissUndo();
         patch({
             ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
             events: cleaned.events

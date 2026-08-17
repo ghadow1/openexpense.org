@@ -25,7 +25,7 @@
   "scripts": {
     "build": "node scripts/write-sitemap.mjs && npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
     "serve": "python3 -m http.server 8765",
-    "test": "node --test scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs"
+    "test": "node --test scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs scripts/qc-undo-delete.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

@@ -276,6 +276,10 @@
                   <i class="status-dot" aria-hidden="true"></i>
                   <span class="file-status-text">Not loaded</span>
                 </span>
+                <button type="button" id="undo-delete" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
+                  <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+                  <span class="undo-delete-text">Undo</span>
+                </button>
               </div>
             </div>
           </div>
@@ -446,7 +450,8 @@
                     two pills show status: <strong>You own your data</strong> (green when encryption and
                     autosave are on; amber if autosave is paused or encryption is unavailable) and
                     <strong>File loaded</strong> / <strong>Not loaded</strong> (whether a named ledger or
-                    any expenses are present).
+                    any expenses are present). After a delete or clear, <strong>Undo</strong> sits next
+                    to File loaded for about ten seconds.
                   </p>
                 </section>
 
@@ -461,7 +466,7 @@
                   <ul class="docs-list">
                     <li><strong>Import</strong> — open files from your OpenExpense folder. On iPhone and Android you can select the ledger and key.json together. Older zip backups still work.</li>
                     <li><strong>Export / Save</strong> — first time, writes both files into an <strong>OpenExpense</strong> folder. After that folder is linked, the download icon becomes a disk and overwrites the existing JSON pair. Long-press to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
-                    <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
+                    <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation). Undo stays next to File loaded for a few seconds.</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
                 </section>
@@ -486,7 +491,8 @@
                     stays on each day. When you delete a re-accruing payment, choose
                     <strong>only this day</strong>, <strong>every Saturday</strong> (or whichever weekday
                     you opened), or <strong>every copy, all days</strong>. “Every Saturday” does not
-                    remove Monday or Friday copies.
+                    remove Monday or Friday copies. After any removal, <strong>Undo</strong> appears
+                    next to File loaded and on the day sheet for about ten seconds.
                   </p>
                 </section>
 
@@ -645,6 +651,16 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Undo after delete</h3>
+                  <p>
+                    Removing an entry or clearing the calendar now shows <strong>Undo</strong> next to
+                    File loaded for about ten seconds. The same control appears on the open day sheet.
+                    Only the last removal can be restored; the snapshot is memory-only and is never
+                    stored in this browser.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Delete this weekday or all days</h3>
                   <p>
@@ -938,7 +954,13 @@
       <div class="modal-columns">
 
         <div class="modal-panel">
-          <h4 class="panel-title">This day</h4>
+          <div class="panel-title-row">
+            <h4 class="panel-title">This day</h4>
+            <button type="button" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
+              <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+              <span class="undo-delete-text">Undo</span>
+            </button>
+          </div>
           <div id="events-container">
           </div>
         </div>

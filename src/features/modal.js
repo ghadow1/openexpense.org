@@ -29,6 +29,8 @@ import {
     weekdayName,
     countSeriesWeekday
 } from '../core/series.js';
+import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
+import { countEntries } from '../core/ledger-file.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -324,6 +326,7 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
     if (newEv.kind === 'expense') delete newEv.kind;
     if (newEv.recurring) newEv.repeat = normalizeRepeat(repeat);
 
+    dismissUndo();
     const { events } = getState();
     const nextEvents = { ...events };
     if (!nextEvents[dateKey]) nextEvents[dateKey] = [];
@@ -546,11 +549,15 @@ function saveEdit(i) {
         if (isRecurring) nextEvents = seedRecurringCopies(nextEvents, updatedEv, destKey);
     }
 
+    dismissUndo();
     patch({ events: nextEvents, editingIndex: null, selectedKey: destKey });
     renderModal();
 }
 
 function applyDelete(nextEvents) {
+    const prev = getState();
+    const removed = Math.max(1, countEntries(prev.events) - countEntries(nextEvents));
+    offerDeleteUndo(prev, { count: removed });
     patch({ events: nextEvents, editingIndex: null });
     renderModal();
 }

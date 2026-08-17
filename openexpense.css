@@ -917,6 +917,39 @@ textarea,
     color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
 }
 
+.undo-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 0;
+    border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--accent);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.undo-delete-btn[hidden] {
+    display: none !important;
+}
+
+.undo-delete-btn .ti {
+    font-size: 14px;
+}
+
+.undo-delete-btn:hover,
+.undo-delete-btn:focus-visible {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
 .status-dot {
     width: 7px;
     height: 7px;
@@ -1897,6 +1930,20 @@ html.is-action-busy [data-lockable] {
 .modal-panel:first-child {
     border-right: 1px solid var(--border);
     padding-right: 32px;
+}
+
+.panel-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-title-row .panel-title {
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
 .panel-title {
@@ -4651,6 +4698,13 @@ html.oe-scroll-lock body {
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 11em;
+    }
+
+    .undo-delete-btn {
+        height: 28px;
+        min-height: 28px;
+        padding: 0 8px;
+        font-size: 10px;
     }
 
     .toolbar {

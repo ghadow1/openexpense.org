@@ -20,6 +20,7 @@ import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
 import { actionBusy } from './core/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
+import { restoreDeleteUndo } from './features/undo-delete.js';
 
 const LOCKED_ACTIONS = new Set(['export-ledger', 'scan-receipt', 'quick-add-today']);
 
@@ -151,6 +152,9 @@ function handleDelegatedClick(e) {
             }
             case 'export-ledger':
                 Ledger.export();
+                break;
+            case 'undo-delete':
+                restoreDeleteUndo();
                 break;
         }
         return;
