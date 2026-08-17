@@ -6,21 +6,21 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
-## 2026-08-17 — Chase hard lines
+## 2026-08-17 — Crisp navy and white
 
-The expense screen is now a flat navy-and-white banking canvas: 2px corners, 1px borders, no drop shadows, and a tight calendar grid. Add / Scan / Export are square Chase buttons, not pills.
+The expense screen is a flat navy-and-white canvas: 2px corners, 1px borders, no drop shadows, and a tight calendar grid. Add / Scan / Export are square buttons, not pills.
 
-## 2026-08-17 — Chase quick actions
+## 2026-08-17 — Quick actions
 
-Add, Scan, and Export are Chase-style pills under the snapshot chips: a circular plus and white/blue action chips with Tabler icons. The navy header, Chase blue accent, and white cards are the live look again (the later slate pass had replaced them).
+Add, Scan, and Export sit under the snapshot chips as labeled buttons with the same icons as the rest of the app. The navy header, blue accent, and white cards are the live look.
 
-## 2026-08-17 — Fintech dashboard
+## 2026-08-17 — Dashboard layout
 
-Wide screens use a three-column wallet: quick tools, calendar, monthly card. Snapshot chips show year balance, month cashflow, and monthly average from the ledger you already have. Add, Scan, and Export sit in a quick-action bar (a bottom tray on phones). Dark mode is slate with emerald credits and crimson debits. Same two screens, same encrypted files.
+Wide screens use a three-column wallet: quick tools, calendar, monthly card. Snapshot chips show year balance, month cashflow, and monthly average from the ledger you already have. Same two screens, same encrypted files.
 
-## 2026-08-17 — Chase-inspired banking theme
+## 2026-08-17 — Navy and white theme
 
-Light mode is now a blue-and-white banking canvas: navy header, Chase blue actions, white cards, charcoal type. Dark mode is a matching charcoal-navy executive palette. Same screens and the same ledger — only the look changed.
+Light mode is a blue-and-white canvas: navy header, blue actions, white cards, charcoal type. Dark mode is a matching charcoal-navy palette. Same screens and the same ledger — only the look changed.
 
 ## 2026-08-17 — Mobile day sheet
 
