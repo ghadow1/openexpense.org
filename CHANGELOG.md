@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Product brochure
+
+A six-page A4 landscape marketing brochure lives in `docs/brochure/`. Print `openexpense-brochure.html` or open `openexpense-brochure.pdf`. Navy tokens, Inter, and live product copy. No change to the app UI.
+
 ## 2026-08-17 — Embeddable host engine
 
 Banking hosts can map prefetched transactions through `/engine.js` or `window.OpenExpense` and optionally iframe `/embed.html`. The current theme and pages stay the same. OpenExpense still does not call bank APIs.

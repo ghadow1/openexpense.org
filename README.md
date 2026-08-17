@@ -11,6 +11,7 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 **17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
+- Product brochure (A4 landscape): **[docs/brochure/openexpense-brochure.pdf](docs/brochure/openexpense-brochure.pdf)**
 - Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
 - In the app: **Privacy & Help → Updates**
 - Related PRs: [#67](https://github.com/ghadow1/openexpense.org/pull/67), [#83](https://github.com/ghadow1/openexpense.org/pull/83)
