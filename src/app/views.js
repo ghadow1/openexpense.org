@@ -17,14 +17,26 @@ export function switchView(viewName) {
     if (viewName === 'app') {
         if (appView) appView.classList.remove('hidden');
         if (docsView) docsView.classList.add('hidden');
-        if (tabApp) tabApp.classList.add('active');
-        if (tabDocs) tabDocs.classList.remove('active');
+        if (tabApp) {
+            tabApp.classList.add('active');
+            tabApp.setAttribute('aria-current', 'page');
+        }
+        if (tabDocs) {
+            tabDocs.classList.remove('active');
+            tabDocs.removeAttribute('aria-current');
+        }
         render();
     } else {
         if (appView) appView.classList.add('hidden');
         if (docsView) docsView.classList.remove('hidden');
-        if (tabApp) tabApp.classList.remove('active');
-        if (tabDocs) tabDocs.classList.add('active');
+        if (tabApp) {
+            tabApp.classList.remove('active');
+            tabApp.removeAttribute('aria-current');
+        }
+        if (tabDocs) {
+            tabDocs.classList.add('active');
+            tabDocs.setAttribute('aria-current', 'page');
+        }
     }
 
     window.scrollTo(0, 0);

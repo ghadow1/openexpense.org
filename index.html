@@ -187,39 +187,40 @@
     </div>
   </div>
 
-  <div class="app-container">
-
+  <div class="app-shell">
     <header class="site-header">
-
-      <div class="brand" aria-label="OpenExpense.org — Open-source expense ledger">
-        <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="">
-        <div class="brand-lockup">
-          <h1 class="brand-name">OpenExpense</h1>
-          <p class="brand-tag">Local encrypted wallet</p>
+      <div class="site-header-inner">
+        <div class="brand" aria-label="OpenExpense.org — Open-source expense ledger">
+          <img class="brand-mark" src="icons/icon.svg" width="36" height="36" alt="">
+          <div class="brand-lockup">
+            <h1 class="brand-name">OpenExpense</h1>
+            <p class="brand-tag">Local encrypted wallet</p>
+          </div>
         </div>
-      </div>
 
-      <div class="header-actions">
-        <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener" class="header-btn" aria-label="View source on GitHub">
-          <i class="ti ti-brand-github" aria-hidden="true"></i>
-          <span class="header-btn-label">Open Source</span>
-        </a>
+        <nav class="view-segment-bar" aria-label="Primary">
+          <button id="vt-app" class="view-tab active" data-view="app" aria-current="page" aria-label="Expenses">
+            <i class="ti ti-calendar" aria-hidden="true"></i>
+            <span class="view-tab-label">Expenses</span>
+          </button>
+          <button id="vt-docs" class="view-tab" data-view="docs" aria-label="Privacy and help">
+            <i class="ti ti-shield-lock" aria-hidden="true"></i>
+            <span class="view-tab-label">Privacy &amp; Help</span>
+          </button>
+        </nav>
 
-        <div id="autosave-toggle-slot" class="header-icon-slot"></div>
-        <div id="theme-toggle-slot" class="header-icon-slot"></div>
+        <div class="header-actions">
+          <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener" class="header-btn" aria-label="View source on GitHub">
+            <i class="ti ti-brand-github" aria-hidden="true"></i>
+            <span class="header-btn-label">Source</span>
+          </a>
+          <div id="autosave-toggle-slot" class="header-icon-slot"></div>
+          <div id="theme-toggle-slot" class="header-icon-slot"></div>
+        </div>
       </div>
     </header>
 
-    <nav class="view-segment-bar">
-      <button id="vt-app" class="view-tab active" data-view="app" aria-label="Expenses">
-        <i class="ti ti-calendar" aria-hidden="true"></i>
-        <span class="view-tab-label">Expenses</span>
-      </button>
-      <button id="vt-docs" class="view-tab" data-view="docs" aria-label="Privacy and help">
-        <i class="ti ti-shield-lock" aria-hidden="true"></i>
-        <span class="view-tab-label">Privacy &amp; Help</span>
-      </button>
-    </nav>
+    <div class="app-container">
 
     <main class="app-view" id="view-app">
       <div class="dash">
@@ -597,6 +598,15 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Sticky app chrome</h3>
+                  <p>
+                    The navy header stays on screen while you scroll. Expenses and Privacy &amp; Help live in
+                    that bar. On a phone they wrap onto a second row instead of a bottom tab bar. Page gutters
+                    scale with the viewport.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Crisp navy and white</h3>
                   <p>
                     The look is a flat navy-and-white canvas: navy header, white cards, 1px borders, and square
@@ -772,6 +782,7 @@
         </a>
       </div>
     </footer>
+    </div>
   </div>
 
   <div class="backdrop" id="modal">

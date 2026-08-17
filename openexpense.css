@@ -70,9 +70,11 @@
     --radius-full: 2px;
 
     /* One square for the mark and every icon control */
-    --control: 44px;
+    --control: 40px;
     --control-radius: 2px;
     --control-icon: 18px;
+    --gutter: clamp(12px, 3.2vw, 24px);
+    --page: 1440px;
 
     /* Motion */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -493,31 +495,46 @@ textarea,
 /* ==========================================================================
    Application shell
    ========================================================================== */
-.app-container {
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 0 1.5rem 2rem;
+.app-shell {
     min-height: 100dvh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-container {
+    width: min(var(--page), 100%);
+    margin: 0 auto;
+    padding: 16px var(--gutter) 32px;
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
 }
 
 .site-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    margin-bottom: 1.25rem;
-    padding: 12px max(1.5rem, calc((100vw - 1440px) / 2 + 1.5rem));
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    width: 100%;
+    margin: 0;
+    padding: env(safe-area-inset-top, 0px) 0 0;
     background: var(--header);
     color: var(--header-text);
-    border-bottom: 3px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
     --header-control: var(--control);
-    min-height: calc(var(--header-control) + 8px);
+    box-sizing: border-box;
+}
+
+.site-header-inner {
+    width: min(var(--page), 100%);
+    margin: 0 auto;
+    padding: 8px var(--gutter);
+    display: grid;
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 16px;
     box-sizing: border-box;
 }
 
@@ -611,6 +628,19 @@ textarea,
 
 .header-btn-label {
     display: none;
+}
+
+@media (min-width: 900px) {
+    .header-btn-label {
+        display: inline;
+    }
+
+    .header-btn {
+        width: auto;
+        min-width: var(--header-control);
+        padding: 0 12px;
+        gap: 8px;
+    }
 }
 
 .header-btn {
@@ -755,43 +785,46 @@ textarea,
    ========================================================================== */
 .view-segment-bar {
     display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    justify-self: center;
+    width: min(420px, 100%);
+    min-width: 0;
+    margin: 0;
     padding: 0;
+    background: color-mix(in srgb, var(--header-text) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--header-text) 18%, transparent);
     border-radius: 0;
-    margin-bottom: 1.5rem;
     gap: 0;
     box-shadow: none;
 }
 
 .view-tab {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 8px 16px;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 12px;
     font-size: var(--fs-sm);
     font-weight: 600;
-    color: var(--text);
+    color: color-mix(in srgb, var(--header-text) 78%, transparent);
     background: transparent;
     border: none;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid color-mix(in srgb, var(--header-text) 16%, transparent);
     border-radius: 0;
     cursor: pointer;
     transition:
         color var(--dur-fast) var(--ease-out),
-        background var(--dur-fast) var(--ease-out),
-        box-shadow var(--dur-fast) var(--ease-out),
-        transform var(--dur-fast) var(--ease-out);
+        background var(--dur-fast) var(--ease-out);
     touch-action: manipulation;
     -webkit-user-select: none;
     user-select: none;
 }
 
 .view-tab:hover {
-    color: var(--text-strong);
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    color: var(--header-text);
+    background: color-mix(in srgb, var(--header-text) 10%, transparent);
 }
 
 .view-tab:last-child {
@@ -799,12 +832,22 @@ textarea,
 }
 
 .view-tab.active {
-    background: var(--header);
-    color: var(--header-text);
+    background: var(--accent);
+    color: #fff;
     box-shadow: none;
-    border-color: var(--header);
-    padding-top: 8px;
-    padding-bottom: 8px;
+    border-color: transparent;
+}
+
+.view-tab i {
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.view-tab-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -1182,7 +1225,7 @@ textarea,
 
 @media (max-width: 1100px) and (min-width: 901px) {
     .app-container {
-        padding: 0 1.15rem 1.5rem;
+        padding: 16px var(--gutter) 24px;
     }
 
     .sidebar {
@@ -4367,9 +4410,31 @@ html.oe-scroll-lock body {
 /* ==========================================================================
    Responsive: phones
    ========================================================================== */
+@media (max-width: 720px) {
+    .site-header-inner {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand actions"
+            "nav nav";
+    }
+
+    .brand { grid-area: brand; }
+    .header-actions { grid-area: actions; }
+
+    .view-segment-bar {
+        grid-area: nav;
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .view-tab {
+        min-height: 40px;
+    }
+}
+
 @media (max-width: 640px) {
     .app-container {
-        padding: 0 0.875rem calc(5.5rem + env(safe-area-inset-bottom, 0px));
+        padding: 12px var(--gutter) calc(24px + env(safe-area-inset-bottom, 0px));
     }
 
     .dash {
@@ -4402,28 +4467,6 @@ html.oe-scroll-lock body {
         padding: 0 14px;
     }
 
-    .site-header {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        flex-wrap: nowrap;
-        gap: 10px;
-        width: 100vw;
-        margin-left: calc(50% - 50vw);
-        margin-right: calc(50% - 50vw);
-        margin-bottom: 0.75rem;
-        padding: calc(10px + env(safe-area-inset-top, 0px)) 0.875rem 10px;
-        background: var(--header);
-        border-bottom: 3px solid var(--accent);
-        --header-control: var(--control);
-    }
-
-    .brand-mark {
-        width: var(--control);
-        height: var(--control);
-        border-radius: var(--control-radius);
-    }
-
     .brand-tag {
         display: none;
     }
@@ -4438,52 +4481,6 @@ html.oe-scroll-lock body {
         min-width: var(--control);
         height: var(--control);
         padding: 0;
-    }
-
-    .view-segment-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 500;
-        margin: 0;
-        border-radius: 0;
-        border: none;
-        border-top: 1px solid var(--border);
-        box-shadow: none;
-        padding: 0 0 calc(env(safe-area-inset-bottom, 0px));
-        background: var(--surface);
-    }
-
-    [data-theme="dark"] .view-segment-bar {
-        box-shadow: none;
-    }
-
-    .view-tab {
-        flex-direction: column;
-        gap: 3px;
-        padding: 8px 6px;
-        font-size: 10px;
-        min-height: 52px;
-        border-radius: 0;
-    }
-
-    .view-tab i {
-        font-size: 20px;
-        line-height: 1;
-    }
-
-    .view-tab.active {
-        background: var(--surface);
-        border-color: var(--border);
-        box-shadow: inset 0 2px 0 var(--accent);
-        color: var(--accent);
-        padding-top: 8px;
-        padding-bottom: 8px;
-    }
-
-    .view-tab-label {
-        line-height: 1.1;
     }
 
     .ledger-name-bar {
@@ -4821,24 +4818,14 @@ html.oe-scroll-lock body {
         padding: 0;
     }
 
-    .brand-lockup {
-        display: none;
+    .view-tab-label {
+        font-size: 11px;
     }
 }
 
 @media (max-height: 700px) and (min-width: 901px) {
     .sidebar {
         position: static;
-    }
-
-    .app-container {
-        padding-top: 1.25rem;
-    }
-}
-
-@media (display-mode: standalone) {
-    .site-header {
-        padding-top: calc(10px + env(safe-area-inset-top, 0px));
     }
 }
 
