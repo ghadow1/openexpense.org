@@ -24,18 +24,32 @@ function teardown(result) {
     }
 }
 
+function readResult(confirmed) {
+    const box = backdropEl?.querySelector('#confirm-extra');
+    return { confirmed, checked: !!box?.checked };
+}
+
 // Promise-based confirm dialog. Enter confirms, Escape / backdrop click cancels.
+// Resolves { confirmed, checked }.
 export function confirmDialog({
     title = 'Are you sure?',
     message = '',
     confirmText = 'Yes',
     cancelText = 'Cancel',
-    danger = false
+    danger = false,
+    checkbox = null
 } = {}) {
-    teardown(false);
+    teardown({ confirmed: false, checked: false });
 
     return new Promise((resolve) => {
         resolveActive = resolve;
+
+        const checkHtml = checkbox
+            ? `<label class="confirm-check custom-cb">
+                <input type="checkbox" id="confirm-extra"${checkbox.checked ? ' checked' : ''}>
+                <span>${Utils.escapeHtml(checkbox.label || '')}</span>
+              </label>`
+            : '';
 
         backdropEl = document.createElement('div');
         backdropEl.className = 'backdrop open';
@@ -46,6 +60,7 @@ export function confirmDialog({
                 <h3 class="modal-title" id="confirm-title"></h3>
               </div>
               <p class="confirm-copy" id="confirm-desc"></p>
+              ${checkHtml}
               <div class="confirm-actions">
                 <button type="button" class="btn-ghost" data-confirm="cancel"></button>
                 <button type="button" class="btn-primary${danger ? ' btn-danger' : ''}" data-confirm="ok"></button>
@@ -59,21 +74,21 @@ export function confirmDialog({
         okBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
 
-        okBtn.addEventListener('click', () => teardown(true));
-        cancelBtn.addEventListener('click', () => teardown(false));
+        okBtn.addEventListener('click', () => teardown(readResult(true)));
+        cancelBtn.addEventListener('click', () => teardown(readResult(false)));
         backdropEl.addEventListener('mousedown', (e) => {
-            if (e.target === backdropEl) teardown(false);
+            if (e.target === backdropEl) teardown(readResult(false));
         });
 
         keyHandler = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
-                teardown(true);
+                teardown(readResult(true));
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
-                teardown(false);
+                teardown(readResult(false));
             }
         };
         document.addEventListener('keydown', keyHandler, true);
