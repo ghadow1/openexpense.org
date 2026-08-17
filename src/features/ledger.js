@@ -20,8 +20,10 @@ import { confirmDialog } from '../ui/confirm.js';
 import { saveLedger } from '../core/persist.js';
 import {
     canUseDirectoryPicker, getSavedFolder, pickExportFolder,
-    writeBlobsToFolder, EXPORT_FOLDER_NAME
+    writeBlobsToFolder, resolveOverwriteNames, EXPORT_FOLDER_NAME
 } from '../core/folder.js';
+import { runLocked } from '../core/action-lock.js';
+import { refreshExportButtons } from './export-buttons.js';
 
 const PENDING_MS = 5 * 60 * 1000;
 const JSON_ACCEPT = { 'application/json': ['.json'] };
@@ -141,7 +143,9 @@ export const Ledger = {
         if (!choice?.confirmed) return null;
 
         try {
-            return await pickExportFolder({ useDefault: !choice.checked });
+            const folder = await pickExportFolder({ useDefault: !choice.checked });
+            if (folder) await refreshExportButtons();
+            return folder;
         } catch (err) {
             if (err?.name === 'AbortError') return null;
             throw err;
@@ -184,24 +188,65 @@ export const Ledger = {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
 
+    bindFolderGesture(btn) {
+        if (!btn || btn.dataset.folderGesture === '1') return;
+        btn.dataset.folderGesture = '1';
+
+        let timer = 0;
+        let opened = false;
+        const start = () => {
+            opened = false;
+            timer = window.setTimeout(() => {
+                opened = true;
+                Ledger.export({ pickFolder: true });
+            }, 550);
+        };
+        const cancel = () => { window.clearTimeout(timer); };
+        btn.addEventListener('pointerdown', start);
+        btn.addEventListener('pointerup', cancel);
+        btn.addEventListener('pointerleave', cancel);
+        btn.addEventListener('pointercancel', cancel);
+        btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            cancel();
+            opened = true;
+            Ledger.export({ pickFolder: true });
+        });
+        btn.addEventListener('click', (e) => {
+            if (opened) e.stopImmediatePropagation();
+        }, true);
+    },
+
     // Encrypted ledger.json (expense + income) then a sibling key.json.
     // The JWK is not written to IndexedDB or localStorage.
-    // Default location is the OpenExpense folder; long-press export to change it.
+    // Linked folder: overwrite the existing pair. Long-press to change folder.
     async export({ pickFolder = false } = {}) {
+        return runLocked('export', () => Ledger.writeExport({ pickFolder }));
+    },
+
+    async writeExport({ pickFolder = false } = {}) {
         try {
             const { enc, keyFile } = await encryptBundle(Ledger.exportPayload());
-            const names = exportFilenames(getState().ledgerName);
             const encBlob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
             const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
+
+            const folder = await Ledger.resolveExportFolder(pickFolder);
+            const names = folder
+                ? await resolveOverwriteNames(folder, getState().ledgerName)
+                : exportFilenames(getState().ledgerName);
             const pair = [
                 { blob: encBlob, name: names.ledger },
                 { blob: keyBlob, name: names.key }
             ];
 
-            const folder = await Ledger.resolveExportFolder(pickFolder);
             if (folder) {
                 await writeBlobsToFolder(folder, pair);
-                Toast.show(`Saved both files in your ${EXPORT_FOLDER_NAME} folder. The key is only in key.json — not in this browser.`, 'success', 5200);
+                await refreshExportButtons();
+                Toast.show(
+                    `Updated ${names.ledger} in your ${EXPORT_FOLDER_NAME} folder. The matching key is ${names.key} — not stored in this browser.`,
+                    'success',
+                    5200
+                );
                 return;
             }
             if (canUseDirectoryPicker() && pickFolder) return;
@@ -240,6 +285,11 @@ export const Ledger = {
 
             Toast.show('Saved encrypted ledger.json and key.json. The key is only in that download — not in this browser.', 'success', 5200);
         } catch (err) {
+            if (err?.code === 'FOLDER_PERMISSION' || err?.message === 'FOLDER_PERMISSION') {
+                await refreshExportButtons();
+                Toast.show('Folder access was removed. Tap Export to save again or long-press to pick a folder.', 'error', 5600);
+                return;
+            }
             console.error('[OpenExpense] export failed:', err);
             Toast.show('Could not export. Encryption needs a secure (https) context.', 'error');
         }
@@ -260,26 +310,28 @@ export const Ledger = {
     },
 
     async clearLedger() {
-        const { events, ledgerName } = getState();
-        const hasData = Object.keys(events).length > 0 || !!ledgerName;
-        if (!hasData) {
-            Toast.show('Calendar is already empty.', 'info');
-            return;
-        }
+        return runLocked('clear', async () => {
+            const { events, ledgerName } = getState();
+            const hasData = Object.keys(events).length > 0 || !!ledgerName;
+            if (!hasData) {
+                Toast.show('Calendar is already empty.', 'info');
+                return;
+            }
 
-        const ok = await confirmDialog({
-            title: 'Clear calendar?',
-            message: 'This permanently wipes every expense and income entry and the ledger name on this device. Export a backup first if you need one.',
-            confirmText: 'Clear everything',
-            cancelText: 'Cancel',
-            danger: true
+            const ok = await confirmDialog({
+                title: 'Clear calendar?',
+                message: 'This permanently wipes every expense and income entry and the ledger name on this device. Export a backup first if you need one.',
+                confirmText: 'Clear everything',
+                cancelText: 'Cancel',
+                danger: true
+            });
+            if (!ok?.confirmed) return;
+
+            Ledger.clearPending();
+            patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
+            saveLedger({ name: '', events: {}, savedAt: Date.now() });
+            Toast.show('Calendar cleared.', 'success');
         });
-        if (!ok?.confirmed) return;
-
-        Ledger.clearPending();
-        patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
-        saveLedger({ name: '', events: {}, savedAt: Date.now() });
-        Toast.show('Calendar cleared.', 'success');
     },
 
     async handleImport(evt) {
@@ -287,21 +339,23 @@ export const Ledger = {
         if (evt.target) evt.target.value = '';
         if (!files.length) return;
 
-        try {
-            if (files.length > 1) {
-                await Ledger.importFileList(files);
-                return;
+        return runLocked('import', async () => {
+            try {
+                if (files.length > 1) {
+                    await Ledger.importFileList(files);
+                    return;
+                }
+                const f = files[0];
+                const isZip = /\.zip$/i.test(f.name)
+                    || f.type === 'application/zip'
+                    || f.type === 'application/x-zip-compressed';
+                if (isZip) await Ledger.importZip(f);
+                else await Ledger.importJsonFile(f);
+            } catch (err) {
+                console.error('[OpenExpense] import failed:', err);
+                Toast.show('Could not read that file.', 'error');
             }
-            const f = files[0];
-            const isZip = /\.zip$/i.test(f.name)
-                || f.type === 'application/zip'
-                || f.type === 'application/x-zip-compressed';
-            if (isZip) await Ledger.importZip(f);
-            else await Ledger.importJsonFile(f);
-        } catch (err) {
-            console.error('[OpenExpense] import failed:', err);
-            Toast.show('Could not read that file.', 'error');
-        }
+        });
     },
 
     async importFileList(files) {
@@ -346,12 +400,14 @@ export const Ledger = {
         const f = evt.target.files && evt.target.files[0];
         if (evt.target) evt.target.value = '';
         if (!f) return;
-        try {
-            await Ledger.importJsonFile(f, { expectKey: true });
-        } catch (err) {
-            console.error('[OpenExpense] key import failed:', err);
-            Toast.show('Could not read that key.json.', 'error');
-        }
+        return runLocked('import', async () => {
+            try {
+                await Ledger.importJsonFile(f, { expectKey: true });
+            } catch (err) {
+                console.error('[OpenExpense] key import failed:', err);
+                Toast.show('Could not read that key.json.', 'error');
+            }
+        });
     },
 
     async importZip(file) {

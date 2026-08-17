@@ -9,7 +9,7 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
-**17 August 2026** — Income tracking (coin-flip sidebar, green calendar pills), recurring cadence (weekly / monthly / bi-monthly / quarterly), series removal, better on-device receipt reading, and status pills.
+**17 August 2026** — Linked-folder **Save** overwrites the existing encrypted JSON, a branded 404 for unknown URLs, income tracking, recurring cadence, and status pills.
 
 - Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
 - In the app: **Privacy & Help → Updates**

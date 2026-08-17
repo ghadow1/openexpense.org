@@ -12,12 +12,24 @@ import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
-import { switchView, switchDocTab, showWelcome, closeWelcomeModal } from './app/views.js';
+import { switchView, switchDocTab, showWelcome, closeWelcomeModal, shouldShowNotFound } from './app/views.js';
 import { closeModal, initModalBindings, renderModal, openModal } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
+import { actionBusy } from './core/action-lock.js';
+import { refreshExportButtons } from './features/export-buttons.js';
+
+const LOCKED_ACTIONS = new Set(['export-ledger', 'scan-receipt', 'quick-add-today']);
+
+function openNotFoundPage() {
+    try {
+        location.replace(`${location.origin}/404.html`);
+    } catch (_) {
+        location.href = '/404.html';
+    }
+}
 
 async function initApplication() {
     const bootPatch = {};
@@ -60,6 +72,13 @@ async function initApplication() {
         if (CONFIG.buildEnv) Utils.bindTooltip(versionBadge, `Environment: ${CONFIG.buildEnv}`);
     }
 
+    if (shouldShowNotFound(location.pathname)) {
+        window.__oeBoot = { ok: true };
+        openNotFoundPage();
+        return;
+    }
+
+    await refreshExportButtons().catch(() => {});
     switchView('app');
 
     const importInput = document.getElementById('ledger-import-input');
@@ -90,9 +109,17 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
+    Ledger.bindFolderGesture(document.querySelector('[data-action="export-ledger"]'));
+
     const warmOcr = () => { Receipt.warmEngine(); };
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 8000 });
-    else setTimeout(warmOcr, 3000);
+    const armOcrWarm = () => {
+        window.removeEventListener('pointerdown', armOcrWarm, true);
+        window.removeEventListener('keydown', armOcrWarm, true);
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(warmOcr, { timeout: 12000 });
+        else setTimeout(warmOcr, 2500);
+    };
+    window.addEventListener('pointerdown', armOcrWarm, { once: true, capture: true, passive: true });
+    window.addEventListener('keydown', armOcrWarm, { once: true, capture: true });
 
     window.__oeBoot = { ok: true };
 }
@@ -101,6 +128,10 @@ function handleDelegatedClick(e) {
     const actionEl = e.target.closest('[data-action]');
     if (actionEl) {
         const action = actionEl.dataset.action;
+        if (LOCKED_ACTIONS.has(action) && actionBusy()) {
+            e.preventDefault();
+            return;
+        }
         switch (action) {
             case 'close-welcome':
                 closeWelcomeModal();

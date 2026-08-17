@@ -12,37 +12,13 @@ import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
 import { openModal } from './modal.js';
+import { paintExportButtons } from './export-buttons.js';
+import { peekSavedFolder } from '../core/folder.js';
 
 let shellEl = null;
 let gridHeadEl = null;
 let gridEl = null;
 let lastMonthKey = '';
-
-function bindExportFolderGesture(btn) {
-    let timer = 0;
-    let opened = false;
-    const start = () => {
-        opened = false;
-        timer = window.setTimeout(() => {
-            opened = true;
-            Ledger.export({ pickFolder: true });
-        }, 550);
-    };
-    const cancel = () => { window.clearTimeout(timer); };
-    btn.addEventListener('pointerdown', start);
-    btn.addEventListener('pointerup', cancel);
-    btn.addEventListener('pointerleave', cancel);
-    btn.addEventListener('pointercancel', cancel);
-    btn.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        cancel();
-        opened = true;
-        Ledger.export({ pickFolder: true });
-    });
-    btn.addEventListener('click', (e) => {
-        if (opened) e.stopImmediatePropagation();
-    }, true);
-}
 
 function changeMonth(delta) {
     const { currentDate } = getState();
@@ -76,10 +52,15 @@ function ensureShell(calCol) {
     const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event', iconOnly: true });
     const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload', iconOnly: true });
     const exportBtn = UI.createButton('Export', () => Ledger.export(), { icon: 'download', iconOnly: true });
-    bindExportFolderGesture(exportBtn);
+    exportBtn.id = 'cal-export-btn';
+    Ledger.bindFolderGesture(exportBtn);
     const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true, iconOnly: true });
     const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true, iconOnly: true });
     scanBtn.classList.add('toolbar-scan-btn');
+    importBtn.setAttribute('data-lockable', '');
+    exportBtn.setAttribute('data-lockable', '');
+    clearBtn.setAttribute('data-lockable', '');
+    scanBtn.setAttribute('data-lockable', '');
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
     [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger and key.json from your OpenExpense folder'],
@@ -88,6 +69,7 @@ function ensureShell(calCol) {
         btn.setAttribute('aria-label', label);
         btn.title = label;
     });
+    paintExportButtons(!!peekSavedFolder());
 
     actions.append(todayBtn, divider(), importBtn, exportBtn, clearBtn, divider(), scanBtn);
     hdr.append(nav, actions);

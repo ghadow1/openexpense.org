@@ -24,16 +24,58 @@ export const FILE_LIMITS = {
     maxPrice: 1e9
 };
 
-export function exportFilenames(ledgerName) {
-    const base = Utils.sanitizeFilename(ledgerName) || 'ledger';
-    const now = new Date();
-    const stamp = Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate());
-    const stem = `${base}-${stamp}`;
+export function ledgerFileBase(ledgerName) {
+    return Utils.sanitizeFilename(ledgerName) || 'ledger';
+}
+
+function pairForStem(stem) {
     return {
         stem,
         ledger: `${stem}.json`,
         key: `${stem}.key.json`
     };
+}
+
+/** Dated pair for one-off downloads / share sheets. */
+export function exportFilenames(ledgerName) {
+    const base = ledgerFileBase(ledgerName);
+    const now = new Date();
+    const stamp = Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+    return pairForStem(`${base}-${stamp}`);
+}
+
+/** Stable pair so a linked folder overwrites the same JSON each save. */
+export function stableExportFilenames(ledgerName) {
+    return pairForStem(ledgerFileBase(ledgerName));
+}
+
+function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Prefer an existing pair in the folder so Save updates that JSON.
+ * Falls back to the stable `{name}.json` names when none exist yet.
+ */
+export function matchLedgerPairNames(fileNames, ledgerName) {
+    const stable = stableExportFilenames(ledgerName);
+    const base = ledgerFileBase(ledgerName);
+    const names = Array.isArray(fileNames) ? fileNames : [];
+    const set = new Set(names);
+
+    if (set.has(stable.ledger)) return stable;
+
+    const dated = new RegExp(`^${escapeRegExp(base)}-(\\d{4}-\\d{2}-\\d{2})\\.json$`);
+    const stamps = [];
+    for (const name of names) {
+        const match = typeof name === 'string' ? name.match(dated) : null;
+        if (match) stamps.push(match[1]);
+    }
+    if (stamps.length) {
+        stamps.sort();
+        return pairForStem(`${base}-${stamps[stamps.length - 1]}`);
+    }
+    return stable;
 }
 
 function formatOk(value, expected) {

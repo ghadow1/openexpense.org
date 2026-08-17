@@ -8,7 +8,7 @@ Each module starts with a short header describing what it owns.
 
 | File | Role |
 | --- | --- |
-| [`main.js`](main.js) | Boot, delegated clicks, render subscription |
+| [`main.js`](main.js) | Boot, delegated clicks, render subscription, 404 path guard |
 | [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet |
 | [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |
 
@@ -28,7 +28,9 @@ Each module starts with a short header describing what it owns.
 | [`core/crypto.js`](core/crypto.js) | Device AES-256-GCM key |
 | [`core/bundle.js`](core/bundle.js) | Encrypted ledger.json + portable key.json |
 | [`core/ledger-file.js`](core/ledger-file.js) | File QC, sanitize (import + IndexedDB load/save), filename pair |
-| [`core/folder.js`](core/folder.js) | OpenExpense export folder handle (not key.json) |
+| [`core/folder.js`](core/folder.js) | OpenExpense export folder handle (not key.json); overwrite names |
+| [`core/action-lock.js`](core/action-lock.js) | One in-flight lock for export / import / clear / scan |
+| [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence (weekly / monthly / bi-monthly / quarterly), series delete |
 | [`core/summary.js`](core/summary.js) | Month/year totals |
@@ -41,7 +43,8 @@ Each module starts with a short header describing what it owns.
 | --- | --- |
 | [`features/calendar.js`](features/calendar.js) | Month grid |
 | [`features/modal.js`](features/modal.js) | Day editor |
-| [`features/ledger.js`](features/ledger.js) | Import, export, autosave toggle, name |
+| [`features/ledger.js`](features/ledger.js) | Import, export / linked-folder save, autosave toggle, name |
+| [`features/export-buttons.js`](features/export-buttons.js) | Export vs Save labels when a folder is linked |
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary (coin-flip card) |

@@ -10,6 +10,7 @@ import { Toast } from '../ui/toast.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
+import { actionBusy, runLocked } from '../core/action-lock.js';
 
 export const Receipt = {
     // Lazy-loaded from CDN on first scan. index.html must define an import map for
@@ -32,6 +33,10 @@ export const Receipt = {
     },
 
     pickImage() {
+        if (actionBusy()) {
+            Toast.show('Please wait — another action is still running.', 'info', 2800);
+            return;
+        }
         const input = document.getElementById('receipt-scan-input');
         if (!input) return;
         input.value = '';
@@ -40,9 +45,24 @@ export const Receipt = {
         input.click();
     },
 
+    hintCdn() {
+        if (document.querySelector('link[data-oe-cdn]')) return;
+        const add = (rel) => {
+            const link = document.createElement('link');
+            link.rel = rel;
+            link.href = 'https://cdn.jsdelivr.net';
+            if (rel === 'preconnect') link.crossOrigin = 'anonymous';
+            link.dataset.oeCdn = '1';
+            document.head.appendChild(link);
+        };
+        add('dns-prefetch');
+        add('preconnect');
+    },
+
     warmEngine() {
         if (Receipt._warmStarted) return Receipt._warmPromise;
         Receipt._warmStarted = true;
+        Receipt.hintCdn();
         Receipt._warmPromise = Receipt.ensureEngine().catch(() => {});
         return Receipt._warmPromise;
     },
@@ -51,6 +71,7 @@ export const Receipt = {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
+        Receipt.hintCdn();
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
             const { PaddleOcrService } = await import(Receipt.OCR_CDN);
@@ -359,34 +380,36 @@ export const Receipt = {
     },
 
     async scan(file) {
-        Receipt._lastFile = file;
-        const progress = Receipt.showProgress();
-        try {
-            const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
-            progress.close();
-            const parsed = Receipt.parse(ocr.text, ocr.lines, ocr.confidence);
-            if (!ocr.lines.length && !ocr.text.trim()) {
-                parsed.lowConfidence = true;
+        return runLocked('scan', async () => {
+            Receipt._lastFile = file;
+            const progress = Receipt.showProgress();
+            try {
+                const ocr = await Receipt.recognizeText(file, (label, pct) => progress.set(label, pct));
+                progress.close();
+                const parsed = Receipt.parse(ocr.text, ocr.lines, ocr.confidence);
+                if (!ocr.lines.length && !ocr.text.trim()) {
+                    parsed.lowConfidence = true;
+                    const hint = Receipt.isPdf(file)
+                        ? 'No text found in this PDF — fill in the fields manually or try a screenshot.'
+                        : 'No text detected — fill in the fields manually or try a clearer photo.';
+                    Toast.show(hint, 'error');
+                }
+                Receipt.showPreview(parsed, ocr.previewUrl);
+            } catch (err) {
+                console.error('OCR error:', err);
+                progress.close();
+                if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
+                    URL.revokeObjectURL(Receipt._previewUrl);
+                }
+                Receipt._previewUrl = null;
                 const hint = Receipt.isPdf(file)
-                    ? 'No text found in this PDF — fill in the fields manually or try a screenshot.'
-                    : 'No text detected — fill in the fields manually or try a clearer photo.';
+                    ? 'Could not read this PDF. Try a text-based invoice, a screenshot, or a clearer scan.'
+                    : 'Could not read this image. Try a flatter photo, better lighting, or a PDF invoice.';
                 Toast.show(hint, 'error');
+            } finally {
+                Receipt._lastFile = null;
             }
-            Receipt.showPreview(parsed, ocr.previewUrl);
-        } catch (err) {
-            console.error('OCR error:', err);
-            progress.close();
-            if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
-                URL.revokeObjectURL(Receipt._previewUrl);
-            }
-            Receipt._previewUrl = null;
-            const hint = Receipt.isPdf(file)
-                ? 'Could not read this PDF. Try a text-based invoice, a screenshot, or a clearer scan.'
-                : 'Could not read this image. Try a flatter photo, better lighting, or a PDF invoice.';
-            Toast.show(hint, 'error');
-        } finally {
-            Receipt._lastFile = null;
-        }
+        });
     },
 
     showProgress() {

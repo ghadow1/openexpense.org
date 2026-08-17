@@ -7,8 +7,9 @@ import assert from 'node:assert/strict';
 import {
     sanitizeLedger, sanitizeEntry, validateEncFile, validateKeyFile,
     kidsMatch, wipeKeyFile, classifyJson, countEntries, exportFilenames,
-    isValidDateKey, readJsonFile, FILE_LIMITS
+    stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
+import { shouldShowNotFound } from '../src/core/routes.js';
 import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
 import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
 
@@ -107,6 +108,32 @@ test('export filenames are a sibling pair', () => {
     const names = exportFilenames('Home ledger');
     assert.match(names.ledger, /^Home ledger-\d{4}-\d{2}-\d{2}\.json$/);
     assert.equal(names.key, names.ledger.replace(/\.json$/, '.key.json'));
+});
+
+test('linked-folder save uses a stable pair and overwrites the existing JSON', () => {
+    const stable = stableExportFilenames('Home ledger');
+    assert.equal(stable.ledger, 'Home ledger.json');
+    assert.equal(stable.key, 'Home ledger.key.json');
+    assert.equal(matchLedgerPairNames([], 'Home ledger').ledger, 'Home ledger.json');
+    assert.equal(matchLedgerPairNames(['Home ledger.json'], 'Home ledger').ledger, 'Home ledger.json');
+    assert.equal(
+        matchLedgerPairNames(['Home ledger-2026-08-01.json', 'Home ledger-2026-08-17.json'], 'Home ledger').ledger,
+        'Home ledger-2026-08-17.json'
+    );
+    assert.equal(
+        matchLedgerPairNames(['Home ledger.json', 'Home ledger-2026-08-17.json'], 'Home ledger').ledger,
+        'Home ledger.json'
+    );
+});
+
+test('unknown public paths are 404; the homepage is not', () => {
+    assert.equal(shouldShowNotFound('/'), false);
+    assert.equal(shouldShowNotFound('/index.html'), false);
+    assert.equal(shouldShowNotFound('/404.html'), false);
+    assert.equal(shouldShowNotFound('/app.js'), false);
+    assert.equal(shouldShowNotFound('/docs'), true);
+    assert.equal(shouldShowNotFound('/privacy'), true);
+    assert.equal(shouldShowNotFound('/missing/page'), true);
 });
 
 test('weekly cadence copies the same weekday', () => {

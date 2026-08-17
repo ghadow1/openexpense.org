@@ -16,6 +16,11 @@ const KEY = 'current';
 
 let saveTimer = null;
 let dbPromise = null;
+let lastSavedSig = '';
+
+function ledgerSignature(name, events) {
+    return JSON.stringify({ name: name || '', events: events || {} });
+}
 
 function openDb() {
     if (dbPromise) return dbPromise;
@@ -100,6 +105,8 @@ export async function loadLedger() {
 export async function saveLedger(data) {
     try {
         const cleaned = sanitizeLedger(data) || { name: '', events: {}, savedAt: Date.now() };
+        const sig = ledgerSignature(cleaned.name, cleaned.events);
+        if (sig === lastSavedSig) return;
         let record = cleaned;
         if (cryptoAvailable()) {
             try {
@@ -110,6 +117,7 @@ export async function saveLedger(data) {
             }
         }
         await idbPut(STORE_NAME, KEY, record);
+        lastSavedSig = sig;
     } catch {
         dbPromise = null;
     }
@@ -118,6 +126,9 @@ export async function saveLedger(data) {
 const LEDGER_PATCH_KEYS = new Set(['events', 'ledgerName', 'autosaveEnabled']);
 
 export function initPersist(store) {
+    const boot = store.getState();
+    lastSavedSig = ledgerSignature(boot.ledgerName, boot.events);
+
     store.subscribe((partial) => {
         if (partial && !Object.keys(partial).some((key) => LEDGER_PATCH_KEYS.has(key))) return;
         clearTimeout(saveTimer);
