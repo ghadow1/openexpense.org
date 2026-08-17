@@ -45,7 +45,7 @@ Unknown fields are dropped on load and import. Quality control keeps only the fi
 
 ## Encrypted files (export)
 
-**Export** writes two JSON files with the same stem, for example `Home-ledger-2026-08-17.json` and `Home-ledger-2026-08-17.key.json`. There is no separate income file — both kinds live in one encrypted ledger.
+**Export** writes two JSON files with the same stem, for example `Home-ledger-2026-08-17.json` and `Home-ledger-2026-08-17.key.json`, into an **OpenExpense** folder by default. There is no separate income file — both kinds live in one encrypted ledger. You can pick another folder (long-press Export). On iPhone and Android the share sheet is the save path — choose OpenExpense in Files.
 
 | File | Format | Purpose |
 | --- | --- | --- |

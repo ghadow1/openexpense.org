@@ -36,7 +36,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
-- **Encrypted export** — one `.json` (expenses and income, ciphertext only) plus a sibling `key.json`. The portable key is not kept in the browser. Import asks for the key when you open the ledger.
+- **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
 - **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once.
 - **Monthly summary PDF** — generated locally with jsPDF.

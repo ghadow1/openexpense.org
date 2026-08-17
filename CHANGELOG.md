@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — OpenExpense folder storage
+
+Export defaults to an **OpenExpense** folder. Chromium can create and remember that folder (Documents). iPhone and Android share both files in one sheet so you can Save to Files → OpenExpense. Long-press Export to pick a different folder. Import accepts the ledger and key.json together. The portable key is still only in key.json — the remembered folder handle is not a decryption key.
+
 ## 2026-08-17 — Square controls
 
 The header mark, GitHub / autosave / theme buttons, calendar arrows, toolbar actions, close buttons, and other icon chrome now share one 40×40 square. Labeled form buttons keep their width and use the same height.
