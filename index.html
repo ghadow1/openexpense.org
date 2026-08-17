@@ -442,15 +442,17 @@
                   <ul class="docs-list">
                     <li><strong>Entry type</strong> — expense or income. The right-hand card flips to match.</li>
                     <li><strong>Title</strong> — merchant, paycheck, or description.</li>
-                    <li><strong>Cost / amount</strong> — dollars.</li>
+                    <li><strong>Cost / amount</strong> — dollars. On a recurring entry, a new amount updates every copy.</li>
+                    <li><strong>Date</strong> — when you edit an entry, you can move it. A recurring date change shifts every copy by the same number of days.</li>
                     <li><strong>Recurring</strong> — when checked, a <em>How often?</em> prompt asks for weekly, monthly, every 2 months, or quarterly. Weekly copies land on the same weekday; the others keep the same calendar day. About a year of copies is added.</li>
                     <li><strong>Paid</strong> — mark whether the charge is settled or still pending.</li>
                     <li><strong>Notes</strong> — optional context (line items, invoice numbers, etc.).</li>
                   </ul>
                   <p>
                     Same-day charges with the same title are grouped together. Recurring payments show a series
-                    badge. When you delete a re-accruing payment, check <strong>Remove all recurring copies of this
-                    payment</strong> to wipe the whole series — leave it unchecked to remove only that day.
+                    badge. Editing one copy updates the title, date, amount, and cadence on every copy; paid
+                    stays on each day. When you delete a re-accruing payment, check <strong>Remove all recurring
+                    copies of this payment</strong> to wipe the whole series — leave it unchecked to remove only that day.
                   </p>
                 </section>
 
@@ -609,6 +611,15 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Recurring edits apply to all</h3>
+                  <p>
+                    Updating one recurring copy now updates the whole series — title, date, amount, and
+                    how often. Paid or received stays on each day. Changing the date shifts every copy
+                    by the same number of days.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Icon-only actions</h3>
                   <p>

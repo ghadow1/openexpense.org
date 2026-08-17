@@ -3353,6 +3353,13 @@ body:has(.backdrop.open) #global-tooltip {
     display: none;
 }
 
+.event-edit-series-hint {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--text2);
+}
+
 .repeat-prompt-label {
     margin: 0;
     font-size: 11px;

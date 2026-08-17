@@ -2,24 +2,28 @@
  * OpenExpense — day editor
  *
  * Opens `#modal` for a YYYY-MM-DD key. Groups same-title expenses and can
- * delete a whole recurring series. Receipt scan writes through saveExpense().
+ * update or delete a whole recurring series. Receipt scan writes through
+ * saveExpense().
  */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { formatMoney, sumDay } from '../core/summary.js';
 import { UI } from '../ui/components.js';
+import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
+import { isValidDateKey } from '../core/ledger-file.js';
 import {
     REPEAT,
     countSeriesOccurrences,
     groupExpenses,
     normalizeRepeat,
     normalizeTitle,
+    rebuildSeriesFrom,
     removeSeriesOccurrences,
     repeatLabel,
-    nextOccurrenceKey,
-    seriesCopyCount
+    seedRecurringCopies,
+    updateSeriesOccurrences
 } from '../core/series.js';
 
 function prefersFieldAutofocus() {
@@ -418,6 +422,14 @@ function buildEditRow(e, i) {
     form.className = 'form-grid form-grid--flush';
     form.appendChild(createKindPrompt(`edit-kind-${i}`, Utils.entryKind(e)));
     form.appendChild(UI.createFieldGroup(`edit-title-${i}`, 'Title', e.title));
+    form.appendChild(UI.createFieldGroup(`edit-date-${i}`, 'Date', getState().selectedKey || '', '', 'date'));
+
+    if (e.recurring) {
+        const hint = document.createElement('p');
+        hint.className = 'event-edit-series-hint';
+        hint.textContent = 'Title, date, amount, and how often update every copy. Paid stays on each day.';
+        form.appendChild(hint);
+    }
 
     const row2 = document.createElement('div');
     row2.className = 'form-row';
@@ -477,30 +489,30 @@ function startEdit(i) {
 }
 
 function propagateRecurring(baseEvent, startKey) {
-    const { events } = getState();
-    const nextEvents = { ...events };
-    const cadence = normalizeRepeat(baseEvent.repeat);
-    const copies = seriesCopyCount(cadence);
+    patch({ events: seedRecurringCopies(getState().events, baseEvent, startKey) });
+}
 
-    for (let i = 1; i <= copies; i++) {
-        const nextKey = nextOccurrenceKey(startKey, cadence, i);
-        if (!nextEvents[nextKey]) nextEvents[nextKey] = [];
-        const exists = nextEvents[nextKey].some((e) => (
-            e.title === baseEvent.title
-            && e.recurring === true
-            && Utils.entryKind(e) === Utils.entryKind(baseEvent)
-            && normalizeRepeat(e.repeat) === cadence
-        ));
-        if (!exists) nextEvents[nextKey].push({ ...baseEvent, paid: false, repeat: cadence });
+function replaceOccurrence(events, fromKey, index, updated, toKey) {
+    const dest = toKey || fromKey;
+    const next = { ...events };
+    const list = [...(next[fromKey] || [])];
+    if (dest === fromKey) {
+        list[index] = updated;
+        next[fromKey] = list;
+        return next;
     }
-
-    patch({ events: nextEvents });
+    list.splice(index, 1);
+    if (list.length) next[fromKey] = list;
+    else delete next[fromKey];
+    next[dest] = [...(next[dest] || []), updated];
+    return next;
 }
 
 function saveEdit(i) {
     const title = document.getElementById(`edit-title-${i}`).value.trim(); if (!title) return;
     const isRecurring = document.getElementById(`edit-rec-${i}`).checked;
     const price = document.getElementById(`edit-price-${i}`).value;
+    const dateInput = document.getElementById(`edit-date-${i}`)?.value;
 
     const updatedEv = {
         title, note: document.getElementById(`edit-note-${i}`).value.trim(),
@@ -513,11 +525,24 @@ function saveEdit(i) {
     else delete updatedEv.repeat;
 
     const { selectedKey, events } = getState();
-    const nextEvents = { ...events };
-    nextEvents[selectedKey] = [...nextEvents[selectedKey]];
-    nextEvents[selectedKey][i] = updatedEv;
-    patch({ events: nextEvents, editingIndex: null });
-    if (isRecurring) propagateRecurring(updatedEv, selectedKey);
+    const original = events[selectedKey]?.[i];
+    if (!original) return;
+    const destKey = isValidDateKey(dateInput) ? dateInput : selectedKey;
+
+    let nextEvents;
+    if (original.recurring && isRecurring) {
+        const cadenceChanged = normalizeRepeat(original.repeat) !== normalizeRepeat(updatedEv.repeat);
+        nextEvents = cadenceChanged
+            ? rebuildSeriesFrom(events, original, destKey, updatedEv)
+            : updateSeriesOccurrences(events, original, selectedKey, i, updatedEv, destKey);
+        const count = countSeriesOccurrences(nextEvents, updatedEv);
+        if (count > 1) Toast.show(`Updated ${count} copies of ${title}.`, 'success');
+    } else {
+        nextEvents = replaceOccurrence(events, selectedKey, i, updatedEv, destKey);
+        if (isRecurring) nextEvents = seedRecurringCopies(nextEvents, updatedEv, destKey);
+    }
+
+    patch({ events: nextEvents, editingIndex: null, selectedKey: destKey });
     renderModal();
 }
 

@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Edit one recurring copy, update all
+
+Changing the title, date, amount, or cadence on one recurring entry now updates every copy in that series. Paid / received stays on each day. A date change shifts every copy by the same number of days.
+
 ## 2026-08-17 — Icon-only action buttons
 
 Add, Scan, and Export under the snapshot chips are the same 40px squares as the header and calendar toolbar. Word labels are gone; hover and assistive names stay. Icon-only factory buttons no longer keep a hidden text span that can overflow the square.

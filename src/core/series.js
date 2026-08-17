@@ -1,9 +1,9 @@
 /**
  * OpenExpense — recurring expense and income series
  *
- * Groups same-title entries and removes every recurring copy of a payment.
- * Repeat cadence is weekly, monthly (default), every 2 months, or quarterly.
- * Used by the day editor and calendar pills.
+ * Groups same-title entries, updates or shifts every copy, and removes a
+ * series. Repeat cadence is weekly, monthly (default), every 2 months, or
+ * quarterly. Used by the day editor and calendar pills.
  */
 import { Utils } from './utils.js';
 
@@ -66,11 +66,104 @@ export function nextOccurrenceKey(startKey, cadence, index) {
     return `${nextY}-${Utils.pad(nextM)}-${Utils.pad(nextD)}`;
 }
 
-function isSameSeries(a, b) {
+export function isSameSeries(a, b) {
     return !!a?.recurring && !!b?.recurring
         && Utils.entryKind(a) === Utils.entryKind(b)
         && normalizeTitle(a.title) === normalizeTitle(b.title)
         && normalizeRepeat(a.repeat) === normalizeRepeat(b.repeat);
+}
+
+export function addDaysToKey(key, days) {
+    const [y, m, d] = String(key).split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
+    return Utils.dateKey(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+}
+
+export function daysBetweenKeys(fromKey, toKey) {
+    const [y1, m1, d1] = String(fromKey).split('-').map(Number);
+    const [y2, m2, d2] = String(toKey).split('-').map(Number);
+    return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+
+function seriesEntry(updated, paid) {
+    const row = {
+        title: String(updated.title || '').trim(),
+        note: String(updated.note || '').trim(),
+        price: updated.price,
+        recurring: true,
+        paid: !!paid,
+        kind: Utils.entryKind(updated)
+    };
+    if (row.kind === 'expense') delete row.kind;
+    row.repeat = normalizeRepeat(updated.repeat);
+    return row;
+}
+
+/** Add about a year of future copies from startKey. Existing matches are left alone. */
+export function seedRecurringCopies(events, baseEvent, startKey) {
+    const nextEvents = { ...events };
+    const cadence = normalizeRepeat(baseEvent.repeat);
+    const copies = seriesCopyCount(cadence);
+    const kind = Utils.entryKind(baseEvent);
+
+    for (let i = 1; i <= copies; i++) {
+        const nextKey = nextOccurrenceKey(startKey, cadence, i);
+        const list = nextEvents[nextKey] ? [...nextEvents[nextKey]] : [];
+        const exists = list.some((e) => (
+            normalizeTitle(e.title) === normalizeTitle(baseEvent.title)
+            && e.recurring === true
+            && Utils.entryKind(e) === kind
+            && normalizeRepeat(e.repeat) === cadence
+        ));
+        if (!exists) {
+            list.push({ ...baseEvent, paid: false, repeat: cadence });
+            nextEvents[nextKey] = list;
+        }
+    }
+
+    return nextEvents;
+}
+
+/**
+ * Patch every copy of a series. Title, amount, note, and kind stay in sync.
+ * A date change shifts every copy by the same number of days. Paid stays
+ * on each day, except the edited copy which uses the form value.
+ */
+export function updateSeriesOccurrences(events, original, fromKey, editIndex, updated, toKey) {
+    const destKey = toKey || fromKey;
+    const delta = destKey === fromKey ? 0 : daysBetweenKeys(fromKey, destKey);
+    const copies = [];
+
+    Object.keys(events || {}).forEach((key) => {
+        (events[key] || []).forEach((entry, idx) => {
+            const edited = key === fromKey && idx === editIndex;
+            if (edited || isSameSeries(original, entry)) {
+                copies.push({ key, entry, edited });
+            }
+        });
+    });
+
+    const next = removeSeriesOccurrences(events, original);
+
+    copies.forEach(({ key, entry, edited }) => {
+        const newKey = delta ? addDaysToKey(key, delta) : key;
+        if (!next[newKey]) next[newKey] = [];
+        else next[newKey] = [...next[newKey]];
+        next[newKey].push(seriesEntry(updated, edited ? updated.paid : entry.paid));
+    });
+
+    return next;
+}
+
+/** Drop the old cadence and grow a new series from destKey. */
+export function rebuildSeriesFrom(events, original, destKey, updated) {
+    const row = seriesEntry(updated, updated.paid);
+    const next = removeSeriesOccurrences(events, original);
+    if (!next[destKey]) next[destKey] = [];
+    else next[destKey] = [...next[destKey]];
+    next[destKey].push(row);
+    return seedRecurringCopies(next, row, destKey);
 }
 
 export function countSeriesOccurrences(events, item) {

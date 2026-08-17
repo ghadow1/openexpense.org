@@ -9,7 +9,9 @@ import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
 import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
-    removeSeriesOccurrences, groupExpenses
+    removeSeriesOccurrences, groupExpenses,
+    addDaysToKey, daysBetweenKeys, updateSeriesOccurrences, rebuildSeriesFrom,
+    countSeriesOccurrences
 } from '../src/core/series.js';
 
 function entry({ title, price, kind, recurring = false, repeat, paid = true }) {
@@ -179,6 +181,75 @@ test('removing a weekly expense series does not touch income', () => {
     assert.equal(next['2026-08-17'].some((e) => e.title === 'Paycheck' && e.kind === 'income'), true);
     assert.equal(next['2026-08-17'].some((e) => e.title === 'Rent'), true);
     assert.equal(next['2026-08-24'].every((e) => e.kind === 'income'), true);
+});
+
+test('editing one recurring copy updates price on every copy', () => {
+    const original = ledger.events['2026-08-17'][0];
+    const next = updateSeriesOccurrences(
+        ledger.events,
+        original,
+        '2026-08-17',
+        0,
+        { ...original, price: 6 },
+        '2026-08-17'
+    );
+    assert.equal(next['2026-08-17'].find((e) => e.title === 'Coffee').price, 6);
+    assert.equal(next['2026-08-24'].find((e) => e.title === 'Coffee').price, 6);
+    assert.equal(next['2026-08-17'].find((e) => e.title === 'Paycheck').price, 800);
+    assert.equal(next['2026-08-17'].find((e) => e.title === 'Rent').price, 1450);
+});
+
+test('shifting one recurring date moves every copy by the same days', () => {
+    assert.equal(addDaysToKey('2026-08-17', 1), '2026-08-18');
+    assert.equal(daysBetweenKeys('2026-08-17', '2026-08-20'), 3);
+    const original = ledger.events['2026-08-17'][0];
+    const next = updateSeriesOccurrences(
+        ledger.events,
+        original,
+        '2026-08-17',
+        0,
+        { ...original, price: 5 },
+        '2026-08-18'
+    );
+    assert.equal(next['2026-08-17']?.some((e) => e.title === 'Coffee'), false);
+    assert.equal(next['2026-08-18'].some((e) => e.title === 'Coffee' && e.price === 5), true);
+    assert.equal(next['2026-08-25'].some((e) => e.title === 'Coffee'), true);
+    assert.equal(next['2026-08-24']?.some((e) => e.title === 'Coffee'), false);
+    assert.equal(next['2026-08-17'].some((e) => e.title === 'Paycheck'), true);
+});
+
+test('series update keeps paid on each day except the edited copy', () => {
+    const events = {
+        '2026-08-17': [entry({ title: 'Rent', price: 1450, recurring: true, repeat: 'monthly', paid: true })],
+        '2026-09-17': [entry({ title: 'Rent', price: 1450, recurring: true, repeat: 'monthly', paid: false })]
+    };
+    const original = events['2026-08-17'][0];
+    const next = updateSeriesOccurrences(
+        events,
+        original,
+        '2026-08-17',
+        0,
+        { ...original, price: 1500, paid: true },
+        '2026-08-17'
+    );
+    assert.equal(next['2026-08-17'][0].price, 1500);
+    assert.equal(next['2026-08-17'][0].paid, true);
+    assert.equal(next['2026-09-17'][0].price, 1500);
+    assert.equal(next['2026-09-17'][0].paid, false);
+});
+
+test('changing cadence rebuilds the series from the edited day', () => {
+    const original = ledger.events['2026-08-17'][2];
+    const next = rebuildSeriesFrom(
+        ledger.events,
+        original,
+        '2026-08-17',
+        { ...original, repeat: 'weekly', price: 1450 }
+    );
+    assert.equal(next['2026-08-17'].some((e) => e.title === 'Rent' && e.repeat === 'weekly'), true);
+    assert.equal(next['2026-08-24'].some((e) => e.title === 'Rent' && e.repeat === 'weekly'), true);
+    assert.equal(countSeriesOccurrences(next, { title: 'Rent', recurring: true, repeat: 'weekly' }) > 2, true);
+    assert.equal(next['2026-08-17'].some((e) => e.title === 'Coffee'), true);
 });
 
 test('same-title expense and income stay separate groups', () => {
