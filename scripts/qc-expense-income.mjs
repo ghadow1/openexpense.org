@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary, sumDay } from '../src/core/summary.js';
+import { computeMonthlySummary, computeNetSnapshot, sumDay } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, groupExpenses
@@ -64,6 +64,16 @@ test('monthly summary splits expense and income paths', () => {
     assert.equal(income.total, 800 + 800);
     assert.ok(spend.allItems.every((item) => item.kind === 'expense'));
     assert.ok(income.allItems.every((item) => item.kind === 'income'));
+});
+
+test('dashboard snapshot nets income against spend', () => {
+    const snap = computeNetSnapshot(ledger.events, new Date(2026, 7, 17));
+    assert.equal(snap.monthIn, 1600);
+    assert.equal(snap.monthOut, 1460);
+    assert.equal(snap.monthNet, 140);
+    assert.equal(snap.yearNet, 140);
+    assert.equal(snap.monthAvg, 140);
+    assert.equal(snap.monthLabel, 'Aug');
 });
 
 test('sumDay splits spend down and income up', () => {

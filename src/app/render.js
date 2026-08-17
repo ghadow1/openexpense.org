@@ -1,12 +1,13 @@
 /**
  * OpenExpense — render orchestration
  *
- * Applies theme, paints the calendar and sidebar, and keeps the header
- * chips (privacy + file-loaded) in sync with store state.
+ * Applies theme, paints the calendar, snapshot chips, and sidebar, and
+ * keeps the header chips (privacy + file-loaded) in sync with store state.
  */
 import { applyTheme, setTheme } from '../ui/theme.js';
 import { renderCalendar } from '../features/calendar.js';
 import { renderSidebar } from '../features/sidebar.js';
+import { renderDashStrip } from '../features/dash-strip.js';
 import { getState } from '../core/store.js';
 import { Ledger } from '../features/ledger.js';
 
@@ -43,6 +44,7 @@ export function render(changedKeys) {
     }
     if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events')) {
         renderCalendar(keys);
+        renderDashStrip();
     }
     if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events') || keys.includes('ledgerFace')) {
         renderSidebar(keys);

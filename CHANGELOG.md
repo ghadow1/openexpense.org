@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Fintech dashboard
+
+Wide screens use a three-column wallet: quick tools, calendar, monthly card. Snapshot chips show year balance, month cashflow, and monthly average from the ledger you already have. Add, Scan, and Export sit in a quick-action bar (a bottom tray on phones). Dark mode is slate with emerald credits and crimson debits. Same two screens, same encrypted files.
+
 ## 2026-08-17 — Chase-inspired banking theme
 
 Light mode is now a blue-and-white banking canvas: navy header, Chase blue actions, white cards, charcoal type. Dark mode is a matching charcoal-navy executive palette. Same screens and the same ledger — only the look changed.

@@ -9,8 +9,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#002244">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#081c38">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0F172A">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#020617">
   <meta name="application-name" content="OpenExpense">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -222,25 +222,65 @@
     </nav>
 
     <main class="app-view" id="view-app">
-      <div class="ledger-name-bar">
-        <label class="ledger-name-label" for="ledger-name-input">Ledger name</label>
-        <input id="ledger-name-input" class="ledger-name-input text-input" type="text"
-          placeholder="Name your ledger (e.g. Personal expenses)" spellcheck="false" autocomplete="off">
-        <div class="ledger-status-row">
-          <span id="privacy-status" class="status-chip privacy-chip" hidden>
-            <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
-            <span class="privacy-chip-text">You own your data</span>
-          </span>
-          <span id="file-status" class="status-chip is-empty" hidden>
-            <i class="status-dot" aria-hidden="true"></i>
-            <span class="file-status-text">Not loaded</span>
-          </span>
+      <div class="dash">
+        <aside id="dash-rail" class="dash-rail" aria-label="Quick tools">
+          <div class="ledger-name-bar">
+            <label class="ledger-name-label" for="ledger-name-input">Ledger name</label>
+            <input id="ledger-name-input" class="ledger-name-input text-input" type="text"
+              placeholder="Name your ledger (e.g. Personal expenses)" spellcheck="false" autocomplete="off">
+            <div class="ledger-status-row">
+              <span id="privacy-status" class="status-chip privacy-chip" hidden>
+                <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
+                <span class="privacy-chip-text">You own your data</span>
+              </span>
+              <span id="file-status" class="status-chip is-empty" hidden>
+                <i class="status-dot" aria-hidden="true"></i>
+                <span class="file-status-text">Not loaded</span>
+              </span>
+            </div>
+            <p class="ledger-trust">Open-source · encrypted on this device · key.json stays with you</p>
+          </div>
+          <div class="dash-actions" role="toolbar" aria-label="Quick actions">
+            <button type="button" class="dash-act" data-action="quick-add-today">
+              <span class="dash-act-ico" aria-hidden="true">＋</span>
+              <span>Add entry</span>
+            </button>
+            <button type="button" class="dash-act" data-action="scan-receipt">
+              <span class="dash-act-ico" aria-hidden="true">◎</span>
+              <span>Scan</span>
+            </button>
+            <button type="button" class="dash-act" data-action="export-ledger">
+              <span class="dash-act-ico" aria-hidden="true">↗</span>
+              <span>Export</span>
+            </button>
+          </div>
+        </aside>
+        <div class="dash-center">
+          <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
+            <div class="skel skel-chip" aria-hidden="true"></div>
+            <div class="skel skel-chip" aria-hidden="true"></div>
+            <div class="skel skel-chip" aria-hidden="true"></div>
+          </div>
+          <div class="cal-main" id="cal-col">
+            <div class="skel-board" aria-hidden="true">
+              <div class="skel skel-toolbar"></div>
+              <div class="skel-grid">
+                <div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div>
+                <div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div>
+                <div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div>
+                <div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div><div class="skel skel-cell"></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <p class="ledger-trust">Open-source · encrypted on this device · key.json stays with you</p>
-      </div>
-      <div class="layout-wrapper">
-        <div class="cal-main" id="cal-col"></div>
-        <aside class="sidebar" id="sidebar"></aside>
+        <aside class="sidebar" id="sidebar">
+          <div class="skel-side" aria-hidden="true">
+            <div class="skel skel-hero"></div>
+            <div class="skel skel-line"></div>
+            <div class="skel skel-line short"></div>
+            <div class="skel skel-block"></div>
+          </div>
+        </aside>
       </div>
     </main>
 
@@ -554,6 +594,17 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Fintech dashboard</h3>
+                  <p>
+                    The expense screen is now a three-column wallet on a wide desktop: quick tools on the left,
+                    the calendar in the center, and the monthly card on the right. Snapshot chips show year
+                    balance, this month’s cashflow, and the monthly average. Add, Scan, and Export sit in a
+                    quick-action bar (a tray on phones). Dark mode uses a slate canvas with emerald credits and
+                    crimson debits. Ledger files and encryption are unchanged.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Banking theme</h3>
                   <p>

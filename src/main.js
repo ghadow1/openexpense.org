@@ -118,6 +118,9 @@ function handleDelegatedClick(e) {
                 openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));
                 break;
             }
+            case 'export-ledger':
+                Ledger.export();
+                break;
         }
         return;
     }

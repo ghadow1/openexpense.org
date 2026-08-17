@@ -218,6 +218,20 @@ export function formatMoney(value) {
     return Utils.formatMoney(value);
 }
 
+/** Derived month/year net for the dashboard chips. Does not persist. */
+export function computeNetSnapshot(events, currentDate) {
+    const spend = computeMonthlySummary(events, currentDate, 'expense');
+    const income = computeMonthlySummary(events, currentDate, 'income');
+    return {
+        monthIn: income.total,
+        monthOut: spend.total,
+        monthNet: income.total - spend.total,
+        yearNet: (income.yearTotal || 0) - (spend.yearTotal || 0),
+        monthAvg: (income.yearAvg || 0) - (spend.yearAvg || 0),
+        monthLabel: spend.shortMonth
+    };
+}
+
 export function formatDelta(value) {
     const n = Number(value || 0);
     const sign = n > 0 ? '+' : '';
