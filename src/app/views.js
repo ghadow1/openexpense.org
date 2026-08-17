@@ -5,6 +5,7 @@
  * Privacy & Help (`#view-docs`). Also owns the first-visit welcome modal.
  */
 import { STORAGE_KEYS } from '../config.js';
+import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { render } from './render.js';
 
 export function switchView(viewName) {
@@ -43,10 +44,18 @@ export function showWelcome() {
     try { visited = !!localStorage.getItem(STORAGE_KEYS.visited); } catch (_) { }
     if (!visited) {
         modal.classList.add('open');
+        document.body.classList.add('modal-open');
+        lockBodyScroll();
         try { localStorage.setItem(STORAGE_KEYS.visited, 'true'); } catch (_) { }
     }
 }
 
 export function closeWelcomeModal() {
-    document.getElementById('welcome-modal')?.classList.remove('open');
+    const modal = document.getElementById('welcome-modal');
+    if (!modal?.classList.contains('open')) return;
+    modal.classList.remove('open');
+    if (!document.getElementById('modal')?.classList.contains('open')) {
+        document.body.classList.remove('modal-open');
+    }
+    unlockBodyScroll();
 }

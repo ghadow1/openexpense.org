@@ -7,7 +7,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f3f7">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0c10">
@@ -368,8 +368,8 @@
                   <h3 class="docs-section-title">The calendar</h3>
                   <p>
                     The main view is a month calendar. Use the arrows to change months, or tap <strong>Today</strong>
-                    to jump back to the current month. Days with expenses show a total; tap a day to open its detail
-                    panel.
+                    to jump back to the current month. Days with items show a total; tap a day to open its sheet.
+                    On a phone that sheet snaps to the bottom and shows spent vs income before the list.
                   </p>
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
@@ -555,6 +555,15 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Mobile day sheet</h3>
+                  <p>
+                    On a phone, a calendar day opens as a bottom sheet that stays put while you type.
+                    Safari no longer zooms into fields. The top of the sheet shows that day’s spent and
+                    income with the same up/down graph as the calendar. Swipe down on the handle to close.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Brochure monthly PDF</h3>
                   <p>
                     The sidebar PDF is now a letter-size OpenExpense.org report for the month you are viewing.
@@ -690,24 +699,30 @@
   </div>
 
   <div class="backdrop" id="modal">
-    <div id="mbox" class="modal-shell modal-editor">
+    <div id="mbox" class="modal-shell modal-editor" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
+      <div class="sheet-grab" aria-hidden="true"><span></span></div>
       <div class="modal-header">
-        <h3 class="modal-title" id="modal-date-title">Date</h3>
+        <div class="modal-header-copy">
+          <p class="modal-kicker">OpenExpense.org</p>
+          <h3 class="modal-title" id="modal-date-title">Date</h3>
+        </div>
         <button class="close-modal" type="button" data-action="close-modal" aria-label="Close dialog">
           <i class="ti ti-x"></i>
         </button>
       </div>
 
+      <div id="day-insights" class="day-insights" hidden></div>
+
       <div class="modal-columns">
 
         <div class="modal-panel">
-          <h4 class="panel-title">Expenses this day</h4>
+          <h4 class="panel-title">This day</h4>
           <div id="events-container">
           </div>
         </div>
 
         <div class="modal-panel">
-          <h4 class="panel-title">Add expense</h4>
+          <h4 class="panel-title">Add entry</h4>
           <div id="form-container">
           </div>
         </div>

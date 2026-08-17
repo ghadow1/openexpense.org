@@ -54,6 +54,7 @@ Each module starts with a short header describing what it owns.
 | [`ui/theme.js`](ui/theme.js) | CSS variables from `THEMES` |
 | [`ui/toast.js`](ui/toast.js) | Status toasts |
 | [`ui/confirm.js`](ui/confirm.js) | Confirm dialog + optional checkbox |
+| [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |
 
 ## Public exports
 

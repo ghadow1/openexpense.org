@@ -7,6 +7,7 @@ import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
+import { sumDay } from '../core/summary.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -125,18 +126,6 @@ function getCalendarDensity(colEl) {
 
 function syncDensityClass(density) {
     if (shellEl) shellEl.dataset.density = density;
-}
-
-function sumDay(dayEvents) {
-    let expense = 0;
-    let income = 0;
-    (dayEvents || []).forEach((e) => {
-        const amount = Utils.getPrice(e);
-        if (!Number.isFinite(amount) || amount <= 0) return;
-        if (Utils.entryKind(e) === 'income') income += amount;
-        else expense += amount;
-    });
-    return { expense, income, net: income - expense };
 }
 
 function formatDayTotal(amount) {

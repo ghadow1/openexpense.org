@@ -7,6 +7,7 @@
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
+import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
 
@@ -403,6 +404,7 @@ export const Receipt = {
         Utils.hideTooltip();
         document.body.appendChild(backdrop);
         document.body.classList.add('modal-open');
+        lockBodyScroll();
         const fill = backdrop.querySelector('.bar > span');
         const pct = backdrop.querySelector('.ocr-pct');
         return {
@@ -416,6 +418,7 @@ export const Receipt = {
                 if (!document.getElementById('ocr-preview') && !document.getElementById('modal')?.classList.contains('open')) {
                     document.body.classList.remove('modal-open');
                 }
+                unlockBodyScroll();
             }
         };
     },
@@ -488,6 +491,7 @@ export const Receipt = {
         backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
         Utils.hideTooltip();
         document.body.classList.add('modal-open');
+        lockBodyScroll();
         document.body.appendChild(backdrop);
 
         const thumb = backdrop.querySelector('.ocr-thumb');
@@ -500,14 +504,18 @@ export const Receipt = {
             if (thumb.complete && thumb.naturalWidth > 0) reveal();
         }
 
-        backdrop.querySelector('#ocr-title').focus();
+        if (!Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches) {
+            backdrop.querySelector('#ocr-title')?.focus({ preventScroll: true });
+        }
     },
 
     closePreview() {
+        const hadPreview = !!document.getElementById('ocr-preview');
         document.getElementById('ocr-preview')?.remove();
         if (!document.getElementById('modal')?.classList.contains('open')) {
             document.body.classList.remove('modal-open');
         }
+        if (hadPreview) unlockBodyScroll();
         if (Receipt._previewUrl && !Receipt._previewUrl.startsWith('data:')) {
             URL.revokeObjectURL(Receipt._previewUrl);
         }

@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Mobile day sheet
+
+The day pop-out is a bottom sheet on phones: it snaps in place, swipe-down closes it, and the page behind it no longer rubber-bands. Opening a field no longer zooms Safari (16px inputs, no autofocus on phones). The sheet shows that day’s spent vs income with the same up/down money graph as the calendar, plus OpenExpense.org on the header.
+
 ## 2026-08-17 — Brochure monthly PDF
 
 The sidebar PDF is a letter-size OpenExpense.org report for the month on screen: branded cover with the same KPIs and insights, a daily calendar and merchant-share breakdown, then the pending/paid register. Spending and income faces each export their own report. Month labels stay in Latin text so they no longer render as garbled characters.

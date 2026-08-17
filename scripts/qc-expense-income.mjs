@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary } from '../src/core/summary.js';
+import { computeMonthlySummary, sumDay } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, groupExpenses
@@ -64,6 +64,17 @@ test('monthly summary splits expense and income paths', () => {
     assert.equal(income.total, 800 + 800);
     assert.ok(spend.allItems.every((item) => item.kind === 'expense'));
     assert.ok(income.allItems.every((item) => item.kind === 'income'));
+});
+
+test('sumDay splits spend down and income up', () => {
+    const totals = sumDay([
+        entry({ title: 'Coffee', price: 5 }),
+        entry({ title: 'Paycheck', price: 800, kind: 'income' }),
+        entry({ title: 'Rent', price: 1450 })
+    ]);
+    assert.equal(totals.expense, 1455);
+    assert.equal(totals.income, 800);
+    assert.equal(totals.net, 800 - 1455);
 });
 
 test('monthly summary includes a full-month daily breakdown', () => {

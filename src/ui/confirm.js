@@ -5,10 +5,12 @@
  * an extra checkbox (for example, remove all recurring copies).
  */
 import { Utils } from '../core/utils.js';
+import { lockBodyScroll, unlockBodyScroll } from './scroll-lock.js';
 
 let backdropEl = null;
 let keyHandler = null;
 let resolveActive = null;
+let confirmLocked = false;
 
 function teardown(result) {
     if (keyHandler) {
@@ -22,6 +24,10 @@ function teardown(result) {
     if (!document.getElementById('modal')?.classList.contains('open')
         && !document.querySelector('.backdrop.open')) {
         document.body.classList.remove('modal-open');
+    }
+    if (confirmLocked) {
+        unlockBodyScroll();
+        confirmLocked = false;
     }
     if (resolveActive) {
         const resolve = resolveActive;
@@ -101,6 +107,8 @@ export function confirmDialog({
 
         Utils.hideTooltip();
         document.body.classList.add('modal-open');
+        lockBodyScroll();
+        confirmLocked = true;
         document.body.appendChild(backdropEl);
         requestAnimationFrame(() => okBtn.focus());
     });

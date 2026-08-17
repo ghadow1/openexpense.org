@@ -128,6 +128,19 @@ function dailyTotals(items, y, m, daysInMonth) {
     return days;
 }
 
+/** Expense vs income totals for one calendar day. */
+export function sumDay(dayEvents) {
+    let expense = 0;
+    let income = 0;
+    (dayEvents || []).forEach((e) => {
+        const amount = Utils.getPrice(e);
+        if (!Number.isFinite(amount) || amount <= 0) return;
+        if (Utils.entryKind(e) === 'income') income += amount;
+        else expense += amount;
+    });
+    return { expense, income, net: income - expense };
+}
+
 function weekdayTotals(items) {
     const totals = new Array(7).fill(0);
     const counts = new Array(7).fill(0);

@@ -324,10 +324,11 @@ textarea:focus:not(:focus-visible) {
 .form-dollar {
     position: absolute;
     left: 12px;
-    top: 31px;
+    bottom: 14px;
     color: var(--text2);
     font-weight: 500;
-    font-size: var(--fs-sm);
+    font-size: 16px;
+    line-height: 1;
     pointer-events: none;
 }
 
@@ -415,6 +416,8 @@ html {
     color-scheme: light dark;
     height: 100%;
     overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
@@ -856,6 +859,9 @@ textarea,
     width: 100%;
     min-width: 0;
     margin: 0;
+    font-size: 16px;
+    min-height: 44px;
+    line-height: 1.25;
 }
 
 .ledger-status-row {
@@ -1537,6 +1543,10 @@ textarea,
     grid-template-columns: 1fr 1fr;
     gap: 32px;
     align-items: start;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-panel {
@@ -2352,7 +2362,9 @@ body:has(.backdrop.open) #global-tooltip {
     width: 100%;
     max-width: 850px;
     max-height: 85vh;
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     padding: 24px;
 }
 
@@ -2393,12 +2405,40 @@ body:has(.backdrop.open) #global-tooltip {
     width: 100%;
 }
 
+.sheet-grab {
+    display: none;
+    justify-content: center;
+    padding: 8px 0 2px;
+    touch-action: none;
+}
+
+.sheet-grab span {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--border-strong);
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     gap: 12px;
+    flex-shrink: 0;
+}
+
+.modal-header-copy {
+    min-width: 0;
+}
+
+.modal-kicker {
+    margin: 0 0 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
 
 .modal-title {
@@ -2407,6 +2447,105 @@ body:has(.backdrop.open) #global-tooltip {
     letter-spacing: -0.01em;
     color: var(--text-strong);
     margin: 0;
+}
+
+.day-insights {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--surface2) 72%, transparent);
+}
+
+.day-insights[hidden] {
+    display: none;
+}
+
+.day-insight-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.day-insight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.day-insight-spark {
+    flex-shrink: 0;
+}
+
+.day-insight-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.day-insight-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.day-insight strong {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+}
+
+.day-insight.is-down {
+    color: var(--danger-text);
+}
+
+.day-insight.is-down strong {
+    color: var(--danger-text);
+}
+
+.day-insight.is-up {
+    color: var(--income);
+}
+
+.day-insight.is-up strong {
+    color: var(--income);
+}
+
+.day-insight-track {
+    display: flex;
+    height: 8px;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--surface2);
+}
+
+.day-insight-fill {
+    min-width: 0;
+}
+
+.day-insight-fill.is-down {
+    background: var(--danger-text);
+}
+
+.day-insight-fill.is-up {
+    background: var(--income);
+}
+
+.day-insight-meta {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
 }
 
 .close-modal {
@@ -3572,7 +3711,10 @@ textarea:focus-visible {
     border-radius: var(--radius-sm);
     color: var(--text-strong);
     padding: 10px 12px;
-    font-size: var(--fs-sm);
+    font-size: 16px;
+    line-height: 1.25;
+    min-height: 44px;
+    scroll-margin-bottom: 28px;
     font-family: inherit;
     box-sizing: border-box;
     transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
@@ -3733,7 +3875,7 @@ textarea.text-input {
     transform: translateY(-50%);
     color: var(--text2);
     font-weight: 500;
-    font-size: 13px;
+    font-size: 16px;
     pointer-events: none;
 }
 
@@ -3771,6 +3913,19 @@ textarea.text-input {
 
 body.modal-open {
     overflow: hidden;
+}
+
+html.oe-scroll-lock,
+html.oe-scroll-lock body {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+html.oe-scroll-lock body {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    right: 0;
 }
 
 .toolbar-scan-btn {
@@ -4134,8 +4289,9 @@ body.modal-open .quick-fab {
     }
 
     .expense-group-remove {
-        width: 100%;
-        min-height: 36px;
+        width: auto;
+        min-height: 32px;
+        padding: 4px 10px;
     }
 
     .confirm-check {
@@ -4271,10 +4427,10 @@ body.modal-open .quick-fab {
     }
 
     .backdrop {
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
-        padding: 16px;
-        overflow-y: auto;
+        padding: 0;
+        overflow: hidden;
     }
 
     #modal.backdrop {
@@ -4286,23 +4442,22 @@ body.modal-open .quick-fab {
         margin: 0;
         width: 100%;
         max-width: none;
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        max-height: 92dvh;
+        height: min(92dvh, 100%);
+        max-height: min(92dvh, 100%);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         animation: sheetIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
     }
 
-    #mbox,
+    .sheet-grab {
+        display: flex;
+    }
+
     .ocr-sheet {
         width: 100%;
         max-width: 480px;
         border-radius: var(--radius-lg);
-        max-height: 90vh;
-    }
-
-    #mbox {
-        padding: 16px;
-        max-width: none;
+        max-height: 90dvh;
     }
 
     .welcome-card {
@@ -4342,7 +4497,6 @@ body.modal-open .quick-fab {
     .btn-secondary {
         min-height: 44px;
         font-size: 16px;
-    }
     }
 
     .toolbar-actions button {
@@ -4419,6 +4573,31 @@ body.modal-open .quick-fab {
         width: 100%;
         max-width: none;
         pointer-events: auto;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .ui-btn:hover,
+    .docs-nav-tab:hover,
+    .close-modal:hover,
+    .expense-group-remove:hover,
+    .cal-day:hover,
+    .quick-fab:hover,
+    .event-row:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .event-row:hover {
+        background: transparent;
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .close-modal:hover {
+        transform: none;
     }
 }
 

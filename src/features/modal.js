@@ -6,8 +6,10 @@
  */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
+import { formatMoney, sumDay } from '../core/summary.js';
 import { UI } from '../ui/components.js';
 import { confirmDialog } from '../ui/confirm.js';
+import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import {
     REPEAT,
     countSeriesOccurrences,
@@ -20,22 +22,81 @@ import {
     seriesCopyCount
 } from '../core/series.js';
 
+function prefersFieldAutofocus() {
+    return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
+}
+
+function focusField(id) {
+    if (!prefersFieldAutofocus()) return;
+    const el = document.getElementById(id);
+    if (el) el.focus({ preventScroll: true });
+}
+
 export function openModal(key) {
     patch({ selectedKey: key, editingIndex: null });
     Utils.hideTooltip();
-    document.getElementById('modal').classList.add('open');
+    const modal = document.getElementById('modal');
+    const sheet = document.getElementById('mbox');
+    if (sheet) sheet.style.transform = '';
+    modal.classList.add('open');
     document.body.classList.add('modal-open');
+    lockBodyScroll();
     renderModal();
 }
 
 export function closeModal() {
     patch({ selectedKey: null, editingIndex: null });
+    const sheet = document.getElementById('mbox');
+    if (sheet) sheet.style.transform = '';
     document.getElementById('modal').classList.remove('open');
     document.body.classList.remove('modal-open');
+    unlockBodyScroll();
 }
 
 function bgClose(e) {
     if (e.target === document.getElementById('modal')) closeModal();
+}
+
+function bindSheetGestures(modal) {
+    const sheet = document.getElementById('mbox');
+    if (!sheet || sheet.dataset.gestures === '1') return;
+    sheet.dataset.gestures = '1';
+
+    let startY = 0;
+    let dragging = false;
+    let dy = 0;
+
+    const canDragFrom = (target) => {
+        if (!window.matchMedia('(max-width: 640px)').matches) return false;
+        return !!target.closest('.sheet-grab, .modal-header');
+    };
+
+    sheet.addEventListener('touchstart', (e) => {
+        if (!canDragFrom(e.target) || e.touches.length !== 1) return;
+        startY = e.touches[0].clientY;
+        dragging = true;
+        dy = 0;
+        sheet.style.transition = 'none';
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (e) => {
+        if (!dragging) return;
+        dy = Math.max(0, e.touches[0].clientY - startY);
+        sheet.style.transform = `translateY(${dy}px)`;
+        if (dy > 8) e.preventDefault();
+    }, { passive: false });
+
+    const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheet.style.transition = '';
+        if (dy > 88) closeModal();
+        else sheet.style.transform = '';
+        dy = 0;
+    };
+
+    sheet.addEventListener('touchend', endDrag);
+    sheet.addEventListener('touchcancel', endDrag);
 }
 
 export function initModalBindings() {
@@ -43,8 +104,57 @@ export function initModalBindings() {
     if (modal && !modal.dataset.bound) {
         modal.addEventListener('click', bgClose);
         modal.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+        bindSheetGestures(modal);
         modal.dataset.bound = '1';
     }
+}
+
+function moneySpark(up) {
+    return `<svg class="day-insight-spark" viewBox="0 0 12 8" width="18" height="12" aria-hidden="true">
+        <polyline points="${up ? '1,6 4.5,3.5 7,5 11,1.5' : '1,2 4.5,4.5 7,3 11,6.5'}"
+            fill="none" stroke="currentColor" stroke-width="1.4"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
+function renderDayInsights(dateKey) {
+    const el = document.getElementById('day-insights');
+    if (!el) return;
+
+    const list = getState().events[dateKey] || [];
+    const { expense, income, net } = sumDay(list);
+    const pending = list.filter((e) => !e.paid).length;
+    const downFlex = expense > 0 ? expense : (income > 0 ? 0 : 1);
+    const upFlex = income > 0 ? income : (expense > 0 ? 0 : 1);
+    const netLabel = net === 0
+        ? 'Net even'
+        : `Net ${net > 0 ? '+' : '-'}${formatMoney(Math.abs(net))}`;
+
+    el.hidden = false;
+    el.innerHTML = `
+        <div class="day-insight-pair">
+            <div class="day-insight is-down">
+                ${moneySpark(false)}
+                <div class="day-insight-copy">
+                    <span class="day-insight-label">Spent</span>
+                    <strong>${formatMoney(expense)}</strong>
+                </div>
+            </div>
+            <div class="day-insight is-up">
+                ${moneySpark(true)}
+                <div class="day-insight-copy">
+                    <span class="day-insight-label">Income</span>
+                    <strong>${formatMoney(income)}</strong>
+                </div>
+            </div>
+        </div>
+        <div class="day-insight-track" role="img"
+            aria-label="Spent ${formatMoney(expense)}, income ${formatMoney(income)}">
+            <span class="day-insight-fill is-down" style="flex:${downFlex}"></span>
+            <span class="day-insight-fill is-up" style="flex:${upFlex}"></span>
+        </div>
+        <p class="day-insight-meta">${netLabel} · ${list.length} ${list.length === 1 ? 'entry' : 'entries'}${pending ? ` · ${pending} pending` : ''}</p>
+    `;
 }
 
 let addFormReady = false;
@@ -116,7 +226,15 @@ function ensureAddForm(formContainer) {
     form.onsubmit = (e) => { e.preventDefault(); addEvent(); };
 
     form.appendChild(createKindPrompt('ek', getState().ledgerFace === 'income' ? 'income' : 'expense'));
-    form.appendChild(UI.createFieldGroup('et', 'Title', '', 'e.g. Coffee, Zoom, Gas'));
+    const titleField = UI.createFieldGroup('et', 'Title', '', 'e.g. Coffee, Zoom, Gas');
+    const titleInput = titleField.querySelector('input');
+    if (titleInput) {
+        titleInput.setAttribute('autocomplete', 'off');
+        titleInput.setAttribute('autocapitalize', 'sentences');
+        titleInput.setAttribute('enterkeyhint', 'next');
+        titleInput.setAttribute('spellcheck', 'false');
+    }
+    form.appendChild(titleField);
 
     const splitRow = document.createElement('div');
     splitRow.className = 'form-row-split';
@@ -126,6 +244,7 @@ function ensureAddForm(formContainer) {
     const costInput = costWrap.querySelector('input');
     costInput.classList.add('amount-input');
     costInput.setAttribute('inputmode', 'decimal');
+    costInput.setAttribute('enterkeyhint', 'done');
     const dollarSign = document.createElement('span');
     dollarSign.className = 'form-dollar';
     dollarSign.textContent = '$';
@@ -220,13 +339,12 @@ export function renderModal() {
     }
 
     refreshEventList();
+    renderDayInsights(selectedKey);
     ensureAddForm(document.getElementById('form-container'));
     syncAddFormKind();
 
     const focusTitle = !document.activeElement?.closest('#form-container');
-    if (focusTitle) {
-        setTimeout(() => document.getElementById('et')?.focus(), 60);
-    }
+    if (focusTitle) setTimeout(() => focusField('et'), 60);
 }
 
 function buildRow(e, i) {
@@ -349,10 +467,8 @@ function buildEditRow(e, i) {
     act.appendChild(UI.createButton('Update', () => saveEdit(i), { icon: 'check', accent: true }));
     wrap.appendChild(act);
 
-    setTimeout(() => {
-        const edEl = document.getElementById(`edit-title-${i}`);
-        if (edEl) edEl.focus();
-    }, 60); return wrap;
+    setTimeout(() => focusField(`edit-title-${i}`), 60);
+    return wrap;
 }
 
 function startEdit(i) {
@@ -583,6 +699,7 @@ function addEvent() {
     if (!ok) return;
 
     refreshEventList();
+    renderDayInsights(selectedKey);
     resetAddForm();
-    document.getElementById('et')?.focus();
+    focusField('et');
 }
