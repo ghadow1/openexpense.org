@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Weekly recurring
+
+Recurring expenses and income can now be **weekly**, as well as monthly, every 2 months, or quarterly. Weekly copies land on the same weekday for about a year.
+
 ## 2026-08-17 — OpenExpense folder storage
 
 Export defaults to an **OpenExpense** folder. Chromium can create and remember that folder (Documents). iPhone and Android share both files in one sheet so you can Save to Files → OpenExpense. Long-press Export to pick a different folder. Import accepts the ledger and key.json together. The portable key is still only in key.json — the remembered folder handle is not a decryption key.
@@ -28,7 +32,7 @@ The calendar still shows every day. Income and expenses both appear, with income
 
 ## 2026-08-17 — Recurring cadence
 
-Recurring payments can be **monthly**, **every 2 months**, or **quarterly**. Checking Recurring opens a How often? prompt. Copies still land on the same calendar day. Ledgers that never stored a cadence keep the old monthly behavior.
+Recurring payments can be **weekly**, **monthly**, **every 2 months**, or **quarterly**. Checking Recurring opens a How often? prompt. Weekly copies keep the weekday; the others keep the calendar day. Ledgers that never stored a cadence keep the old monthly behavior.
 
 ## 2026-08-17 — Design, receipts, and public docs
 

@@ -16,7 +16,8 @@ import {
     normalizeTitle,
     removeSeriesOccurrences,
     repeatLabel,
-    repeatMonths
+    nextOccurrenceKey,
+    seriesCopyCount
 } from '../core/series.js';
 
 export function openModal(key) {
@@ -360,29 +361,18 @@ function startEdit(i) {
 }
 
 function propagateRecurring(baseEvent, startKey) {
-    const [y, m, d] = startKey.split('-').map(Number);
     const { events } = getState();
     const nextEvents = { ...events };
-    const step = repeatMonths(baseEvent.repeat);
-    const copies = Math.max(1, Math.floor(12 / step));
     const cadence = normalizeRepeat(baseEvent.repeat);
+    const copies = seriesCopyCount(cadence);
 
     for (let i = 1; i <= copies; i++) {
-        let nextM = m + (step * i);
-        let nextY = y;
-        if (nextM > 12) {
-            nextY += Math.floor((nextM - 1) / 12);
-            nextM = ((nextM - 1) % 12) + 1;
-        }
-
-        const daysInNextMonth = new Date(nextY, nextM, 0).getDate();
-        const nextD = Math.min(d, daysInNextMonth);
-        const nextKey = `${nextY}-${Utils.pad(nextM)}-${Utils.pad(nextD)}`;
-
+        const nextKey = nextOccurrenceKey(startKey, cadence, i);
         if (!nextEvents[nextKey]) nextEvents[nextKey] = [];
         const exists = nextEvents[nextKey].some((e) => (
             e.title === baseEvent.title
             && e.recurring === true
+            && Utils.entryKind(e) === Utils.entryKind(baseEvent)
             && normalizeRepeat(e.repeat) === cadence
         ));
         if (!exists) nextEvents[nextKey].push({ ...baseEvent, paid: false, repeat: cadence });

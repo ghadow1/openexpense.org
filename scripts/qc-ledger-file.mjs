@@ -10,6 +10,7 @@ import {
     isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
+import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
 
 const sample = {
     name: 'Home ledger',
@@ -106,6 +107,16 @@ test('export filenames are a sibling pair', () => {
     const names = exportFilenames('Home ledger');
     assert.match(names.ledger, /^Home ledger-\d{4}-\d{2}-\d{2}\.json$/);
     assert.equal(names.key, names.ledger.replace(/\.json$/, '.key.json'));
+});
+
+test('weekly cadence copies the same weekday', () => {
+    assert.equal(normalizeRepeat('weekly'), 'weekly');
+    assert.equal(normalizeRepeat('week'), 'weekly');
+    assert.equal(repeatLabel('weekly'), 'Weekly');
+    assert.equal(seriesCopyCount('weekly'), 52);
+    assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 1), '2026-08-24');
+    assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 2), '2026-08-31');
+    assert.equal(sanitizeEntry({ title: 'Paycheck', kind: 'income', recurring: true, repeat: 'weekly' }).repeat, 'weekly');
 });
 
 test('readJsonFile rejects oversized and invalid files', async () => {
