@@ -21,9 +21,13 @@ import {
     normalizeTitle,
     rebuildSeriesFrom,
     removeSeriesOccurrences,
+    removeSeriesWeekday,
     repeatLabel,
     seedRecurringCopies,
-    updateSeriesOccurrences
+    updateSeriesOccurrences,
+    weekdayFromKey,
+    weekdayName,
+    countSeriesWeekday
 } from '../core/series.js';
 
 function prefersFieldAutofocus() {
@@ -551,6 +555,50 @@ function applyDelete(nextEvents) {
     renderModal();
 }
 
+function seriesDeletePlan(events, item, dateKey) {
+    const weekday = weekdayFromKey(dateKey);
+    const dayName = weekdayName(weekday);
+    const seriesCount = countSeriesOccurrences(events, item);
+    const weekdayCount = countSeriesWeekday(events, item, weekday);
+    const choices = [{ value: 'day', label: `Only this ${dayName}` }];
+
+    if (weekdayCount > 1 || (weekdayCount > 0 && weekdayCount < seriesCount)) {
+        choices.push({
+            value: 'weekday',
+            label: weekdayCount === seriesCount
+                ? `Every ${dayName} — all ${weekdayCount} copies`
+                : `Every ${dayName} (${weekdayCount} copies)`
+        });
+    }
+    if (seriesCount > weekdayCount) {
+        choices.push({
+            value: 'series',
+            label: `Every copy, all days (${seriesCount})`
+        });
+    }
+
+    const choice = choices.some((row) => row.value === 'weekday') && weekdayCount > 1
+        ? 'weekday'
+        : 'day';
+
+    return { choices, choice, weekday, dayName, seriesCount, weekdayCount };
+}
+
+function applySeriesDelete(events, item, index, dateKey, choice) {
+    if (choice === 'series') {
+        applyDelete(removeSeriesOccurrences(events, item));
+        return;
+    }
+    if (choice === 'weekday') {
+        const weekday = weekdayFromKey(dateKey);
+        const count = countSeriesWeekday(events, item, weekday);
+        applyDelete(removeSeriesWeekday(events, item, weekday));
+        if (count > 1) Toast.show(`Removed ${count} ${weekdayName(weekday)} copies of ${item.title}.`, 'success');
+        return;
+    }
+    if (index >= 0) removeOneOccurrence(index);
+}
+
 function removeOneOccurrence(index) {
     const { selectedKey, events } = getState();
     const nextEvents = { ...events };
@@ -561,33 +609,27 @@ function removeOneOccurrence(index) {
 }
 
 async function deleteSeries(item) {
-    const { events } = getState();
-    const count = countSeriesOccurrences(events, item);
+    const { events, selectedKey } = getState();
+    const plan = seriesDeletePlan(events, item, selectedKey);
     const result = await confirmDialog({
         title: 'Remove recurring payment?',
-        message: count > 1
-            ? `“${item.title}” is on ${count} days. Remove every copy of this re-accruing payment?`
+        message: plan.seriesCount > 1
+            ? `“${item.title}” is on ${plan.seriesCount} days. Choose this ${plan.dayName}, every ${plan.dayName}, or the whole series.`
             : `Remove “${item.title}” from this ledger?`,
-        confirmText: 'Remove series',
+        confirmText: 'Remove',
         cancelText: 'Cancel',
         danger: true,
-        checkbox: {
-            label: 'Remove all recurring copies of this payment',
-            checked: true
-        }
+        choices: plan.seriesCount > 1 ? plan.choices : null,
+        choice: plan.choice
     });
     if (!result?.confirmed) return;
-    if (result.checked) applyDelete(removeSeriesOccurrences(events, item));
-    else {
-        const { selectedKey } = getState();
-        const list = events[selectedKey] || [];
-        const index = list.findIndex((entry) => entry === item || (
-            entry.recurring
-            && normalizeTitle(entry.title) === normalizeTitle(item.title)
-            && normalizeRepeat(entry.repeat) === normalizeRepeat(item.repeat)
-        ));
-        if (index >= 0) removeOneOccurrence(index);
-    }
+    const list = events[selectedKey] || [];
+    const index = list.findIndex((entry) => entry === item || (
+        entry.recurring
+        && normalizeTitle(entry.title) === normalizeTitle(item.title)
+        && normalizeRepeat(entry.repeat) === normalizeRepeat(item.repeat)
+    ));
+    applySeriesDelete(events, item, index, selectedKey, result.choice || 'day');
 }
 
 async function deleteEv(i) {
@@ -596,25 +638,21 @@ async function deleteEv(i) {
     if (!item) return;
 
     if (item.recurring) {
-        const count = countSeriesOccurrences(events, item);
+        const plan = seriesDeletePlan(events, item, selectedKey);
         const result = await confirmDialog({
             title: 'Remove this payment?',
-            message: count > 1
-                ? `“${item.title}” is a re-accruing payment on ${count} days. Leave the box unchecked to remove only this day.`
+            message: plan.seriesCount > 1
+                ? `“${item.title}” is a re-accruing payment on ${plan.seriesCount} days. Removing every ${plan.dayName} does not touch other weekdays.`
                 : `Remove “${item.title}” from this day?`,
             confirmText: 'Remove',
             cancelText: 'Cancel',
             danger: true,
-            checkbox: {
-                label: 'Remove all recurring copies of this payment',
-                checked: false
-            }
+            choices: plan.seriesCount > 1 ? plan.choices : null,
+            choice: plan.choice
         });
         if (!result?.confirmed) return;
-        if (result.checked) {
-            applyDelete(removeSeriesOccurrences(events, item));
-            return;
-        }
+        applySeriesDelete(events, item, i, selectedKey, result.choice || 'day');
+        return;
     }
 
     const row = document.getElementById(`row-${i}`);

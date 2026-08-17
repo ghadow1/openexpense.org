@@ -66,6 +66,17 @@ export function nextOccurrenceKey(startKey, cadence, index) {
     return `${nextY}-${Utils.pad(nextM)}-${Utils.pad(nextD)}`;
 }
 
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function weekdayFromKey(key) {
+    const [y, m, d] = String(key).split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+export function weekdayName(weekday) {
+    return WEEKDAY_NAMES[Number(weekday)] || WEEKDAY_NAMES[0];
+}
+
 export function isSameSeries(a, b) {
     return !!a?.recurring && !!b?.recurring
         && Utils.entryKind(a) === Utils.entryKind(b)
@@ -179,6 +190,31 @@ export function countSeriesOccurrences(events, item) {
 export function removeSeriesOccurrences(events, item) {
     const next = { ...events };
     Object.keys(next).forEach((key) => {
+        const filtered = (next[key] || []).filter((entry) => !isSameSeries(item, entry));
+        if (filtered.length) next[key] = filtered;
+        else delete next[key];
+    });
+    return next;
+}
+
+export function countSeriesWeekday(events, item, weekday) {
+    const wd = Number(weekday);
+    let count = 0;
+    Object.keys(events || {}).forEach((key) => {
+        if (weekdayFromKey(key) !== wd) return;
+        (events[key] || []).forEach((entry) => {
+            if (isSameSeries(item, entry)) count += 1;
+        });
+    });
+    return count;
+}
+
+/** Remove series copies that fall on one weekday. Other weekdays stay. */
+export function removeSeriesWeekday(events, item, weekday) {
+    const wd = Number(weekday);
+    const next = { ...events };
+    Object.keys(next).forEach((key) => {
+        if (weekdayFromKey(key) !== wd) return;
         const filtered = (next[key] || []).filter((entry) => !isSameSeries(item, entry));
         if (filtered.length) next[key] = filtered;
         else delete next[key];

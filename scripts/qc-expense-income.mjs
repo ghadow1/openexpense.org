@@ -9,7 +9,8 @@ import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
 import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
-    removeSeriesOccurrences, groupExpenses,
+    removeSeriesOccurrences, removeSeriesWeekday, groupExpenses,
+    weekdayFromKey, weekdayName, countSeriesWeekday,
     addDaysToKey, daysBetweenKeys, updateSeriesOccurrences, rebuildSeriesFrom,
     countSeriesOccurrences
 } from '../src/core/series.js';
@@ -194,6 +195,31 @@ test('weekly copies stay on the weekday for both kinds', () => {
     assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 1), '2026-08-24');
     assert.equal(nextOccurrenceKey('2026-08-17', 'monthly', 1), '2026-09-17');
     assert.equal(nextOccurrenceKey('2026-01-31', 'monthly', 1), '2026-02-28');
+});
+
+test('weekday delete removes only that weekday of a series', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'Rent', price: 1450, recurring: true, repeat: 'monthly' })],
+        '2026-09-01': [entry({ title: 'Rent', price: 1450, recurring: true, repeat: 'monthly' })],
+        '2026-10-01': [entry({ title: 'Rent', price: 1450, recurring: true, repeat: 'monthly' })]
+    };
+    const item = events['2026-08-01'][0];
+    assert.equal(weekdayName(weekdayFromKey('2026-08-01')), 'Saturday');
+    assert.equal(countSeriesWeekday(events, item, weekdayFromKey('2026-08-01')), 1);
+    const next = removeSeriesWeekday(events, item, weekdayFromKey('2026-08-01'));
+    assert.equal(next['2026-08-01'], undefined);
+    assert.equal(next['2026-09-01'].some((e) => e.title === 'Rent'), true);
+    assert.equal(next['2026-10-01'].some((e) => e.title === 'Rent'), true);
+});
+
+test('weekday delete on a weekly series removes every matching weekday', () => {
+    const item = ledger.events['2026-08-17'][0];
+    assert.equal(weekdayName(weekdayFromKey('2026-08-17')), 'Monday');
+    const next = removeSeriesWeekday(ledger.events, item, weekdayFromKey('2026-08-17'));
+    assert.equal(next['2026-08-17']?.some((e) => e.title === 'Coffee'), false);
+    assert.equal(next['2026-08-24']?.some((e) => e.title === 'Coffee'), false);
+    assert.equal(next['2026-08-17'].some((e) => e.title === 'Paycheck'), true);
+    assert.equal(next['2026-08-17'].some((e) => e.title === 'Rent'), true);
 });
 
 test('removing a weekly expense series does not touch income', () => {

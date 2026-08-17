@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Delete this weekday or the whole series
+
+Removing a recurring entry now asks whether to delete only this day, every copy on that weekday (all Saturdays), or the entire series. “Every Saturday” no longer wipes Monday or Friday copies.
+
 ## 2.2.0 — 2026-08-17 — Navy social cards and SEO
 
 Search titles, Open Graph / Twitter cards, the PWA manifest, and the home-screen icon now use the live navy `#002244` and accent `#1170cf`. The preview image shows current funds, projected income, and cashflow on a white canvas — not the old purple lock art. The in-app theme is unchanged.

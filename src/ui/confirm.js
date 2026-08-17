@@ -1,8 +1,8 @@
 /**
  * OpenExpense — confirm dialog
  *
- * Promise-based modal. Returns { confirmed, checked } so callers can offer
- * an extra checkbox (for example, remove all recurring copies).
+ * Promise-based modal. Returns { confirmed, checked, choice } so callers can
+ * offer a checkbox or a radio scope (this day / this weekday / all time).
  */
 import { Utils } from '../core/utils.js';
 import { lockBodyScroll, unlockBodyScroll } from './scroll-lock.js';
@@ -38,7 +38,8 @@ function teardown(result) {
 
 function readResult(confirmed) {
     const box = backdropEl?.querySelector('#confirm-extra');
-    return { confirmed, checked: !!box?.checked };
+    const picked = backdropEl?.querySelector('input[name="confirm-scope"]:checked');
+    return { confirmed, checked: !!box?.checked, choice: picked?.value || null };
 }
 
 // Promise-based confirm dialog. Enter confirms, Escape / backdrop click cancels.
@@ -49,14 +50,27 @@ export function confirmDialog({
     confirmText = 'Yes',
     cancelText = 'Cancel',
     danger = false,
-    checkbox = null
+    checkbox = null,
+    choices = null,
+    choice = null
 } = {}) {
-    teardown({ confirmed: false, checked: false });
+    teardown({ confirmed: false, checked: false, choice: null });
 
     return new Promise((resolve) => {
         resolveActive = resolve;
 
-        const checkHtml = checkbox
+        const list = Array.isArray(choices) ? choices.filter((row) => row?.value) : [];
+        const selected = list.some((row) => row.value === choice) ? choice : list[0]?.value;
+        const choiceHtml = list.length
+            ? `<div class="confirm-choices" role="radiogroup" aria-label="What to remove">
+                ${list.map((row) => `<label class="confirm-choice">
+                    <input type="radio" name="confirm-scope" value="${Utils.escapeHtml(row.value)}"${row.value === selected ? ' checked' : ''}>
+                    <span>${Utils.escapeHtml(row.label || row.value)}</span>
+                  </label>`).join('')}
+              </div>`
+            : '';
+
+        const checkHtml = !list.length && checkbox
             ? `<label class="confirm-check custom-cb">
                 <input type="checkbox" id="confirm-extra"${checkbox.checked ? ' checked' : ''}>
                 <span>${Utils.escapeHtml(checkbox.label || '')}</span>
@@ -72,6 +86,7 @@ export function confirmDialog({
                 <h3 class="modal-title" id="confirm-title"></h3>
               </div>
               <p class="confirm-copy" id="confirm-desc"></p>
+              ${choiceHtml}
               ${checkHtml}
               <div class="confirm-actions">
                 <button type="button" class="btn-ghost" data-confirm="cancel"></button>

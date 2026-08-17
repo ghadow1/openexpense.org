@@ -33,7 +33,7 @@ Each module starts with a short header describing what it owns.
 | [`core/action-lock.js`](core/action-lock.js) | One in-flight lock for export / import / clear / scan |
 | [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
-| [`core/series.js`](core/series.js) | Recurring grouping, cadence, series-wide update / date shift, series delete |
+| [`core/series.js`](core/series.js) | Recurring grouping, cadence, series-wide update / date shift, weekday or series delete |
 | [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |

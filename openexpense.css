@@ -3295,6 +3295,40 @@ body:has(.backdrop.open) #global-tooltip {
     border: 1px solid var(--border);
 }
 
+.confirm-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 18px;
+}
+
+.confirm-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    line-height: 1.35;
+    cursor: pointer;
+}
+
+.confirm-choice:has(input:checked) {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--text-strong);
+}
+
+.confirm-choice input {
+    margin-top: 2px;
+    accent-color: var(--accent);
+}
+
 .confirm-actions {
     display: flex;
     justify-content: flex-end;
