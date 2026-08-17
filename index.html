@@ -224,24 +224,8 @@
 
     <main class="app-view" id="view-app">
       <div class="dash">
-        <aside id="dash-rail" class="dash-rail" aria-label="Quick tools">
-          <div class="ledger-name-bar">
-            <label class="ledger-name-label" for="ledger-name-input">Ledger name</label>
-            <input id="ledger-name-input" class="ledger-name-input text-input" type="text"
-              placeholder="Name your ledger (e.g. Personal expenses)" spellcheck="false" autocomplete="off">
-            <div class="ledger-status-row">
-              <span id="privacy-status" class="status-chip privacy-chip" hidden>
-                <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
-                <span class="privacy-chip-text">You own your data</span>
-              </span>
-              <span id="file-status" class="status-chip is-empty" hidden>
-                <i class="status-dot" aria-hidden="true"></i>
-                <span class="file-status-text">Not loaded</span>
-              </span>
-            </div>
-            <p class="ledger-trust">Open-source · encrypted on this device · key.json stays with you</p>
-          </div>
-        </aside>
+        <input id="ledger-name-input" class="ledger-name-input text-input" type="text" hidden
+          spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="dash-center">
           <div class="dash-head">
             <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
@@ -249,19 +233,31 @@
               <div class="skel skel-chip" aria-hidden="true"></div>
               <div class="skel skel-chip" aria-hidden="true"></div>
             </div>
-            <div class="dash-actions" role="toolbar" aria-label="Quick actions">
-              <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" aria-label="Add entry" title="Add entry">
-                <i class="ti ti-plus" aria-hidden="true"></i>
-                <span>Add</span>
-              </button>
-              <button type="button" class="dash-act" data-action="scan-receipt">
-                <i class="ti ti-camera" aria-hidden="true"></i>
-                <span>Scan</span>
-              </button>
-              <button type="button" class="dash-act" data-action="export-ledger">
-                <i class="ti ti-download" aria-hidden="true"></i>
-                <span>Export</span>
-              </button>
+            <div class="dash-toolbar">
+              <div class="dash-actions" role="toolbar" aria-label="Quick actions">
+                <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" aria-label="Add entry" title="Add entry">
+                  <i class="ti ti-plus" aria-hidden="true"></i>
+                  <span>Add</span>
+                </button>
+                <button type="button" class="dash-act" data-action="scan-receipt">
+                  <i class="ti ti-camera" aria-hidden="true"></i>
+                  <span>Scan</span>
+                </button>
+                <button type="button" class="dash-act" data-action="export-ledger">
+                  <i class="ti ti-download" aria-hidden="true"></i>
+                  <span>Export</span>
+                </button>
+              </div>
+              <div class="dash-status" role="status" aria-label="Ledger status">
+                <span id="privacy-status" class="status-chip privacy-chip" hidden>
+                  <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
+                  <span class="privacy-chip-text">You own your data</span>
+                </span>
+                <span id="file-status" class="status-chip is-empty" hidden>
+                  <i class="status-dot" aria-hidden="true"></i>
+                  <span class="file-status-text">Not loaded</span>
+                </span>
+              </div>
             </div>
           </div>
           <div class="cal-main" id="cal-col">
@@ -397,13 +393,13 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
-                  <h3 class="docs-section-title">Ledger name &amp; status</h3>
+                  <h3 class="docs-section-title">Status badges</h3>
                   <p>
-                    Name your ledger at the top of the Expenses view (for example, <em>Personal expenses</em>).
-                    The name appears in exports and PDF reports. Under the name, two pills show status:
-                    <strong>You own your data</strong> (green when encryption and autosave are on; amber if
-                    autosave is paused or encryption is unavailable) and <strong>File loaded</strong> /
-                    <strong>Not loaded</strong> (whether a named ledger or any expenses are present).
+                    On the same row as Add, Scan, and Export — snapped to their right, under Monthly avg —
+                    two pills show status: <strong>You own your data</strong> (green when encryption and
+                    autosave are on; amber if autosave is paused or encryption is unavailable) and
+                    <strong>File loaded</strong> / <strong>Not loaded</strong> (whether a named ledger or
+                    any expenses are present).
                   </p>
                 </section>
 
@@ -598,6 +594,15 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Status on the action row</h3>
+                  <p>
+                    The ledger name block is gone. <strong>You own your data</strong> and
+                    <strong>File loaded</strong> sit on the same row as Add, Scan, and Export,
+                    snapped to the right under Monthly avg.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Sticky app chrome</h3>
                   <p>
                     The navy header stays on screen while you scroll. Expenses and Privacy &amp; Help live in
@@ -625,8 +630,8 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Dashboard layout</h3>
                   <p>
-                    The expense screen is a three-column wallet on a wide desktop: quick tools on the left,
-                    the calendar in the center, and the monthly card on the right. Snapshot chips show year
+                    The expense screen is a two-column wallet on a wide desktop: the calendar in the center
+                    and the monthly card on the right. Snapshot chips show year
                     balance, this month’s cashflow, and the monthly average. Ledger files and encryption are
                     unchanged.
                   </p>

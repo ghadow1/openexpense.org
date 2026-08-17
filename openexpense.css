@@ -308,7 +308,6 @@ textarea:focus:not(:focus-visible) {
 }
 
 .surface-card,
-.ledger-name-bar,
 .toolbar,
 .sidebar,
 .docs-container,
@@ -877,50 +876,6 @@ textarea,
     }
 }
 
-.ledger-name-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    width: 100%;
-    border-radius: var(--radius-lg);
-    padding: 14px 16px;
-}
-
-.ledger-name-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text2);
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.ledger-name-input {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-    font-size: 16px;
-    min-height: 44px;
-    line-height: 1.25;
-}
-
-.ledger-status-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.ledger-trust {
-    margin: 2px 0 0;
-    font-size: var(--fs-2xs);
-    color: var(--text2);
-    letter-spacing: 0.01em;
-    line-height: 1.4;
-}
-
 .status-chip,
 .privacy-chip {
     display: inline-flex;
@@ -975,18 +930,9 @@ textarea,
 
 .dash {
     display: grid;
-    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
     gap: clamp(16px, 2vw, 24px);
     align-items: start;
-}
-
-.dash-rail {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: sticky;
-    top: 1.25rem;
-    min-width: 0;
 }
 
 .dash-center {
@@ -1003,17 +949,34 @@ textarea,
     min-width: 0;
 }
 
-.dash-actions {
+.dash-toolbar {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
     gap: 10px;
     min-width: 0;
+}
+
+.dash-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    min-width: 0;
     padding: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+}
+
+.dash-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    min-width: 0;
 }
 
 .dash-actions::-webkit-scrollbar {
@@ -4302,12 +4265,7 @@ html.oe-scroll-lock body {
         gap: 16px;
     }
 
-    .dash-rail {
-        grid-column: 1 / -1;
-        position: static;
-    }
-
-    .dash-actions {
+    .dash-toolbar {
         flex-wrap: wrap;
     }
 
@@ -4456,10 +4414,18 @@ html.oe-scroll-lock body {
         font-size: 0.95rem;
     }
 
+    .dash-toolbar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
     .dash-actions {
         position: static;
         padding: 0;
-        overflow-x: auto;
+    }
+
+    .dash-status {
+        margin-left: auto;
     }
 
     .dash-act {
@@ -4481,15 +4447,6 @@ html.oe-scroll-lock body {
         min-width: var(--control);
         height: var(--control);
         padding: 0;
-    }
-
-    .ledger-name-bar {
-        gap: 8px;
-        padding: 12px;
-    }
-
-    .ledger-status-row {
-        gap: 6px;
     }
 
     .expense-group-head {
@@ -4842,7 +4799,7 @@ html.oe-scroll-lock body {
     .btn-icon-edit,
     .btn-icon-delete,
     .sidebar-print-btn,
-    .ledger-name-bar,
+    .dash-toolbar,
     .dash-actions,
     .dash-chips,
     .skel,

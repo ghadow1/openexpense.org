@@ -97,7 +97,7 @@ function updateFileStatus() {
     if (text) text.textContent = loaded ? 'File loaded' : 'Not loaded';
     chip.title = loaded
         ? 'A ledger is loaded on this device — from autosave or an imported backup.'
-        : 'No ledger file is loaded yet. Import a backup or start typing a name to begin.';
+        : 'No ledger file is loaded yet. Import a backup or add an entry to begin.';
 }
 
 function syncLedgerNameInput() {
