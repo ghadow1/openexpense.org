@@ -231,6 +231,16 @@ export function formatMoney(value) {
     return Utils.formatMoney(value);
 }
 
+/** Snapshot chips: keep large nets readable on tablet and phone. */
+export function formatChipMoney(value) {
+    const n = Number(value) || 0;
+    const abs = Math.abs(n);
+    const sign = n > 0 ? '+' : n < 0 ? '-' : '';
+    if (abs >= 10000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
+    if (abs >= 1000) return `${sign}$${abs.toFixed(0)}`;
+    return `${sign}${Utils.formatMoney(abs)}`;
+}
+
 /** Derived month/year net for the dashboard chips. Does not persist. */
 export function computeNetSnapshot(events, currentDate) {
     const spend = computeMonthlySummary(events, currentDate, 'expense');

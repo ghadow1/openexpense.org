@@ -5,18 +5,20 @@
  * Does not persist or change ledger data.
  */
 import { getState } from '../core/store.js';
-import { computeNetSnapshot, formatMoney } from '../core/summary.js';
+import { computeNetSnapshot, formatMoney, formatChipMoney } from '../core/summary.js';
 
 function chip({ label, value, tone, hint }) {
     const article = document.createElement('article');
     article.className = `dash-chip${tone ? ` is-${tone}` : ''}`;
     article.setAttribute('role', 'listitem');
 
-    const shown = tone === 'flat'
+    const shown = formatChipMoney(value);
+    const exact = tone === 'flat'
         ? formatMoney(value)
         : `${tone === 'up' ? '+' : tone === 'down' ? '-' : ''}${formatMoney(Math.abs(value))}`;
 
-    article.setAttribute('aria-label', `${label} ${shown}${hint ? `, ${hint}` : ''}`);
+    article.setAttribute('aria-label', `${label} ${exact}${hint ? `, ${hint}` : ''}`);
+    article.title = exact;
 
     const kicker = document.createElement('span');
     kicker.className = 'dash-chip-label';

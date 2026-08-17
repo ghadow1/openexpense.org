@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Tablet and iPad sizing
+
+iPad and tablet widths stack the monthly card under the calendar so chips, actions, and status badges stay on one row. Snapshot amounts compact when they would clip. Calendar cells keep the net up/down mark and drop cramped extra pills.
+
 ## 2026-08-17 — Dashboard layout fix
 
 Desktop no longer keeps an empty left column from the old three-column grid. Mini and desktop both use calendar + monthly card, with Add / Scan / Export and the status badges on one toolbar row that wraps cleanly.

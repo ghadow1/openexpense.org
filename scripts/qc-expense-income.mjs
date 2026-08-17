@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge } from '../src/core/summary.js';
+import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, groupExpenses
@@ -64,6 +64,13 @@ test('monthly summary splits expense and income paths', () => {
     assert.equal(income.total, 800 + 800);
     assert.ok(spend.allItems.every((item) => item.kind === 'expense'));
     assert.ok(income.allItems.every((item) => item.kind === 'income'));
+});
+
+test('snapshot chips compact large nets', () => {
+    assert.equal(formatChipMoney(18980.38), '+$19.0k');
+    assert.equal(formatChipMoney(-3364.42), '-$3364');
+    assert.equal(formatChipMoney(12.5), '+$12.50');
+    assert.equal(formatChipMoney(0), '$0.00');
 });
 
 test('dashboard snapshot nets income against spend', () => {

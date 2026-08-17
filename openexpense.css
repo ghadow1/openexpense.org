@@ -881,7 +881,8 @@ textarea,
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
     height: 28px;
     padding: 0 10px;
     border-radius: 0;
@@ -892,6 +893,7 @@ textarea,
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    overflow: hidden;
     cursor: default;
     user-select: none;
     transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
@@ -900,6 +902,14 @@ textarea,
 .privacy-chip .privacy-chip-icon {
     font-size: 14px;
     color: inherit;
+    flex-shrink: 0;
+}
+
+.privacy-chip-text,
+.file-status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .privacy-chip.is-warn,
@@ -966,11 +976,10 @@ textarea,
 }
 
 .dash-toolbar {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    column-gap: 12px;
     min-width: 0;
     width: 100%;
 }
@@ -980,8 +989,7 @@ textarea,
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 10px;
-    flex: 0 1 auto;
+    gap: 8px;
     min-width: 0;
     padding: 0;
 }
@@ -992,9 +1000,7 @@ textarea,
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    margin-left: auto;
     min-width: 0;
-    flex: 1 1 auto;
 }
 
 .dash-actions::-webkit-scrollbar {
@@ -1030,7 +1036,7 @@ textarea,
 }
 
 .dash-act i {
-    font-size: 18px;
+    font-size: clamp(15px, 2.1vw, 18px);
     line-height: 1;
 }
 
@@ -1216,11 +1222,16 @@ html.is-action-busy [data-lockable] {
 
 @media (max-width: 1200px) {
     .dash {
-        grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
     .sidebar {
+        position: static;
+        top: auto;
+        width: 100%;
+        max-width: 720px;
+        margin-inline: 0;
         padding: 18px;
     }
 }
@@ -1417,9 +1428,10 @@ html.is-action-busy [data-lockable] {
 }
 
 .month-title {
-    font-size: var(--fs-md);
+    font-size: clamp(0.8rem, 2.2vw, var(--fs-md));
     font-weight: 600;
-    min-width: 150px;
+    min-width: 0;
+    flex: 1 1 8rem;
     text-align: center;
     color: var(--text-strong);
     letter-spacing: var(--tracking-tight);
@@ -1431,6 +1443,11 @@ html.is-action-busy [data-lockable] {
     min-width: var(--control);
     height: var(--control);
     padding: 0;
+}
+
+.toolbar .ui-btn i,
+.toolbar-actions .ui-btn i {
+    font-size: clamp(16px, 2vw, 18px);
 }
 
 .toolbar-actions .ui-btn span {
@@ -4300,22 +4317,23 @@ html.oe-scroll-lock body {
    ========================================================================== */
 @media (max-width: 1024px) {
     .dash {
-        grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
-    .dash-toolbar {
-        flex-wrap: wrap;
-        row-gap: 8px;
-    }
-
-    .dash-status {
-        flex-wrap: wrap;
+    .dash-act {
+        padding: 0 12px;
     }
 
     .sidebar {
         position: static;
         top: auto;
+        max-width: none;
+    }
+
+    .cal-shell[data-density="tablet"] .cal-day-total,
+    .cal-shell[data-density="narrow"] .cal-day-total {
+        font-size: 11px;
     }
 
     .cal-grid {
@@ -4474,24 +4492,18 @@ html.oe-scroll-lock body {
     }
 
     .dash-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        row-gap: 8px;
+        grid-template-columns: max-content minmax(0, 1fr);
         column-gap: 8px;
     }
 
     .dash-actions {
         position: static;
         padding: 0;
-        flex: 0 1 auto;
+        gap: 6px;
     }
 
     .dash-status {
-        margin-left: auto;
-        flex: 1 1 auto;
         justify-content: flex-end;
-        min-width: min(100%, 168px);
     }
 
     .dash-act {
@@ -4839,6 +4851,17 @@ html.oe-scroll-lock body {
 
     .close-modal:hover {
         transform: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .dash-toolbar {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
+    }
+
+    .dash-status {
+        justify-content: flex-end;
     }
 }
 
