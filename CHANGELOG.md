@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Daily totals on the calendar
+
+Days with items show that day’s total in the top-right: red with a down spark for spending, green with an up spark for income.
+
 ## 2026-08-17 — Weekly recurring
 
 Recurring expenses and income can now be **weekly**, as well as monthly, every 2 months, or quarterly. Weekly copies land on the same weekday for about a year.
