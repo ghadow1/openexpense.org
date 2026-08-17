@@ -1,7 +1,8 @@
 /**
  * OpenExpense — month calendar
  *
- * Renders the day grid, collapses same-title pills, and opens the day editor.
+ * Renders the day grid, collapses same-title pills, opens the day editor,
+ * and lets a chip drag onto another day to move those copies.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -14,11 +15,82 @@ import { Receipt } from './receipt.js';
 import { openModal } from './modal.js';
 import { paintExportButtons } from './export-buttons.js';
 import { peekSavedFolder } from '../core/folder.js';
+import { moveIndexes } from '../core/day-entries.js';
+import { dismissUndo } from './undo-delete.js';
+import { Toast } from '../ui/toast.js';
+import { clearDropMarks, dayCellFromPoint, makeGhost, placeGhost } from '../ui/pointer-drag.js';
 
 let shellEl = null;
 let gridHeadEl = null;
 let gridEl = null;
 let lastMonthKey = '';
+let skipPillOpen = false;
+
+function bindCalendarEntryDrag(grid) {
+    if (!grid || grid.dataset.entryDrag === '1') return;
+    grid.dataset.entryDrag = '1';
+
+    grid.addEventListener('pointerdown', (event) => {
+        const pill = event.target.closest('.pill[data-date]');
+        if (!pill || !grid.contains(pill)) return;
+        if (event.button != null && event.button !== 0) return;
+
+        const fromKey = pill.dataset.date;
+        const indexes = String(pill.dataset.indexes || '')
+            .split(',')
+            .map(Number)
+            .filter((n) => Number.isFinite(n));
+        if (!fromKey || !indexes.length) return;
+
+        const originX = event.clientX;
+        const originY = event.clientY;
+        let dragging = false;
+        let destKey = '';
+        let ghost = null;
+
+        const move = (ev) => {
+            const dx = ev.clientX - originX;
+            const dy = ev.clientY - originY;
+            if (!dragging && Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) {
+                dragging = true;
+                document.body.classList.add('is-entry-dragging');
+                pill.classList.add('is-dragging');
+                ghost = makeGhost(pill.textContent.replace(/\s+/g, ' ').trim() || 'Entry');
+                try { pill.setPointerCapture(event.pointerId); } catch (_) { /* ignore */ }
+            }
+            if (!dragging) return;
+            placeGhost(ghost, ev.clientX, ev.clientY);
+            clearDropMarks(grid, '.cal-day');
+            const cell = dayCellFromPoint(ev.clientX, ev.clientY);
+            destKey = cell?.dataset.date || '';
+            if (destKey && destKey !== fromKey) cell.classList.add('is-drop-target');
+        };
+
+        const end = () => {
+            window.removeEventListener('pointermove', move, true);
+            window.removeEventListener('pointerup', end, true);
+            window.removeEventListener('pointercancel', end, true);
+            ghost?.remove();
+            document.body.classList.remove('is-entry-dragging');
+            clearDropMarks(grid, '.cal-day');
+            pill.classList.remove('is-dragging');
+            if (!dragging) return;
+            skipPillOpen = true;
+            if (!destKey || destKey === fromKey) return;
+            const { events } = getState();
+            const next = moveIndexes(events, fromKey, indexes, destKey);
+            if (next === events) return;
+            dismissUndo();
+            patch({ events: next });
+            const label = pill.querySelector('.title')?.textContent?.trim() || 'Entry';
+            Toast.show(`Moved ${label} to ${destKey}.`, 'success');
+        };
+
+        window.addEventListener('pointermove', move, true);
+        window.addEventListener('pointerup', end, true);
+        window.addEventListener('pointercancel', end, true);
+    });
+}
 
 function changeMonth(delta) {
     const { currentDate } = getState();
@@ -82,6 +154,7 @@ function ensureShell(calCol) {
 
     gridEl = document.createElement('div');
     gridEl.className = 'cal-grid';
+    bindCalendarEntryDrag(gridEl);
     shellEl.appendChild(gridEl);
 
     calCol.appendChild(shellEl);
@@ -185,13 +258,22 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
         const rec = group.recurring ? '<i class="ti ti-refresh pill-rec" aria-hidden="true"></i>' : '';
         const tips = [income ? 'Income' : 'Expense'];
         if (group.recurring) tips.push(repeatLabel(group.repeat));
-        pill.title = tips.join(' · ');
+        pill.title = `${tips.join(' · ')} · Drag to another day to move`;
+        pill.dataset.date = dateKey;
+        pill.dataset.indexes = group.items.map((row) => row.i).join(',');
         if (compact) {
             pill.innerHTML = `${amt}<span class="title">${rec}${title}${count}</span>`;
         } else {
             pill.innerHTML = `<span class="title">${rec}${title}${count}</span>${amt}`;
         }
-        pill.onclick = (ev) => { ev.stopPropagation(); openModal(dateKey); };
+        pill.onclick = (ev) => {
+            ev.stopPropagation();
+            if (skipPillOpen) {
+                skipPillOpen = false;
+                return;
+            }
+            openModal(dateKey);
+        };
         body.appendChild(pill);
     });
 
@@ -228,10 +310,12 @@ function renderGrid(y, m, events) {
         cell.removeAttribute('role');
         cell.removeAttribute('tabindex');
         cell.removeAttribute('aria-label');
+        delete cell.dataset.date;
 
         if (i >= firstDay) {
             const d = i - firstDay + 1;
             const dateKey = Utils.dateKey(y, m, d);
+            cell.dataset.date = dateKey;
             const isToday = y === today.getFullYear() && m === today.getMonth() && d === today.getDate();
 
             cell.setAttribute('role', 'button');

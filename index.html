@@ -460,7 +460,8 @@
                   <p>
                     The main view is a month calendar. Use the arrows to change months, or tap the calendar
                     icon to jump back to the current month. Days with items show that day’s net (up or down); tap a day
-                    to open its sheet. On a phone that sheet snaps to the bottom and shows spent vs income before the list.
+                    to open its sheet. Drag a chip onto another day to move those entries. On a phone that sheet snaps
+                    to the bottom and shows spent vs income before the list.
                   </p>
                   <p>Toolbar icons on the calendar (names are on hover):</p>
                   <ul class="docs-list">
@@ -486,13 +487,21 @@
                     <li><strong>Notes</strong> — optional context (line items, invoice numbers, etc.).</li>
                   </ul>
                   <p>
-                    Same-day charges with the same title are grouped together. Recurring payments show a series
-                    badge. Editing one copy updates the title, date, amount, and cadence on every copy; paid
-                    stays on each day. When you delete a re-accruing payment, choose
-                    <strong>only this day</strong>, <strong>every Saturday</strong> (or whichever weekday
-                    you opened), or <strong>every copy, all days</strong>. “Every Saturday” does not
-                    remove Monday or Friday copies. After any removal, <strong>Undo</strong> appears
-                    next to File loaded and on the day sheet for about ten seconds.
+                    Entries stay in the order you put them. Drag the handle to reorder, or focus it and
+                    use the arrow keys. On the month grid, drag a chip onto another day to move that
+                    copy — other days in a recurring series stay put. Recent titles show as chips under
+                    the add form and fill the last amount. Each row can mark paid, duplicate as a
+                    one-off on this day, edit, or delete. Previous / next arrows jump days without
+                    closing the sheet.
+                  </p>
+                  <p>
+                    Recurring payments show a series badge. Editing one copy updates the title, date,
+                    amount, and cadence on every copy; paid stays on each day. When you delete a
+                    re-accruing payment, choose <strong>only this day</strong>,
+                    <strong>every Saturday</strong> (or whichever weekday you opened), or
+                    <strong>every copy, all days</strong>. “Every Saturday” does not remove Monday or
+                    Friday copies. After any removal, <strong>Undo</strong> appears next to File loaded
+                    and on the day sheet for about ten seconds.
                   </p>
                 </section>
 
@@ -651,6 +660,15 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Smart entries and drag-reorder</h3>
+                  <p>
+                    The day list is now in your order. Drag to reorder, drag a calendar chip to another
+                    day to move that copy, tap recent-title chips to prefill the last amount, and use
+                    paid / duplicate on the row. Previous and next day arrows sit on the sheet title.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Undo after delete</h3>
                   <p>
@@ -942,7 +960,15 @@
       <div class="modal-header">
         <div class="modal-header-copy">
           <p class="modal-kicker">OpenExpense.org</p>
-          <h3 class="modal-title" id="modal-date-title">Date</h3>
+          <div class="modal-day-nav">
+            <button type="button" class="modal-day-shift" data-action="day-prev" aria-label="Previous day" title="Previous day">
+              <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </button>
+            <h3 class="modal-title" id="modal-date-title">Date</h3>
+            <button type="button" class="modal-day-shift" data-action="day-next" aria-label="Next day" title="Next day">
+              <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
         <button class="close-modal" type="button" data-action="close-modal" aria-label="Close dialog">
           <i class="ti ti-x"></i>

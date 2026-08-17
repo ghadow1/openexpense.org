@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Smart day entries, drag-reorder, and move
+
+The day sheet now lists entries in the order you stored them. Drag the handle (or use the arrow keys on it) to reorder. On the month grid, drag a chip onto another day to move that copy — a recurring series stays put except for the day you moved. Recent titles appear as chips and fill the last amount. Each row can mark paid, duplicate as a one-off, edit, or delete. Previous / next day arrows sit on the sheet title. Delete still offers Undo next to File loaded.
+
 ## 2026-08-17 — Undo a delete for a few seconds
 
 After you remove an entry, a weekday of copies, a whole series, or clear the calendar, **Undo** appears next to **File loaded** for about ten seconds. It also shows on the open day sheet. One level only; the snapshot stays in memory and is never written to this browser.

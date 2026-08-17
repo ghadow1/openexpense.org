@@ -34,6 +34,7 @@ Each module starts with a short header describing what it owns.
 | [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, series-wide update / date shift, weekday or series delete |
+| [`core/day-entries.js`](core/day-entries.js) | Day-list reorder, move, duplicate, paid toggle, title memory |
 | [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |
@@ -61,6 +62,7 @@ Each module starts with a short header describing what it owns.
 | [`ui/toast.js`](ui/toast.js) | Status toasts |
 | [`ui/confirm.js`](ui/confirm.js) | Confirm dialog + optional checkbox |
 | [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |
+| [`ui/pointer-drag.js`](ui/pointer-drag.js) | Thresholded pointer drag for day rows and calendar chips |
 
 ## Public exports
 

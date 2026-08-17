@@ -3078,6 +3078,134 @@ body:has(.backdrop.open) #global-tooltip {
     margin-right: -8px;
 }
 
+.event-row.is-dragging {
+    opacity: 0.38;
+}
+
+.event-row.is-drop-before {
+    border-top: 2px solid var(--accent);
+}
+
+.drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    margin-top: 2px;
+    padding: 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: grab;
+    touch-action: none;
+    flex-shrink: 0;
+}
+
+.drag-handle:focus-visible,
+.drag-handle:hover {
+    color: var(--text-strong);
+    border-color: var(--border-strong);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-ghost {
+    position: fixed;
+    z-index: 10050;
+    pointer-events: none;
+    max-width: 240px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-strong);
+    font-size: 13px;
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.is-entry-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+body.is-entry-dragging .cal-day {
+    cursor: copy;
+}
+
+.cal-day.is-drop-target {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.pill.is-dragging {
+    opacity: 0.4;
+}
+
+.modal-day-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.modal-day-shift {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.modal-day-shift:hover,
+.modal-day-shift:focus-visible {
+    border-color: var(--border-strong);
+    color: var(--text-strong);
+}
+
+.smart-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.smart-chips[hidden] {
+    display: none !important;
+}
+
+.smart-chip {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.smart-chip:hover,
+.smart-chip:focus-visible {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+    color: var(--accent);
+}
+
 .event-info {
     flex: 1;
     min-width: 0;
@@ -3160,10 +3288,23 @@ body:has(.backdrop.open) #global-tooltip {
 
 .row-actions {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 6px;
 }
 
+.event-row .btn-icon-edit,
+.event-row .btn-icon-copy,
+.event-row .btn-icon-paid,
+.event-row .btn-icon-delete {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+}
+
 .btn-icon-edit,
+.btn-icon-copy,
+.btn-icon-paid,
 .btn-icon-delete {
     background: transparent;
     width: var(--control);
@@ -3184,10 +3325,24 @@ body:has(.backdrop.open) #global-tooltip {
     color: var(--text2);
 }
 
-.btn-icon-edit:hover {
+.btn-icon-edit:hover,
+.btn-icon-copy:hover,
+.btn-icon-paid:hover {
     background: var(--surface2);
     color: var(--text-strong);
     border-color: var(--text);
+}
+
+.btn-icon-copy,
+.btn-icon-paid {
+    border: 1px solid var(--border-strong);
+    color: var(--text2);
+}
+
+.btn-icon-paid.is-on {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 36%, var(--border));
+    background: color-mix(in srgb, var(--success) 8%, var(--surface));
 }
 
 .btn-icon-delete {
@@ -5045,7 +5200,12 @@ html.oe-scroll-lock body {
     .toolbar-actions,
     .row-actions,
     .btn-icon-edit,
+    .btn-icon-copy,
+    .btn-icon-paid,
     .btn-icon-delete,
+    .drag-handle,
+    .drag-ghost,
+    .smart-chips,
     .sidebar-print-btn,
     .dash-toolbar,
     .dash-actions,

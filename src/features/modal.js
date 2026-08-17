@@ -1,9 +1,10 @@
 /**
  * OpenExpense — day editor
  *
- * Opens `#modal` for a YYYY-MM-DD key. Groups same-title expenses and can
- * update or delete a whole recurring series. Receipt scan writes through
- * saveExpense().
+ * Opens `#modal` for a YYYY-MM-DD key. Lists that day’s entries in stored
+ * order, with drag-reorder, paid toggle, and duplicate. Recurring edit or
+ * delete can still update or remove a whole series. Receipt scan writes
+ * through saveExpense().
  */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
@@ -16,9 +17,7 @@ import { isValidDateKey } from '../core/ledger-file.js';
 import {
     REPEAT,
     countSeriesOccurrences,
-    groupExpenses,
     normalizeRepeat,
-    normalizeTitle,
     rebuildSeriesFrom,
     removeSeriesOccurrences,
     removeSeriesWeekday,
@@ -27,10 +26,19 @@ import {
     updateSeriesOccurrences,
     weekdayFromKey,
     weekdayName,
-    countSeriesWeekday
+    countSeriesWeekday,
+    addDaysToKey
 } from '../core/series.js';
 import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 import { countEntries } from '../core/ledger-file.js';
+import {
+    duplicateAt,
+    matchRememberedTitle,
+    reorderDay,
+    suggestTitles,
+    togglePaidAt
+} from '../core/day-entries.js';
+import { clearDropMarks, makeGhost, placeGhost } from '../ui/pointer-drag.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -113,10 +121,30 @@ export function initModalBindings() {
     const modal = document.getElementById('modal');
     if (modal && !modal.dataset.bound) {
         modal.addEventListener('click', bgClose);
-        modal.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+        modal.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (getState().editingIndex != null) {
+                e.preventDefault();
+                patch({ editingIndex: null });
+                renderModal();
+                return;
+            }
+            closeModal();
+        });
         bindSheetGestures(modal);
         modal.dataset.bound = '1';
     }
+}
+
+export function shiftSelectedDay(delta) {
+    const { selectedKey } = getState();
+    if (!selectedKey) return;
+    openModal(addDaysToKey(selectedKey, Number(delta) || 0));
+}
+
+function applyLedgerEvents(nextEvents, extra = {}) {
+    dismissUndo();
+    patch({ events: nextEvents, ...extra });
 }
 
 function moneySpark(up) {
@@ -175,51 +203,84 @@ function refreshEventList() {
     const eventsContainer = document.getElementById('events-container');
     if (!eventsContainer) return;
 
+    eventsContainer.classList.add('day-entry-list');
     eventsContainer.replaceChildren();
     const list = events[selectedKey] || [];
     if (!list.length) {
         const p = document.createElement('p');
         p.className = 'modal-empty';
-        p.textContent = 'No expenses logged on this date.';
+        p.textContent = 'Nothing on this day yet. Add an entry, or drag a calendar chip onto this date.';
         eventsContainer.appendChild(p);
+        bindDayListDrag(eventsContainer);
         return;
     }
 
-    groupExpenses(list).forEach((group) => {
-        const showHead = group.count > 1 || group.recurring;
-        if (!showHead) {
-            group.items.forEach(({ e, i }) => eventsContainer.appendChild(buildRow(e, i)));
-            return;
-        }
+    list.forEach((entry, index) => {
+        eventsContainer.appendChild(buildRow(entry, index));
+    });
+    bindDayListDrag(eventsContainer);
+}
 
-        const wrap = document.createElement('section');
-        wrap.className = `expense-group${group.recurring ? ' is-recurring' : ''}${group.kind === 'income' ? ' is-income' : ''}`;
+function bindDayListDrag(container) {
+    if (!container || container.dataset.sortBound === '1') return;
+    container.dataset.sortBound = '1';
 
-        const head = document.createElement('div');
-        head.className = 'expense-group-head';
-        const meta = [
-            group.kind === 'income' ? 'Income' : null,
-            group.recurring ? repeatLabel(group.repeat) : (group.count > 1 ? `${group.count} items` : null),
-            group.total > 0 ? Utils.formatMoney(group.total) : null
-        ].filter(Boolean).join(' · ');
-        head.innerHTML = `
-            <div class="expense-group-copy">
-                <span class="expense-group-title">${Utils.escapeHtml(group.title)}</span>
-                <span class="expense-group-meta">${group.recurring ? '<i class="ti ti-refresh" aria-hidden="true"></i>' : ''}${meta}</span>
-            </div>`;
+    container.addEventListener('pointerdown', (event) => {
+        const handle = event.target.closest('.drag-handle');
+        if (!handle || !container.contains(handle)) return;
+        const row = handle.closest('.event-row[data-index]');
+        if (!row || (event.button != null && event.button !== 0)) return;
+        if (getState().editingIndex != null) return;
+        event.preventDefault();
 
-        if (group.recurring) {
-            const seriesBtn = document.createElement('button');
-            seriesBtn.type = 'button';
-            seriesBtn.className = 'expense-group-remove';
-            seriesBtn.textContent = 'Remove series';
-            seriesBtn.onclick = () => deleteSeries(group.items[0].e);
-            head.appendChild(seriesBtn);
-        }
+        const from = Number(row.dataset.index);
+        const originY = event.clientY;
+        let dragging = false;
+        let insertAt = from;
+        let ghost = null;
 
-        wrap.appendChild(head);
-        group.items.forEach(({ e, i }) => wrap.appendChild(buildRow(e, i)));
-        eventsContainer.appendChild(wrap);
+        const rows = () => [...container.querySelectorAll('.event-row[data-index]')];
+
+        const move = (ev) => {
+            if (!dragging && Math.abs(ev.clientY - originY) > 5) {
+                dragging = true;
+                row.classList.add('is-dragging');
+                ghost = makeGhost(row.querySelector('.event-title')?.textContent || 'Entry');
+                try { handle.setPointerCapture(event.pointerId); } catch (_) { /* ignore */ }
+            }
+            if (!dragging) return;
+            placeGhost(ghost, ev.clientX, ev.clientY);
+            const list = rows();
+            let dest = list.length - 1;
+            for (let i = 0; i < list.length; i += 1) {
+                const rect = list[i].getBoundingClientRect();
+                if (ev.clientY < rect.top + rect.height / 2) {
+                    dest = i;
+                    break;
+                }
+            }
+            insertAt = dest;
+            clearDropMarks(container, '.event-row');
+            row.classList.add('is-dragging');
+            list[dest]?.classList.add('is-drop-before');
+        };
+
+        const end = () => {
+            window.removeEventListener('pointermove', move, true);
+            window.removeEventListener('pointerup', end, true);
+            window.removeEventListener('pointercancel', end, true);
+            ghost?.remove();
+            clearDropMarks(container, '.event-row');
+            if (!dragging || insertAt === from) return;
+            const { events, selectedKey } = getState();
+            applyLedgerEvents(reorderDay(events, selectedKey, from, insertAt));
+            refreshEventList();
+            renderDayInsights(selectedKey);
+        };
+
+        window.addEventListener('pointermove', move, true);
+        window.addEventListener('pointerup', end, true);
+        window.addEventListener('pointercancel', end, true);
     });
 }
 
@@ -243,8 +304,21 @@ function ensureAddForm(formContainer) {
         titleInput.setAttribute('autocapitalize', 'sentences');
         titleInput.setAttribute('enterkeyhint', 'next');
         titleInput.setAttribute('spellcheck', 'false');
+        titleInput.setAttribute('list', 'et-suggest');
+        titleInput.addEventListener('change', rememberTitleAmount);
+        titleInput.addEventListener('input', paintSmartChips);
     }
     form.appendChild(titleField);
+
+    const suggestList = document.createElement('datalist');
+    suggestList.id = 'et-suggest';
+    form.appendChild(suggestList);
+
+    const chips = document.createElement('div');
+    chips.id = 'et-smart-chips';
+    chips.className = 'smart-chips';
+    chips.hidden = true;
+    form.appendChild(chips);
 
     const splitRow = document.createElement('div');
     splitRow.className = 'form-row-split';
@@ -353,18 +427,52 @@ export function renderModal() {
     renderDayInsights(selectedKey);
     ensureAddForm(document.getElementById('form-container'));
     syncAddFormKind();
+    paintSmartChips();
 
     const focusTitle = !document.activeElement?.closest('#form-container');
     if (focusTitle) setTimeout(() => focusField('et'), 60);
+}
+
+function iconAction(className, icon, label, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = className;
+    btn.innerHTML = `<i class="ti ti-${icon}" aria-hidden="true"></i>`;
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    btn.onclick = onClick;
+    return btn;
 }
 
 function buildRow(e, i) {
     const { editingIndex } = getState();
     if (editingIndex === i) return buildEditRow(e, i);
 
-    const row = document.createElement('div'); row.id = `row-${i}`; row.className = 'event-row';
-    const info = document.createElement('div'); info.className = 'event-info';
-    const titleRow = document.createElement('div'); titleRow.className = 'event-header';
+    const row = document.createElement('div');
+    row.id = `row-${i}`;
+    row.className = `event-row${e.paid ? ' is-paid' : ''}${Utils.entryKind(e) === 'income' ? ' is-income' : ''}`;
+    row.dataset.index = String(i);
+
+    const handle = iconAction('drag-handle', 'grip-vertical', 'Reorder this entry', null);
+    handle.onclick = null;
+    handle.addEventListener('keydown', (ev) => {
+        if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
+        ev.preventDefault();
+        const { events, selectedKey } = getState();
+        const to = ev.key === 'ArrowUp' ? i - 1 : i + 1;
+        const next = reorderDay(events, selectedKey, i, to);
+        if (next === events) return;
+        applyLedgerEvents(next);
+        refreshEventList();
+        renderDayInsights(selectedKey);
+        requestAnimationFrame(() => document.querySelector(`.event-row[data-index="${to}"] .drag-handle`)?.focus());
+    });
+    row.appendChild(handle);
+
+    const info = document.createElement('div');
+    info.className = 'event-info';
+    const titleRow = document.createElement('div');
+    titleRow.className = 'event-header';
 
     const t = document.createElement('span');
     t.className = `event-title ${e.paid ? 'paid' : ''}`;
@@ -373,7 +481,8 @@ function buildRow(e, i) {
 
     const amt = Utils.getPrice(e);
     if (amt > 0) {
-        const badge = document.createElement('span'); badge.className = 'event-badge';
+        const badge = document.createElement('span');
+        badge.className = 'event-badge';
         badge.textContent = `$${amt.toFixed(2)}`;
         titleRow.appendChild(badge);
     }
@@ -384,8 +493,9 @@ function buildRow(e, i) {
         titleRow.appendChild(kindBadge);
     }
     if (e.recurring) {
-        const rec = document.createElement('span'); rec.className = 'event-badge-icon';
-        rec.innerHTML = '<i class="ti ti-refresh"></i>';
+        const rec = document.createElement('span');
+        rec.className = 'event-badge-icon';
+        rec.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i>';
         rec.title = repeatLabel(e.repeat);
         rec.setAttribute('aria-label', repeatLabel(e.repeat));
         titleRow.appendChild(rec);
@@ -404,20 +514,43 @@ function buildRow(e, i) {
     }
     row.appendChild(info);
 
-    const act = document.createElement('div'); act.className = 'row-actions';
-
-    const editBtn = document.createElement('button'); editBtn.className = 'btn-icon-edit';
-    editBtn.innerHTML = '<i class="ti ti-edit" style="font-size:15px;"></i>';
-    editBtn.onclick = () => startEdit(i);
-
-    const delBtn = document.createElement('button'); delBtn.className = 'btn-icon-delete';
-    delBtn.innerHTML = '<i class="ti ti-trash" style="font-size:15px;"></i>';
-    delBtn.onclick = () => deleteEv(i);
-
-    act.append(editBtn, delBtn);
+    const act = document.createElement('div');
+    act.className = 'row-actions';
+    const paidLabel = Utils.entryKind(e) === 'income'
+        ? (e.paid ? 'Mark not received' : 'Mark received')
+        : (e.paid ? 'Mark unpaid' : 'Mark paid');
+    const paidBtn = iconAction(
+        `btn-icon-paid${e.paid ? ' is-on' : ''}`,
+        e.paid ? 'circle-check' : 'circle',
+        paidLabel,
+        () => quickTogglePaid(i)
+    );
+    paidBtn.setAttribute('aria-pressed', e.paid ? 'true' : 'false');
+    act.append(
+        paidBtn,
+        iconAction('btn-icon-copy', 'copy', 'Duplicate on this day', () => quickDuplicate(i)),
+        iconAction('btn-icon-edit', 'edit', 'Edit entry', () => startEdit(i)),
+        iconAction('btn-icon-delete', 'trash', 'Remove entry', () => deleteEv(i))
+    );
     row.appendChild(act);
 
     return row;
+}
+
+function quickTogglePaid(index) {
+    const { events, selectedKey } = getState();
+    patch({ events: togglePaidAt(events, selectedKey, index) });
+    refreshEventList();
+    renderDayInsights(selectedKey);
+}
+
+function quickDuplicate(index) {
+    const { events, selectedKey } = getState();
+    const item = events[selectedKey]?.[index];
+    applyLedgerEvents(duplicateAt(events, selectedKey, index));
+    refreshEventList();
+    renderDayInsights(selectedKey);
+    if (item?.title) Toast.show(`Copied ${item.title} on this day.`, 'success');
 }
 
 function buildEditRow(e, i) {
@@ -615,30 +748,6 @@ function removeOneOccurrence(index) {
     applyDelete(nextEvents);
 }
 
-async function deleteSeries(item) {
-    const { events, selectedKey } = getState();
-    const plan = seriesDeletePlan(events, item, selectedKey);
-    const result = await confirmDialog({
-        title: 'Remove recurring payment?',
-        message: plan.seriesCount > 1
-            ? `“${item.title}” is on ${plan.seriesCount} days. Choose this ${plan.dayName}, every ${plan.dayName}, or the whole series.`
-            : `Remove “${item.title}” from this ledger?`,
-        confirmText: 'Remove',
-        cancelText: 'Cancel',
-        danger: true,
-        choices: plan.seriesCount > 1 ? plan.choices : null,
-        choice: plan.choice
-    });
-    if (!result?.confirmed) return;
-    const list = events[selectedKey] || [];
-    const index = list.findIndex((entry) => entry === item || (
-        entry.recurring
-        && normalizeTitle(entry.title) === normalizeTitle(item.title)
-        && normalizeRepeat(entry.repeat) === normalizeRepeat(item.repeat)
-    ));
-    applySeriesDelete(events, item, index, selectedKey, result.choice || 'day');
-}
-
 async function deleteEv(i) {
     const { selectedKey, events } = getState();
     const item = events[selectedKey]?.[i];
@@ -719,6 +828,64 @@ function syncAddFormKind() {
         if (submit.tagName === 'SPAN') submit.textContent = income ? 'Save income' : 'Save expense';
         else if (!submit.querySelector('span')) submit.textContent = income ? 'Save income' : 'Save expense';
     }
+    paintSmartChips();
+}
+
+function rememberTitleAmount() {
+    const title = document.getElementById('et')?.value;
+    const cost = document.getElementById('ep');
+    if (!cost || cost.value) return;
+    const hit = matchRememberedTitle(getState().events, title, readKind('ek'));
+    if (hit?.price != null && hit.price !== '') cost.value = hit.price;
+}
+
+function paintSmartChips() {
+    const chips = document.getElementById('et-smart-chips');
+    const list = document.getElementById('et-suggest');
+    if (!chips) return;
+
+    const typed = document.getElementById('et')?.value || '';
+    const kind = document.getElementById('expense-add-form') ? readKind('ek') : null;
+    const rows = suggestTitles(getState().events, { kind, query: typed, limit: 6 });
+
+    if (list) {
+        list.replaceChildren();
+        rows.forEach((row) => {
+            const opt = document.createElement('option');
+            opt.value = row.title;
+            list.appendChild(opt);
+        });
+    }
+
+    chips.replaceChildren();
+    const shown = rows.slice(0, 4);
+    chips.hidden = shown.length === 0;
+    shown.forEach((row) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'smart-chip';
+        const amt = row.price != null && row.price !== '' ? ` · ${Utils.formatMoney(row.price)}` : '';
+        btn.textContent = `${row.title}${amt}`;
+        btn.title = `Add ${row.title} with the last amount`;
+        btn.onclick = () => applySmartTitle(row);
+        chips.appendChild(btn);
+    });
+}
+
+function applySmartTitle(row) {
+    const title = document.getElementById('et');
+    const cost = document.getElementById('ep');
+    if (title) title.value = row.title;
+    if (cost && (cost.value === '' || cost.value == null)) {
+        cost.value = row.price != null && row.price !== '' ? row.price : '';
+    }
+    const radio = document.querySelector(`input[name="ek"][value="${row.kind === 'income' ? 'income' : 'expense'}"]`);
+    if (radio) {
+        radio.checked = true;
+        syncAddFormKind();
+    }
+    paintSmartChips();
+    focusField('ep');
 }
 
 function createRepeatPrompt(name, selected = 'monthly') {
@@ -771,5 +938,6 @@ function addEvent() {
     refreshEventList();
     renderDayInsights(selectedKey);
     resetAddForm();
+    paintSmartChips();
     focusField('et');
 }

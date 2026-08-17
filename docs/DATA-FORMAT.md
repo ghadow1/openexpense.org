@@ -26,7 +26,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | Field | Required | Notes |
 | --- | --- | --- |
 | `name` | no | Sanitized file-safe string, max 80 characters. Shown in the header and used as the export filename. |
-| `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. |
+| `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. The array order on a date is the order shown on that day after a drag-reorder. |
 | `savedAt` | export only | Unix ms, written by `Ledger.exportPayload()`. Ignored on import. |
 
 ## Expense

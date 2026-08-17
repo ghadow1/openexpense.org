@@ -13,7 +13,7 @@ import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
 import { switchView, switchDocTab, showWelcome, closeWelcomeModal, shouldShowNotFound } from './app/views.js';
-import { closeModal, initModalBindings, renderModal, openModal } from './features/modal.js';
+import { closeModal, initModalBindings, renderModal, openModal, shiftSelectedDay } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
@@ -155,6 +155,12 @@ function handleDelegatedClick(e) {
                 break;
             case 'undo-delete':
                 restoreDeleteUndo();
+                break;
+            case 'day-prev':
+                shiftSelectedDay(-1);
+                break;
+            case 'day-next':
+                shiftSelectedDay(1);
                 break;
         }
         return;
