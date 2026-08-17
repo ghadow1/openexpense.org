@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Encrypted ledger.json + key.json
+
+Export saves one encrypted JSON (expenses and income together) and a sibling `key.json`. Opening the ledger asks for that key. The portable key is never stored in the browser — only in the download. Autosave still encrypts a local copy with a separate, non-extractable device key.
+
 ## 2026-08-17 — Income tracking
 
 The calendar still shows every day. Income and expenses both appear, with income in green. A switch on the right-hand card flips it like a coin between **Monthly spending** and **Monthly income**. New entries can be saved as either type from the day editor.

@@ -53,7 +53,10 @@ export const Utils = {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
     filenameToLedgerName(filename) {
-        return Utils.sanitizeFilename(String(filename ?? '').replace(/\.(zip|json)$/i, ''));
+        return Utils.sanitizeFilename(String(filename ?? '')
+            .replace(/\.key\.json$/i, '')
+            .replace(/\.(enc\.)?json$/i, '')
+            .replace(/\.zip$/i, ''));
     },
     formatMoney(value) {
         return `$${Number(value || 0).toFixed(2)}`;

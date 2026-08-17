@@ -65,6 +65,11 @@ async function initApplication() {
         importInput.addEventListener('change', Ledger.handleImport);
         importInput.dataset.bound = '1';
     }
+    const keyInput = document.getElementById('ledger-key-input');
+    if (keyInput && !keyInput.dataset.bound) {
+        keyInput.addEventListener('change', Ledger.handleKeyImport);
+        keyInput.dataset.bound = '1';
+    }
     const ledgerNameInput = document.getElementById('ledger-name-input');
     if (ledgerNameInput && !ledgerNameInput.dataset.bound) {
         ledgerNameInput.addEventListener('input', (e) => Ledger.setLedgerName(e.target.value));

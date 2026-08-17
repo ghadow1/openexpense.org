@@ -36,7 +36,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
-- **Encrypted export** — a `.zip` with ciphertext plus the key file. Import accepts the zip, the two files separately, or a legacy plaintext `.json`.
+- **Encrypted export** — one `.json` (expenses and income, ciphertext only) plus a sibling `key.json`. The portable key is not kept in the browser. Import asks for the key when you open the ledger.
 - **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once.
 - **Monthly summary PDF** — generated locally with jsPDF.
@@ -85,7 +85,7 @@ Full field notes and the encrypted zip layout are in [`docs/DATA-FORMAT.md`](doc
 | Ledger name and expenses | IndexedDB `openexpense` | AES-256-GCM when Web Crypto is available |
 | Device key | IndexedDB `meta` store | Non-extractable `CryptoKey` |
 | Theme, autosave on/off, first-visit | `localStorage` | No — these are UI prefs only |
-| Manual backup | `.zip` you download | Yes — `ledger.enc.json` + `ledger.key.json` |
+| Manual backup | Encrypted `{name}.json` you save | Yes — pair with `{name}.key.json` (not cached) |
 
 Anyone who has **both** zip members can decrypt that backup. Store them separately if the ledger is sensitive.
 

@@ -1,23 +1,31 @@
 /**
  * OpenExpense — ledger import / export / autosave
  *
- * Header file actions: encrypted zip export, import (zip / split files /
- * legacy JSON), ledger name, and the autosave pause toggle.
+ * One encrypted JSON holds expenses and income. Export writes that file plus
+ * a sibling key.json. The portable key is never stored in this browser.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
 import {
-    encryptBundle, decryptBundle, zipBundle, unzipBundle, entryToJson,
+    encryptBundle, decryptBundle, unzipBundle, entryToJson,
     isEncFile, isKeyFile, BUNDLE
 } from '../core/bundle.js';
+import {
+    validateEncFile, validateKeyFile, kidsMatch,
+    sanitizeLedger, countEntries, exportFilenames
+} from '../core/ledger-file.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { saveLedger } from '../core/persist.js';
+
+const PENDING_MS = 5 * 60 * 1000;
+const JSON_ACCEPT = { 'application/json': ['.json'] };
 
 export const Ledger = {
     _pendingEnc: null,
     _pendingKey: null,
+    _pendingTimer: null,
 
     setLedgerName(name) {
         const ledgerName = Utils.sanitizeFilename(name);
@@ -39,8 +47,6 @@ export const Ledger = {
         };
     },
 
-    // Autosave persists the ledger to encrypted local storage (IndexedDB) using
-    // the device key — no files involved. Export is the manual encrypted .zip.
     enableAutosave() {
         patch({ autosaveEnabled: true });
         try { localStorage.setItem(STORAGE_KEYS.autosave, 'true'); } catch (_) { }
@@ -58,14 +64,25 @@ export const Ledger = {
         else Ledger.enableAutosave();
     },
 
-    zipFilename() {
-        const base = Utils.sanitizeFilename(getState().ledgerName) || 'ledger';
-        const stamp = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-        return `${base}-${stamp}.zip`;
+    clearPending() {
+        Ledger._pendingEnc = null;
+        Ledger._pendingKey = null;
+        if (Ledger._pendingTimer) {
+            clearTimeout(Ledger._pendingTimer);
+            Ledger._pendingTimer = null;
+        }
     },
 
-    // Persist a Blob using the best available mechanism for the platform:
-    // native save picker on desktop, share sheet on mobile, download fallback.
+    holdPending(partial) {
+        if (partial.enc) Ledger._pendingEnc = partial.enc;
+        if (partial.key) Ledger._pendingKey = partial.key;
+        if (Ledger._pendingTimer) clearTimeout(Ledger._pendingTimer);
+        Ledger._pendingTimer = setTimeout(() => {
+            Ledger.clearPending();
+            Toast.show('Unlock key cleared from memory. Import the pair again.', 'info');
+        }, PENDING_MS);
+    },
+
     async saveBlob(blob, filename, description, accept) {
         if (Utils.canUseSavePicker()) {
             try {
@@ -108,21 +125,35 @@ export const Ledger = {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
 
-    // Export the ledger as an encrypted .zip set: an AES-256-GCM ciphertext of
-    // the ledger plus the key needed to decrypt it. No plaintext leaves the app.
+    // Encrypted ledger.json (expense + income) then a sibling key.json.
+    // The JWK is not written to IndexedDB or localStorage.
     async export() {
         try {
             const { enc, keyFile } = await encryptBundle(Ledger.exportPayload());
-            const zipped = zipBundle(enc, keyFile);
-            const blob = new Blob([zipped], { type: 'application/zip' });
-            const result = await Ledger.saveBlob(
-                blob,
-                Ledger.zipFilename(),
-                'OpenExpense encrypted export',
-                { 'application/zip': ['.zip'] }
+            const names = exportFilenames(getState().ledgerName);
+            const encBlob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
+            const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
+
+            const ledgerResult = await Ledger.saveBlob(
+                encBlob,
+                names.ledger,
+                'OpenExpense encrypted ledger',
+                JSON_ACCEPT
             );
-            if (result === 'abort') return;
-            Toast.show('Exported encrypted ledger + key as a .zip.', 'success');
+            if (ledgerResult === 'abort') return;
+
+            const keyResult = await Ledger.saveBlob(
+                keyBlob,
+                names.key,
+                'OpenExpense ledger key',
+                JSON_ACCEPT
+            );
+            if (keyResult === 'abort') {
+                Toast.show('Encrypted ledger was saved, but the key was not. Export again and keep both files.', 'error', 6000);
+                return;
+            }
+
+            Toast.show('Saved encrypted ledger.json and key.json. The key is only in that download — not in this browser.', 'success', 5200);
         } catch (err) {
             console.error('[OpenExpense] export failed:', err);
             Toast.show('Could not export. Encryption needs a secure (https) context.', 'error');
@@ -136,7 +167,13 @@ export const Ledger = {
         input.click();
     },
 
-    // Wipe all expenses and the ledger name on this device after confirmation.
+    pickKeyFile() {
+        const input = document.getElementById('ledger-key-input');
+        if (!input) return;
+        input.value = '';
+        input.click();
+    },
+
     async clearLedger() {
         const { events, ledgerName } = getState();
         const hasData = Object.keys(events).length > 0 || !!ledgerName;
@@ -147,15 +184,15 @@ export const Ledger = {
 
         const ok = await confirmDialog({
             title: 'Clear calendar?',
-            message: 'This permanently wipes every logged expense and the ledger name on this device. This cannot be undone — export a backup first if you need one.',
+            message: 'This permanently wipes every expense and income entry and the ledger name on this device. Export a backup first if you need one.',
             confirmText: 'Clear everything',
             cancelText: 'Cancel',
             danger: true
         });
         if (!ok?.confirmed) return;
 
+        Ledger.clearPending();
         patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
-        // Clearing must remove the stored copy too, even if autosave is paused.
         saveLedger({ name: '', events: {}, savedAt: Date.now() });
         Toast.show('Calendar cleared.', 'success');
     },
@@ -169,14 +206,23 @@ export const Ledger = {
             const isZip = /\.zip$/i.test(f.name)
                 || f.type === 'application/zip'
                 || f.type === 'application/x-zip-compressed';
-            if (isZip) {
-                await Ledger.importZip(f);
-            } else {
-                await Ledger.importJsonFile(f);
-            }
+            if (isZip) await Ledger.importZip(f);
+            else await Ledger.importJsonFile(f);
         } catch (err) {
             console.error('[OpenExpense] import failed:', err);
             Toast.show('Could not read that file.', 'error');
+        }
+    },
+
+    async handleKeyImport(evt) {
+        const f = evt.target.files && evt.target.files[0];
+        if (evt.target) evt.target.value = '';
+        if (!f) return;
+        try {
+            await Ledger.importJsonFile(f, { expectKey: true });
+        } catch (err) {
+            console.error('[OpenExpense] key import failed:', err);
+            Toast.show('Could not read that key.json.', 'error');
         }
     },
 
@@ -206,17 +252,17 @@ export const Ledger = {
             return;
         }
         if (enc) {
-            Ledger._pendingEnc = enc;
-            Toast.show('Loaded encrypted ledger. Now Import its key to decrypt.', 'info');
+            Ledger.holdPending({ enc });
+            await Ledger.requestMatchingKey();
         } else if (keyFile) {
-            Ledger._pendingKey = keyFile;
-            Toast.show('Loaded key. Now Import the encrypted ledger.', 'info');
+            Ledger.holdPending({ key: keyFile });
+            Toast.show('Key loaded in memory only. Now Import the encrypted ledger.json.', 'info');
         } else {
             Toast.show('No OpenExpense ledger found inside that .zip.', 'error');
         }
     },
 
-    async importJsonFile(file) {
+    async importJsonFile(file, { expectKey = false } = {}) {
         let obj;
         try {
             obj = JSON.parse(await file.text());
@@ -226,59 +272,116 @@ export const Ledger = {
         }
 
         if (isKeyFile(obj)) {
-            Ledger._pendingKey = obj;
-            if (!await Ledger.tryFinishPending(file.name)) {
-                Toast.show('Key loaded. Now Import the encrypted ledger (.zip or .json).', 'info');
+            const qc = validateKeyFile(obj);
+            if (!qc.ok) {
+                Toast.show(qc.error, 'error');
+                return;
             }
+            Ledger.holdPending({ key: obj });
+            if (!await Ledger.tryFinishPending(file.name)) {
+                Toast.show('Key held in memory only. Now Import the encrypted ledger.json.', 'info');
+            }
+            return;
+        }
+
+        if (expectKey) {
+            Toast.show('That file is not a key.json.', 'error');
             return;
         }
 
         if (isEncFile(obj)) {
-            Ledger._pendingEnc = obj;
+            const qc = validateEncFile(obj);
+            if (!qc.ok) {
+                Toast.show(qc.error, 'error');
+                return;
+            }
+            Ledger.holdPending({ enc: obj });
             if (!await Ledger.tryFinishPending(file.name)) {
-                Toast.show('Encrypted ledger loaded. Now Import its key file.', 'info');
+                await Ledger.requestMatchingKey();
             }
             return;
         }
 
-        const importedEvents = (obj && typeof obj === 'object') ? (obj.events || obj) : null;
-        if (!importedEvents || typeof importedEvents !== 'object' || Array.isArray(importedEvents)) {
+        const ok = await confirmDialog({
+            title: 'Unencrypted file',
+            message: 'This JSON is not encrypted. Import it into this browser’s encrypted autosave? Future exports will be an encrypted ledger.json plus a key.json.',
+            confirmText: 'Import and encrypt',
+            cancelText: 'Cancel'
+        });
+        if (!ok?.confirmed) return;
+
+        const cleaned = sanitizeLedger({
+            name: Ledger.nameFromImport(file.name, obj),
+            events: (obj && typeof obj === 'object') ? (obj.events || obj) : null
+        });
+        if (!cleaned) {
             Toast.show('Unrecognized file format.', 'error');
             return;
         }
-        Ledger.applyImportedLedger(
-            { name: Ledger.nameFromImport(file.name, obj), events: importedEvents },
-            file.name
-        );
+        Ledger.applyImportedLedger(cleaned, file.name);
+    },
+
+    async requestMatchingKey() {
+        const ok = await confirmDialog({
+            title: 'This ledger is encrypted',
+            message: 'Choose the matching key.json that was saved next to this file. OpenExpense does not keep that key in the browser.',
+            confirmText: 'Choose key.json',
+            cancelText: 'Cancel'
+        });
+        if (!ok?.confirmed) {
+            Ledger.clearPending();
+            return;
+        }
+        Ledger.pickKeyFile();
     },
 
     async tryFinishPending(srcName) {
         if (!(Ledger._pendingEnc && Ledger._pendingKey)) return false;
         const enc = Ledger._pendingEnc;
         const keyFile = Ledger._pendingKey;
-        Ledger._pendingEnc = null;
-        Ledger._pendingKey = null;
+        Ledger.clearPending();
         await Ledger.decryptAndApply(enc, keyFile, srcName);
         return true;
     },
 
     async decryptAndApply(enc, keyFile, srcName) {
+        const encQc = validateEncFile(enc);
+        const keyQc = validateKeyFile(keyFile);
+        if (!encQc.ok) {
+            Toast.show(encQc.error, 'error');
+            return;
+        }
+        if (!keyQc.ok) {
+            Toast.show(keyQc.error, 'error');
+            return;
+        }
+        if (!kidsMatch(enc, keyFile)) {
+            Toast.show('That key.json does not belong to this ledger file.', 'error');
+            return;
+        }
+
         let payload;
         try {
             payload = await decryptBundle(enc, keyFile);
         } catch (err) {
             console.error('[OpenExpense] decrypt failed:', err);
-            Toast.show('That key does not match the encrypted ledger.', 'error');
+            Toast.show('That key does not unlock this ledger.', 'error');
             return;
         }
-        Ledger.applyImportedLedger(payload, srcName);
+
+        const cleaned = sanitizeLedger(payload);
+        if (!cleaned) {
+            Toast.show('Decrypted data is not a valid ledger.', 'error');
+            return;
+        }
+        Ledger.applyImportedLedger(cleaned, srcName);
     },
 
     applyImportedLedger(payload, srcName) {
-        const importedEvents = (payload && payload.events && typeof payload.events === 'object' && !Array.isArray(payload.events))
-            ? payload.events
-            : null;
-        if (!importedEvents) {
+        const cleaned = payload.events && typeof payload.events === 'object' && !Array.isArray(payload.events)
+            ? payload
+            : sanitizeLedger(payload);
+        if (!cleaned?.events) {
             Toast.show('Decrypted data is not a valid ledger.', 'error');
             return;
         }
@@ -288,10 +391,14 @@ export const Ledger = {
         if (hasData && !confirm('Import will replace your current ledger. Continue?')) return;
 
         patch({
-            ledgerName: Ledger.nameFromImport(srcName, payload),
-            events: importedEvents
+            ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
+            events: cleaned.events
         });
-        const count = Object.values(importedEvents).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
-        Toast.show(`Imported ${count} item${count === 1 ? '' : 's'}.`, 'success');
+        const count = countEntries(cleaned.events);
+        Toast.show(`Imported ${count} item${count === 1 ? '' : 's'} (expenses and income).`, 'success');
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', () => Ledger.clearPending());
+}

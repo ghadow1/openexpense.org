@@ -54,7 +54,7 @@ function ensureShell(calCol) {
     scanBtn.classList.add('toolbar-scan-btn');
 
     // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
-    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger'], [exportBtn, 'Export ledger'],
+    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger or key.json'], [exportBtn, 'Export encrypted ledger + key.json'],
     [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt — photo or PDF']].forEach(([btn, label]) => {
         btn.setAttribute('aria-label', label);
         btn.title = label;

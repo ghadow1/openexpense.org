@@ -43,32 +43,38 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 
 Unknown fields are kept if present in JSON. The UI does not edit them.
 
-## Encrypted backup zip
+## Encrypted files (export)
 
-Produced by **Export**. Members:
+**Export** writes two JSON files with the same stem, for example `Home-ledger-2026-08-17.json` and `Home-ledger-2026-08-17.key.json`. There is no separate income file — both kinds live in one encrypted ledger.
 
 | File | Format | Purpose |
 | --- | --- | --- |
-| `ledger.enc.json` | `{ format: "openexpense-encrypted", version, iv, ciphertext }` | AES-256-GCM envelope of the ledger object |
-| `ledger.key.json` | `{ format: "openexpense-key", version, key }` | JWK for that envelope (one key per export) |
-| `README.txt` | text | Human reminder that both files are needed |
+| `{name}-{date}.json` | `{ format: "openexpense-encrypted", version, kid, iv, ct }` | AES-256-GCM envelope. No plaintext expenses or income. |
+| `{name}-{date}.key.json` | `{ format: "openexpense-key", version, kid, key }` | Portable JWK for that envelope only |
 
-`src/core/bundle.js` defines the member names and `format` strings.
+The two files share a `kid`. Import refuses a key that does not match. The portable key is **never** written to IndexedDB or `localStorage`. It exists only in the downloaded `key.json` (and briefly in memory while you unlock a file).
+
+Older `.zip` backups (ciphertext + key + README) still import.
 
 ### Import order
 
-1. A `.zip` with both members.
-2. The two JSON files chosen separately, in either order (the second click completes the pair).
-3. A plaintext `.json` ledger (legacy). It is re-encrypted on the next autosave.
+1. Encrypted `{name}.json` — the app asks you to choose the matching `key.json`.
+2. The two JSON files in either order (the second completes the pair).
+3. A legacy `.zip` with both members.
+4. A plaintext `.json` (legacy sample or old export) — only after you confirm. It is then stored encrypted in autosave.
+
+## Quality control
+
+On load, OpenExpense checks format strings, ciphertext fields, key type (`oct`), matching `kid`, successful AES-GCM decrypt, and a sanitized `events` map (valid `YYYY-MM-DD` keys, known entry fields, `kind` expense or income). Prototype-pollution keys are dropped.
 
 ## IndexedDB
 
 | Database | Store | Key | Value |
 | --- | --- | --- | --- |
 | `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events }` |
-| `openexpense` (v2) | `meta` | `ledger-key-v1` | Non-extractable `CryptoKey` for autosave |
+| `openexpense` (v2) | `meta` | `ledger-key-v1` | Non-extractable `CryptoKey` for **autosave only** — not the portable `key.json` |
 
-Do not check a real database dump or `ledger.key.json` into git.
+Do not check a real database dump or `*.key.json` into git. The sample under `examples/` is fictional plaintext for humans to read; it is not a user export.
 
 ## Sample file
 
