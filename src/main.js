@@ -8,6 +8,7 @@ import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
+import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
@@ -42,9 +43,10 @@ async function initApplication() {
     bootPatch.storageEncrypted = cryptoAvailable();
 
     const saved = await loadLedger();
-    if (saved && typeof saved === 'object') {
-        if (saved.name) bootPatch.ledgerName = Utils.sanitizeFilename(saved.name);
-        if (saved.events && typeof saved.events === 'object') bootPatch.events = saved.events;
+    const cleaned = saved ? sanitizeLedger(saved) : null;
+    if (cleaned) {
+        bootPatch.ledgerName = cleaned.name;
+        bootPatch.events = cleaned.events;
     }
 
     patch(bootPatch);

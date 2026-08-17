@@ -8,7 +8,7 @@ These notes describe what is on `main` (the site at [openexpense.org](https://ww
 
 ## 2026-08-17 — Encrypted ledger.json + key.json
 
-Export saves one encrypted JSON (expenses and income together) and a sibling `key.json`. Opening the ledger asks for that key. The portable key is never stored in the browser — only in the download. Autosave still encrypts a local copy with a separate, non-extractable device key.
+Export saves one encrypted JSON (expenses and income together) and a sibling `key.json`. Opening the ledger asks for that key. The portable key is never stored in the browser — only in the download. Autosave still encrypts a local copy with a separate, non-extractable device key. The same quality-control path sanitizes imports, IndexedDB load, and autosave.
 
 ## 2026-08-17 — Income tracking
 

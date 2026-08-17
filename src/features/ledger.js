@@ -13,8 +13,8 @@ import {
     isEncFile, isKeyFile, BUNDLE
 } from '../core/bundle.js';
 import {
-    validateEncFile, validateKeyFile, kidsMatch,
-    sanitizeLedger, countEntries, exportFilenames
+    validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
+    sanitizeLedger, countEntries, exportFilenames, readJsonFile
 } from '../core/ledger-file.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { saveLedger } from '../core/persist.js';
@@ -64,7 +64,8 @@ export const Ledger = {
         else Ledger.enableAutosave();
     },
 
-    clearPending() {
+    clearPending({ wipe = true } = {}) {
+        if (wipe) wipeKeyFile(Ledger._pendingKey);
         Ledger._pendingEnc = null;
         Ledger._pendingKey = null;
         if (Ledger._pendingTimer) {
@@ -74,6 +75,9 @@ export const Ledger = {
     },
 
     holdPending(partial) {
+        if (partial.key && Ledger._pendingKey && Ledger._pendingKey !== partial.key) {
+            wipeKeyFile(Ledger._pendingKey);
+        }
         if (partial.enc) Ledger._pendingEnc = partial.enc;
         if (partial.key) Ledger._pendingKey = partial.key;
         if (Ledger._pendingTimer) clearTimeout(Ledger._pendingTimer);
@@ -263,13 +267,12 @@ export const Ledger = {
     },
 
     async importJsonFile(file, { expectKey = false } = {}) {
-        let obj;
-        try {
-            obj = JSON.parse(await file.text());
-        } catch {
-            Toast.show('Invalid file. Choose a valid OpenExpense export.', 'error');
+        const parsed = await readJsonFile(file);
+        if (!parsed.ok) {
+            Toast.show(parsed.error, 'error');
             return;
         }
+        const obj = parsed.obj;
 
         if (isKeyFile(obj)) {
             const qc = validateKeyFile(obj);
@@ -339,42 +342,46 @@ export const Ledger = {
         if (!(Ledger._pendingEnc && Ledger._pendingKey)) return false;
         const enc = Ledger._pendingEnc;
         const keyFile = Ledger._pendingKey;
-        Ledger.clearPending();
+        Ledger.clearPending({ wipe: false });
         await Ledger.decryptAndApply(enc, keyFile, srcName);
         return true;
     },
 
     async decryptAndApply(enc, keyFile, srcName) {
-        const encQc = validateEncFile(enc);
-        const keyQc = validateKeyFile(keyFile);
-        if (!encQc.ok) {
-            Toast.show(encQc.error, 'error');
-            return;
-        }
-        if (!keyQc.ok) {
-            Toast.show(keyQc.error, 'error');
-            return;
-        }
-        if (!kidsMatch(enc, keyFile)) {
-            Toast.show('That key.json does not belong to this ledger file.', 'error');
-            return;
-        }
-
-        let payload;
         try {
-            payload = await decryptBundle(enc, keyFile);
-        } catch (err) {
-            console.error('[OpenExpense] decrypt failed:', err);
-            Toast.show('That key does not unlock this ledger.', 'error');
-            return;
-        }
+            const encQc = validateEncFile(enc);
+            const keyQc = validateKeyFile(keyFile);
+            if (!encQc.ok) {
+                Toast.show(encQc.error, 'error');
+                return;
+            }
+            if (!keyQc.ok) {
+                Toast.show(keyQc.error, 'error');
+                return;
+            }
+            if (!kidsMatch(enc, keyFile)) {
+                Toast.show('That key.json does not belong to this ledger file.', 'error');
+                return;
+            }
 
-        const cleaned = sanitizeLedger(payload);
-        if (!cleaned) {
-            Toast.show('Decrypted data is not a valid ledger.', 'error');
-            return;
+            let payload;
+            try {
+                payload = await decryptBundle(enc, keyFile);
+            } catch (err) {
+                console.error('[OpenExpense] decrypt failed:', err);
+                Toast.show('That key does not unlock this ledger.', 'error');
+                return;
+            }
+
+            const cleaned = sanitizeLedger(payload);
+            if (!cleaned) {
+                Toast.show('Decrypted data is not a valid ledger.', 'error');
+                return;
+            }
+            Ledger.applyImportedLedger(cleaned, srcName);
+        } finally {
+            wipeKeyFile(keyFile);
         }
-        Ledger.applyImportedLedger(cleaned, srcName);
     },
 
     applyImportedLedger(payload, srcName) {
@@ -400,5 +407,6 @@ export const Ledger = {
 };
 
 if (typeof window !== 'undefined') {
+    // File pickers can hide the tab; do not wipe on visibilitychange.
     window.addEventListener('pagehide', () => Ledger.clearPending());
 }

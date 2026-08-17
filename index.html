@@ -284,7 +284,7 @@
                   </p>
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
-                    <li><strong>Import</strong> — load an encrypted backup zip, separate key/ledger files, or a legacy plaintext <code>.json</code>.</li>
+                    <li><strong>Import</strong> — open an encrypted ledger.json (the app asks for key.json). Older zip backups and confirmed plaintext JSON still work.</li>
                     <li><strong>Export</strong> — save an encrypted <code>.json</code> (expenses and income together) and a sibling <code>key.json</code>. The key is not kept in this browser.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
@@ -440,7 +440,7 @@
                   <h3 class="docs-section-title">Security notes</h3>
                   <ul class="docs-checklist">
                     <li><strong>Device-bound keys</strong> protect against casual inspection, not a compromised browser with full access.</li>
-                    <li><strong>Backup often</strong> — export your encrypted zip periodically.</li>
+                    <li><strong>Backup often</strong> — export the encrypted ledger.json and keep the matching key.json.</li>
                     <li><strong>Split sensitive sets</strong> — keep key and ciphertext apart when storing or sending.</li>
                     <li><strong>No syncing</strong> — move exports manually between computers.</li>
                   </ul>

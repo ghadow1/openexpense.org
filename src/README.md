@@ -26,7 +26,7 @@ Each module starts with a short header describing what it owns.
 | [`core/persist.js`](core/persist.js) | Encrypted IndexedDB autosave |
 | [`core/crypto.js`](core/crypto.js) | Device AES-256-GCM key |
 | [`core/bundle.js`](core/bundle.js) | Encrypted ledger.json + portable key.json |
-| [`core/ledger-file.js`](core/ledger-file.js) | File QC, sanitize, filename pair |
+| [`core/ledger-file.js`](core/ledger-file.js) | File QC, sanitize (import + IndexedDB load/save), filename pair |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence (monthly / bi-monthly / quarterly), series delete |
 | [`core/summary.js`](core/summary.js) | Month/year totals |
