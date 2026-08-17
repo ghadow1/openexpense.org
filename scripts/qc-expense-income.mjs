@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary, computeNetSnapshot, sumDay } from '../src/core/summary.js';
+import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, groupExpenses
@@ -85,6 +85,32 @@ test('sumDay splits spend down and income up', () => {
     assert.equal(totals.expense, 1455);
     assert.equal(totals.income, 800);
     assert.equal(totals.net, 800 - 1455);
+});
+
+test('calendar day badge uses net up or down', () => {
+    const down = dayNetBadge([
+        entry({ title: 'Coffee', price: 5 }),
+        entry({ title: 'Paycheck', price: 800, kind: 'income' }),
+        entry({ title: 'Rent', price: 1450 })
+    ]);
+    assert.equal(down.direction, 'down');
+    assert.equal(down.amount, 655);
+    assert.notEqual(down.amount, down.expense);
+
+    const up = dayNetBadge([
+        entry({ title: 'Paycheck', price: 800, kind: 'income' }),
+        entry({ title: 'Coffee', price: 5 })
+    ]);
+    assert.equal(up.direction, 'up');
+    assert.equal(up.amount, 795);
+    assert.notEqual(up.amount, up.income);
+
+    const even = dayNetBadge([
+        entry({ title: 'Paycheck', price: 50, kind: 'income' }),
+        entry({ title: 'Coffee', price: 50 })
+    ]);
+    assert.equal(even.direction, 'even');
+    assert.equal(even.amount, 0);
 });
 
 test('monthly summary includes a full-month daily breakdown', () => {

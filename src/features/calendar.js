@@ -7,7 +7,7 @@ import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
-import { sumDay } from '../core/summary.js';
+import { dayNetBadge } from '../core/summary.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -118,27 +118,29 @@ function formatDayTotal(amount) {
 }
 
 function appendDayTotal(head, dayEvents) {
-    const { expense, income, net } = sumDay(dayEvents);
-    if (expense <= 0 && income <= 0) return;
+    const badge = dayNetBadge(dayEvents);
+    if (!badge) return;
 
-    const up = net > 0;
-    const down = net < 0;
-    const shown = up ? income : (down ? expense : expense || income);
-    const label = up ? 'income' : (down ? 'spent' : 'balanced');
+    const up = badge.direction === 'up';
+    const down = badge.direction === 'down';
+    const label = up ? 'net up' : down ? 'net down' : 'net even';
+    const spark = up ? '1,6 4.5,3.5 7,5 11,1.5' : down ? '1,2 4.5,4.5 7,3 11,6.5' : '1,4 11,4';
 
     const total = document.createElement('span');
     total.className = `cal-day-total${up ? ' is-up' : ''}${down ? ' is-down' : ''}`;
-    total.title = up
-        ? `Income ${Utils.formatMoney(income)}`
-        : (down ? `Spent ${Utils.formatMoney(expense)}` : `Spent ${Utils.formatMoney(expense)} · income ${Utils.formatMoney(income)}`);
-    total.setAttribute('aria-label', `${Utils.formatMoney(shown)} ${label} this day`);
+    total.title = badge.expense > 0 && badge.income > 0
+        ? `Net ${up ? '+' : down ? '-' : ''}${Utils.formatMoney(badge.amount)} · spent ${Utils.formatMoney(badge.expense)} · income ${Utils.formatMoney(badge.income)}`
+        : (up
+            ? `Net +${Utils.formatMoney(badge.amount)}`
+            : (down ? `Net -${Utils.formatMoney(badge.amount)}` : 'Net even'));
+    total.setAttribute('aria-label', `${Utils.formatMoney(badge.amount)} ${label} this day`);
     total.innerHTML = `
         <svg class="cal-day-spark" viewBox="0 0 12 8" width="12" height="8" aria-hidden="true">
-            <polyline points="${up ? '1,6 4.5,3.5 7,5 11,1.5' : '1,2 4.5,4.5 7,3 11,6.5'}"
+            <polyline points="${spark}"
                 fill="none" stroke="currentColor" stroke-width="1.4"
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span class="cal-day-total-amt">${formatDayTotal(shown)}</span>
+        <span class="cal-day-total-amt">${formatDayTotal(badge.amount)}</span>
     `;
     head.appendChild(total);
 }
@@ -254,10 +256,14 @@ function renderGrid(y, m, events) {
             if (dayEvents.length) appendDayTotal(head, dayEvents);
             cell.appendChild(head);
 
-            const { net } = sumDay(dayEvents);
-            const moneyHint = net > 0
-                ? `, ${Utils.formatMoney(net)} income`
-                : (net < 0 ? `, ${Utils.formatMoney(Math.abs(net))} spent` : '');
+            const badge = dayNetBadge(dayEvents);
+            const moneyHint = !badge
+                ? ''
+                : (badge.direction === 'up'
+                    ? `, net up ${Utils.formatMoney(badge.amount)}`
+                    : (badge.direction === 'down'
+                        ? `, net down ${Utils.formatMoney(badge.amount)}`
+                        : ', net even'));
             cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}`);
 
             const body = document.createElement('div');
