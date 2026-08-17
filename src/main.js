@@ -8,6 +8,7 @@ import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
+import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
@@ -33,12 +34,19 @@ async function initApplication() {
         }
     } catch (_) { }
 
+    try {
+        if (localStorage.getItem(STORAGE_KEYS.ledgerFace) === 'income') {
+            bootPatch.ledgerFace = 'income';
+        }
+    } catch (_) { }
+
     bootPatch.storageEncrypted = cryptoAvailable();
 
     const saved = await loadLedger();
-    if (saved && typeof saved === 'object') {
-        if (saved.name) bootPatch.ledgerName = Utils.sanitizeFilename(saved.name);
-        if (saved.events && typeof saved.events === 'object') bootPatch.events = saved.events;
+    const cleaned = saved ? sanitizeLedger(saved) : null;
+    if (cleaned) {
+        bootPatch.ledgerName = cleaned.name;
+        bootPatch.events = cleaned.events;
     }
 
     patch(bootPatch);
@@ -58,6 +66,11 @@ async function initApplication() {
     if (importInput && !importInput.dataset.bound) {
         importInput.addEventListener('change', Ledger.handleImport);
         importInput.dataset.bound = '1';
+    }
+    const keyInput = document.getElementById('ledger-key-input');
+    if (keyInput && !keyInput.dataset.bound) {
+        keyInput.addEventListener('change', Ledger.handleKeyImport);
+        keyInput.dataset.bound = '1';
     }
     const ledgerNameInput = document.getElementById('ledger-name-input');
     if (ledgerNameInput && !ledgerNameInput.dataset.bound) {
@@ -134,9 +147,9 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
-        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events'].includes(k));
+        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace'].includes(k));
         const needsModal = getState().selectedKey
-            && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark'].includes(k));
+            && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark', 'ledgerFace'].includes(k));
 
         if (needsApp) render(keys);
 

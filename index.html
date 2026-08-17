@@ -284,8 +284,8 @@
                   </p>
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
-                    <li><strong>Import</strong> — load an encrypted backup zip, separate key/ledger files, or a legacy plaintext <code>.json</code>.</li>
-                    <li><strong>Export</strong> — download an encrypted <code>.zip</code> backup of your full ledger.</li>
+                    <li><strong>Import</strong> — open an encrypted ledger.json (the app asks for key.json). Older zip backups and confirmed plaintext JSON still work.</li>
+                    <li><strong>Export</strong> — save an encrypted <code>.json</code> (expenses and income together) and a sibling <code>key.json</code>. The key is not kept in this browser.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
@@ -297,9 +297,10 @@
                     Tap a calendar day to open the expense panel. For each entry you can set:
                   </p>
                   <ul class="docs-list">
-                    <li><strong>Title</strong> — merchant or description.</li>
-                    <li><strong>Cost</strong> — amount in dollars.</li>
-                    <li><strong>Recurring</strong> — when checked on a new entry, copies forward to the same day in future months.</li>
+                    <li><strong>Entry type</strong> — expense or income. The right-hand card flips to match.</li>
+                    <li><strong>Title</strong> — merchant, paycheck, or description.</li>
+                    <li><strong>Cost / amount</strong> — dollars.</li>
+                    <li><strong>Recurring</strong> — when checked, a <em>How often?</em> prompt asks for monthly, every 2 months, or quarterly. Copies land on the same day of those later months for about a year.</li>
                     <li><strong>Paid</strong> — mark whether the charge is settled or still pending.</li>
                     <li><strong>Notes</strong> — optional context (line items, invoice numbers, etc.).</li>
                   </ul>
@@ -398,14 +399,15 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Backups &amp; moving between devices</h3>
                   <p>
-                    Export is your manual backup. It produces an encrypted <code>.zip</code> containing
-                    <code>ledger.enc.json</code> (ciphertext), <code>ledger.key.json</code> (the decryption key),
-                    and a short <code>README.txt</code>.
+                    Export is your manual backup. It writes two files next to each other:
+                    an encrypted <code>.json</code> (ciphertext only — expenses and income in one ledger)
+                    and a <code>key.json</code>. OpenExpense never stores that portable key in the browser
+                    cache. Autosave still encrypts a copy in this browser with a separate, non-extractable device key.
                   </p>
                   <ol class="docs-list is-ordered">
-                    <li><strong>Export</strong> — download the encrypted zip from the calendar toolbar.</li>
-                    <li><strong>Split for safety</strong> — store the key file separately from the encrypted ledger; neither is useful alone.</li>
-                    <li><strong>Import</strong> — load the zip, or the two files in either order, on any device. Legacy plaintext <code>.json</code> exports still import.</li>
+                    <li><strong>Export</strong> — save the encrypted ledger, then save the matching key.json.</li>
+                    <li><strong>Keep the pair</strong> — the key unlocks only that ledger file (they share an id). Neither file is useful alone.</li>
+                    <li><strong>Import</strong> — open the encrypted <code>.json</code>; the app asks for <code>key.json</code>. Older zip backups still import. Unencrypted JSON is imported only after you confirm, then it lives encrypted here.</li>
                   </ol>
                   <p>
                     There is no cloud sync. Move backups manually — USB drive, encrypted cloud folder, or any method
@@ -416,8 +418,9 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Ledger format</h3>
                   <p>
-                    Inside the encrypted record, calendar dates are unique keys mapping to arrays of expense objects.
-                    This is the same shape used in exports (after decryption) and legacy imports:
+                    Inside the encrypted record, calendar dates map to arrays of expense and income objects
+                    (income uses <code>"kind": "income"</code>). After decryption this is the same shape
+                    as a legacy plaintext import:
                   </p>
                   <pre class="docs-code-block"><code>{
   "name": "GBA Expenses",
@@ -437,7 +440,7 @@
                   <h3 class="docs-section-title">Security notes</h3>
                   <ul class="docs-checklist">
                     <li><strong>Device-bound keys</strong> protect against casual inspection, not a compromised browser with full access.</li>
-                    <li><strong>Backup often</strong> — export your encrypted zip periodically.</li>
+                    <li><strong>Backup often</strong> — export the encrypted ledger.json and keep the matching key.json.</li>
                     <li><strong>Split sensitive sets</strong> — keep key and ciphertext apart when storing or sending.</li>
                     <li><strong>No syncing</strong> — move exports manually between computers.</li>
                   </ul>
@@ -461,6 +464,33 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Encrypted files</h3>
+                  <p>
+                    Export now saves an encrypted <strong>ledger.json</strong> (expenses and income in the same
+                    file) and a <strong>key.json</strong> next to it. When you open a ledger, the app asks for
+                    that key. The key is not saved in this browser — only in the file you download.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Income</h3>
+                  <p>
+                    Use the <strong>Expenses / Income</strong> switch on the right-hand card. The card flips like a
+                    coin. The calendar stays the same grid: expense pills stay indigo, income pills are green.
+                    Days with both use a split highlight. Log either type from a calendar day.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Recurring cadence</h3>
+                  <p>
+                    Recurring is no longer monthly-only. After you check <strong>Recurring</strong>, choose
+                    <strong>Monthly</strong>, <strong>Bi-monthly</strong> (every 2 months), or
+                    <strong>Quarterly</strong>. Older entries without a cadence still behave as monthly.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026</h3>
                   <p>
@@ -544,6 +574,7 @@
   </div>
 
   <input type="file" id="ledger-import-input" accept=".zip,.json,application/zip,application/json" hidden>
+  <input type="file" id="ledger-key-input" accept=".json,application/json" hidden>
   <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.webp,.pdf,application/pdf" hidden>
 
   <div id="global-tooltip"></div>

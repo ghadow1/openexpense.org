@@ -6,8 +6,18 @@
         "title": "Rent",
         "price": 1450,
         "recurring": true,
+        "repeat": "monthly",
         "paid": true,
         "note": "First of month"
+      },
+      {
+        "title": "Paycheck",
+        "price": 3200,
+        "recurring": true,
+        "repeat": "monthly",
+        "kind": "income",
+        "paid": true,
+        "note": "Direct deposit"
       }
     ],
     "2026-06-03": [
@@ -31,6 +41,7 @@
         "title": "Internet",
         "price": 70,
         "recurring": true,
+        "repeat": "monthly",
         "paid": true,
         "note": ""
       }
@@ -51,6 +62,16 @@
         "note": "Afternoon"
       }
     ],
+    "2026-06-15": [
+      {
+        "title": "Car insurance",
+        "price": 186,
+        "recurring": true,
+        "repeat": "quarterly",
+        "paid": true,
+        "note": "Every 3 months"
+      }
+    ],
     "2026-06-24": [
       {
         "title": "Phone",
@@ -65,6 +86,15 @@
         "title": "Rent",
         "price": 1450,
         "recurring": true,
+        "paid": true,
+        "note": ""
+      },
+      {
+        "title": "Paycheck",
+        "price": 3200,
+        "recurring": true,
+        "repeat": "monthly",
+        "kind": "income",
         "paid": true,
         "note": ""
       }

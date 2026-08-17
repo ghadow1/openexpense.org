@@ -1,10 +1,12 @@
 /**
  * OpenExpense — encrypted IndexedDB autosave
  *
- * Debounced writes of { name, events } into the `openexpense` database.
+ * Debounced writes of sanitized { name, events } into the `openexpense` database.
  * The device AES-GCM key lives in the `meta` store (see crypto.js).
+ * Portable key.json is never written here.
  */
 import { encryptJSON, decryptJSON, isEncrypted, cryptoAvailable } from './crypto.js';
+import { sanitizeLedger } from './ledger-file.js';
 
 const DB_NAME = 'openexpense';
 const DB_VERSION = 2;
@@ -97,10 +99,11 @@ export async function loadLedger() {
 
 export async function saveLedger(data) {
     try {
-        let record = data;
+        const cleaned = sanitizeLedger(data) || { name: '', events: {}, savedAt: Date.now() };
+        let record = cleaned;
         if (cryptoAvailable()) {
             try {
-                record = await encryptJSON(data);
+                record = await encryptJSON(cleaned);
             } catch (err) {
                 console.error('[OpenExpense] encryption failed, keeping data out of storage:', err);
                 return;
@@ -112,8 +115,11 @@ export async function saveLedger(data) {
     }
 }
 
+const LEDGER_PATCH_KEYS = new Set(['events', 'ledgerName', 'autosaveEnabled']);
+
 export function initPersist(store) {
-    store.subscribe(() => {
+    store.subscribe((partial) => {
+        if (partial && !Object.keys(partial).some((key) => LEDGER_PATCH_KEYS.has(key))) return;
         clearTimeout(saveTimer);
         if (!store.getState().autosaveEnabled) return;
         saveTimer = setTimeout(() => {

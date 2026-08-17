@@ -8,7 +8,16 @@ import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
 import { confirmDialog } from '../ui/confirm.js';
-import { countSeriesOccurrences, groupExpenses, normalizeTitle, removeSeriesOccurrences } from '../core/series.js';
+import {
+    REPEAT,
+    countSeriesOccurrences,
+    groupExpenses,
+    normalizeRepeat,
+    normalizeTitle,
+    removeSeriesOccurrences,
+    repeatLabel,
+    repeatMonths
+} from '../core/series.js';
 
 export function openModal(key) {
     patch({ selectedKey: key, editingIndex: null });
@@ -63,12 +72,13 @@ function refreshEventList() {
         }
 
         const wrap = document.createElement('section');
-        wrap.className = `expense-group${group.recurring ? ' is-recurring' : ''}`;
+        wrap.className = `expense-group${group.recurring ? ' is-recurring' : ''}${group.kind === 'income' ? ' is-income' : ''}`;
 
         const head = document.createElement('div');
         head.className = 'expense-group-head';
         const meta = [
-            group.recurring ? 'Recurring' : `${group.count} items`,
+            group.kind === 'income' ? 'Income' : null,
+            group.recurring ? repeatLabel(group.repeat) : (group.count > 1 ? `${group.count} items` : null),
             group.total > 0 ? Utils.formatMoney(group.total) : null
         ].filter(Boolean).join(' · ');
         head.innerHTML = `
@@ -104,6 +114,7 @@ function ensureAddForm(formContainer) {
     form.id = 'expense-add-form';
     form.onsubmit = (e) => { e.preventDefault(); addEvent(); };
 
+    form.appendChild(createKindPrompt('ek', getState().ledgerFace === 'income' ? 'income' : 'expense'));
     form.appendChild(UI.createFieldGroup('et', 'Title', '', 'e.g. Coffee, Zoom, Gas'));
 
     const splitRow = document.createElement('div');
@@ -129,6 +140,10 @@ function ensureAddForm(formContainer) {
     splitRow.appendChild(optWrap);
     form.appendChild(splitRow);
 
+    const repeatPrompt = createRepeatPrompt('er-repeat', 'monthly');
+    form.appendChild(repeatPrompt);
+    bindRepeatToggle(optWrap.querySelector('#er'), repeatPrompt);
+
     form.appendChild(UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea'));
 
     const act = document.createElement('div');
@@ -140,6 +155,8 @@ function ensureAddForm(formContainer) {
 
     formContainer.appendChild(form);
     addFormReady = true;
+    bindKindPrompt(form);
+    syncAddFormKind();
 }
 
 function resetAddForm() {
@@ -153,9 +170,14 @@ function resetAddForm() {
     if (en) en.value = '';
     if (er) er.checked = false;
     if (epad) epad.checked = false;
+    const monthly = document.querySelector('input[name="er-repeat"][value="monthly"]');
+    if (monthly) monthly.checked = true;
+    const prompt = document.getElementById('er-repeat-prompt');
+    if (prompt) prompt.hidden = true;
+    syncAddFormKind();
 }
 
-export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false }) {
+export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind } = {}) {
     const t = String(title ?? '').trim();
     if (!t || !dateKey) return false;
 
@@ -168,8 +190,11 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
         note: String(note ?? '').trim(),
         price: parsedPrice != null && !Number.isNaN(parsedPrice) ? parsedPrice : null,
         recurring: !!recurring,
-        paid: !!paid
+        paid: !!paid,
+        kind: Utils.entryKind({ kind })
     };
+    if (newEv.kind === 'expense') delete newEv.kind;
+    if (newEv.recurring) newEv.repeat = normalizeRepeat(repeat);
 
     const { events } = getState();
     const nextEvents = { ...events };
@@ -195,6 +220,7 @@ export function renderModal() {
 
     refreshEventList();
     ensureAddForm(document.getElementById('form-container'));
+    syncAddFormKind();
 
     const focusTitle = !document.activeElement?.closest('#form-container');
     if (focusTitle) {
@@ -221,10 +247,22 @@ function buildRow(e, i) {
         badge.textContent = `$${amt.toFixed(2)}`;
         titleRow.appendChild(badge);
     }
+    if (Utils.entryKind(e) === 'income') {
+        const kindBadge = document.createElement('span');
+        kindBadge.className = 'event-kind is-income';
+        kindBadge.textContent = 'Income';
+        titleRow.appendChild(kindBadge);
+    }
     if (e.recurring) {
         const rec = document.createElement('span'); rec.className = 'event-badge-icon';
         rec.innerHTML = '<i class="ti ti-refresh"></i>';
+        rec.title = repeatLabel(e.repeat);
+        rec.setAttribute('aria-label', repeatLabel(e.repeat));
         titleRow.appendChild(rec);
+        const cadence = document.createElement('span');
+        cadence.className = 'event-repeat';
+        cadence.textContent = repeatLabel(e.repeat, true);
+        titleRow.appendChild(cadence);
     }
     info.appendChild(titleRow);
 
@@ -259,6 +297,7 @@ function buildEditRow(e, i) {
 
     const form = document.createElement('div');
     form.className = 'form-grid form-grid--flush';
+    form.appendChild(createKindPrompt(`edit-kind-${i}`, Utils.entryKind(e)));
     form.appendChild(UI.createFieldGroup(`edit-title-${i}`, 'Title', e.title));
 
     const row2 = document.createElement('div');
@@ -286,12 +325,19 @@ function buildEditRow(e, i) {
     const paidWrap = document.createElement('label');
     paidWrap.className = 'cb-wrap';
     const paidCb = UI.createInput(`edit-paid-${i}`, e.paid, '', 'checkbox');
-    paidWrap.append(paidCb, Object.assign(document.createElement('span'), { textContent: 'Paid' }));
+    paidWrap.append(paidCb, Object.assign(document.createElement('span'), {
+        textContent: Utils.entryKind(e) === 'income' ? 'Received' : 'Paid'
+    }));
 
     optRow.append(recWrap, paidWrap);
     optWrap.appendChild(optRow);
     row2.appendChild(optWrap);
     form.appendChild(row2);
+
+    const editRepeat = createRepeatPrompt(`edit-repeat-${i}`, e.repeat);
+    editRepeat.hidden = !e.recurring;
+    bindRepeatToggle(recCb, editRepeat);
+    form.appendChild(editRepeat);
 
     form.appendChild(UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea'));
     wrap.appendChild(form);
@@ -317,18 +363,29 @@ function propagateRecurring(baseEvent, startKey) {
     const [y, m, d] = startKey.split('-').map(Number);
     const { events } = getState();
     const nextEvents = { ...events };
+    const step = repeatMonths(baseEvent.repeat);
+    const copies = Math.max(1, Math.floor(12 / step));
+    const cadence = normalizeRepeat(baseEvent.repeat);
 
-    for (let i = 1; i <= 12; i++) {
-        let nextM = m + i; let nextY = y;
-        if (nextM > 12) { nextY += Math.floor((nextM - 1) / 12); nextM = ((nextM - 1) % 12) + 1; }
+    for (let i = 1; i <= copies; i++) {
+        let nextM = m + (step * i);
+        let nextY = y;
+        if (nextM > 12) {
+            nextY += Math.floor((nextM - 1) / 12);
+            nextM = ((nextM - 1) % 12) + 1;
+        }
 
         const daysInNextMonth = new Date(nextY, nextM, 0).getDate();
         const nextD = Math.min(d, daysInNextMonth);
         const nextKey = `${nextY}-${Utils.pad(nextM)}-${Utils.pad(nextD)}`;
 
         if (!nextEvents[nextKey]) nextEvents[nextKey] = [];
-        const exists = nextEvents[nextKey].some(e => e.title === baseEvent.title && e.recurring === true);
-        if (!exists) nextEvents[nextKey].push({ ...baseEvent, paid: false });
+        const exists = nextEvents[nextKey].some((e) => (
+            e.title === baseEvent.title
+            && e.recurring === true
+            && normalizeRepeat(e.repeat) === cadence
+        ));
+        if (!exists) nextEvents[nextKey].push({ ...baseEvent, paid: false, repeat: cadence });
     }
 
     patch({ events: nextEvents });
@@ -342,8 +399,12 @@ function saveEdit(i) {
     const updatedEv = {
         title, note: document.getElementById(`edit-note-${i}`).value.trim(),
         price: price ? parseFloat(price) : null, recurring: isRecurring,
-        paid: document.getElementById(`edit-paid-${i}`).checked
+        paid: document.getElementById(`edit-paid-${i}`).checked,
+        kind: readKind(`edit-kind-${i}`)
     };
+    if (updatedEv.kind === 'expense') delete updatedEv.kind;
+    if (isRecurring) updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
+    else delete updatedEv.repeat;
 
     const { selectedKey, events } = getState();
     const nextEvents = { ...events };
@@ -390,7 +451,9 @@ async function deleteSeries(item) {
         const { selectedKey } = getState();
         const list = events[selectedKey] || [];
         const index = list.findIndex((entry) => entry === item || (
-            entry.recurring && normalizeTitle(entry.title) === normalizeTitle(item.title)
+            entry.recurring
+            && normalizeTitle(entry.title) === normalizeTitle(item.title)
+            && normalizeRepeat(entry.repeat) === normalizeRepeat(item.repeat)
         ));
         if (index >= 0) removeOneOccurrence(index);
     }
@@ -428,6 +491,91 @@ async function deleteEv(i) {
     if (row) { row.classList.add('is-removing'); setTimeout(go, 160); } else go();
 }
 
+function createKindPrompt(name, selected = 'expense') {
+    const current = selected === 'income' ? 'income' : 'expense';
+    const wrap = document.createElement('div');
+    wrap.className = 'kind-prompt';
+    wrap.innerHTML = `
+        <p class="repeat-prompt-label" id="${name}-label">Entry type</p>
+        <div class="repeat-prompt-options" role="radiogroup" aria-labelledby="${name}-label">
+            <label class="repeat-choice">
+                <input type="radio" name="${name}" value="expense"${current === 'expense' ? ' checked' : ''}>
+                <span>Expense</span>
+            </label>
+            <label class="repeat-choice">
+                <input type="radio" name="${name}" value="income"${current === 'income' ? ' checked' : ''}>
+                <span>Income</span>
+            </label>
+        </div>
+    `;
+    return wrap;
+}
+
+function readKind(name) {
+    return Utils.entryKind({ kind: document.querySelector(`input[name="${name}"]:checked`)?.value });
+}
+
+function bindKindPrompt(form) {
+    form.querySelectorAll('input[name="ek"]').forEach((input) => {
+        input.addEventListener('change', syncAddFormKind);
+    });
+}
+
+function syncAddFormKind() {
+    const form = document.getElementById('expense-add-form');
+    if (!form) return;
+    const selected = document.querySelector('input[name="ek"]:checked');
+    if (!selected) {
+        const face = getState().ledgerFace === 'income' ? 'income' : 'expense';
+        const radio = form.querySelector(`input[name="ek"][value="${face}"]`);
+        if (radio) radio.checked = true;
+    }
+    const kind = readKind('ek');
+    const income = kind === 'income';
+    const title = form.querySelector('#et');
+    if (title && !title.value) title.placeholder = income ? 'e.g. Paycheck, Refund' : 'e.g. Coffee, Zoom, Gas';
+    const costLabel = form.querySelector('label[for="ep"]');
+    if (costLabel) costLabel.textContent = income ? 'Amount' : 'Cost';
+    const paidSpan = form.querySelector('#epad')?.closest('label')?.querySelector('span');
+    if (paidSpan) paidSpan.textContent = income ? 'Received' : 'Paid';
+    const submit = form.querySelector('button[type="submit"] span') || form.querySelector('button[type="submit"]');
+    if (submit) {
+        if (submit.tagName === 'SPAN') submit.textContent = income ? 'Save income' : 'Save expense';
+        else if (!submit.querySelector('span')) submit.textContent = income ? 'Save income' : 'Save expense';
+    }
+}
+
+function createRepeatPrompt(name, selected = 'monthly') {
+    const current = normalizeRepeat(selected);
+    const wrap = document.createElement('div');
+    wrap.className = 'repeat-prompt';
+    wrap.id = `${name}-prompt`;
+    wrap.hidden = true;
+    wrap.innerHTML = `
+        <p class="repeat-prompt-label" id="${name}-label">How often?</p>
+        <div class="repeat-prompt-options" role="radiogroup" aria-labelledby="${name}-label">
+            ${Object.values(REPEAT).map((opt) => `
+                <label class="repeat-choice">
+                    <input type="radio" name="${name}" value="${opt.id}"${opt.id === current ? ' checked' : ''}>
+                    <span>${opt.short}</span>
+                </label>
+            `).join('')}
+        </div>
+    `;
+    return wrap;
+}
+
+function bindRepeatToggle(checkbox, prompt) {
+    if (!checkbox || !prompt) return;
+    const sync = () => { prompt.hidden = !checkbox.checked; };
+    checkbox.addEventListener('change', sync);
+    sync();
+}
+
+function readRepeat(name) {
+    return normalizeRepeat(document.querySelector(`input[name="${name}"]:checked`)?.value);
+}
+
 function addEvent() {
     const { selectedKey } = getState();
     if (!selectedKey) return;
@@ -438,7 +586,9 @@ function addEvent() {
         price: document.getElementById('ep')?.value,
         note: document.getElementById('en')?.value,
         recurring: document.getElementById('er')?.checked,
-        paid: document.getElementById('epad')?.checked
+        paid: document.getElementById('epad')?.checked,
+        repeat: readRepeat('er-repeat'),
+        kind: readKind('ek')
     });
     if (!ok) return;
 

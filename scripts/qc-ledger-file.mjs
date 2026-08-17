@@ -1,0 +1,124 @@
+/**
+ * Quality-control checks for encrypted ledger.json + key.json.
+ * Run: npm test
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+    sanitizeLedger, sanitizeEntry, validateEncFile, validateKeyFile,
+    kidsMatch, wipeKeyFile, classifyJson, countEntries, exportFilenames,
+    isValidDateKey, readJsonFile, FILE_LIMITS
+} from '../src/core/ledger-file.js';
+import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
+
+const sample = {
+    name: 'Home ledger',
+    events: {
+        '2026-06-01': [
+            { title: 'Rent', price: 1450, recurring: true, repeat: 'monthly', paid: true },
+            { title: 'Paycheck', price: 3200, kind: 'income', recurring: true, repeat: 'monthly', paid: true }
+        ],
+        '2026-02-31': [{ title: 'Impossible day', price: 1 }],
+        __proto__: [{ title: 'pollute', price: 1 }],
+        constructor: [{ title: 'nope', price: 1 }]
+    },
+    extra: 'drop-me'
+};
+
+test('one file keeps expense and income', () => {
+    const cleaned = sanitizeLedger(sample);
+    assert.equal(cleaned.name, 'Home ledger');
+    assert.equal(cleaned.events['2026-06-01'].length, 2);
+    assert.equal(cleaned.events['2026-06-01'][0].kind, undefined);
+    assert.equal(cleaned.events['2026-06-01'][1].kind, 'income');
+    assert.equal(countEntries(cleaned.events), 2);
+});
+
+test('sanitize drops invalid dates and prototype keys', () => {
+    const poisoned = { name: 'X', events: { '2026-06-01': [{ title: 'Ok', price: 1 }] } };
+    Object.defineProperty(poisoned.events, '__proto__', { value: [{ title: 'bad', price: 1 }], enumerable: true });
+    Object.defineProperty(poisoned.events, 'constructor', { value: [{ title: 'nope', price: 1 }], enumerable: true });
+    const cleaned = sanitizeLedger({ ...sample, events: { ...sample.events, ...poisoned.events } });
+    assert.equal(cleaned.events['2026-02-31'], undefined);
+    assert.equal(Object.hasOwn(cleaned.events, '__proto__'), false);
+    assert.equal(Object.hasOwn(cleaned.events, 'constructor'), false);
+    assert.equal(cleaned.events['2026-06-01'][0].title, 'Ok');
+});
+
+test('sanitizeEntry drops unknown fields and empty titles', () => {
+    assert.equal(sanitizeEntry({ title: '  ', price: 3 }), null);
+    const row = sanitizeEntry({
+        title: 'Coffee',
+        price: 4.5,
+        note: 'x'.repeat(5000),
+        kind: 'income',
+        paid: true,
+        evil: '<script>',
+        __proto__: { admin: true }
+    });
+    assert.equal(row.title, 'Coffee');
+    assert.equal(row.price, 4.5);
+    assert.equal(row.kind, 'income');
+    assert.equal(row.note.length, FILE_LIMITS.maxNote);
+    assert.equal(row.evil, undefined);
+});
+
+test('isValidDateKey rejects non-calendar days', () => {
+    assert.equal(isValidDateKey('2026-06-01'), true);
+    assert.equal(isValidDateKey('2026-02-31'), false);
+    assert.equal(isValidDateKey('__proto__'), false);
+});
+
+test('classifyJson recognizes enc, key, and plaintext', async () => {
+    const { enc, keyFile } = await encryptBundle({ name: 'A', events: { '2026-06-01': [{ title: 'X', price: 1 }] } });
+    assert.equal(classifyJson(enc), 'enc');
+    assert.equal(classifyJson(keyFile), 'key');
+    assert.equal(classifyJson({ name: 'A', events: { '2026-06-01': [] } }), 'plaintext');
+    assert.equal(classifyJson({ foo: 1 }), 'unknown');
+});
+
+test('encrypt / decrypt roundtrip reuses the same pair', async () => {
+    const payload = sanitizeLedger(sample);
+    const { enc, keyFile } = await encryptBundle(payload);
+    assert.equal(validateEncFile(enc).ok, true);
+    assert.equal(validateKeyFile(keyFile).ok, true);
+    assert.equal(kidsMatch(enc, keyFile), true);
+    const opened = sanitizeLedger(await decryptBundle(enc, keyFile));
+    assert.equal(opened.events['2026-06-01'][1].kind, 'income');
+    assert.equal(opened.events['2026-06-01'][0].title, 'Rent');
+});
+
+test('wrong key or mismatched kid is refused', async () => {
+    const a = await encryptBundle({ name: 'A', events: { '2026-06-01': [{ title: 'A', price: 1 }] } });
+    const b = await encryptBundle({ name: 'B', events: { '2026-06-01': [{ title: 'B', price: 2 }] } });
+    assert.equal(kidsMatch(a.enc, b.keyFile), false);
+    await assert.rejects(() => decryptBundle(a.enc, b.keyFile));
+});
+
+test('wipeKeyFile removes portable key material', async () => {
+    const { keyFile } = await encryptBundle({ name: 'A', events: {} });
+    assert.ok(keyFile.key.k.length > 10);
+    wipeKeyFile(keyFile);
+    assert.equal(keyFile.key.k, undefined);
+});
+
+test('export filenames are a sibling pair', () => {
+    const names = exportFilenames('Home ledger');
+    assert.match(names.ledger, /^Home ledger-\d{4}-\d{2}-\d{2}\.json$/);
+    assert.equal(names.key, names.ledger.replace(/\.json$/, '.key.json'));
+});
+
+test('readJsonFile rejects oversized and invalid files', async () => {
+    const huge = { size: FILE_LIMITS.maxBytes + 1, text: async () => '' };
+    const tooBig = await readJsonFile(huge);
+    assert.equal(tooBig.ok, false);
+
+    const bad = { size: 12, text: async () => 'not-json' };
+    const invalid = await readJsonFile(bad);
+    assert.equal(invalid.ok, false);
+
+    const okFile = { size: 20, text: async () => '{"format":"x"}' };
+    const parsed = await readJsonFile(okFile);
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.obj.format, 'x');
+});

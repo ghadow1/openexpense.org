@@ -12,6 +12,8 @@ export const Utils = {
         const match = e.note?.match(/\$(\d+\.?\d*)/);
         return match ? parseFloat(match[1]) : 0;
     },
+    /** Legacy entries without `kind` are expenses. */
+    entryKind: (e) => (e?.kind === 'income' ? 'income' : 'expense'),
     escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch])),
@@ -51,7 +53,10 @@ export const Utils = {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },
     filenameToLedgerName(filename) {
-        return Utils.sanitizeFilename(String(filename ?? '').replace(/\.(zip|json)$/i, ''));
+        return Utils.sanitizeFilename(String(filename ?? '')
+            .replace(/\.key\.json$/i, '')
+            .replace(/\.(enc\.)?json$/i, '')
+            .replace(/\.zip$/i, ''));
     },
     formatMoney(value) {
         return `$${Number(value || 0).toFixed(2)}`;

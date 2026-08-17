@@ -42,11 +42,11 @@ src/main.js         boot, event delegation, render subscription
 
 ## Persistence
 
-- **Autosave** (`persist.js` + `crypto.js`): encrypt `{ name, events }` with a device-scoped AES-256-GCM key and put it in IndexedDB database `openexpense`, store `ledger`, key `current`.
-- **Export** (`bundle.js` + `ledger.js`): new key per backup, zip of `ledger.enc.json` + `ledger.key.json` + `README.txt`.
-- **Import**: zip, the two files in either order, or legacy plaintext JSON.
+- **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
+- **Export** (`bundle.js` + `ledger.js` + `ledger-file.js`): new portable key per save. Writes encrypted `{name}.json` then `{name}.key.json`. The JWK is not cached. The same pair can be re-opened later; a later export mints a new pair.
+- **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy zip, or confirmed plaintext. `ledger-file.js` validates, decrypts, sanitizes, and is reused on boot.
 
-`localStorage` never holds expenses. It only stores `oe-theme`, `oe-autosave`, and `hasVisited`.
+`localStorage` never holds expenses or keys. It only stores `oe-theme`, `oe-autosave`, `hasVisited`, and the expense/income sidebar face.
 
 ## UI layers
 
@@ -55,13 +55,15 @@ src/main.js         boot, event delegation, render subscription
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
 | `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`) |
 | `features/modal.js` | Day editor; recurring series delete |
-| `features/sidebar.js` | Month math + PDF |
+| `features/sidebar.js` | Month math + PDF; expense/income coin-flip card |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 
 ## Recurring series
 
-`src/core/series.js` treats two expenses as the same series when both are `recurring` and their titles match after trim + lower-case. The day editor can remove every occurrence across the ledger.
+`src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step and can remove every occurrence across the ledger.
+
+The right-hand card flips between an expense face and an income face. The calendar stays one grid and paints income pills green.
 
 ## Receipts
 

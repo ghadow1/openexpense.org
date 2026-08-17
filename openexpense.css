@@ -130,6 +130,10 @@
     --modal-shadow: 0 28px 64px -16px rgba(15, 18, 28, 0.22), 0 0 0 1px rgba(15, 18, 28, 0.05);
     --success-bg: rgba(22, 163, 74, 0.12);
     --danger-bg-soft: rgba(185, 28, 28, 0.1);
+    --income: #059669;
+    --income-soft: rgba(5, 150, 105, 0.12);
+    --income-text: #047857;
+    --income-border: #6ee7b7;
 
     /* Documentation surfaces (light) */
     --docs-bg-pane: #ffffff;
@@ -190,6 +194,10 @@
     --modal-shadow: 0 32px 72px -18px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(255, 255, 255, 0.06);
     --success-bg: rgba(34, 197, 94, 0.14);
     --danger-bg-soft: rgba(248, 113, 113, 0.12);
+    --income: #34d399;
+    --income-soft: rgba(52, 211, 153, 0.14);
+    --income-text: #6ee7b7;
+    --income-border: #059669;
 
     --docs-bg-pane: #14161c;
     --docs-code-bg: #1c1f28;
@@ -898,6 +906,106 @@ textarea,
     contain-intrinsic-size: 420px;
 }
 
+.sidebar.has-flip {
+    content-visibility: visible;
+    contain: none;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ledger-switch {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: var(--radius-full);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+}
+
+.ledger-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+}
+
+.ledger-switch-btn.is-active {
+    background: var(--surface);
+    color: var(--text-strong);
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar.is-income .ledger-switch-btn[data-face="income"].is-active {
+    background: var(--income-soft);
+    color: var(--income-text);
+}
+
+.ledger-switch-coin {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #f8e7a0, #d4a017);
+    color: #7a5a00;
+    font-size: 14px;
+    transform: rotateY(0deg);
+    transition: transform 0.65s cubic-bezier(0.2, 0.75, 0.25, 1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.sidebar.is-income .ledger-switch-coin {
+    transform: rotateY(180deg);
+}
+
+.sidebar-flip {
+    perspective: 1400px;
+    perspective-origin: 50% 28%;
+}
+
+.sidebar-flip-inner {
+    display: grid;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(0.22, 0.7, 0.2, 1);
+    will-change: transform;
+}
+
+.sidebar.is-income .sidebar-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.sidebar-face {
+    grid-area: 1 / 1;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    min-width: 0;
+}
+
+.sidebar-face--income {
+    transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-flip-inner,
+    .ledger-switch-coin {
+        transition: none;
+    }
+}
+
 .sidebar-title {
     color: var(--text-strong);
     font-weight: 600;
@@ -1053,6 +1161,18 @@ textarea,
     background: color-mix(in srgb, var(--pill-bg) 35%, var(--day-bg));
 }
 
+.cal-day.has-income:not(.has-expense) {
+    background: color-mix(in srgb, var(--income-soft) 70%, var(--day-bg));
+}
+
+.cal-day.has-expense.has-income {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--pill-bg) 42%, var(--day-bg)) 0 48%,
+        color-mix(in srgb, var(--income-soft) 75%, var(--day-bg)) 52% 100%
+    );
+}
+
 .cal-day-body {
     flex: 1;
     min-height: 0;
@@ -1118,6 +1238,10 @@ textarea,
     border-radius: 50%;
     background: var(--accent);
     flex-shrink: 0;
+}
+
+.cal-day-dot.is-income {
+    background: var(--income);
 }
 
 .cal-day-dot.is-paid {
@@ -1221,6 +1345,20 @@ textarea,
 
 .pill.is-recurring {
     border-left-color: var(--accent);
+}
+
+.pill.is-income {
+    background: var(--income-soft);
+    color: var(--income-text);
+    border-left-color: var(--income);
+}
+
+.pill.is-income.is-recurring {
+    border-left-color: var(--income);
+}
+
+.pill.is-income:hover {
+    background: color-mix(in srgb, var(--income) 16%, var(--income-soft));
 }
 
 .pill:hover {
@@ -2194,6 +2332,11 @@ body:has(.backdrop.open) #global-tooltip {
     background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
 }
 
+.expense-group.is-income {
+    border-color: color-mix(in srgb, var(--income) 28%, var(--border));
+    background: color-mix(in srgb, var(--income-soft) 70%, var(--surface));
+}
+
 .expense-group-head {
     display: flex;
     align-items: flex-start;
@@ -2319,6 +2462,31 @@ body:has(.backdrop.open) #global-tooltip {
     font-size: 11px;
     display: flex;
     align-items: center;
+}
+
+.event-kind {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+}
+
+.event-kind.is-income {
+    background: var(--income-soft);
+    color: var(--income-text);
+    border: 1px solid var(--income-border);
+}
+
+.event-repeat {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: var(--accent-soft);
+    border: 1px solid var(--pill-border);
+    color: var(--pill-text);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
 }
 
 .row-actions {
@@ -2599,6 +2767,75 @@ body:has(.backdrop.open) #global-tooltip {
     color: var(--text-strong);
 }
 
+.kind-prompt,
+.repeat-prompt {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+}
+
+.repeat-prompt[hidden] {
+    display: none;
+}
+
+.repeat-prompt-label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text2);
+}
+
+.repeat-prompt-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.repeat-choice {
+    display: flex;
+    cursor: pointer;
+    user-select: none;
+}
+
+.repeat-choice input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.repeat-choice span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+    transition: background var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out);
+}
+
+.repeat-choice input:checked + span {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text-strong);
+}
+
+.repeat-choice input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
@@ -2663,6 +2900,18 @@ textarea:focus-visible {
     background: var(--success-bg);
     border-radius: 999px;
     padding: 2px 8px;
+}
+
+.summary-hero.is-income {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--income) 16%, var(--surface2)), var(--surface2) 68%);
+}
+
+.sidebar-face--income .sidebar-title i {
+    color: var(--income);
+}
+
+.sidebar-face--income .graph-bar.is-current {
+    background: var(--income);
 }
 
 .summary-hero-amount {

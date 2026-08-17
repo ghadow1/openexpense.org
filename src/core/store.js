@@ -14,7 +14,8 @@ const state = {
     autosaveEnabled: true,
     storageEncrypted: true,
     selectedKey: null,
-    editingIndex: null
+    editingIndex: null,
+    ledgerFace: 'expense'
 };
 
 const listeners = new Set();

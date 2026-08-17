@@ -1,8 +1,8 @@
 /**
- * OpenExpense — encrypted backup zip
+ * OpenExpense — portable encrypted ledger + key
  *
- * Packs ledger.enc.json + ledger.key.json + README.txt for Export.
- * Import accepts this zip, the two files separately, or legacy plaintext JSON.
+ * Export writes an encrypted .json and a matching key.json (never stored here).
+ * Older .zip backups still import. Device autosave uses crypto.js instead.
  */
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
@@ -14,6 +14,14 @@ export const BUNDLE = {
     KEY_FORMAT: 'openexpense-key',
     VERSION: 1
 };
+
+export function newKid() {
+    const bytes = new Uint8Array(16);
+    const c = globalThis.crypto;
+    if (!c) throw new Error('Web Crypto API unavailable');
+    c.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 function subtleCrypto() {
     const c = globalThis.crypto;
@@ -46,15 +54,23 @@ export async function encryptBundle(payload) {
     const ct = await c.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
     const jwk = await c.subtle.exportKey('jwk', key);
 
+    const kid = newKid();
     const enc = {
         format: BUNDLE.ENC_FORMAT,
         version: BUNDLE.VERSION,
         alg: 'AES-GCM',
+        kid,
         iv: abToBase64(iv.buffer),
         ct: abToBase64(ct),
         createdAt: Date.now()
     };
-    const keyFile = { format: BUNDLE.KEY_FORMAT, version: BUNDLE.VERSION, key: jwk };
+    const keyFile = {
+        format: BUNDLE.KEY_FORMAT,
+        version: BUNDLE.VERSION,
+        kid,
+        alg: 'AES-GCM',
+        key: jwk
+    };
     return { enc, keyFile };
 }
 
@@ -89,10 +105,11 @@ export function zipBundle(enc, keyFile) {
             '================================\n\n' +
             `${BUNDLE.ENC_NAME}  - your ledger, encrypted with AES-256-GCM.\n` +
             `${BUNDLE.KEY_NAME}  - the key needed to decrypt it.\n\n` +
-            'To restore: open openexpense.org and use Import, then select this .zip\n' +
-            '(or load the two files individually).\n\n' +
-            'Security tip: anyone with BOTH files can read your data. For sensitive\n' +
-            'backups, store or send the key file separately from the encrypted file.\n'
+            'To restore: open openexpense.org and use Import. Prefer the two JSON\n' +
+            'files saved next to each other (encrypted ledger.json + key.json).\n' +
+            'This zip is a legacy bundle of the same pair.\n\n' +
+            'The portable key is only in key.json. OpenExpense does not keep it\n' +
+            'in the browser. Anyone with BOTH files can read the ledger.\n'
         )
     };
     return zipSync(files, { level: 6 });

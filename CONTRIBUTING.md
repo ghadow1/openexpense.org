@@ -18,6 +18,7 @@ Please keep it that way. New features should work with the ledger already on the
 npm install
 npm run serve          # http://localhost:8765
 npm run build          # after any src/ change
+npm test               # ledger file QC (encrypt, sanitize, key wipe)
 ```
 
 ## Ground rules
@@ -26,7 +27,7 @@ npm run build          # after any src/ change
 - **No new pages or routes.** The product has two views: Expenses (`#view-app`) and Privacy & Help (`#view-docs`). Wire new UI into those shells.
 - **Do not edit `app.js` or `chunk-*.js` by hand.** Change `src/`, then `npm run build`.
 - **Leave live DOM ids alone** unless the change requires it: `#modal`, `#ledger-name-input`, `[data-action]`, `[data-view]`, `[data-tab]`.
-- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`. Treat those files as security-sensitive.
+- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.
 - **Match the existing style.** Vanilla ES modules, short module headers, design-system CSS classes instead of one-off inline colors.
 
 ## Suggested workflow
@@ -51,11 +52,13 @@ Export only what other modules import. Keep helpers file-private.
 
 ## Testing locally
 
-There is no automated test suite yet. Before you open a PR, click through:
+Run `npm test` for ledger-file quality control (one-file expense + income, encrypt/decrypt, kid mismatch, key wipe).
 
-- Add, edit, and delete an expense, including a recurring series.
+Before you open a PR, also click through:
+
+- Add, edit, and delete an expense and an income row, including a recurring series.
 - Toggle theme and autosave. Confirm the privacy and file-loaded chips update.
-- Export a zip, then import it in a fresh browser profile (or after clearing the site data).
+- Export — save the encrypted `.json`, then the sibling `key.json`. Import the ledger and choose that key. Confirm DevTools does not show the portable JWK in `localStorage` or IndexedDB.
 - If you touched OCR: scan a paper receipt photo, a screenshot, and a PDF if you can.
 
 ## Reporting issues

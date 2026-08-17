@@ -2,7 +2,8 @@
  * OpenExpense — AES-256-GCM at rest
  *
  * Generates a non-extractable device key and wraps ledger JSON for IndexedDB.
- * Used only by persist.js. Export/import uses bundle.js instead.
+ * That key cannot be exported as JWK and is not the user's key.json.
+ * Portable export keys live only in a downloaded key.json (see bundle.js).
  */
 import { metaGet, metaPut } from './persist.js';
 
