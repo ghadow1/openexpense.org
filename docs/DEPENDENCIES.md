@@ -8,8 +8,7 @@ OpenExpense’s ledger path is local. Some **engines and fonts** load from publi
 | --- | --- |
 | [esbuild](https://esbuild.github.io/) | Dev-time bundler (`npm run build`) |
 | [fflate](https://github.com/101arrowz/fflate) | Export/import zip |
-| [jspdf](https://github.com/parallax/jsPDF) | Monthly summary PDF |
-| [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | PDF tables |
+| [jspdf](https://github.com/parallax/jsPDF) | Brochure monthly PDF |
 
 ## Loaded by `index.html`
 

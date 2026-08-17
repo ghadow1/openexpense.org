@@ -55,7 +55,7 @@ src/main.js         boot, event delegation, render subscription
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
 | `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`) |
 | `features/modal.js` | Day editor; recurring series delete |
-| `features/sidebar.js` | Month math + PDF; expense/income coin-flip card |
+| `features/sidebar.js` | Month math + brochure PDF; expense/income coin-flip card |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 

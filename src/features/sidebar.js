@@ -40,7 +40,7 @@ const FACE_COPY = {
         emptyHint: 'Tap a calendar day and save an income entry.',
         emptyIcon: 'coin',
         top: 'Top sources',
-        pdfLabel: '',
+        pdfLabel: 'Download income report',
         paid: 'Received',
         pending: 'Expected',
         settled: 'received',
@@ -56,8 +56,10 @@ async function downloadSummaryPdf() {
     if (downloadSummaryPdf._busy) return;
     downloadSummaryPdf._busy = true;
 
-    const { currentDate, events, ledgerName, isDark } = getState();
-    const summary = computeMonthlySummary(events, currentDate);
+    const { currentDate, events, ledgerName, isDark, ledgerFace } = getState();
+    const kind = ledgerFace === 'income' ? 'income' : 'expense';
+    const summary = computeMonthlySummary(events, currentDate, kind);
+    const reportName = kind === 'income' ? 'Monthly income report' : 'Monthly spending report';
 
     try {
         const { exportMonthlySummaryPdf } = await import('../core/summary-pdf.js');
@@ -65,14 +67,13 @@ async function downloadSummaryPdf() {
         const result = await Ledger.saveBlob(
             blob,
             filename,
-            'Monthly spending report',
+            reportName,
             { 'application/pdf': ['.pdf'] }
         );
         if (result !== 'abort') {
-            Toast.show(
-                summary.itemCount ? 'Spending report PDF downloaded.' : 'Empty spending report PDF downloaded.',
-                'success'
-            );
+            const empty = kind === 'income' ? 'Empty income report PDF downloaded.' : 'Empty spending report PDF downloaded.';
+            const ready = kind === 'income' ? 'Income report PDF downloaded.' : 'Spending report PDF downloaded.';
+            Toast.show(summary.itemCount ? ready : empty, 'success');
         }
     } catch (err) {
         console.error('[OpenExpense] PDF export failed:', err);
@@ -306,13 +307,11 @@ function paintFace(faceEl, kind) {
     title.innerHTML = `<i class="ti ti-${copy.icon}" aria-hidden="true"></i> ${copy.title} <span class="sidebar-month">${summary.shortMonth} ${summary.year}</span>`;
     header.appendChild(title);
 
-    if (kind === 'expense') {
-        const pdfBtn = UI.createButton('', () => { downloadSummaryPdf(); }, { icon: 'file-type-pdf', iconOnly: true });
-        pdfBtn.classList.add('sidebar-print-btn');
-        pdfBtn.setAttribute('aria-label', copy.pdfLabel);
-        pdfBtn.title = copy.pdfLabel;
-        header.appendChild(pdfBtn);
-    }
+    const pdfBtn = UI.createButton('', () => { downloadSummaryPdf(); }, { icon: 'file-type-pdf', iconOnly: true });
+    pdfBtn.classList.add('sidebar-print-btn');
+    pdfBtn.setAttribute('aria-label', copy.pdfLabel);
+    pdfBtn.title = copy.pdfLabel;
+    header.appendChild(pdfBtn);
 
     faceEl.appendChild(header);
     faceEl.appendChild(renderHero(summary, copy));

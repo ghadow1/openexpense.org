@@ -27,6 +27,7 @@ function collectMonthItems(events, y, m, kind = 'expense') {
                 index,
                 paid: !!e.paid,
                 recurring: !!e.recurring,
+                repeat: e.recurring ? (e.repeat || 'monthly') : null,
                 note: e.note || '',
                 kind
             });
@@ -109,6 +110,36 @@ function largestItem(items) {
     return items.reduce((best, item) => (item.amount > best.amount ? item : best), items[0]);
 }
 
+function dailyTotals(items, y, m, daysInMonth) {
+    const byDate = new Map();
+    items.forEach(item => {
+        const prev = byDate.get(item.date) || { amount: 0, count: 0 };
+        prev.amount += item.amount;
+        prev.count += 1;
+        byDate.set(item.date, prev);
+    });
+
+    const days = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+        const date = `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`;
+        const row = byDate.get(date) || { amount: 0, count: 0 };
+        days.push({ day: d, date, amount: row.amount, count: row.count });
+    }
+    return days;
+}
+
+function weekdayTotals(items) {
+    const totals = new Array(7).fill(0);
+    const counts = new Array(7).fill(0);
+    items.forEach(item => {
+        const [yy, mm, dd] = item.date.split('-').map(Number);
+        const wd = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
+        totals[wd] += item.amount;
+        counts[wd] += 1;
+    });
+    return { totals, counts };
+}
+
 export function computeMonthlySummary(events, currentDate, kind = 'expense') {
     const face = kind === 'income' ? 'income' : 'expense';
     const y = currentDate.getFullYear();
@@ -151,6 +182,9 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense') {
         avgPerDay: stats.activeDays ? stats.total / stats.activeDays : 0,
         largest: largestItem(items),
         topMerchants: stats.byTitle.slice(0, 4),
+        allMerchants: stats.byTitle,
+        dailyTotals: dailyTotals(items, y, m, daysInMonth),
+        weekdayTotals: weekdayTotals(items),
         prevMonthTotal: actualPrevTotal,
         monthDelta: deltaPercent(stats.total, actualPrevTotal),
         monthTotals,

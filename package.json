@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.8"
+    "jspdf": "^4.2.1"
   }
 }

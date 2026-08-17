@@ -66,6 +66,50 @@ test('monthly summary splits expense and income paths', () => {
     assert.ok(income.allItems.every((item) => item.kind === 'income'));
 });
 
+test('monthly summary includes a full-month daily breakdown', () => {
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(ledger.events, date, 'expense');
+    assert.equal(spend.daysInMonth, 31);
+    assert.equal(spend.dailyTotals.length, 31);
+    const day17 = spend.dailyTotals.find((d) => d.date === '2026-08-17');
+    const day24 = spend.dailyTotals.find((d) => d.date === '2026-08-24');
+    assert.equal(day17.amount, 1455);
+    assert.equal(day17.count, 2);
+    assert.equal(day24.amount, 5);
+    assert.equal(spend.dailyTotals.filter((d) => d.amount === 0).length, 29);
+    assert.ok(spend.allMerchants.some((m) => m.title === 'Rent' && m.amount === 1450));
+    assert.equal(spend.weekdayTotals.totals[1], 1460);
+    assert.equal(spend.weekdayTotals.totals[0], 0);
+});
+
+test('PDF text sanitizer keeps latin and drops diamond markers', async () => {
+    const { safePdfText } = await import('../src/core/pdf-theme.js');
+    assert.equal(safePdfText('August ◆'), 'August ');
+    assert.equal(safePdfText('Paid — pending'), 'Paid - pending');
+    assert.equal(safePdfText('Coffee ×2'), 'Coffee x2');
+});
+
+test('brochure PDF builds for the viewed month', async () => {
+    const { exportMonthlySummaryPdf } = await import('../src/core/summary-pdf.js');
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(ledger.events, date, 'expense');
+    const { blob, filename } = await exportMonthlySummaryPdf({
+        summary: spend,
+        ledgerName: 'QC household',
+        isDark: false
+    });
+    assert.match(filename, /august-2026-spending-report\.pdf$/);
+    assert.ok(blob.size > 2000);
+    const income = computeMonthlySummary(ledger.events, date, 'income');
+    const incomePdf = await exportMonthlySummaryPdf({
+        summary: income,
+        ledgerName: 'QC household',
+        isDark: true
+    });
+    assert.match(incomePdf.filename, /income-report\.pdf$/);
+    assert.ok(incomePdf.blob.size > 2000);
+});
+
 test('weekly copies stay on the weekday for both kinds', () => {
     assert.equal(seriesCopyCount('weekly'), 52);
     assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 1), '2026-08-24');
