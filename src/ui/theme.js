@@ -26,9 +26,9 @@ export function applyTheme() {
         const meta = document.createElement('meta');
         meta.name = 'theme-color';
         document.head.appendChild(meta);
-        meta.content = c.bg;
+        meta.content = c.header || c.bg;
     } else {
-        metas.forEach((meta) => { meta.content = c.bg; });
+        metas.forEach((meta) => { meta.content = c.header || c.bg; });
     }
 }
 
