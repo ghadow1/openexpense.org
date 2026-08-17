@@ -126,8 +126,9 @@ function ensureShell(calCol) {
     const exportBtn = UI.createButton('Export', () => Ledger.export(), { icon: 'download', iconOnly: true });
     exportBtn.id = 'cal-export-btn';
     Ledger.bindFolderGesture(exportBtn);
-    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', danger: true, iconOnly: true });
-    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', accent: true, iconOnly: true });
+    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', iconOnly: true });
+    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', iconOnly: true });
+    clearBtn.classList.add('toolbar-clear-btn');
     scanBtn.classList.add('toolbar-scan-btn');
     importBtn.setAttribute('data-lockable', '');
     exportBtn.setAttribute('data-lockable', '');

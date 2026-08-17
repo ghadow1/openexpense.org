@@ -119,14 +119,18 @@ function renderHero(summary, copy) {
 
 function renderProgress(summary, copy) {
     const wrap = el('section', 'summary-progress');
+    const paidFlex = summary.paid > 0 ? summary.paid : 0;
+    const pendingFlex = summary.pending > 0 ? summary.pending : 0;
+    const empty = paidFlex === 0 && pendingFlex === 0;
     wrap.innerHTML = `
         <div class="summary-progress-head">
             <span>${copy.paid} vs ${copy.pending.toLowerCase()}</span>
             <span class="summary-progress-pct">${summary.total ? `${Math.round(summary.pctPaid)}% ${copy.settled}` : '—'}</span>
         </div>
         <div class="budget-bar" role="img" aria-label="${copy.paid} ${Utils.formatMoney(summary.paid)}, ${copy.pending.toLowerCase()} ${Utils.formatMoney(summary.pending)}">
-            <div class="budget-fill-paid" style="width:${summary.pctPaid}%"></div>
-            <div class="budget-fill-pending" style="width:${summary.pctPending}%"></div>
+            ${empty
+                ? '<span class="budget-fill-empty"></span>'
+                : `<span class="budget-fill-paid" style="flex:${paidFlex}"></span><span class="budget-fill-pending" style="flex:${pendingFlex}"></span>`}
         </div>
         <div class="summary-progress-legend">
             <span><i class="legend-dot is-paid"></i>${copy.paid} <strong>${Utils.formatMoney(summary.paid)}</strong></span>
@@ -139,7 +143,10 @@ function renderProgress(summary, copy) {
 function renderStatsGrid(summary, copy) {
     const grid = el('div', 'summary-stats-grid');
 
-    const deltaTone = summary.monthDelta > 0 ? 'up' : summary.monthDelta < 0 ? 'down' : '';
+    const spendUp = summary.monthDelta > 0;
+    const deltaTone = summary.kind === 'income'
+        ? (spendUp ? 'up' : '')
+        : (summary.monthDelta < 0 ? 'up' : '');
     const deltaHint = summary.prevMonthTotal > 0 || summary.total > 0
         ? `${formatDelta(summary.monthDelta)} vs last month`
         : 'No prior month data';
@@ -207,30 +214,38 @@ function renderYearChart(summary, currentDate, copy) {
     section.appendChild(cards);
 
     const maxMonth = Math.max(...summary.monthTotals, 1);
-    const graphWrap = el('div', 'mini-graph');
-    graphWrap.setAttribute('role', 'group');
-    graphWrap.setAttribute('aria-label', `${summary.year} ${copy.yearAria}`);
+    const plot = el('div', 'year-chart');
+    plot.setAttribute('role', 'group');
+    plot.setAttribute('aria-label', `${summary.year} ${copy.yearAria}`);
 
     summary.monthTotals.forEach((amt, i) => {
-        const bar = el('div', 'graph-bar');
+        const col = el('button', 'year-chart-col');
+        col.type = 'button';
         const isCur = i === currentDate.getMonth();
-        bar.style.height = `${Math.max((amt / maxMonth) * 100, amt > 0 ? 10 : 4)}%`;
-        bar.classList.toggle('is-current', isCur);
-        bar.dataset.month = String(i);
+        col.classList.toggle('is-current', isCur);
+        col.classList.toggle('is-hot', amt > 0);
+        col.dataset.month = String(i);
 
         const monthName = new Date(summary.year, i).toLocaleString('default', { month: 'short' });
-        bar.setAttribute('aria-label', `${monthName}: ${Utils.formatMoney(amt)}`);
-        Utils.bindTooltip(bar, `${monthName}: ${Utils.formatMoney(amt)}`);
+        col.setAttribute('aria-label', `${monthName}: ${Utils.formatMoney(amt)}`);
+        Utils.bindTooltip(col, `${monthName}: ${Utils.formatMoney(amt)}`);
 
-        bar.onclick = () => {
+        const fill = el('span', 'year-chart-fill');
+        const pct = amt > 0 ? Math.max(12, (amt / maxMonth) * 100) : 4;
+        fill.style.height = `${pct}%`;
+
+        const label = el('span', 'year-chart-label');
+        label.textContent = monthName.slice(0, 1);
+
+        col.append(fill, label);
+        col.onclick = () => {
             patch({ currentDate: new Date(summary.year, i, 1) });
             if (getState().selectedKey) closeModal();
         };
-
-        graphWrap.appendChild(bar);
+        plot.appendChild(col);
     });
 
-    section.appendChild(graphWrap);
+    section.appendChild(plot);
     return section;
 }
 

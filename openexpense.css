@@ -1376,17 +1376,20 @@ html.is-action-busy [data-lockable] {
     height: 28px;
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #f8e7a0, #d4a017);
-    color: #7a5a00;
+    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--header) 40%, var(--border));
+    background: var(--header);
+    color: var(--header-text);
     font-size: 14px;
     transform: rotateY(0deg);
     transition: transform 0.65s cubic-bezier(0.2, 0.75, 0.25, 1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .sidebar.is-income .ledger-switch-coin {
     transform: rotateY(180deg);
+    background: var(--income);
+    border-color: var(--income);
+    color: #fff;
 }
 
 .sidebar-flip {
@@ -3730,20 +3733,21 @@ textarea:focus-visible {
     letter-spacing: 0.05em;
     color: var(--success);
     background: var(--success-bg);
-    border-radius: 999px;
+    border-radius: var(--radius-sm);
     padding: 2px 8px;
 }
 
 .summary-hero.is-income {
-    background: #064e3b;
+    background: var(--header);
 }
 
 .sidebar-face--income .sidebar-title i {
     color: var(--income);
 }
 
-.sidebar-face--income .graph-bar.is-current {
+.sidebar-face--income .year-chart-col.is-current .year-chart-fill {
     background: var(--income);
+    border-color: var(--income);
 }
 
 .summary-hero-amount {
@@ -3848,18 +3852,11 @@ textarea:focus-visible {
 }
 
 .summary-stat {
-    background: var(--surface2);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 10px 12px;
     min-width: 0;
-    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
-}
-
-.summary-stat:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--border-strong);
 }
 
 .summary-stat-label {
@@ -3898,17 +3895,18 @@ textarea:focus-visible {
     text-overflow: ellipsis;
 }
 
-.summary-stat.is-up .summary-stat-value {
-    color: var(--danger-text);
+.summary-stat.is-up {
+    background: color-mix(in srgb, var(--income) 7%, var(--surface));
+    border-color: color-mix(in srgb, var(--income) 22%, var(--border));
 }
 
-.summary-stat.is-down .summary-stat-value {
-    color: var(--success);
+.summary-stat.is-up .summary-stat-value {
+    color: var(--income);
 }
 
 .summary-stat.is-accent {
-    background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
-    border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
 }
 
 .summary-merchant-list {
@@ -4081,62 +4079,95 @@ textarea:focus-visible {
 }
 
 .budget-bar {
-    height: 8px;
+    height: 12px;
     width: 100%;
-    background: var(--border);
-    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 0;
     overflow: hidden;
     display: flex;
-    margin-top: 12px;
+    margin-top: 10px;
+}
+
+.budget-fill-paid,
+.budget-fill-pending,
+.budget-fill-empty {
+    height: 100%;
+    min-width: 0;
 }
 
 .budget-fill-paid {
-    background: var(--success);
-    height: 100%;
-    transition: width 0.2s ease;
+    background: var(--income);
 }
 
 .budget-fill-pending {
     background: var(--accent);
-    height: 100%;
-    transition: width 0.2s ease;
 }
 
-.mini-graph {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 48px;
-    padding-top: 8px;
-    border-bottom: 1px solid var(--border);
+.budget-fill-empty {
+    flex: 1;
+    background: var(--surface2);
+}
+
+.year-chart {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 3px;
+    height: 108px;
     margin-top: 8px;
 }
 
-.graph-bar {
-    flex: 1;
-    border-radius: 3px 3px 0 0;
-    transition:
-        background var(--dur-fast) var(--ease-out),
-        opacity var(--dur-fast) var(--ease-out),
-        height var(--dur-med) var(--ease-out),
-        transform var(--dur-fast) var(--ease-out);
+.year-chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    height: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
     cursor: pointer;
-    will-change: height;
-    background: var(--border-strong);
-    opacity: 0.45;
-    min-height: 4px;
+    color: inherit;
 }
 
-.graph-bar.is-current {
+.year-chart-fill {
+    width: 100%;
+    max-width: 16px;
+    min-height: 3px;
+    background: color-mix(in srgb, var(--border-strong) 55%, var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.year-chart-col.is-hot .year-chart-fill {
+    background: color-mix(in srgb, var(--income) 42%, var(--surface));
+    border-color: color-mix(in srgb, var(--income) 28%, var(--border));
+}
+
+.year-chart-col.is-current .year-chart-fill {
     background: var(--accent);
-    opacity: 1;
+    border-color: var(--accent);
 }
 
-.graph-bar:hover {
-    opacity: 1 !important;
-    filter: brightness(1.08);
-    transform: scaleY(1.04);
-    transform-origin: bottom;
+.year-chart-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.year-chart-col.is-current .year-chart-label {
+    color: var(--accent);
+}
+
+.year-chart-col:focus-visible .year-chart-fill,
+.year-chart-col:hover .year-chart-fill {
+    border-color: var(--border-strong);
 }
 
 /* ==========================================================================
@@ -4568,6 +4599,13 @@ html.oe-scroll-lock body {
     min-height: var(--control);
 }
 
+.toolbar-clear-btn:hover,
+.toolbar-clear-btn:focus-visible {
+    color: var(--danger-text);
+    border-color: var(--danger-border);
+    background: var(--danger-bg);
+}
+
 /* ==========================================================================
    Responsive: tablet
    ========================================================================== */
@@ -4584,6 +4622,10 @@ html.oe-scroll-lock body {
     .dash-chip,
     .dash-chip.is-track {
         grid-column: auto;
+    }
+
+    .dash-chip.is-track:last-child {
+        grid-column: 1 / -1;
     }
 
     .dash-act {
@@ -4730,6 +4772,21 @@ html.oe-scroll-lock body {
         min-width: 0;
     }
 
+    .year-chart {
+        height: 92px;
+        gap: 2px;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    .toolbar-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
     .dash-center,
     .sidebar {
         width: 100%;
@@ -4745,6 +4802,10 @@ html.oe-scroll-lock body {
     .dash-chip,
     .dash-chip.is-track {
         grid-column: auto;
+    }
+
+    .dash-chip.is-track:last-child {
+        grid-column: 1 / -1;
     }
 
     .dash-chip {
@@ -4873,7 +4934,7 @@ html.oe-scroll-lock body {
 
     .cal-day {
         padding: 3px 2px;
-        border-radius: 5px;
+        border-radius: 0;
         gap: 1px;
     }
 

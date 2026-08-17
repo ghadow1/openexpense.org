@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Sidebar chart and mobile chrome
+
+The year overview is a labeled 12-month column chart. Paid vs pending is a two-block track. Insight cards match the green snapshot blocks. Calendar toolbar icons share one square style (clear only turns red on hover). On a phone, Saved spans the full second row.
+
 ## 2026-08-17 — Snapshot bar uses one family of blocks
 
 Due soon, left to pay, and saved now use the same green-block cards as current funds and cashflow — equal width on the second row, not skinny red pills. Amounts still due stay navy; only a negative net uses the red figure.
