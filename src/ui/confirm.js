@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — confirm dialog
+ *
+ * Promise-based modal. Returns { confirmed, checked } so callers can offer
+ * an extra checkbox (for example, remove all recurring copies).
+ */
 import { Utils } from '../core/utils.js';
 
 let backdropEl = null;

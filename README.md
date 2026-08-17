@@ -2,73 +2,96 @@
 
 **A privacy-first, offline-only expense tracker. Your data never leaves your browser.**
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-2.1.0-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-2.1.0-blue)](src/config.js)
+
+OpenExpense is a static web app. There is no backend, no account, and no analytics. The ledger lives encrypted in this browser’s IndexedDB. Export writes an encrypted zip you can keep or move yourself.
 
 ## Quick start
 
 ```bash
-# Start the local dev server (http://localhost:8765)
+npm install
 npm run serve
+```
 
-# Kill the dev server when you're done
-pkill -f "http.server 8765"
+Open [http://localhost:8765](http://localhost:8765). Use the local server — do not open `index.html` as a `file://` page. Encryption needs a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) (`https:` or `localhost`).
 
-# Rebuild app.js after editing anything in src/
+After you edit anything under `src/`:
+
+```bash
 npm run build
 ```
 
-Then open http://localhost:8765 in your browser. (Open it through the server, not by double-clicking `index.html` — encryption needs a secure context.)
+GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no CI build step, so rebuild and commit those bundles with your source change.
 
 ## Features
 
-- **Zero servers** — no backend, no database, no third-party calls.
-- **Encrypted local autosave** — every change is automatically saved to your browser's storage, encrypted with AES-256-GCM. The key is generated on-device and never leaves the browser. Autosave can be paused from the header for an ephemeral, nothing-written session.
-- **Encrypted export** — Export is the manual save: it produces a `.zip` containing your encrypted ledger plus the key to decrypt it. Import reads the zip (or the two files separately).
-- **Receipt scanning** — client-side OCR (PP-OCRv5); images never leave your device.
-- **Cross-platform** — responsive layout with desktop save-picker and mobile share fallbacks.
+- **Zero servers** — no API, no database you do not control, no third-party ledger calls.
+- **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
+- **Encrypted export** — a `.zip` with ciphertext plus the key file. Import accepts the zip, the two files separately, or a legacy plaintext `.json`.
+- **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
+- **Recurring series** — same-title payments group in the day editor; you can remove every copy at once.
+- **Monthly summary PDF** — generated locally with jsPDF.
 
-## How it works
-
-OpenExpense is ES modules under `src/`, bundled into a single `app.js` that `index.html` loads. There's no build step on GitHub Pages — commit the rebuilt `app.js`.
+## Repository map
 
 ```
-src/
-├── config.js          # CONFIG, DAYS, STORAGE_KEYS, THEMES
-├── main.js            # Bootstrap + store subscription
-├── core/
-│   ├── store.js       # Central state: getState(), patch(), subscribe()
-│   ├── persist.js     # Encrypted IndexedDB auto-save/load
-│   ├── crypto.js      # AES-256-GCM device key (at rest)
-│   ├── bundle.js      # Encrypted .zip export/import
-│   └── utils.js
-├── ui/                # components, theme, toast
-├── features/          # calendar, ledger (autosave + export/import), modal, receipt, sidebar
-└── app/               # render orchestration, view switching
-app.js                 # Bundled entry (rebuild with `npm run build`)
+src/                   # Application source (edit here)
+  main.js              # Bootstrap
+  config.js            # Version, preference keys, theme tokens
+  app/                 # Render loop and the two top-level views
+  core/                # Store, persist, crypto, export zip, summary, series
+  features/            # Calendar, day editor, ledger files, receipts, sidebar
+  ui/                  # Buttons, theme, toasts, confirm dialog
+docs/                  # Architecture, data format, sample ledger
+index.html             # Shell: header, two views, welcome, day modal
+openexpense.css        # Design tokens and layout
+app.js + chunk-*.js    # esbuild output for GitHub Pages — do not edit by hand
+icons/                 # Graphic mark (no wordmark in the header)
 ```
 
-UI actions call `patch()` on the store; a subscriber re-renders and `persist.js` saves (encrypted, debounced) to IndexedDB.
+A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Data format
 
-Calendar dates map to expense records. This is the shape used in exports and inside the encrypted record.
+Dates are `YYYY-MM-DD` keys. Each day is an array of expenses:
 
 ```json
 {
-  "name": "GBA Expenses",
+  "name": "Home ledger",
   "events": {
     "2026-06-03": [
-      { "title": "API Hosting", "price": 49.99, "recurring": true }
+      { "title": "Transit pass", "price": 49.99, "recurring": true, "paid": true, "note": "" }
     ]
   }
 }
 ```
 
-## Encryption & storage
+Full field notes and the encrypted zip layout are in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in [`docs/examples/sample-ledger.json`](docs/examples/sample-ledger.json).
 
-- **Autosave = encrypted local storage.** Changes are debounced and written to the `openexpense` IndexedDB (v2), encrypted with AES-256-GCM. No files are involved — autosave never touches the disk as plaintext. It's on by default; the header disk button pauses it (changes then stay in memory only until re-enabled).
-- The AES-GCM key is stored **non-extractable**, so its raw bytes can't be read back — even from devtools.
-- Only non-sensitive UI prefs (theme, autosave on/off, first-visit) use `localStorage`. The ledger name and entries never do.
-- **Export** is an encrypted `.zip` (via [`fflate`](https://github.com/101arrowz/fflate)) with `ledger.enc.json` (ciphertext) + `ledger.key.json` (the key) + `README.txt`. Anyone with both files can decrypt — for sensitive backups, store or send them separately.
-- **Import** auto-detects: a full zip, a key and encrypted file loaded separately (in any order), or a legacy plaintext `.json`.
+## Encryption and storage
+
+| What | Where | Encrypted |
+| --- | --- | --- |
+| Ledger name and expenses | IndexedDB `openexpense` | AES-256-GCM when Web Crypto is available |
+| Device key | IndexedDB `meta` store | Non-extractable `CryptoKey` |
+| Theme, autosave on/off, first-visit | `localStorage` | No — these are UI prefs only |
+| Manual backup | `.zip` you download | Yes — `ledger.enc.json` + `ledger.key.json` |
+
+Anyone who has **both** zip members can decrypt that backup. Store them separately if the ledger is sensitive.
+
+OCR models and fonts load from jsDelivr on first use. That traffic is engine files, not your expenses. See [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+
+## Contributing
+
+Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
+
+- Keep the app offline-only. Do not add a backend or phone-home.
+- Do not change `#view-app` / `#view-docs` navigation or encryption behavior without discussion.
+- Rebuild `app.js` after `src/` edits.
+
+Security reports: [`SECURITY.md`](SECURITY.md). Conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE) © 2026 ghadow

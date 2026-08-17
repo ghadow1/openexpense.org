@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — AES-256-GCM at rest
+ *
+ * Generates a non-extractable device key and wraps ledger JSON for IndexedDB.
+ * Used only by persist.js. Export/import uses bundle.js instead.
+ */
 import { metaGet, metaPut } from './persist.js';
 
 const KEY_ID = 'ledger-key-v1';
@@ -33,7 +39,7 @@ async function loadOrCreateKey() {
     return key;
 }
 
-export function getCryptoKey() {
+function getCryptoKey() {
     if (!keyPromise) {
         keyPromise = loadOrCreateKey().catch((err) => {
             keyPromise = null;

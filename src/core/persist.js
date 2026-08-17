@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — encrypted IndexedDB autosave
+ *
+ * Debounced writes of { name, events } into the `openexpense` database.
+ * The device AES-GCM key lives in the `meta` store (see crypto.js).
+ */
 import { encryptJSON, decryptJSON, isEncrypted, cryptoAvailable } from './crypto.js';
 
 const DB_NAME = 'openexpense';
@@ -9,7 +15,7 @@ const KEY = 'current';
 let saveTimer = null;
 let dbPromise = null;
 
-export function openDb() {
+function openDb() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);

@@ -1,3 +1,8 @@
+/**
+ * OpenExpense — toast notifications
+ *
+ * Short status messages stacked at the bottom of the viewport.
+ */
 import { Utils } from '../core/utils.js';
 
 export const Toast = {

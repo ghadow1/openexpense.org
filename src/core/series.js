@@ -1,10 +1,16 @@
+/**
+ * OpenExpense — recurring expense series
+ *
+ * Groups same-title entries and removes every recurring copy of a payment.
+ * Used by the day editor and calendar pills.
+ */
 import { Utils } from './utils.js';
 
 export function normalizeTitle(title) {
     return String(title || '').trim().toLowerCase() || 'untitled';
 }
 
-export function isSameSeries(a, b) {
+function isSameSeries(a, b) {
     return !!a?.recurring && !!b?.recurring && normalizeTitle(a.title) === normalizeTitle(b.title);
 }
 

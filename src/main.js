@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — application entry
+ *
+ * Boots the store from encrypted IndexedDB, wires header/import/scan
+ * controls, and subscribes the renderer. Bundled by esbuild into /app.js.
+ */
 import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';

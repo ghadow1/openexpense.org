@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — receipt / invoice text parser
+ *
+ * Turns OCR (or PDF) lines into { merchant, date, total, tax, items, kind }.
+ * Public API: normalizeOcrText, normalizeLines, textQuality, parseReceipt.
+ */
 import { Utils } from '../core/utils.js';
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -64,7 +70,7 @@ export function normalizeLines(lineList) {
         .filter(Boolean);
 }
 
-export function parseMoneyToken(raw) {
+function parseMoneyToken(raw) {
     if (raw == null) return null;
     let s = String(raw).trim();
     if (!s) return null;
@@ -81,7 +87,7 @@ export function parseMoneyToken(raw) {
     return Math.round(value * 100) / 100;
 }
 
-export function allMoneyOnLine(line) {
+function allMoneyOnLine(line) {
     const amounts = [];
     const patterns = [
         /(?:usd|cad|aud|\$)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+\.\d{2}|\d+,\d{2})/gi,
@@ -103,12 +109,12 @@ export function allMoneyOnLine(line) {
     return amounts;
 }
 
-export function moneyOnLine(line) {
+function moneyOnLine(line) {
     const amounts = allMoneyOnLine(line);
     return amounts.length ? amounts[amounts.length - 1] : null;
 }
 
-export function isAddressOrMeta(line) {
+function isAddressOrMeta(line) {
     const t = String(line || '').trim();
     return ADDRESS.test(t)
         || /,\s*[A-Z]{2}\s+\d{5}/.test(t)
@@ -123,7 +129,7 @@ export function isAddressOrMeta(line) {
         || /\b\d{3}[-. )]\d{3}[-.]\d{4}\b/.test(t);
 }
 
-export function detectKind(text, lines) {
+function detectKind(text, lines) {
     const blob = `${text}\n${(lines || []).join('\n')}`.toLowerCase();
     const invoiceHits = (blob.match(/invoice|amount due|bill to|due date|billing period|statement/g) || []).length;
     const receiptHits = (blob.match(/subtotal|change due|cashier|thank you|store #|terminal|card ending/g) || []).length;
@@ -153,7 +159,7 @@ function isoDate(y, m, d) {
     return `${y}-${Utils.pad(m)}-${Utils.pad(d)}`;
 }
 
-export function parseDate(text, lines) {
+function parseDate(text, lines) {
     const sources = [...(lines || []), text];
     const found = [];
 
@@ -192,7 +198,7 @@ export function parseDate(text, lines) {
     return (found.find((d) => d.labeled) || found[0] || {}).value || null;
 }
 
-export function scoreAmount(line) {
+function scoreAmount(line) {
     const lower = String(line || '').toLowerCase();
     const amt = moneyOnLine(line);
     if (amt == null) return null;
@@ -208,7 +214,7 @@ export function scoreAmount(line) {
     return { amt, score, line };
 }
 
-export function parseTotalFromText(text) {
+function parseTotalFromText(text) {
     const re = /(?:grand\s*total|amount\s*due|balance\s*due|total\s*due|please\s*pay|pay\s*this\s*amount|invoice\s*total|order\s*total|\btotal\b)[:\s]*[\$€£]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+[.,]\d{2})/gi;
     let best = null;
     for (const match of String(text || '').matchAll(re)) {
@@ -218,7 +224,7 @@ export function parseTotalFromText(text) {
     return best;
 }
 
-export function pickTotal(lines, text, kind) {
+function pickTotal(lines, text, kind) {
     const labeled = [];
     const weak = [];
     for (const line of lines) {
@@ -251,7 +257,7 @@ export function pickTotal(lines, text, kind) {
     return Math.max(...plausible);
 }
 
-export function parseMerchant(lineList, text) {
+function parseMerchant(lineList, text) {
     const blob = String(text || '');
     for (const [pat, name] of KNOWN_MERCHANTS) {
         if (pat.test(blob)) return name;
@@ -277,7 +283,7 @@ export function parseMerchant(lineList, text) {
     return lineList.find((l) => l.length >= 3 && !/^\d+$/.test(l) && !SKIP_MERCHANT.test(l))?.slice(0, 60) || '';
 }
 
-export function parseItems(lineList) {
+function parseItems(lineList) {
     const skip = /sub\s*-?total|\btax(?:es)?\b|vat|gst|hst|fees|surcharges|change|tender|payment|visa|mastercard|amex|debit|credit|tip|balance\s*forward|payment\s*terms|currency|qty|quantity/i;
     const items = [];
     for (const line of lineList) {
@@ -296,7 +302,7 @@ export function parseItems(lineList) {
     return items;
 }
 
-export function parseTax(lineList) {
+function parseTax(lineList) {
     for (const line of lineList) {
         if (/\b(?:sales\s*)?tax(?:es)?\b|vat|gst|hst|fees?\s*&?\s*surcharges?/i.test(line) && !TOTAL_LABEL.test(line)) {
             const amounts = allMoneyOnLine(line);

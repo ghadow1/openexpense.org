@@ -1,6 +1,25 @@
 {
   "name": "openexpense.org",
-  "private": true,
+  "version": "2.1.0",
+  "private": false,
+  "description": "Privacy-first, offline-only expense tracker. The ledger never leaves the browser.",
+  "license": "MIT",
+  "homepage": "https://www.openexpense.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ghadow1/openexpense.org.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ghadow1/openexpense.org/issues"
+  },
+  "keywords": [
+    "expense-tracker",
+    "privacy",
+    "offline",
+    "indexeddb",
+    "aes-gcm",
+    "pwa"
+  ],
   "scripts": {
     "build": "npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --outdir=. --entry-names=app --chunk-names=chunk-[hash]",
     "serve": "python3 -m http.server 8765"

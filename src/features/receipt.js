@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — on-device receipt scan
+ *
+ * Lazy-loads PP-OCRv5 and pdf.js from jsDelivr, enhances the image, then
+ * hands text to receipt-parse.js. Nothing is uploaded.
+ */
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
@@ -535,9 +541,5 @@ export const Receipt = {
         if (scanAnother) {
             window.setTimeout(() => Receipt.pickImage(), 350);
         }
-    },
-
-    apply() {
-        Receipt.saveFromPreview(false);
     }
 };

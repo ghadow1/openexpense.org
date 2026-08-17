@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — ledger import / export / autosave
+ *
+ * Header file actions: encrypted zip export, import (zip / split files /
+ * legacy JSON), ledger name, and the autosave pause toggle.
+ */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';

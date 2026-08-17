@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — monthly summary math
+ *
+ * Pure functions over `events`. The sidebar and PDF exporter both consume
+ * computeMonthlySummary(); money display goes through Utils.formatMoney.
+ */
 import { Utils } from './utils.js';
 
 function monthKey(y, m) {
@@ -157,7 +163,7 @@ export function computeMonthlySummary(events, currentDate) {
 }
 
 export function formatMoney(value) {
-    return `$${Number(value || 0).toFixed(2)}`;
+    return Utils.formatMoney(value);
 }
 
 export function formatDelta(value) {

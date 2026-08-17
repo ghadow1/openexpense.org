@@ -1,4 +1,7 @@
 /*
+ * OpenExpense design system — tokens, layout, calendar, modal, summary.
+ * Source of truth for on-screen chrome. PDF colors live in src/core/pdf-theme.js.
+ *
  * Project: OpenExpense
  * File: openexpense.css
  * Author: Gregory Medina
@@ -505,38 +508,6 @@ textarea,
     display: flex;
     justify-content: center;
     margin-bottom: 16px;
-}
-
-.brand-wordmark {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5em;
-    margin: 0;
-    min-width: 0;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: var(--tracking-tight);
-    white-space: nowrap;
-}
-
-.brand-title {
-    color: var(--text-strong);
-    letter-spacing: -0.03em;
-}
-
-.brand-tag {
-    color: var(--text2);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.brand-tag::before {
-    content: "·";
-    margin-right: 0.5em;
-    color: var(--text2);
-    font-weight: 400;
 }
 
 .header-actions {
@@ -3555,10 +3526,6 @@ body.modal-open .quick-fab {
         gap: 20px;
     }
 
-    .brand-tag {
-        display: none;
-    }
-
     .sidebar {
         position: static;
         top: auto;
@@ -4044,12 +4011,6 @@ body.modal-open .quick-fab {
 
     .header-btn {
         padding: 0 8px;
-    }
-
-    .brand-title {
-        max-width: 42vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 }
 

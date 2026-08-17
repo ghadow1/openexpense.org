@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — render orchestration
+ *
+ * Applies theme, paints the calendar and sidebar, and keeps the header
+ * chips (privacy + file-loaded) in sync with store state.
+ */
 import { applyTheme, setTheme } from '../ui/theme.js';
 import { renderCalendar } from '../features/calendar.js';
 import { renderSidebar } from '../features/sidebar.js';
@@ -90,7 +96,7 @@ function updateFileStatus() {
         : 'No ledger file is loaded yet. Import a backup or start typing a name to begin.';
 }
 
-export function syncLedgerNameInput() {
+function syncLedgerNameInput() {
     const input = document.getElementById('ledger-name-input');
     const { ledgerName } = getState();
     if (input && document.activeElement !== input && input.value !== ledgerName) {

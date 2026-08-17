@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — day editor
+ *
+ * Opens `#modal` for a YYYY-MM-DD key. Groups same-title expenses and can
+ * delete a whole recurring series. Receipt scan writes through saveExpense().
+ */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { UI } from '../ui/components.js';
@@ -18,7 +24,7 @@ export function closeModal() {
     document.body.classList.remove('modal-open');
 }
 
-export function bgClose(e) {
+function bgClose(e) {
     if (e.target === document.getElementById('modal')) closeModal();
 }
 
@@ -136,7 +142,7 @@ function ensureAddForm(formContainer) {
     addFormReady = true;
 }
 
-export function resetAddForm() {
+function resetAddForm() {
     const et = document.getElementById('et');
     const ep = document.getElementById('ep');
     const en = document.getElementById('en');
@@ -147,20 +153,6 @@ export function resetAddForm() {
     if (en) en.value = '';
     if (er) er.checked = false;
     if (epad) epad.checked = false;
-}
-
-export function prefillAddForm({ title = '', price = '', note = '', recurring = false, paid = false } = {}) {
-    ensureAddForm(document.getElementById('form-container'));
-    const et = document.getElementById('et');
-    const ep = document.getElementById('ep');
-    const en = document.getElementById('en');
-    const er = document.getElementById('er');
-    const epad = document.getElementById('epad');
-    if (et) et.value = title;
-    if (ep) ep.value = price ?? '';
-    if (en) en.value = note ?? '';
-    if (er) er.checked = !!recurring;
-    if (epad) epad.checked = !!paid;
 }
 
 export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false }) {
@@ -210,7 +202,7 @@ export function renderModal() {
     }
 }
 
-export function buildRow(e, i) {
+function buildRow(e, i) {
     const { editingIndex } = getState();
     if (editingIndex === i) return buildEditRow(e, i);
 
@@ -260,7 +252,7 @@ export function buildRow(e, i) {
     return row;
 }
 
-export function buildEditRow(e, i) {
+function buildEditRow(e, i) {
     const wrap = document.createElement('div');
     wrap.id = `row-${i}`;
     wrap.className = 'event-edit-row';
@@ -316,12 +308,12 @@ export function buildEditRow(e, i) {
     }, 60); return wrap;
 }
 
-export function startEdit(i) {
+function startEdit(i) {
     patch({ editingIndex: i });
     refreshEventList();
 }
 
-export function propagateRecurring(baseEvent, startKey) {
+function propagateRecurring(baseEvent, startKey) {
     const [y, m, d] = startKey.split('-').map(Number);
     const { events } = getState();
     const nextEvents = { ...events };
@@ -342,7 +334,7 @@ export function propagateRecurring(baseEvent, startKey) {
     patch({ events: nextEvents });
 }
 
-export function saveEdit(i) {
+function saveEdit(i) {
     const title = document.getElementById(`edit-title-${i}`).value.trim(); if (!title) return;
     const isRecurring = document.getElementById(`edit-rec-${i}`).checked;
     const price = document.getElementById(`edit-price-${i}`).value;
@@ -376,7 +368,7 @@ function removeOneOccurrence(index) {
     applyDelete(nextEvents);
 }
 
-export async function deleteSeries(item) {
+async function deleteSeries(item) {
     const { events } = getState();
     const count = countSeriesOccurrences(events, item);
     const result = await confirmDialog({
@@ -404,7 +396,7 @@ export async function deleteSeries(item) {
     }
 }
 
-export async function deleteEv(i) {
+async function deleteEv(i) {
     const { selectedKey, events } = getState();
     const item = events[selectedKey]?.[i];
     if (!item) return;
@@ -436,7 +428,7 @@ export async function deleteEv(i) {
     if (row) { row.classList.add('is-removing'); setTimeout(go, 160); } else go();
 }
 
-export function addEvent() {
+function addEvent() {
     const { selectedKey } = getState();
     if (!selectedKey) return;
 

@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — encrypted backup zip
+ *
+ * Packs ledger.enc.json + ledger.key.json + README.txt for Export.
+ * Import accepts this zip, the two files separately, or legacy plaintext JSON.
+ */
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
 export const BUNDLE = {
