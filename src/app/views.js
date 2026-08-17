@@ -7,8 +7,15 @@
 import { STORAGE_KEYS } from '../config.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { render } from './render.js';
+import { shouldShowNotFound } from '../core/routes.js';
+
+export { shouldShowNotFound };
+
+const KNOWN_VIEWS = new Set(['app', 'docs']);
 
 export function switchView(viewName) {
+    if (!KNOWN_VIEWS.has(viewName)) return;
+
     const appView = document.getElementById('view-app');
     const docsView = document.getElementById('view-docs');
     const tabApp = document.getElementById('vt-app');
@@ -43,10 +50,13 @@ export function switchView(viewName) {
 }
 
 export function switchDocTab(tabName) {
+    const pane = document.getElementById(`pane-${tabName}`);
+    const tab = document.getElementById(`dt-${tabName}`);
+    if (!pane || !tab) return;
     document.querySelectorAll('.docs-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.docs-nav-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(`pane-${tabName}`)?.classList.add('active');
-    document.getElementById(`dt-${tabName}`)?.classList.add('active');
+    pane.classList.add('active');
+    tab.classList.add('active');
 }
 
 export function showWelcome() {

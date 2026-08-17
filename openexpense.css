@@ -1073,6 +1073,24 @@ textarea,
     color: #fff;
 }
 
+.dash-act.is-linked {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.dash-act.is-linked:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+}
+
+html.is-action-busy [data-lockable] {
+    opacity: 0.55;
+    cursor: wait;
+    pointer-events: none;
+}
+
 .dash-act--add:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);

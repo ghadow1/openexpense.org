@@ -2,20 +2,114 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#002244">
   <title>Page not found — OpenExpense</title>
-  <meta name="robots" content="noindex">
+  <meta name="description" content="This address is not a page on OpenExpense. The expense ledger lives on the home page.">
+  <meta name="robots" content="noindex,nofollow">
   <link rel="canonical" href="https://www.openexpense.org/">
-  <meta http-equiv="refresh" content="0; url=./">
+  <link rel="icon" href="https://www.openexpense.org/icons/icon.svg" type="image/svg+xml">
   <style>
-    body { font-family: Inter, system-ui, sans-serif; margin: 2rem; color: #3d4654; }
-    a { color: #4f46e5; }
+    :root {
+      --navy: #002244;
+      --accent: #1170cf;
+      --text: #2d3748;
+      --muted: #64748b;
+      --border: #c5d0dc;
+      --bg: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --navy: #081c38;
+        --accent: #3b82f6;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --border: #334155;
+        --bg: #0b0f19;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .bar {
+      background: var(--navy);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .bar img { width: 36px; height: 36px; display: block; }
+    .bar strong { font-size: 1.05rem; letter-spacing: -0.02em; }
+    .bar span { display: block; font-size: 0.75rem; opacity: 0.78; font-weight: 500; }
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
+    .code {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 8px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.75rem;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+    p { margin: 0 0 16px; color: var(--muted); }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .card p { margin: 0; }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 18px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 650;
+      border-radius: 2px;
+      border: 1px solid var(--accent);
+    }
+    .cta:hover { filter: brightness(1.05); }
   </style>
 </head>
 <body>
+  <header class="bar">
+    <img src="https://www.openexpense.org/icons/icon.svg" width="36" height="36" alt="">
+    <div>
+      <strong>OpenExpense</strong>
+      <span>Local encrypted wallet</span>
+    </div>
+  </header>
   <main>
+    <p class="code">Error 404</p>
     <h1>This page is not on OpenExpense</h1>
-    <p>The ledger lives at the site root. <a href="./">Open the expense wallet</a>.</p>
+    <p>
+      OpenExpense is a single home page: the expense ledger and Privacy &amp; Help.
+      There are no other public routes, so this address does not exist.
+    </p>
+    <div class="card">
+      <p>Your ledger is not here. Nothing was uploaded. Open the wallet on the home page to keep working offline.</p>
+    </div>
+    <a class="cta" href="https://www.openexpense.org/">Open the expense wallet</a>
   </main>
 </body>
 </html>

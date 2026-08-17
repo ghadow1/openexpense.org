@@ -123,6 +123,16 @@
   <link rel="stylesheet" href="openexpense.css">
 
   <script>
+    (function () {
+      var parts = (location.pathname || '/').split('/').filter(Boolean);
+      if (!parts.length) return;
+      var leaf = parts[parts.length - 1];
+      if (/^(index\.html|404\.html)$/i.test(leaf)) return;
+      if (parts.length === 1 && /\.(js|css|json|xml|txt|svg|png|jpe?g|webp|ico|webmanifest|map)$/i.test(leaf)) return;
+      location.replace(location.origin + '/404.html');
+    })();
+  </script>
+  <script>
     window.__oeBoot = { ok: false };
     window.addEventListener('error', (e) => {
       if (!window.__oeBoot.ok) window.__oeBoot.err = e.message || 'Script error';
@@ -250,15 +260,15 @@
               <div class="skel skel-chip" aria-hidden="true"></div>
             </div>
             <div class="dash-actions" role="toolbar" aria-label="Quick actions">
-              <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" aria-label="Add entry" title="Add entry">
+              <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">
                 <i class="ti ti-plus" aria-hidden="true"></i>
                 <span>Add</span>
               </button>
-              <button type="button" class="dash-act" data-action="scan-receipt">
+              <button type="button" class="dash-act" data-action="scan-receipt" data-lockable>
                 <i class="ti ti-camera" aria-hidden="true"></i>
                 <span>Scan</span>
               </button>
-              <button type="button" class="dash-act" data-action="export-ledger">
+              <button type="button" class="dash-act" data-action="export-ledger" data-lockable>
                 <i class="ti ti-download" aria-hidden="true"></i>
                 <span>Export</span>
               </button>
@@ -417,7 +427,7 @@
                   <p>Toolbar actions on the calendar:</p>
                   <ul class="docs-list">
                     <li><strong>Import</strong> — open files from your OpenExpense folder. On iPhone and Android you can select the ledger and key.json together. Older zip backups still work.</li>
-                    <li><strong>Export</strong> — writes both files into an <strong>OpenExpense</strong> folder (default). Long-press Export to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
+                    <li><strong>Export / Save</strong> — first time, writes both files into an <strong>OpenExpense</strong> folder. After that folder is linked, the button becomes <strong>Save</strong> and overwrites the existing JSON pair. Long-press to pick a different folder. On iPhone and Android, Save to Files and choose that folder.</li>
                     <li><strong>Clear</strong> — wipe all expenses and the ledger name on this device (with confirmation).</li>
                     <li><strong>Scan</strong> — photograph or upload a receipt or PDF for local OCR.</li>
                   </ul>
@@ -533,8 +543,9 @@
                   <p>
                     Export is your manual backup. It writes two files next to each other
                     in an <strong>OpenExpense</strong> folder: an encrypted <code>.json</code>
-                    and a <code>key.json</code>. You can pick a different folder after the first save
-                    (long-press Export). The portable key is never stored in the browser cache.
+                    and a <code>key.json</code>. After that folder is linked, the button becomes
+                    <strong>Save</strong> and updates those same files. Long-press Export to pick
+                    a different folder. The portable key is never stored in the browser cache.
                     Autosave still encrypts a copy in this browser with a separate, non-extractable device key.
                   </p>
                   <ol class="docs-list is-ordered">
@@ -597,6 +608,15 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Save to a linked folder</h3>
+                  <p>
+                    Once an OpenExpense folder is linked, Export becomes <strong>Save</strong> and
+                    overwrites the current encrypted JSON and key in that folder. Long-press still
+                    picks another folder. Unknown addresses show a 404 page that sends you home.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Sticky app chrome</h3>
                   <p>
