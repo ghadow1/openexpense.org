@@ -12,6 +12,8 @@ export const Utils = {
         const match = e.note?.match(/\$(\d+\.?\d*)/);
         return match ? parseFloat(match[1]) : 0;
     },
+    /** Legacy entries without `kind` are expenses. */
+    entryKind: (e) => (e?.kind === 'income' ? 'income' : 'expense'),
     escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch])),

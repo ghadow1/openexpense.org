@@ -105,7 +105,8 @@ function appendCompactMobileDay(body, dayEvents) {
     const dotCount = Math.min(dayEvents.length, 4);
     for (let j = 0; j < dotCount; j++) {
         const dot = document.createElement('span');
-        dot.className = `cal-day-dot${dayEvents[j].paid ? ' is-paid' : ''}`;
+        const income = Utils.entryKind(dayEvents[j]) === 'income';
+        dot.className = `cal-day-dot${income ? ' is-income' : ''}${dayEvents[j].paid ? ' is-paid' : ''}`;
         dots.appendChild(dot);
     }
     body.appendChild(dots);
@@ -129,12 +130,15 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
     const visible = groups.slice(0, maxVisible);
     visible.forEach((group) => {
         const pill = document.createElement('div');
-        pill.className = `pill${group.allPaid ? ' is-paid' : ''}${group.recurring ? ' is-recurring' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
+        const income = group.kind === 'income';
+        pill.className = `pill${income ? ' is-income' : ''}${group.allPaid ? ' is-paid' : ''}${group.recurring ? ' is-recurring' : ''}${density === 'narrow' ? ' is-compact' : ''}`;
         const title = Utils.escapeHtml(group.title);
         const count = group.count > 1 ? `<span class="pill-count">×${group.count}</span>` : '';
         const amt = group.total > 0 ? `<span class="pill-amt">$${group.total.toFixed(2)}</span>` : '';
         const rec = group.recurring ? '<i class="ti ti-refresh pill-rec" aria-hidden="true"></i>' : '';
-        if (group.recurring) pill.title = repeatLabel(group.repeat);
+        const tips = [income ? 'Income' : 'Expense'];
+        if (group.recurring) tips.push(repeatLabel(group.repeat));
+        pill.title = tips.join(' · ');
         if (density === 'narrow') {
             pill.innerHTML = `${amt}<span class="title">${rec}${title}${count}</span>`;
         } else {
@@ -197,7 +201,11 @@ function renderGrid(y, m, events) {
             cell.appendChild(numLabel);
 
             const dayEvents = events[dateKey] || [];
-            if (dayEvents.length) cell.classList.add('has-items');
+            if (dayEvents.length) {
+                cell.classList.add('has-items');
+                if (dayEvents.some((e) => Utils.entryKind(e) === 'expense')) cell.classList.add('has-expense');
+                if (dayEvents.some((e) => Utils.entryKind(e) === 'income')) cell.classList.add('has-income');
+            }
 
             const body = document.createElement('div');
             body.className = 'cal-day-body';

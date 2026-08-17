@@ -112,8 +112,11 @@ export async function saveLedger(data) {
     }
 }
 
+const LEDGER_PATCH_KEYS = new Set(['events', 'ledgerName', 'autosaveEnabled']);
+
 export function initPersist(store) {
-    store.subscribe(() => {
+    store.subscribe((partial) => {
+        if (partial && !Object.keys(partial).some((key) => LEDGER_PATCH_KEYS.has(key))) return;
         clearTimeout(saveTimer);
         if (!store.getState().autosaveEnabled) return;
         saveTimer = setTimeout(() => {

@@ -10,13 +10,14 @@ function monthKey(y, m) {
     return `${y}-${Utils.pad(m + 1)}`;
 }
 
-function collectMonthItems(events, y, m) {
+function collectMonthItems(events, y, m, kind = 'expense') {
     const key = monthKey(y, m);
     const items = [];
 
     Object.keys(events).forEach(date => {
         if (!date.startsWith(key)) return;
         events[date].forEach((e, index) => {
+            if (Utils.entryKind(e) !== kind) return;
             const amount = Utils.getPrice(e);
             if (amount <= 0) return;
             items.push({
@@ -26,7 +27,8 @@ function collectMonthItems(events, y, m) {
                 index,
                 paid: !!e.paid,
                 recurring: !!e.recurring,
-                note: e.note || ''
+                note: e.note || '',
+                kind
             });
         });
     });
@@ -79,16 +81,17 @@ function sumItems(items) {
     };
 }
 
-function monthTotal(events, y, m) {
-    return sumItems(collectMonthItems(events, y, m)).total;
+function monthTotal(events, y, m, kind = 'expense') {
+    return sumItems(collectMonthItems(events, y, m, kind)).total;
 }
 
-function yearMonthTotals(events, y) {
+function yearMonthTotals(events, y, kind = 'expense') {
     const totals = new Array(12).fill(0);
     Object.keys(events).forEach(date => {
         if (!date.startsWith(`${y}-`)) return;
         const monthIdx = parseInt(date.split('-')[1], 10) - 1;
         events[date].forEach(e => {
+            if (Utils.entryKind(e) !== kind) return;
             const amount = Utils.getPrice(e);
             if (amount > 0) totals[monthIdx] += amount;
         });
@@ -106,18 +109,19 @@ function largestItem(items) {
     return items.reduce((best, item) => (item.amount > best.amount ? item : best), items[0]);
 }
 
-export function computeMonthlySummary(events, currentDate) {
+export function computeMonthlySummary(events, currentDate, kind = 'expense') {
+    const face = kind === 'income' ? 'income' : 'expense';
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
     const today = new Date();
 
-    const items = collectMonthItems(events, y, m);
+    const items = collectMonthItems(events, y, m, face);
     const stats = sumItems(items);
     const prevY = m - 1 < 0 ? y - 1 : y;
     const prevM = m - 1 < 0 ? 11 : m - 1;
-    const actualPrevTotal = monthTotal(events, prevY, prevM);
+    const actualPrevTotal = monthTotal(events, prevY, prevM, face);
 
-    const monthTotals = yearMonthTotals(events, y);
+    const monthTotals = yearMonthTotals(events, y, face);
     const activeMonths = monthTotals.filter(v => v > 0).length || 1;
     const yearTotal = monthTotals.reduce((a, b) => a + b, 0);
     const yearAvg = yearTotal / activeMonths;
@@ -135,6 +139,7 @@ export function computeMonthlySummary(events, currentDate) {
     const paidItems = items.filter(i => i.paid).sort((a, b) => a.date.localeCompare(b.date) || b.amount - a.amount);
 
     return {
+        kind: face,
         year: y,
         month: m,
         monthLabel: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),

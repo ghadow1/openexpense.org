@@ -55,13 +55,15 @@ src/main.js         boot, event delegation, render subscription
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
 | `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`) |
 | `features/modal.js` | Day editor; recurring series delete |
-| `features/sidebar.js` | Month math + PDF |
+| `features/sidebar.js` | Month math + PDF; expense/income coin-flip card |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 
 ## Recurring series
 
-`src/core/series.js` treats two expenses as the same series when both are `recurring`, their titles match after trim + lower-case, and they share the same `repeat` cadence (`monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step and can remove every occurrence across the ledger.
+`src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`monthly`, `bimonthly`, or `quarterly`; missing means monthly). The day editor copies about a year of future dates at that step and can remove every occurrence across the ledger.
+
+The right-hand card flips between an expense face and an income face. The calendar stays one grid and paints income pills green.
 
 ## Receipts
 

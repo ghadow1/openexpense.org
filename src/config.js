@@ -15,7 +15,12 @@ export const CONFIG = {
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
-export const STORAGE_KEYS = { theme: 'oe-theme', visited: 'hasVisited', autosave: 'oe-autosave' };
+export const STORAGE_KEYS = {
+    theme: 'oe-theme',
+    visited: 'hasVisited',
+    autosave: 'oe-autosave',
+    ledgerFace: 'oe-ledger-face'
+};
 
 export const THEMES = {
     light: {
@@ -32,6 +37,10 @@ export const THEMES = {
         shadowSm: '0 1px 2px rgba(15, 18, 28, 0.04), 0 0 0 1px rgba(15, 18, 28, 0.03)',
         shadowHover: 'rgba(15, 18, 28, 0.08)',
         success: '#16a34a',
+        income: '#059669',
+        incomeSoft: 'rgba(5, 150, 105, 0.12)',
+        incomeText: '#047857',
+        incomeBorder: '#6ee7b7',
         accentRing: 'rgba(79, 70, 229, 0.22)', thumbBg: '#ffffff',
         modalShadow: '0 28px 64px -16px rgba(15, 18, 28, 0.22), 0 0 0 1px rgba(15, 18, 28, 0.05)',
         glass: 'rgba(255, 255, 255, 0.72)',
@@ -54,6 +63,10 @@ export const THEMES = {
         shadowSm: '0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.03)',
         shadowHover: 'rgba(0, 0, 0, 0.35)',
         success: '#22c55e',
+        income: '#34d399',
+        incomeSoft: 'rgba(52, 211, 153, 0.14)',
+        incomeText: '#6ee7b7',
+        incomeBorder: '#059669',
         accentRing: 'rgba(129, 140, 248, 0.28)', thumbBg: '#1c1f28',
         modalShadow: '0 32px 72px -18px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(255, 255, 255, 0.06)',
         glass: 'rgba(20, 22, 28, 0.72)',

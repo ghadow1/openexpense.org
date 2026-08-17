@@ -43,7 +43,9 @@ export function render(changedKeys) {
     }
     if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events')) {
         renderCalendar(keys);
-        renderSidebar();
+    }
+    if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events') || keys.includes('ledgerFace')) {
+        renderSidebar(keys);
     }
 }
 

@@ -41,7 +41,7 @@ Each module starts with a short header describing what it owns.
 | [`features/ledger.js`](features/ledger.js) | Import, export, autosave toggle, name |
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
-| [`features/sidebar.js`](features/sidebar.js) | Summary column |
+| [`features/sidebar.js`](features/sidebar.js) | Expense / income summary (coin-flip card) |
 
 ## `ui/` — chrome
 

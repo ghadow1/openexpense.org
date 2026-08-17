@@ -36,6 +36,7 @@ export function repeatLabel(value, short = false) {
 
 function isSameSeries(a, b) {
     return !!a?.recurring && !!b?.recurring
+        && Utils.entryKind(a) === Utils.entryKind(b)
         && normalizeTitle(a.title) === normalizeTitle(b.title)
         && normalizeRepeat(a.repeat) === normalizeRepeat(b.repeat);
 }
@@ -63,9 +64,10 @@ export function removeSeriesOccurrences(events, item) {
 export function groupExpenses(list) {
     const map = new Map();
     (list || []).forEach((e, i) => {
-        const key = normalizeTitle(e.title);
+        const kind = Utils.entryKind(e);
+        const key = `${kind}:${normalizeTitle(e.title)}`;
         if (!map.has(key)) {
-            map.set(key, { key, title: e.title?.trim() || 'Untitled', items: [] });
+            map.set(key, { key, title: e.title?.trim() || 'Untitled', kind, items: [] });
         }
         map.get(key).items.push({ e, i });
     });
@@ -76,6 +78,7 @@ export function groupExpenses(list) {
             ...group,
             total,
             count: group.items.length,
+            kind: group.kind,
             recurring: group.items.some((row) => row.e.recurring),
             repeat: normalizeRepeat(group.items.find((row) => row.e.recurring)?.e.repeat),
             allPaid: group.items.every((row) => row.e.paid)

@@ -33,6 +33,12 @@ async function initApplication() {
         }
     } catch (_) { }
 
+    try {
+        if (localStorage.getItem(STORAGE_KEYS.ledgerFace) === 'income') {
+            bootPatch.ledgerFace = 'income';
+        }
+    } catch (_) { }
+
     bootPatch.storageEncrypted = cryptoAvailable();
 
     const saved = await loadLedger();
@@ -134,9 +140,9 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
-        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events'].includes(k));
+        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace'].includes(k));
         const needsModal = getState().selectedKey
-            && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark'].includes(k));
+            && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark', 'ledgerFace'].includes(k));
 
         if (needsApp) render(keys);
 
