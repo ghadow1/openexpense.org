@@ -234,9 +234,9 @@
 
     <main class="app-view" id="view-app">
       <div class="dash">
-        <input id="ledger-name-input" class="ledger-name-input text-input" type="text" hidden
-          spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="dash-center">
+          <input id="ledger-name-input" class="ledger-name-field" type="text"
+            spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
           <div class="dash-head">
             <div id="dash-chips" class="dash-chips" role="list" aria-label="Ledger snapshot" aria-live="polite">
               <div class="skel skel-chip" aria-hidden="true"></div>
@@ -604,6 +604,14 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026 — Dashboard layout fix</h3>
+                  <p>
+                    Desktop and phone layouts no longer keep an empty left column. The calendar and
+                    monthly card share the page, and the status badges stay on the Add / Scan / Export row.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Calendar net up and down</h3>
                   <p>
