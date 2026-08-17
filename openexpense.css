@@ -1,4 +1,7 @@
 /*
+ * OpenExpense design system — tokens, layout, calendar, modal, summary.
+ * Source of truth for on-screen chrome. PDF colors live in src/core/pdf-theme.js.
+ *
  * Project: OpenExpense
  * File: openexpense.css
  * Author: Gregory Medina
@@ -469,27 +472,35 @@ textarea,
 }
 
 .brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     height: var(--header-control);
+    text-decoration: none;
+    color: inherit;
 }
 
 .brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 11px;
+    box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
     display: block;
+    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.brand:hover .brand-mark,
+.brand:focus-visible .brand-mark {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .brand-mark--lg {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
     box-shadow: var(--shadow-md);
 }
 
@@ -497,38 +508,6 @@ textarea,
     display: flex;
     justify-content: center;
     margin-bottom: 16px;
-}
-
-.brand-wordmark {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5em;
-    margin: 0;
-    min-width: 0;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: var(--tracking-tight);
-    white-space: nowrap;
-}
-
-.brand-title {
-    color: var(--text-strong);
-    letter-spacing: -0.03em;
-}
-
-.brand-tag {
-    color: var(--text2);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.brand-tag::before {
-    content: "·";
-    margin-right: 0.5em;
-    color: var(--text2);
-    font-weight: 400;
 }
 
 .header-actions {
@@ -777,11 +756,12 @@ textarea,
 
 .ledger-name-bar {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     width: 100%;
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
 }
 
 .ledger-name-label {
@@ -795,11 +775,19 @@ textarea,
 }
 
 .ledger-name-input {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     margin: 0;
 }
 
+.ledger-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-chip,
 .privacy-chip {
     display: inline-flex;
     align-items: center;
@@ -808,31 +796,47 @@ textarea,
     height: 28px;
     padding: 0 10px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--success) 8%, var(--surface2));
-    color: var(--text2);
+    border: 1px solid color-mix(in srgb, var(--success) 22%, var(--border));
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
     font-size: var(--fs-2xs);
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
     cursor: default;
     user-select: none;
-    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .privacy-chip .privacy-chip-icon {
     font-size: 14px;
-    color: var(--success);
+    color: inherit;
 }
 
-.privacy-chip.is-warn {
-    border-color: var(--danger-border);
-    background: var(--danger-bg);
-    color: var(--danger-text);
+.privacy-chip.is-warn,
+.status-chip.is-empty {
+    border-color: color-mix(in srgb, var(--danger-text) 22%, var(--border));
+    background: color-mix(in srgb, var(--danger-text) 8%, var(--surface));
+    color: color-mix(in srgb, var(--danger-text) 70%, var(--text-strong));
 }
 
 .privacy-chip.is-warn .privacy-chip-icon {
-    color: var(--danger-text);
+    color: inherit;
+}
+
+.status-chip.is-loaded {
+    border-color: color-mix(in srgb, var(--success) 22%, var(--border));
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
+    color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+    flex-shrink: 0;
 }
 
 .layout-wrapper {
@@ -3522,10 +3526,6 @@ body.modal-open .quick-fab {
         gap: 20px;
     }
 
-    .brand-tag {
-        display: none;
-    }
-
     .sidebar {
         position: static;
         top: auto;
@@ -3642,21 +3642,21 @@ body.modal-open .quick-fab {
         backdrop-filter: blur(16px) saturate(1.15);
         -webkit-backdrop-filter: blur(16px) saturate(1.15);
         border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-        --header-control: 36px;
-    }
-
-    .brand-wordmark {
-        font-size: 12px;
+        --header-control: 40px;
     }
 
     .brand-mark {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
     }
 
-    .brand-tag {
-        display: none;
+    .header-icon-btn,
+    .header-btn {
+        --header-control: 40px;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
     }
 
     .header-btn-label {
@@ -3718,10 +3718,12 @@ body.modal-open .quick-fab {
     }
 
     .ledger-name-bar {
-        flex-direction: column;
-        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .ledger-status-row {
         gap: 6px;
-        padding: 10px 12px;
     }
 
     .expense-group-head {
@@ -3737,8 +3739,18 @@ body.modal-open .quick-fab {
         align-items: flex-start;
     }
 
+    .status-chip,
     .privacy-chip {
-        align-self: flex-start;
+        height: auto;
+        min-height: 28px;
+        padding: 5px 10px;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    .privacy-chip-text,
+    .file-status-text {
+        overflow-wrap: anywhere;
     }
 
     .toolbar {
@@ -3895,6 +3907,27 @@ body.modal-open .quick-fab {
         grid-template-columns: 1fr;
     }
 
+    .ocr-sheet-header {
+        padding: 16px 16px 0;
+    }
+
+    .ocr-body {
+        padding: 14px 16px;
+    }
+
+    .ocr-hint {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .text-input,
+    .ui-btn,
+    .btn-primary,
+    .btn-ghost,
+    .btn-secondary {
+        min-height: 44px;
+    }
+
     .toolbar-actions button {
         min-height: 40px;
         padding: 8px 10px;
@@ -3978,12 +4011,6 @@ body.modal-open .quick-fab {
 
     .header-btn {
         padding: 0 8px;
-    }
-
-    .brand-title {
-        max-width: 42vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 }
 

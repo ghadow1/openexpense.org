@@ -1,3 +1,8 @@
+/**
+ * OpenExpense — theme application
+ *
+ * Writes THEMES tokens onto :root CSS variables and persists the choice.
+ */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch, getColors } from '../core/store.js';
 

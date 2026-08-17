@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — monthly summary PDF
+ *
+ * Builds a printable report with jsPDF. Lazy-loaded from the sidebar so the
+ * first paint does not pay for the PDF stack.
+ */
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDelta, formatMoney } from './summary.js';

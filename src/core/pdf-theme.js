@@ -1,3 +1,8 @@
+/**
+ * OpenExpense — PDF theme tokens
+ *
+ * Maps the on-screen light/dark palettes onto jsPDF colors, fonts, and pills.
+ */
 import { THEMES } from '../config.js';
 
 /** @param {string} hex #rrggbb */
@@ -52,7 +57,7 @@ export function getPdfTheme(isDark) {
 }
 
 /** Capsule corner radius — jsPDF breaks when radius exceeds half width/height. */
-export function pillRadius(w, h, max = 8) {
+function pillRadius(w, h, max = 8) {
     return Math.min(w / 2, h / 2, max);
 }
 

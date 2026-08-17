@@ -6,7 +6,7 @@
 ._*
 
 # Custom folder icons
-Icon
+Icon
 
 # Volume root files
 .DocumentRevisions-V100
@@ -16,6 +16,11 @@ Icon
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+
+# Personal ledgers and export keys — never commit a real backup
+*.enc.json
+ledger.key.json
+*.key.json
 
 ### Node
 # Dependencies

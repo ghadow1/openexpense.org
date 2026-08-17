@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — shared UI factories
+ *
+ * Buttons and text inputs that use design-system classes (ui-btn, text-input)
+ * so light/dark tokens restyle them without inline colors.
+ */
 export const UI = {
     // Buttons and inputs use design-system classes so light/dark tokens restyle
     // them automatically, including when nodes are cached in the DOM.

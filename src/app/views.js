@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — view switching
+ *
+ * Toggles the two top-level panes: Expenses (`#view-app`) and
+ * Privacy & Help (`#view-docs`). Also owns the first-visit welcome modal.
+ */
 import { STORAGE_KEYS } from '../config.js';
 import { render } from './render.js';
 

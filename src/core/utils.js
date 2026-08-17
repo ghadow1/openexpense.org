@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — shared helpers
+ *
+ * Dates, money, HTML escaping, tooltips, and filename sanitizing.
+ * Used across calendar, modal, ledger, and summary views.
+ */
 export const Utils = {
     pad: (n) => String(n).padStart(2, '0'),
     dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,

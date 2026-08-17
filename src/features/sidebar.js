@@ -1,3 +1,8 @@
+/**
+ * OpenExpense — monthly summary sidebar
+ *
+ * Charts and totals for the visible month, plus PDF download.
+ */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { computeMonthlySummary, formatDelta } from '../core/summary.js';

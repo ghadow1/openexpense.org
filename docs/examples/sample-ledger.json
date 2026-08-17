@@ -1,0 +1,91 @@
+{
+  "name": "Sample household",
+  "events": {
+    "2026-06-01": [
+      {
+        "title": "Rent",
+        "price": 1450,
+        "recurring": true,
+        "paid": true,
+        "note": "First of month"
+      }
+    ],
+    "2026-06-03": [
+      {
+        "title": "Transit pass",
+        "price": 49.99,
+        "recurring": true,
+        "paid": true,
+        "note": ""
+      },
+      {
+        "title": "Groceries",
+        "price": 62.4,
+        "recurring": false,
+        "paid": true,
+        "note": "Market"
+      }
+    ],
+    "2026-06-12": [
+      {
+        "title": "Internet",
+        "price": 70,
+        "recurring": true,
+        "paid": true,
+        "note": ""
+      }
+    ],
+    "2026-06-18": [
+      {
+        "title": "Coffee",
+        "price": 4.5,
+        "recurring": false,
+        "paid": true,
+        "note": ""
+      },
+      {
+        "title": "Coffee",
+        "price": 5.25,
+        "recurring": false,
+        "paid": true,
+        "note": "Afternoon"
+      }
+    ],
+    "2026-06-24": [
+      {
+        "title": "Phone",
+        "price": 32,
+        "recurring": true,
+        "paid": false,
+        "note": "Due this week"
+      }
+    ],
+    "2026-07-01": [
+      {
+        "title": "Rent",
+        "price": 1450,
+        "recurring": true,
+        "paid": true,
+        "note": ""
+      }
+    ],
+    "2026-07-03": [
+      {
+        "title": "Transit pass",
+        "price": 49.99,
+        "recurring": true,
+        "paid": true,
+        "note": ""
+      }
+    ],
+    "2026-07-09": [
+      {
+        "title": "Pharmacy",
+        "price": 18.2,
+        "recurring": false,
+        "paid": true,
+        "note": ""
+      }
+    ]
+  }
+}

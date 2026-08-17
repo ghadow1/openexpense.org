@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — shared constants
+ *
+ * Calendar labels, version string, localStorage preference keys, and the
+ * light/dark token maps consumed by theme.js and the PDF exporter.
+ */
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const CONFIG = {

@@ -1,3 +1,9 @@
+/**
+ * OpenExpense — render orchestration
+ *
+ * Applies theme, paints the calendar and sidebar, and keeps the header
+ * chips (privacy + file-loaded) in sync with store state.
+ */
 import { applyTheme, setTheme } from '../ui/theme.js';
 import { renderCalendar } from '../features/calendar.js';
 import { renderSidebar } from '../features/sidebar.js';
@@ -28,6 +34,9 @@ export function render(changedKeys) {
     }
     if (all || keys.includes('storageEncrypted') || keys.includes('autosaveEnabled')) {
         updatePrivacyStatus();
+    }
+    if (all || keys.includes('ledgerName') || keys.includes('events')) {
+        updateFileStatus();
     }
     if (all || keys.includes('ledgerName')) {
         syncLedgerNameInput();
@@ -62,12 +71,32 @@ function updatePrivacyStatus() {
         setChip(true, 'alert-triangle', 'Not saving — session only',
             "Autosave is off, so changes this session aren't written to your device. Turn it back on with the disk button, or export a backup.");
     } else {
-        setChip(false, 'lock', 'Encrypted — data stays here',
+        setChip(false, 'lock', 'You own your data',
             'Auto-saving encrypted on this device with AES-256-GCM. Your key never leaves your browser.');
     }
 }
 
-export function syncLedgerNameInput() {
+function hasLoadedLedger() {
+    const { events, ledgerName } = getState();
+    return !!String(ledgerName || '').trim() || Object.keys(events || {}).length > 0;
+}
+
+function updateFileStatus() {
+    const chip = document.getElementById('file-status');
+    if (!chip) return;
+
+    const loaded = hasLoadedLedger();
+    const text = chip.querySelector('.file-status-text');
+    chip.hidden = false;
+    chip.classList.toggle('is-loaded', loaded);
+    chip.classList.toggle('is-empty', !loaded);
+    if (text) text.textContent = loaded ? 'File loaded' : 'Not loaded';
+    chip.title = loaded
+        ? 'A ledger is loaded on this device — from autosave or an imported backup.'
+        : 'No ledger file is loaded yet. Import a backup or start typing a name to begin.';
+}
+
+function syncLedgerNameInput() {
     const input = document.getElementById('ledger-name-input');
     const { ledgerName } = getState();
     if (input && document.activeElement !== input && input.value !== ledgerName) {

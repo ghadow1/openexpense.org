@@ -1,3 +1,8 @@
+/**
+ * OpenExpense — month calendar
+ *
+ * Renders the day grid, collapses same-title pills, and opens the day editor.
+ */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
@@ -12,7 +17,7 @@ let gridHeadEl = null;
 let gridEl = null;
 let lastMonthKey = '';
 
-export function changeMonth(delta) {
+function changeMonth(delta) {
     const { currentDate } = getState();
     patch({
         currentDate: new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1)
