@@ -188,6 +188,13 @@
               <span class="docs-nav-desc">Storage, backup &amp; format</span>
             </span>
           </button>
+          <button id="dt-updates" class="docs-nav-tab" data-tab="updates">
+            <span class="docs-nav-icon"><i class="ti ti-news" aria-hidden="true"></i></span>
+            <span class="docs-nav-copy">
+              <span class="docs-nav-label">Updates</span>
+              <span class="docs-nav-desc">What changed recently</span>
+            </span>
+          </button>
         </nav>
 
         <section class="docs-content">
@@ -261,9 +268,10 @@
                   <h3 class="docs-section-title">Ledger name &amp; status</h3>
                   <p>
                     Name your ledger at the top of the Expenses view (for example, <em>Personal expenses</em>).
-                    The name appears in exports and PDF reports. Next to it, a status chip shows whether encryption
-                    and autosave are active — green when your ledger is encrypted and saving locally, amber when
-                    autosave is paused or encryption is unavailable.
+                    The name appears in exports and PDF reports. Under the name, two pills show status:
+                    <strong>You own your data</strong> (green when encryption and autosave are on; amber if
+                    autosave is paused or encryption is unavailable) and <strong>File loaded</strong> /
+                    <strong>Not loaded</strong> (whether a named ledger or any expenses are present).
                   </p>
                 </section>
 
@@ -433,6 +441,51 @@
                     <li><strong>Split sensitive sets</strong> — keep key and ciphertext apart when storing or sending.</li>
                     <li><strong>No syncing</strong> — move exports manually between computers.</li>
                   </ul>
+                </section>
+              </div>
+            </article>
+          </div>
+
+          <!-- Updates -->
+          <div id="pane-updates" class="docs-pane">
+            <article class="docs-book">
+              <header class="docs-hero">
+                <p class="docs-eyebrow">Chapter 4</p>
+                <h2 class="docs-hero-title">Updates</h2>
+                <p class="docs-hero-lead">
+                  What changed in OpenExpense recently. The product is still two screens, still offline,
+                  and still encrypted on this device. A dated list also lives in
+                  <a href="https://github.com/ghadow1/openexpense.org/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>
+                  on GitHub.
+                </p>
+              </header>
+
+              <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">17 August 2026</h3>
+                  <p>
+                    Design refresh, smarter recurring payments, better receipt reading, and clearer status pills.
+                    Tracked in pull request
+                    <a href="https://github.com/ghadow1/openexpense.org/pull/83" target="_blank" rel="noopener">#83</a>.
+                  </p>
+                  <ul class="docs-list">
+                    <li><strong>Look and feel</strong> — Shared light and dark tokens, quieter glass surfaces, and larger tap targets on phones.</li>
+                    <li><strong>Recurring payments</strong> — Same-title charges group on a day. When you delete a re-accruing payment, you can remove every copy at once.</li>
+                    <li><strong>Receipts</strong> — Paper photos, screenshots, and PDF invoices. The reader prefers a labeled total and waits for you to confirm before saving.</li>
+                    <li><strong>Header mark</strong> — Graphic card icon only (no wordmark). The header still announces OpenExpense to assistive tech.</li>
+                    <li><strong>You own your data</strong> — Green when this browser can encrypt and autosave is on.</li>
+                    <li><strong>File loaded / Not loaded</strong> — Green when a named ledger or any expenses are present; red when the calendar is still empty.</li>
+                  </ul>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Source notes</h3>
+                  <p>
+                    Contributors can follow the same story in
+                    <a href="https://github.com/ghadow1/openexpense.org/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>
+                    (commit table and doc links) and in
+                    <a href="https://github.com/ghadow1/openexpense.org/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>.
+                  </p>
                 </section>
               </div>
             </article>

@@ -7,6 +7,14 @@
 
 OpenExpense is a static web app. There is no backend, no account, and no analytics. The ledger lives encrypted in this browser’s IndexedDB. Export writes an encrypted zip you can keep or move yourself.
 
+## What’s new
+
+**17 August 2026** — Recurring series removal, better on-device receipt reading, “You own your data” / “File loaded” status pills, and a documented public repo.
+
+- Read the notes: **[CHANGELOG.md](CHANGELOG.md)**
+- In the app: **Privacy & Help → Updates**
+- Pull request: [#83](https://github.com/ghadow1/openexpense.org/pull/83)
+
 ## Quick start
 
 ```bash
@@ -36,6 +44,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 ## Repository map
 
 ```
+CHANGELOG.md           # User-facing update notes (also Privacy & Help → Updates)
 src/                   # Application source (edit here)
   main.js              # Bootstrap
   config.js            # Version, preference keys, theme tokens

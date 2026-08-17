@@ -10,7 +10,7 @@ Please keep it that way. New features should work with the ledger already on the
 
 ## Before you start
 
-1. Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`src/README.md`](src/README.md).
+1. Read [`CHANGELOG.md`](CHANGELOG.md) (user-facing notes), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`src/README.md`](src/README.md).
 2. Use a secure context (`localhost` or `https`). `file://` will fail encryption and some APIs.
 3. Do not commit a real ledger, receipts, or key files.
 
