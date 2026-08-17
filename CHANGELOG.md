@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Status on the action row
+
+The ledger name block is gone. **You own your data** and **File loaded** sit on the same row as Add, Scan, and Export, snapped to the right under Monthly avg.
+
 ## 2026-08-17 — Save to a linked folder
 
 After you link an OpenExpense folder, Export becomes **Save**. Each tap overwrites the current encrypted JSON and its sibling key in that folder instead of writing a new dated pair. Long-press still picks another folder. One-off downloads keep dated names. Missing URLs show a branded 404. Export, import, clear, and scan ignore a second tap while the first is running.
@@ -24,7 +28,7 @@ Add, Scan, and Export sit under the snapshot chips as labeled buttons with the s
 
 ## 2026-08-17 — Dashboard layout
 
-Wide screens use a three-column wallet: quick tools, calendar, monthly card. Snapshot chips show year balance, month cashflow, and monthly average from the ledger you already have. Same two screens, same encrypted files.
+Wide screens use a two-column wallet: calendar and monthly card. Snapshot chips show year balance, month cashflow, and monthly average from the ledger you already have. Same two screens, same encrypted files.
 
 ## 2026-08-17 — Navy and white theme
 
