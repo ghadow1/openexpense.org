@@ -320,6 +320,9 @@ textarea:focus:not(:focus-visible) {
     background: var(--surface);
     border: 1px solid var(--border);
     box-shadow: none;
+    transition:
+        background var(--dur-med) var(--ease-out),
+        border-color var(--dur-med) var(--ease-out);
 }
 
 .form-dollar {
@@ -1187,6 +1190,9 @@ html.is-action-busy [data-lockable] {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
+    transition:
+        background var(--dur-med) var(--ease-out),
+        border-color var(--dur-med) var(--ease-out);
 }
 
 .growth-meter-wheel {
@@ -1379,6 +1385,12 @@ html.is-action-busy [data-lockable] {
     min-width: 0;
     padding: 12px 14px;
     border-radius: var(--radius-md);
+    transition:
+        background var(--dur-med) var(--ease-out),
+        border-color var(--dur-med) var(--ease-out);
+}
+
+.dash-chips.is-fresh .dash-chip {
     animation: dashIn var(--dur-med) var(--ease-out);
 }
 
