@@ -141,6 +141,19 @@ export function sumDay(dayEvents) {
     return { expense, income, net: income - expense };
 }
 
+/** Calendar corner: net up / down / even, not raw spend or income. */
+export function dayNetBadge(dayEvents) {
+    const { expense, income, net } = sumDay(dayEvents);
+    if (expense <= 0 && income <= 0) return null;
+    return {
+        expense,
+        income,
+        net,
+        amount: Math.abs(net),
+        direction: net > 0 ? 'up' : net < 0 ? 'down' : 'even'
+    };
+}
+
 function weekdayTotals(items) {
     const totals = new Array(7).fill(0);
     const counts = new Array(7).fill(0);

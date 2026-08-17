@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-17 — Calendar net up and down
+
+Each day’s corner amount is the **net** for that day (income minus spend). Green up when the day is ahead, red down when it is behind. A day with both kinds no longer shows only the larger side.
+
 ## 2026-08-17 — Sticky app chrome
 
 The navy header stays put while you scroll. Expenses and Privacy & Help sit in that bar and wrap onto a second row on phones, so the old bottom tab bar is gone. Gutters scale with the viewport. No 100vw full-bleed overflow.
@@ -36,7 +40,7 @@ The sidebar PDF is a letter-size OpenExpense.org report for the month on screen:
 
 ## 2026-08-17 — Daily totals on the calendar
 
-Days with items show that day’s total in the top-right: red with a down spark for spending, green with an up spark for income.
+Days with items show that day’s net in the top-right: red with a down spark when the day is behind, green with an up spark when it is ahead.
 
 ## 2026-08-17 — Weekly recurring
 
