@@ -2,9 +2,10 @@
  * OpenExpense — day editor
  *
  * Opens `#modal` for a YYYY-MM-DD key. Lists that day’s entries in stored
- * order, with drag-reorder, paid toggle, and duplicate. Recurring edit or
- * delete can still update or remove a whole series. Receipt scan writes
- * through saveExpense().
+ * order, with drag-reorder, paid toggle, and duplicate. Group, series, and
+ * twin edits ask this-vs-all before a multi-row write. Recurring delete can
+ * still remove a weekday or the whole series. Receipt scan writes through
+ * saveExpense().
  */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
@@ -50,7 +51,15 @@ import {
     suggestCategories
 } from '../core/categories.js';
 import { createGroupField, groupBadge } from '../ui/group-field.js';
-import { cachedGroupHistory, canonicalGroup, normalizeGroup, suggestGroupFor, suggestGroups } from '../core/groups.js';
+import {
+    applyGroupLabel,
+    cachedGroupHistory,
+    canonicalGroup,
+    findGroupRefs,
+    normalizeGroup,
+    suggestGroupFor,
+    suggestGroups
+} from '../core/groups.js';
 import {
     applyTitlePrice,
     findTwinRefs,
@@ -921,6 +930,31 @@ async function saveEdit(i) {
     const cadenceChanged = original.recurring && isRecurring
         && normalizeRepeat(original.repeat) !== normalizeRepeat(updatedEv.repeat);
 
+    if (!original.recurring && isRecurring) {
+        const scheduled = await confirmDialog({
+            title: 'Schedule copies?',
+            message: `“${title}” will be copied onto the calendar through the next year. You can still edit or remove one day later.`,
+            confirmText: 'Schedule',
+            cancelText: 'Cancel'
+        });
+        if (!scheduled?.confirmed) return;
+    }
+
+    if (original.recurring && isRecurring && (dateChanged || cadenceChanged)) {
+        const seriesCount = countSeriesOccurrences(events, original);
+        if (seriesCount > 1) {
+            const series = await confirmDialog({
+                title: 'Update the series?',
+                message: cadenceChanged
+                    ? `Changing how often rebuilds every copy of “${original.title}” (${seriesCount} days). Name and amount stay on this entry unless you choose Change all.`
+                    : `Moving this day shifts every copy of “${original.title}” (${seriesCount} days). Name and amount stay on this entry unless you choose Change all.`,
+                confirmText: 'Update series',
+                cancelText: 'Cancel'
+            });
+            if (!series?.confirmed) return;
+        }
+    }
+
     let applyToTwins = false;
     const twins = labelOrPriceChanged(original, updatedEv)
         ? findTwinRefs(events, original, { skip: { date: selectedKey, index: i } })
@@ -935,10 +969,42 @@ async function saveEdit(i) {
                 { value: 'all', label: `Change all ${twins.length + 1} matching entries` },
                 { value: 'one', label: 'Only this entry' }
             ],
-            choice: 'all'
+            choice: 'all',
+            choicesLabel: 'Which entries to change'
         });
         if (!result?.confirmed) return;
         applyToTwins = result.choice === 'all';
+    }
+
+    const oldGroup = normalizeGroup(original.group);
+    const newGroup = normalizeGroup(updatedEv.group);
+    let applyGroupToAll = false;
+    if (oldGroup && oldGroup !== newGroup) {
+        const mates = findGroupRefs(events, oldGroup, { skip: { date: selectedKey, index: i } });
+        if (mates.length) {
+            const renaming = !!newGroup;
+            const result = await confirmDialog({
+                title: renaming ? `Rename ${oldGroup}?` : `Ungroup ${oldGroup}?`,
+                message: renaming
+                    ? `“${original.title}” is in ${oldGroup} with ${mates.length} other ${mates.length === 1 ? 'entry' : 'entries'}. Rename the group everywhere, or move only this entry?`
+                    : `“${original.title}” is in ${oldGroup} with ${mates.length} other ${mates.length === 1 ? 'entry' : 'entries'}. Remove only this entry, or clear the group from every member?`,
+                confirmText: 'Apply',
+                cancelText: 'Cancel',
+                choices: renaming
+                    ? [
+                        { value: 'one', label: `Only this entry — move to ${newGroup}` },
+                        { value: 'all', label: `Rename ${oldGroup} to ${newGroup} on all ${mates.length + 1} entries` }
+                    ]
+                    : [
+                        { value: 'one', label: 'Only this entry' },
+                        { value: 'all', label: `Ungroup all ${mates.length + 1} entries` }
+                    ],
+                choice: 'one',
+                choicesLabel: 'Which grouped entries to change'
+            });
+            if (!result?.confirmed) return;
+            applyGroupToAll = result.choice === 'all';
+        }
     }
 
     let nextEvents;
@@ -967,6 +1033,14 @@ async function saveEdit(i) {
         Toast.show(`Updated ${twins.length + 1} matching entries.`, 'success');
     }
 
+    if (applyGroupToAll && oldGroup) {
+        const leftover = findGroupRefs(nextEvents, oldGroup);
+        nextEvents = applyGroupLabel(nextEvents, leftover, newGroup);
+        Toast.show(newGroup
+            ? `Renamed ${oldGroup} to ${newGroup} on ${leftover.length + 1} entries.`
+            : `Ungrouped ${leftover.length + 1} entries.`, 'success');
+    }
+
     dismissUndo();
     selectedDayIndexes.clear();
     patch({ events: nextEvents, editingIndex: null, selectedKey: destKey });
@@ -987,7 +1061,15 @@ async function groupEntries(indexes) {
     // One known group among the selection is enough to join it. Two different
     // groups, or none, need a name so the user is never silently re-filed.
     let label = uniqueNames.length === 1 ? canonicalGroup(events, existing[0]) : '';
-    if (!label) {
+    if (label) {
+        const join = await confirmDialog({
+            title: `Add to ${label}?`,
+            message: `${unique.length} entries will share this group. Price, date, and each label stay as they are.`,
+            confirmText: 'Group',
+            cancelText: 'Cancel'
+        });
+        if (!join?.confirmed) return;
+    } else {
         const result = await confirmDialog({
             title: unique.length === 2 ? 'Group these entries?' : `Group ${unique.length} entries?`,
             message: 'Name the group. Price, date, and the label on each entry stay as they are.',
@@ -1027,12 +1109,21 @@ function ungroupEntry(index) {
     Toast.show(`Removed from ${item.group}.`, 'success');
 }
 
-function ungroupSelected() {
+async function ungroupSelected() {
     const { events, selectedKey } = getState();
     const list = events[selectedKey] || [];
     const indexes = [...selectedDayIndexes].filter((index) => list[index]?.group);
     if (!indexes.length) return;
-    let next = events;
+    if (indexes.length > 1) {
+        const result = await confirmDialog({
+            title: `Ungroup ${indexes.length} entries?`,
+            message: 'Each entry stays on this day with its price and label. Only the group name is removed.',
+            confirmText: 'Ungroup',
+            cancelText: 'Cancel'
+        });
+        if (!result?.confirmed) return;
+    }
+    let next = getState().events;
     indexes.forEach((index) => {
         next = clearGroupAt(next, selectedKey, index);
     });
@@ -1120,7 +1211,8 @@ async function deleteEv(i) {
             cancelText: 'Cancel',
             danger: true,
             choices: plan.seriesCount > 1 ? plan.choices : null,
-            choice: plan.choice
+            choice: plan.choice,
+            choicesLabel: 'What to remove'
         });
         if (!result?.confirmed) return;
         applySeriesDelete(events, item, i, selectedKey, result.choice || 'day');
@@ -1277,23 +1369,48 @@ function readRepeat(name) {
     return normalizeRepeat(document.querySelector(`input[name="${name}"]:checked`)?.value);
 }
 
-function addEvent() {
+async function addEvent() {
     const { selectedKey } = getState();
     if (!selectedKey) return;
 
+    const title = document.getElementById('et')?.value;
+    const recurring = document.getElementById('er')?.checked;
+    const repeat = readRepeat('er-repeat');
+    const kind = readKind('ek');
+
+    if (recurring) {
+        const scheduled = await confirmDialog({
+            title: 'Schedule copies?',
+            message: `“${String(title || '').trim() || 'This entry'}” will be copied onto the calendar through the next year. You can still edit or remove one day later.`,
+            confirmText: 'Schedule',
+            cancelText: 'Cancel'
+        });
+        if (!scheduled?.confirmed) return;
+    }
+
     const ok = saveExpense({
         dateKey: selectedKey,
-        title: document.getElementById('et')?.value,
+        title,
         price: document.getElementById('ep')?.value,
         note: document.getElementById('en')?.value,
-        recurring: document.getElementById('er')?.checked,
+        recurring,
         paid: document.getElementById('epad')?.checked,
-        repeat: readRepeat('er-repeat'),
-        kind: readKind('ek'),
+        repeat,
+        kind,
         category: addCategoryPicker?.getValue(),
         group: addGroupField?.getValue()
     });
     if (!ok) return;
+
+    if (recurring) {
+        const count = countSeriesOccurrences(getState().events, {
+            title: String(title || '').trim(),
+            recurring: true,
+            repeat,
+            kind
+        });
+        if (count > 1) Toast.show(`Scheduled ${count} copies of ${String(title || '').trim()}.`, 'success');
+    }
 
     refreshEventList();
     renderDayInsights(selectedKey);

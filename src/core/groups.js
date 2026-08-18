@@ -86,6 +86,51 @@ export function canonicalGroup(events, raw) {
 }
 
 /**
+ * Every entry that shares a group, optionally skipping the row already open.
+ * Used so an edit can rename or ungroup the whole set, or only that row.
+ */
+export function findGroupRefs(events, group, { skip } = {}) {
+    const key = groupKey(group);
+    if (!key) return [];
+
+    const refs = [];
+    Object.keys(events || {}).forEach((date) => {
+        const list = Array.isArray(events[date]) ? events[date] : [];
+        list.forEach((entry, index) => {
+            if (skip && skip.date === date && Number(skip.index) === index) return;
+            if (groupKey(entry?.group) !== key) return;
+            refs.push({ date, index, entry });
+        });
+    });
+    return refs;
+}
+
+/** Write or clear `group` on the listed refs. Title, price, and date stay put. */
+export function applyGroupLabel(events, refs, group) {
+    if (!Array.isArray(refs) || !refs.length) return events;
+
+    const label = normalizeGroup(group);
+    const next = { ...events };
+    const cloned = new Set();
+
+    refs.forEach((ref) => {
+        const date = ref?.date;
+        const index = Number(ref?.index);
+        if (!date || !Array.isArray(next[date])) return;
+        if (index < 0 || index >= next[date].length) return;
+        if (!cloned.has(date)) {
+            next[date] = [...next[date]];
+            cloned.add(date);
+        }
+        const row = { ...next[date][index] };
+        if (label) row.group = label;
+        else delete row.group;
+        next[date][index] = row;
+    });
+    return next;
+}
+
+/**
  * What this title was filed under last time. Buying "Dog food" once and
  * grouping it under "Bella" should mean the next one arrives pre-filled.
  */

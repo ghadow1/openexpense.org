@@ -74,7 +74,9 @@ Snapshot and sidebar charts plot one period total on a small ring and a year spa
 
 `src/core/categories.js` stores one category string per entry (max 40). The form is a type-to-tag field: suggestions come from used labels and the built-in set; Enter creates a new tag. `tag:` and `category:` are the same search key as `cat:`. `cat:food` also matches every built-in tag in that family (Groceries, Dining, Coffee).
 
-`src/core/groups.js` and `day-entries.js` own user groups. Select several day-sheet rows or drop one row onto another to assign a group. **Ungroup** deletes only `group` — price, date, title, category, paid, and recurring stay put.
+`src/core/groups.js` and `day-entries.js` own user groups. Select several day-sheet rows or drop one row onto another to assign a group; a dialog names a new group or confirms joining one that already exists. Editing the group on one member asks whether to move only that entry or rename/ungroup every member (Finder / Photos style). Bulk Ungroup confirms; a single unlink does not. Price, date, title, category, paid, and recurring stay put.
+
+Adding or turning on recurring asks before copies are seeded. Changing a series date or cadence asks before every copy moves. A one-off delete stays instant with Undo, matching Gmail / Linear. Name+amount twins still use **Change all**.
 
 ## Search
 

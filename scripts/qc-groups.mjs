@@ -6,9 +6,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    applyGroupLabel,
     cachedGroupHistory,
     canonicalGroup,
     collectGroups,
+    findGroupRefs,
     groupHistory,
     groupKey,
     normalizeGroup,
@@ -178,4 +180,27 @@ test('a group survives the sanitizer that entries are saved through', () => {
     assert.equal(sanitizeEntry({ title: 'x', group: '   ' }).group, undefined);
     assert.equal(sanitizeEntry({ title: 'x' }).group, undefined);
     assert.equal(sanitizeEntry({ title: 'x', group: 'g'.repeat(90) }).group.length, FILE_LIMITS.maxGroup);
+});
+
+test('findGroupRefs matches casing and can skip the open row', () => {
+    const refs = findGroupRefs(ledger, 'bella', { skip: { date: '2026-08-01', index: 0 } });
+    assert.equal(refs.length, 1);
+    assert.equal(refs[0].entry.title, 'Vet');
+    assert.equal(findGroupRefs(ledger, 'Rome trip').length, 2);
+    assert.deepEqual(findGroupRefs(null, 'Bella'), []);
+    assert.deepEqual(findGroupRefs(ledger, ''), []);
+});
+
+test('applyGroupLabel renames or clears listed members without mutating the source', () => {
+    const rome = findGroupRefs(ledger, 'Rome trip');
+    const renamed = applyGroupLabel(ledger, rome, 'Italy');
+    assert.equal(renamed['2026-08-04'][1].group, 'Italy');
+    assert.equal(renamed['2026-08-09'][0].group, 'Italy');
+    assert.equal(ledger['2026-08-04'][1].group, 'Rome trip');
+    assert.equal(renamed['2026-08-01'][0].group, 'Bella');
+
+    const rental = findGroupRefs(ledger, 'Rental');
+    const cleared = applyGroupLabel(ledger, rental, '');
+    assert.equal(cleared['2026-08-09'][1].group, undefined);
+    assert.equal(ledger['2026-08-09'][1].group, 'Rental');
 });

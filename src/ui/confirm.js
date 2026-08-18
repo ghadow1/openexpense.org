@@ -80,6 +80,7 @@ export function confirmDialog({
     checkbox = null,
     choices = null,
     choice = null,
+    choicesLabel = 'Choose an option',
     field = null,
     budgetFields = null,
     validate = null
@@ -92,7 +93,7 @@ export function confirmDialog({
         const list = Array.isArray(choices) ? choices.filter((row) => row?.value) : [];
         const selected = list.some((row) => row.value === choice) ? choice : list[0]?.value;
         const choiceHtml = list.length
-            ? `<div class="confirm-choices" role="radiogroup" aria-label="What to remove">
+            ? `<div class="confirm-choices" role="radiogroup" aria-label="${Utils.escapeHtml(choicesLabel)}">
                 ${list.map((row) => `<label class="confirm-choice">
                     <input type="radio" name="confirm-scope" value="${Utils.escapeHtml(row.value)}"${row.value === selected ? ' checked' : ''}>
                     <span>${Utils.escapeHtml(row.label || row.value)}</span>

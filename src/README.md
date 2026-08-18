@@ -37,7 +37,7 @@ Each module starts with a short header describing what it owns.
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, date / cadence shift, weekday or series delete |
 | [`core/labeling.js`](core/labeling.js) | Name+amount twins and Change All title/price writes |
 | [`core/categories.js`](core/categories.js) | Built-in tags, keyword guess, collect / suggest / canonical |
-| [`core/groups.js`](core/groups.js) | User group fold, collect / suggest / canonical, sidebar rollup |
+| [`core/groups.js`](core/groups.js) | User group fold, collect / suggest / canonical, this-vs-all rename |
 | [`core/search.js`](core/search.js) | Query language: `group:`, `tag:` / `cat:`, amounts, `is:`, dates |
 | [`core/day-entries.js`](core/day-entries.js) | Day-list reorder, move, duplicate, paid toggle, group / ungroup, title memory |
 | [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window, short axis labels |
