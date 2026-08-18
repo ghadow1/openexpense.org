@@ -82,6 +82,8 @@ The master secret is encrypted under a key derived from the passphrase, so a cop
 
 PBKDF2 is used because it is the strongest passphrase KDF the Web Crypto API offers natively. It is not memory-hard the way Argon2id is; choosing it keeps the crypto free of third-party code and WASM, which matters for an offline-first app served as static files. 600,000 iterations follows OWASP's 2023 guidance for PBKDF2-HMAC-SHA-256.
 
+Export asks about a passphrase once and remembers a deliberate "Not now" in `localStorage` (only the choice, never the passphrase), so export stays one click for anyone who does not want one. Dismissing that dialog with Escape is not treated as an answer. **Long-press Export to reopen the question** — that is the way to turn a passphrase on after declining, or off after enabling.
+
 ### Older files
 
 v1 envelopes — a raw AES-256-GCM JWK in `key.json`, no salt, no commitment, no AAD — still import. Older `.zip` backups (ciphertext + key + README) still import too. Exports are always written as v2.

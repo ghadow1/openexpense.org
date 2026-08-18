@@ -237,10 +237,11 @@ export const Ledger = {
 
     /**
      * A passphrase is opt-in and asked about once. Saying no is remembered, so
-     * export stays a single click for anyone who does not want one.
+     * export stays a single click for anyone who does not want one. A long-press
+     * export reopens the question, which is the way back after saying no.
      */
-    async resolveExportPassphrase() {
-        const choice = readPassphrasePref();
+    async resolveExportPassphrase({ reconsider = false } = {}) {
+        const choice = reconsider ? null : readPassphrasePref();
 
         if (choice !== 'on' && choice !== 'off') {
             const offer = await confirmDialog({
@@ -263,7 +264,9 @@ export const Ledger = {
                 }
             });
             if (!offer?.confirmed) {
-                writePassphrasePref('off');
+                // Only a deliberate "Not now" is remembered. Escaping out is
+                // not an answer, so the offer comes back next time.
+                if (!offer?.dismissed) writePassphrasePref('off');
                 return { ok: true, passphrase: '' };
             }
             writePassphrasePref('on');
@@ -301,7 +304,7 @@ export const Ledger = {
 
     async writeExport({ pickFolder = false } = {}) {
         try {
-            const choice = await Ledger.resolveExportPassphrase();
+            const choice = await Ledger.resolveExportPassphrase({ reconsider: pickFolder });
             if (!choice.ok) return;
             const { enc, keyFile } = await encryptBundle(
                 Ledger.exportPayload(),

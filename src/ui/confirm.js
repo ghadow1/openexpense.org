@@ -36,13 +36,19 @@ function teardown(result) {
     }
 }
 
-function readResult(confirmed) {
+/**
+ * `dismissed` separates walking away (Escape, backdrop) from deliberately
+ * choosing the cancel button, so callers can avoid recording a preference the
+ * user never actually expressed.
+ */
+function readResult(confirmed, dismissed = false) {
     const box = backdropEl?.querySelector('#confirm-extra');
     const picked = backdropEl?.querySelector('input[name="confirm-scope"]:checked');
     const value = backdropEl?.querySelector('#confirm-field')?.value ?? '';
     const repeat = backdropEl?.querySelector('#confirm-field-repeat')?.value ?? '';
     return {
         confirmed,
+        dismissed,
         checked: !!box?.checked,
         choice: picked?.value || null,
         value: confirmed ? value : '',
@@ -149,7 +155,7 @@ export function confirmDialog({
         okBtn.addEventListener('click', submit);
         cancelBtn.addEventListener('click', () => teardown(readResult(false)));
         backdropEl.addEventListener('mousedown', (e) => {
-            if (e.target === backdropEl) teardown(readResult(false));
+            if (e.target === backdropEl) teardown(readResult(false, true));
         });
 
         keyHandler = (e) => {
@@ -160,7 +166,7 @@ export function confirmDialog({
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
-                teardown(readResult(false));
+                teardown(readResult(false, true));
             }
         };
         document.addEventListener('keydown', keyHandler, true);
