@@ -10,6 +10,10 @@ These notes describe what is on `main` (the site at [openexpense.org](https://ww
 
 On a phone or tablet the monthly spending card sits under the calendar and no longer has its own 72vh scroller. Swiping the page moves the calendar and the statement together.
 
+## 2026-08-18 — Status badges match the action squares
+
+**You own your data** and **File loaded** (and Undo, when it appears) are the same 40px height as Add, Scan, Search, and Export.
+
 ## 2026-08-18 — Invoice-style statement PDF
 
 The sidebar PDF is a one-column spending or income statement: letterhead, period and reference, paid vs unpaid (or deposited vs expected), a line-item register, and a totals box. Thin settlement bars and empty months no longer crash the export. The file is still built on this device.
