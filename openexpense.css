@@ -2730,15 +2730,11 @@ html.is-action-busy [data-lockable] {
     background: var(--danger-text);
 }
 
-.cal-week.is-ahead-week .cal-week-rail {
-    background: #15803d;
-}
-
-.cal-week.is-over-week.is-ahead-week .cal-week-rail {
+.cal-week.is-warn-week .cal-week-rail {
     background: linear-gradient(
         180deg,
         var(--danger-text) 0 50%,
-        #15803d 50% 100%
+        var(--text-muted) 50% 100%
     );
 }
 
@@ -2839,6 +2835,11 @@ html.is-action-busy [data-lockable] {
 }
 
 .cal-day-total.is-down {
+    color: var(--text2);
+}
+
+.cal-day-total.is-over,
+.cal-day.is-over-day .cal-day-num:not(.is-today) {
     color: var(--danger-text);
 }
 
@@ -6212,12 +6213,8 @@ textarea:focus-visible {
     background: #a3a3a3;
 }
 
-[data-theme="dark"] .cal-week.is-ahead-week .cal-week-rail {
-    background: #ffffff;
-}
-
-[data-theme="dark"] .cal-week.is-over-week.is-ahead-week .cal-week-rail {
-    background: linear-gradient(180deg, #a3a3a3 0 50%, #ffffff 50% 100%);
+[data-theme="dark"] .cal-week.is-warn-week .cal-week-rail {
+    background: linear-gradient(180deg, #a3a3a3 0 50%, #525252 50% 100%);
 }
 
 [data-theme="dark"] .cal-day-num.is-today {
