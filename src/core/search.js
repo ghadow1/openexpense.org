@@ -8,8 +8,11 @@
  * The language is deliberately tiny, because it has to be guessable from the
  * placeholder text alone:
  *
- *   coffee              free text over title and note
- *   cat:groceries       a category (quoted for spaces: cat:"eating out")
+ *   coffee              free text over title, note, category, and group
+ *   cat:groceries       a category (tag: and category: are the same key)
+ *   group:bella         a user group (grp: is the short form)
+ *   group:"rome trip"   quoted when the name has a space; a space after the
+ *                       colon is also fine: group: rome trip
  *   >20  <100           amount bounds
  *   is:unpaid           unpaid, paid, income, expense, or recurring
  *   2026-08             a date prefix — a year, a month, or an exact day
@@ -18,30 +21,61 @@
  * a stray character never blanks the results.
  */
 import { Utils } from './utils.js';
-import { categoryInfo } from './categories.js';
+import { categoryInfo, categoryKey } from './categories.js';
+import { groupKey } from './groups.js';
 
 const IS_FLAGS = new Set(['paid', 'unpaid', 'income', 'expense', 'recurring', 'once']);
 const DATE_TOKEN = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+const CATEGORY_KEY = /^(cat|category|tag|tags):(.*)$/i;
+const GROUP_KEY = /^(group|grp):(.*)$/i;
+const IS_KEY = /^is:(.*)$/i;
 
 /**
- * Split on spaces, keeping "quoted phrases" together. A quoted value attached
- * to a field has to stay with it, or cat:"eating out" would split into a
- * broken field and a stray word.
+ * Split on spaces, keeping "quoted phrases" together and keeping a search key
+ * attached to its value. `group:"rome trip"` stays one token. A bare `group:`
+ * stays one token so the words after it can be read as the group name.
  */
 function tokenize(raw) {
     const out = [];
-    const pattern = /([a-z]+:"[^"]*")|"([^"]*)"|(\S+)/gi;
+    const pattern = /([a-z]+:"[^"]*")|([a-z]+:\S+)|([a-z]+:)|"([^"]*)"|(\S+)/gi;
     let match;
     while ((match = pattern.exec(String(raw ?? '')))) {
         if (match[1]) out.push({ value: match[1], quoted: false });
-        else if (match[2] != null) out.push({ value: match[2], quoted: true });
+        else if (match[2]) out.push({ value: match[2], quoted: false });
         else if (match[3]) out.push({ value: match[3], quoted: false });
+        else if (match[4] != null) out.push({ value: match[4], quoted: true });
+        else if (match[5]) out.push({ value: match[5], quoted: false });
     }
     return out.filter((token) => token.value !== '');
 }
 
-export function parseQuery(raw) {
-    const query = {
+function stripQuotes(raw) {
+    return String(raw ?? '').replace(/^"|"$/g, '').trim();
+}
+
+function isStopToken(value) {
+    return CATEGORY_KEY.test(value)
+        || GROUP_KEY.test(value)
+        || IS_KEY.test(value)
+        || /^([<>])=?(\d+(?:\.\d+)?)$/.test(value)
+        || DATE_TOKEN.test(value);
+}
+
+/** Words after a bare `group:` / `cat:` / `is:` until the next key or bound. */
+function takeValue(tokens, start) {
+    const parts = [];
+    let index = start;
+    while (index < tokens.length) {
+        const token = tokens[index];
+        if (!token.quoted && isStopToken(token.value)) break;
+        parts.push(token.value);
+        index += 1;
+    }
+    return { value: parts.join(' ').trim(), next: index };
+}
+
+function emptyQuery() {
+    return {
         text: [],
         categories: [],
         groups: [],
@@ -50,38 +84,69 @@ export function parseQuery(raw) {
         max: null,
         paid: null,
         kind: null,
-        recurring: null
+        recurring: null,
+        pending: null
     };
+}
 
-    for (const { value, quoted } of tokenize(raw)) {
+export function parseQuery(raw) {
+    const query = emptyQuery();
+    const tokens = tokenize(raw);
+
+    for (let i = 0; i < tokens.length; i += 1) {
+        const { value, quoted } = tokens[i];
         if (quoted) {
             query.text.push(value.toLowerCase());
             continue;
         }
 
-        const field = value.match(/^(cat|category):(.*)$/i);
-        if (field) {
-            const name = field[2].replace(/^"|"$/g, '').trim();
+        const category = value.match(CATEGORY_KEY);
+        if (category) {
+            let name = stripQuotes(category[2]);
+            if (!name) {
+                const taken = takeValue(tokens, i + 1);
+                name = taken.value;
+                i = taken.next - 1;
+            }
             if (name) query.categories.push(name.toLowerCase());
+            else query.pending = 'category';
             continue;
         }
 
-        const groupField = value.match(/^(group|grp):(.*)$/i);
-        if (groupField) {
-            const name = groupField[2].replace(/^"|"$/g, '').trim();
+        const group = value.match(GROUP_KEY);
+        if (group) {
+            let name = stripQuotes(group[2]);
+            if (!name) {
+                const taken = takeValue(tokens, i + 1);
+                name = taken.value;
+                i = taken.next - 1;
+            }
             if (name) query.groups.push(name.toLowerCase());
+            else query.pending = 'group';
             continue;
         }
 
-        const flag = value.match(/^is:(.*)$/i);
-        if (flag && IS_FLAGS.has(flag[1].toLowerCase())) {
-            switch (flag[1].toLowerCase()) {
-                case 'paid': query.paid = true; break;
-                case 'unpaid': query.paid = false; break;
-                case 'income': query.kind = 'income'; break;
-                case 'expense': query.kind = 'expense'; break;
-                case 'recurring': query.recurring = true; break;
-                case 'once': query.recurring = false; break;
+        const flag = value.match(IS_KEY);
+        if (flag) {
+            let name = stripQuotes(flag[1]).toLowerCase();
+            if (!name) {
+                const taken = takeValue(tokens, i + 1);
+                name = taken.value.toLowerCase();
+                i = taken.next - 1;
+            }
+            if (IS_FLAGS.has(name)) {
+                switch (name) {
+                    case 'paid': query.paid = true; break;
+                    case 'unpaid': query.paid = false; break;
+                    case 'income': query.kind = 'income'; break;
+                    case 'expense': query.kind = 'expense'; break;
+                    case 'recurring': query.recurring = true; break;
+                    case 'once': query.recurring = false; break;
+                }
+            } else if (name) {
+                query.text.push(`is:${name}`);
+            } else {
+                query.pending = 'is';
             }
             continue;
         }
@@ -118,6 +183,11 @@ export function isEmptyQuery(query) {
         && query.recurring == null;
 }
 
+/** A typed `group:` / `cat:` / `tag:` with no value yet. */
+export function pendingSearchKey(query) {
+    return query?.pending || null;
+}
+
 function matches(entry, date, query) {
     if (query.kind != null && Utils.entryKind(entry) !== query.kind) return false;
     if (query.paid != null && !!entry.paid !== query.paid) return false;
@@ -126,13 +196,21 @@ function matches(entry, date, query) {
     if (query.dates.length && !query.dates.some((prefix) => date.startsWith(prefix))) return false;
 
     if (query.categories.length) {
-        const label = categoryInfo(entry.category, Utils.entryKind(entry)).label.toLowerCase();
-        if (!query.categories.some((want) => label.includes(want))) return false;
+        const info = categoryInfo(entry.category, Utils.entryKind(entry));
+        const label = categoryKey(info.label);
+        const family = categoryKey(info.group);
+        if (!query.categories.some((want) => {
+            const key = categoryKey(want);
+            return (key && label.includes(key)) || (key && family.includes(key));
+        })) return false;
     }
 
     if (query.groups.length) {
-        const label = String(entry.group || '').toLowerCase();
-        if (!label || !query.groups.some((want) => label.includes(want))) return false;
+        const label = groupKey(entry.group);
+        if (!label || !query.groups.some((want) => {
+            const key = groupKey(want);
+            return key && label.includes(key);
+        })) return false;
     }
 
     const amount = Utils.getPrice(entry);
@@ -202,4 +280,14 @@ export function searchEntries(events, raw, { limit = 50 } = {}) {
         truncated: total > rows.length,
         query
     };
+}
+
+/** `group:"Rome trip"` when the name has a space, otherwise `group:Bella`. */
+export function formatSearchKey(kind, label) {
+    const clean = String(label || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return '';
+    const prefix = kind === 'group' ? 'group' : 'cat';
+    return /[\s"]/.test(clean)
+        ? `${prefix}:"${clean.replace(/"/g, '')}"`
+        : `${prefix}:${clean}`;
 }

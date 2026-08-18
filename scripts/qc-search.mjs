@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseQuery, isEmptyQuery, searchEntries } from '../src/core/search.js';
+import { parseQuery, isEmptyQuery, searchEntries, formatSearchKey, pendingSearchKey } from '../src/core/search.js';
 
 const events = {
     '2026-08-03': [
@@ -70,6 +70,41 @@ test('group: filters by the user\'s own buckets', () => {
     // Case and partials work the same way categories do.
     assert.equal(searchEntries(grouped, 'group:BELLA').total, 2);
     assert.equal(searchEntries(grouped, 'group:bel').total, 2);
+});
+
+test('a space after group: still belongs to the group name', () => {
+    assert.deepEqual(parseQuery('group: bella').groups, ['bella']);
+    assert.deepEqual(titles(searchEntries(grouped, 'group: bella')), ['Dog food', 'Vet']);
+    assert.deepEqual(parseQuery('group: rome trip').groups, ['rome trip']);
+    assert.equal(searchEntries(grouped, 'group: rome trip').total, 1);
+    assert.equal(searchEntries(grouped, 'group: rome trip >100').total, 1);
+});
+
+test('tag: and category: are the same key as cat:', () => {
+    assert.deepEqual(titles(searchEntries(events, 'tag:groceries')), ['Coffee beans', 'Trader Joes']);
+    assert.deepEqual(titles(searchEntries(events, 'category:housing')), ['Rent']);
+    assert.deepEqual(parseQuery('tag: dining').categories, ['dining']);
+});
+
+test('a category family name matches the tags in that family', () => {
+    // Dining and Coffee both sit under Food. This is what people mean when they
+    // search a coarse bucket instead of one label.
+    assert.deepEqual(titles(searchEntries(events, 'cat:food')), ['Coffee beans', 'Starbucks', 'Trader Joes']);
+});
+
+test('an unfinished search key is pending, not an empty failed search', () => {
+    assert.equal(pendingSearchKey(parseQuery('group:')), 'group');
+    assert.equal(pendingSearchKey(parseQuery('cat:')), 'category');
+    assert.equal(pendingSearchKey(parseQuery('tag:')), 'category');
+    assert.equal(pendingSearchKey(parseQuery('is:')), 'is');
+    assert.equal(isEmptyQuery(parseQuery('group:')), true);
+    assert.equal(pendingSearchKey(parseQuery('group:bella')), null);
+});
+
+test('formatSearchKey quotes names that have a space', () => {
+    assert.equal(formatSearchKey('group', 'Bella'), 'group:Bella');
+    assert.equal(formatSearchKey('group', 'Rome trip'), 'group:"Rome trip"');
+    assert.equal(formatSearchKey('cat', 'Groceries'), 'cat:Groceries');
 });
 
 test('a group with a space can be quoted', () => {

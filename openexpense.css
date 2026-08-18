@@ -3660,6 +3660,16 @@ body.is-entry-dragging .cal-day {
     opacity: 0.7;
 }
 
+.cat-row.is-searchable {
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+}
+
+.cat-row.is-searchable:hover,
+.cat-row.is-searchable:focus-visible {
+    background: var(--surface2);
+}
+
 .cat-row-head {
     display: flex;
     align-items: baseline;

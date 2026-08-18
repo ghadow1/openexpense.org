@@ -15,7 +15,9 @@ import { closeModal, openModal } from './modal.js';
 import { backfillCategories, budgetProgress, categoriesFor, rollUpCategories } from '../core/categories.js';
 import { sanitizeBudgets } from '../core/ledger-file.js';
 import { rollUpGroups } from '../core/groups.js';
+import { formatSearchKey } from '../core/search.js';
 import { confirmDialog } from '../ui/confirm.js';
+import { openSearch } from './search-panel.js';
 
 const FACE_COPY = {
     expense: {
@@ -294,6 +296,7 @@ function groupRow(row, muted = false) {
         <div class="cat-track"><span style="width:${pct}%" data-tone="slate"></span></div>
         <div class="cat-row-meta">${Math.round(row.share)}% · ${row.count} entr${row.count === 1 ? 'y' : 'ies'}</div>
     `;
+    if (!muted && row.label) bindSearchRow(el_, formatSearchKey('group', row.label), `Search group ${row.label}`);
     return el_;
 }
 
@@ -326,6 +329,21 @@ async function runBackfill() {
     Toast.show(`Filed ${filled} entr${filled === 1 ? 'y' : 'ies'}.`, 'success');
 }
 
+function bindSearchRow(node, token, label) {
+    if (!token) return;
+    node.classList.add('is-searchable');
+    node.tabIndex = 0;
+    node.setAttribute('role', 'button');
+    node.title = label;
+    const open = () => openSearch(token);
+    node.addEventListener('click', open);
+    node.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        open();
+    });
+}
+
 function categoryRow(row, muted = false) {
     const el_ = el('div', `cat-row${muted ? ' is-muted' : ''}`);
     const pct = Math.max(2, Math.min(100, row.share));
@@ -337,6 +355,7 @@ function categoryRow(row, muted = false) {
         <div class="cat-track"><span style="width:${pct}%" data-tone="${row.tone}"></span></div>
         <div class="cat-row-meta">${Math.round(row.share)}% · ${row.count} entr${row.count === 1 ? 'y' : 'ies'}</div>
     `;
+    if (!muted && row.label) bindSearchRow(el_, formatSearchKey('cat', row.label), `Search ${row.label}`);
     return el_;
 }
 
