@@ -193,7 +193,13 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         weeklySavings: 50,
         reserveSavings: false,
         spendBasis: 'paid',
-        incomeBasis: 'scheduled'
+        incomeBasis: 'scheduled',
+        taxWithholdPct: 0,
+        savingsPct: 0,
+        savingsFixed: 0,
+        ratioNeeds: 50,
+        ratioWants: 30,
+        ratioSave: 20
     });
 
     const defaultPlan = sanitizeLedger({
@@ -208,7 +214,13 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         weeklySavings: 0,
         reserveSavings: true,
         spendBasis: 'logged',
-        incomeBasis: 'deposited'
+        incomeBasis: 'deposited',
+        taxWithholdPct: 0,
+        savingsPct: 0,
+        savingsFixed: 0,
+        ratioNeeds: 50,
+        ratioWants: 30,
+        ratioSave: 20
     });
 });
 

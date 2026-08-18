@@ -70,7 +70,7 @@ The right-hand card flips between an expense face and an income face. The calend
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The dash card has four slides: Overview, Income, Expenses, and Budget. Budget is the weekly savings target and the rules that change **Left to spend** (`src/core/plan.js`). Defaults keep the original cash line: deposited income minus every logged bill, with no reserve. The dash card fills its column. At 1100px and up it also draws the split as bars beside the dial and opens the figure cards; crossing that width repaints the slide. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
+The dash card has four slides: Overview, Income, Expenses, and Planner. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`). Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. The dash card fills its column. At 1100px and up it also draws the split as bars beside the dial and opens the figure cards; crossing that width repaints the slide. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
 
 ## Labels, groups, and Change All
 

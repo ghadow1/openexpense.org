@@ -40,7 +40,7 @@ Each module starts with a short header describing what it owns.
 | [`core/groups.js`](core/groups.js) | User group fold, collect / suggest / canonical, this-vs-all rename |
 | [`core/search.js`](core/search.js) | Query language: `group:`, `tag:` / `cat:`, amounts, `is:`, dates |
 | [`core/day-entries.js`](core/day-entries.js) | Day-list reorder, move, duplicate, paid toggle, group / ungroup, title memory |
-| [`core/plan.js`](core/plan.js) | Weekly savings, spend/income bases, month reserve |
+| [`core/plan.js`](core/plan.js) | Planner waterfall, 50/30/20 scoreboard, runway, weekly pace |
 | [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window, left-to-spend with plan rules |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |

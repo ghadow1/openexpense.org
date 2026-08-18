@@ -398,7 +398,7 @@ function renderWeeklyTrack(summary) {
             <span class="cat-row-amt">${left}</span>
         </div>
         <div class="cat-track"><span style="width:${Math.max(2, used)}%" data-tone="sky"></span></div>
-        <div class="cat-row-meta">${Utils.formatMoney(snap.weekNet)} of ${Utils.formatMoney(snap.weeklySavings)} this week${snap.reserveOn ? ` · ${Utils.formatMoney(snap.weeklyReserve)} reserved in ${summary.shortMonth}` : ''}</div>
+        <div class="cat-row-meta">${Utils.formatMoney(snap.weekNet)} of ${Utils.formatMoney(snap.weeklySavings)} this week${snap.reserveOn ? ` · ${Utils.formatMoney(snap.weeklyReserve)} reserved in ${summary.shortMonth}` : ''}${snap.dailySafe ? ` · ${Utils.formatMoney(snap.dailySafe)} safe / day` : ''}</div>
     `;
     return item;
 }

@@ -706,6 +706,23 @@ test('scheduled income counts undeposited pay in left-to-spend', () => {
     assert.equal(snap.leftToSpend, 1600);
 });
 
+test('15.3% withhold and leftover stay exact against the cash ledger', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, { taxWithholdPct: 15.3 });
+    assert.equal(snap.taxWithheld, 306);
+    assert.equal(snap.afterTax, 1694);
+    assert.equal(snap.leftToSpend, 294);
+    assert.equal(snap.leftToSpend, snap.deposited - snap.monthOut - snap.taxWithheld);
+});
+
+test('daily safe spend is leftover divided by remaining August days', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf);
+    assert.equal(snap.daysLeft, 15);
+    assert.equal(snap.dailySafe, 40);
+    assert.equal(snap.weeklySafe, 280);
+    assert.equal(snap.avgDailyBurn, 82.35);
+    assert.equal(snap.runwayDays, 36.4);
+});
+
 test('this week is Sunday through Saturday of asOf', () => {
     const events = {
         '2026-08-16': [entry({ title: 'Pay', price: 400, kind: 'income', paid: true })],

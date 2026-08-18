@@ -8,9 +8,10 @@
  */
 import { Utils } from './utils.js';
 import {
+    computePlanner,
     describePlan,
     incomeUsed,
-    monthReserve,
+    runwayDays,
     sanitizePlan,
     spendUsed,
     weekBounds,
@@ -482,9 +483,9 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
  * Projected income is the viewed month’s scheduled income (recurring copies
  * already on the calendar). Year totals and monthly averages stop at the
  * viewed month so later recurring copies do not inflate “expense months.”
- * A ledger `plan` can change which income and spend count, and can hold a
- * weekly savings reserve out of left-to-spend. The default plan leaves every
- * existing figure identical. Does not persist.
+ * A ledger `plan` can change which income and spend count, withhold tax, and
+ * hold savings out of left-to-spend. The default plan leaves every existing
+ * figure identical. Does not persist.
  */
 export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan) {
     const rules = sanitizePlan(plan);
@@ -508,13 +509,21 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
     const savings = savingsCarriedInto(events, monthStartKey, asOf);
     const usedSpend = spendUsed(spend, rules);
     const usedIncome = incomeUsed(income, rules);
-    const weeklyReserve = monthReserve(rules.weeklySavings, currentDate);
-    const reserveOn = rules.reserveSavings && weeklyReserve > 0;
-    const leftToSpend = reserveOn
-        ? subMoney(subMoney(usedIncome, usedSpend), weeklyReserve)
-        : subMoney(usedIncome, usedSpend);
+    const planner = computePlanner({
+        incomeUsed: usedIncome,
+        spendUsed: usedSpend,
+        spendItems: spend.allItems || [],
+        dailyTotals: spend.dailyTotals || [],
+        daysInMonth: spend.daysInMonth,
+        daysElapsed: spend.daysElapsed,
+        currentDate,
+        asOf,
+        plan: rules
+    });
+    const leftToSpend = planner.leftToSpend;
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
+    const runwayCash = addMoney(savings.net, Math.max(0, leftToSpend));
 
     const week = weekBounds(asOf);
     const weekWindow = windowTotals(events, week.start, week.end, rules);
@@ -553,14 +562,34 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         spendUsed: usedSpend,
         incomeUsed: usedIncome,
         weeklySavings: rules.weeklySavings,
-        weeklyReserve,
-        reserveOn,
+        weeklyReserve: planner.weeklyReserve,
+        reserveOn: planner.reserveOn,
         weekStart: week.start,
         weekEnd: week.end,
         weekIncome: weekWindow.incomeUsed,
         weekSpend: weekWindow.spendUsed,
         weekNet: weekWindow.net,
-        weeklyLeft
+        weeklyLeft,
+        taxWithheld: planner.taxWithheld,
+        afterTax: planner.afterTax,
+        pctHold: planner.pctHold,
+        savingsHold: planner.savingsHold,
+        spendableIncome: planner.spendableIncome,
+        daysLeft: planner.daysLeft,
+        dailySafe: planner.dailySafe,
+        weeklySafe: planner.weeklySafe,
+        avgDailyBurn: planner.avgDailyBurn,
+        runwayCash,
+        runwayDays: runwayDays(runwayCash, planner.avgDailyBurn),
+        ratioNeedsSpent: planner.ratioNeedsSpent,
+        ratioWantsSpent: planner.ratioWantsSpent,
+        ratioOtherSpent: planner.ratioOtherSpent,
+        ratioNeedsCap: planner.ratioNeedsCap,
+        ratioWantsCap: planner.ratioWantsCap,
+        ratioSaveCap: planner.ratioSaveCap,
+        weekBuckets: planner.weekBuckets,
+        unpaidRecurring: planner.unpaidRecurring,
+        unpaidRecurringCount: planner.unpaidRecurringCount
     };
 }
 

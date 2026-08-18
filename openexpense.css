@@ -1364,6 +1364,12 @@ html.is-action-busy [data-lockable] {
     gap: 6px;
 }
 
+.dash-plan-split {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
 .dash-plan-choice {
     display: inline-flex;
     align-items: center;

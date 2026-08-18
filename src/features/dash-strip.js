@@ -63,9 +63,9 @@ const VIEW_COPY = {
         description: 'Logged bills for the month on screen.'
     },
     budget: {
-        tab: 'Budget',
-        title: 'Budgeting settings',
-        description: 'Weekly savings and the rules used for left-to-spend.'
+        tab: 'Planner',
+        title: 'Planner',
+        description: 'Withholding, savings hold, and the leftover ÷ days that remain.'
     }
 };
 
@@ -74,6 +74,7 @@ let activeView = readStoredView();
 function readStoredView() {
     try {
         const stored = localStorage.getItem(STORAGE_KEYS.dashView);
+        if (stored === 'planner' || stored === 'plan') return 'budget';
         if (VIEWS.includes(stored)) return stored;
     } catch (_) { }
     return 'overview';
@@ -250,8 +251,8 @@ function savingsRateChip(snap) {
 }
 
 function overviewDescription(snap) {
-    if (snap.reserveOn) {
-        return 'Counted income minus counted spending and this month’s savings reserve.';
+    if (snap.taxWithheld > 0 || snap.savingsHold > 0) {
+        return 'After-tax counted income minus counted spending and the savings hold.';
     }
     if (snap.spendUsed !== snap.monthOut || snap.incomeUsed !== snap.deposited) {
         return 'Counted income minus counted spending for this month.';
@@ -271,11 +272,13 @@ function overviewSlide(snap, events, currentDate) {
         : `Landed in ${snap.monthLabel}`;
     const leftHint = snap.drawsOnSavings
         ? `${formatMoney(Math.abs(snap.leftToSpend))} from savings funds`
-        : (snap.reserveOn
-            ? `After ${formatMoney(snap.weeklyReserve)} reserved`
-            : (snap.planCaption && snap.planCaption !== 'deposited income minus all logged bills'
-                ? snap.planCaption
-                : 'Deposited − spending'));
+        : (snap.savingsHold > 0
+            ? `After ${formatMoney(snap.savingsHold)} held`
+            : (snap.taxWithheld > 0
+                ? `After ${formatMoney(snap.taxWithheld)} withheld`
+                : (snap.planCaption && snap.planCaption !== 'deposited income minus all logged bills'
+                    ? snap.planCaption
+                    : 'Deposited − spending')));
     const savingsHint = snap.drawsOnSavings
         ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
         : `Carried into ${snap.monthLabel}`;
@@ -328,14 +331,49 @@ function overviewSlide(snap, events, currentDate) {
                 signed: false,
                 track: true
             }),
-            ...(snap.reserveOn ? [chip({
-                label: 'Savings reserve',
-                value: snap.weeklyReserve,
+            ...(snap.taxWithheld > 0 ? [chip({
+                label: 'Tax withheld',
+                value: snap.taxWithheld,
                 tone: 'flat',
-                hint: `${formatMoney(snap.weeklySavings)} / week`,
+                hint: `${snap.plan.taxWithholdPct}% of counted income`,
                 signed: false,
                 track: true
             })] : []),
+            ...(snap.savingsHold > 0 ? [chip({
+                label: 'Savings hold',
+                value: snap.savingsHold,
+                tone: 'flat',
+                hint: snap.reserveOn && snap.weeklyReserve === snap.savingsHold
+                    ? `${formatMoney(snap.weeklySavings)} / week`
+                    : 'Weekly + monthly + percent',
+                signed: false,
+                track: true
+            })] : []),
+            chip({
+                label: 'Daily safe',
+                value: snap.dailySafe,
+                tone: snap.dailySafe >= 0 ? 'up' : 'down',
+                hint: snap.daysLeft ? `${snap.daysLeft} day${snap.daysLeft === 1 ? '' : 's'} left` : 'Month closed'
+            }),
+            textChip({
+                label: 'Days of cash',
+                value: snap.runwayDays == null ? '—' : String(snap.runwayDays),
+                hint: snap.avgDailyBurn > 0
+                    ? `${formatMoney(snap.avgDailyBurn)} / day burn`
+                    : 'No spending to divide',
+                tone: snap.runwayDays == null ? 'flat' : 'up',
+                track: true
+            }),
+            chip({
+                label: 'Recurring unpaid',
+                value: snap.unpaidRecurring,
+                tone: snap.unpaidRecurring > 0 ? 'flat' : 'up',
+                hint: snap.unpaidRecurringCount
+                    ? countHint(snap.unpaidRecurringCount, 'bill', 'bills')
+                    : 'None left this month',
+                signed: false,
+                track: true
+            }),
             savingsRateChip(snap)
         ]
     });
@@ -392,6 +430,12 @@ function incomeSlide(snap, events, currentDate) {
                 value: snap.incomeUsed,
                 tone: snap.incomeUsed > 0 ? 'up' : 'flat',
                 hint: 'Used for left-to-spend'
+            })] : []),
+            ...(snap.taxWithheld > 0 ? [chip({
+                label: 'After tax',
+                value: snap.afterTax,
+                tone: snap.afterTax > 0 ? 'up' : 'flat',
+                hint: `${formatMoney(snap.taxWithheld)} withheld`
             })] : [])
         ]
     });
@@ -461,6 +505,14 @@ function expenseSlide(snap, events, currentDate) {
                 hint: 'Paid bills only',
                 signed: false,
                 track: true
+            })] : []),
+            ...(snap.avgDailyBurn > 0 ? [chip({
+                label: 'Daily burn',
+                value: snap.avgDailyBurn,
+                tone: 'flat',
+                hint: 'Counted spend ÷ days elapsed',
+                signed: false,
+                track: true
             })] : [])
         ]
     });
@@ -481,39 +533,44 @@ function choiceButton(name, value, label, checked) {
 }
 
 function readPlanForm(form) {
-    const weekly = Number(form.querySelector('#dash-plan-weekly')?.value);
     return sanitizePlan({
-        weeklySavings: weekly,
+        weeklySavings: Number(form.querySelector('#dash-plan-weekly')?.value),
         reserveSavings: !!form.querySelector('#dash-plan-reserve')?.checked,
         spendBasis: form.querySelector('input[name="dash-plan-spend"]:checked')?.value,
-        incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value
+        incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value,
+        taxWithholdPct: Number(form.querySelector('#dash-plan-tax')?.value),
+        savingsFixed: Number(form.querySelector('#dash-plan-fixed')?.value),
+        savingsPct: Number(form.querySelector('#dash-plan-savepct')?.value),
+        ratioNeeds: Number(form.querySelector('#dash-plan-needs')?.value),
+        ratioWants: Number(form.querySelector('#dash-plan-wants')?.value),
+        ratioSave: Number(form.querySelector('#dash-plan-save')?.value)
     });
+}
+
+function hint(id, text) {
+    const node = document.createElement('p');
+    node.className = 'dash-plan-hint';
+    if (id) node.id = id;
+    node.textContent = text;
+    return node;
+}
+
+function moneyField(id, label, value, placeholder = '0.00') {
+    const group = UI.createFieldGroup(id, label, value ? String(value) : '', placeholder, 'number');
+    const input = group.querySelector('input');
+    input.min = '0';
+    input.inputMode = 'decimal';
+    return group;
 }
 
 function planPanel(snap, plan) {
     const form = document.createElement('form');
     form.className = 'dash-plan';
-    form.setAttribute('aria-label', 'Budgeting settings');
+    form.setAttribute('aria-label', 'Planner settings');
     form.addEventListener('submit', (event) => event.preventDefault());
 
-    const weekly = UI.createFieldGroup(
-        'dash-plan-weekly',
-        'Weekly savings',
-        plan.weeklySavings ? String(plan.weeklySavings) : '',
-        '0.00',
-        'number'
-    );
-    const weeklyInput = weekly.querySelector('input');
-    weeklyInput.min = '0';
-    weeklyInput.inputMode = 'decimal';
-    weeklyInput.setAttribute('aria-describedby', 'dash-plan-weekly-hint');
-
-    const weeklyHint = document.createElement('p');
-    weeklyHint.className = 'dash-plan-hint';
-    weeklyHint.id = 'dash-plan-weekly-hint';
-    weeklyHint.textContent = plan.weeklySavings > 0
-        ? `${formatMoney(snap.weeklyReserve)} reserved across ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days ÷ 7).`
-        : 'Set a weekly amount. The month’s share is held out of left-to-spend when reserve is on.';
+    const weekly = moneyField('dash-plan-weekly', 'Weekly savings', plan.weeklySavings);
+    weekly.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-hint');
 
     const reserve = document.createElement('label');
     reserve.className = 'dash-plan-check';
@@ -522,8 +579,30 @@ function planPanel(snap, plan) {
     reserveBox.id = 'dash-plan-reserve';
     reserveBox.checked = plan.reserveSavings;
     const reserveText = document.createElement('span');
-    reserveText.textContent = 'Hold this month’s share out of left-to-spend';
+    reserveText.textContent = 'Hold this month’s weekly share out of left-to-spend';
     reserve.append(reserveBox, reserveText);
+
+    const tax = moneyField('dash-plan-tax', 'Tax withhold %', plan.taxWithholdPct, '0');
+    tax.querySelector('input').max = '50';
+    tax.querySelector('input').step = '0.1';
+    const taxPresets = document.createElement('div');
+    taxPresets.className = 'dash-plan-choices';
+    taxPresets.append(
+        choiceButton('dash-plan-tax-preset', '0', 'Off', plan.taxWithholdPct === 0),
+        choiceButton('dash-plan-tax-preset', '15.3', '15.3 SE tax', plan.taxWithholdPct === 15.3),
+        choiceButton('dash-plan-tax-preset', '25', '25 estimate', plan.taxWithholdPct === 25),
+        choiceButton('dash-plan-tax-preset', '30', '30 estimate', plan.taxWithholdPct === 30)
+    );
+    taxPresets.addEventListener('change', (event) => {
+        const picked = event.target?.value;
+        const input = form.querySelector('#dash-plan-tax');
+        if (input && picked != null) input.value = picked;
+    });
+
+    const fixed = moneyField('dash-plan-fixed', 'Monthly savings $', plan.savingsFixed);
+    const savePct = moneyField('dash-plan-savepct', 'Savings % of after-tax', plan.savingsPct, '0');
+    savePct.querySelector('input').max = '100';
+    savePct.querySelector('input').step = '0.1';
 
     const spendField = document.createElement('fieldset');
     spendField.className = 'dash-plan-row';
@@ -551,10 +630,41 @@ function planPanel(snap, plan) {
     );
     incomeField.append(incomeLegend, incomeChoices);
 
-    const caps = UI.createButton('Category monthly caps', () => openBudgetEditor(), { icon: 'adjustments' });
+    const ratioField = document.createElement('fieldset');
+    ratioField.className = 'dash-plan-row';
+    const ratioLegend = document.createElement('legend');
+    ratioLegend.className = 'dash-plan-legend';
+    ratioLegend.textContent = 'After-tax split (needs / wants / save)';
+    const ratioRow = document.createElement('div');
+    ratioRow.className = 'dash-plan-split';
+    ratioRow.append(
+        moneyField('dash-plan-needs', 'Needs %', plan.ratioNeeds, '50'),
+        moneyField('dash-plan-wants', 'Wants %', plan.ratioWants, '30'),
+        moneyField('dash-plan-save', 'Save %', plan.ratioSave, '20')
+    );
+    ratioField.append(ratioLegend, ratioRow);
+
+    const caps = UI.createButton('Category monthly caps', () => openBudgetEditor());
     caps.classList.add('dash-plan-caps');
 
-    form.append(weekly, weeklyHint, reserve, spendField, incomeField, caps);
+    form.append(
+        weekly,
+        hint('dash-plan-weekly-hint', plan.weeklySavings > 0
+            ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
+            : 'Month share is weekly × days in this month ÷ 7.'),
+        reserve,
+        tax,
+        taxPresets,
+        hint('', '15.3 is IRS self-employment tax (12.4 Social Security + 2.9 Medicare). 25 and 30 are common quarterly-estimate placeholders from Pub 505 practice, not a tax filing.'),
+        fixed,
+        savePct,
+        hint('', 'Fixed dollars and this percent stack with the weekly hold. They come out of after-tax income before left-to-spend.'),
+        spendField,
+        incomeField,
+        ratioField,
+        hint('', `50/30/20 is Warren and Tyagi, All Your Worth (2005), as taught by the CFPB. Needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}, save hold ${formatMoney(snap.savingsHold)} of ${formatMoney(snap.ratioSaveCap)}.`),
+        caps
+    );
     form.addEventListener('change', () => {
         patch({ plan: readPlanForm(form) });
     });
@@ -562,35 +672,68 @@ function planPanel(snap, plan) {
 }
 
 function budgetSlide(snap, events, currentDate, plan) {
-    const weeklyOn = plan.weeklySavings > 0;
-    const value = weeklyOn ? snap.weeklyLeft : snap.leftToSpend;
-    const cap = weeklyOn
-        ? (snap.weekIncome > 0 ? snap.weekIncome : plan.weeklySavings)
-        : (snap.incomeUsed || snap.deposited);
+    const daysOpen = snap.daysLeft > 0;
+    const value = daysOpen ? snap.dailySafe : snap.leftToSpend;
+    const cap = daysOpen
+        ? Math.max(snap.avgDailyBurn, Math.abs(snap.dailySafe), 1)
+        : (snap.spendableIncome || snap.incomeUsed || snap.deposited);
+    const weekRows = (snap.weekBuckets || []).map((week) => ({
+        label: week.label,
+        value: week.amount
+    }));
     const extras = [
         chip({
             label: 'Left to spend',
             value: snap.leftToSpend,
             tone: toneFor(snap.leftToSpend),
-            hint: snap.reserveOn ? `After ${formatMoney(snap.weeklyReserve)} reserved` : snap.monthLabel
+            hint: snap.savingsHold > 0 ? `After ${formatMoney(snap.savingsHold)} held` : snap.monthLabel
+        }),
+        chip({
+            label: 'Spendable',
+            value: snap.spendableIncome,
+            tone: snap.spendableIncome > 0 ? 'up' : 'flat',
+            hint: 'After tax and savings hold'
+        }),
+        chip({
+            label: 'Safe / week',
+            value: snap.weeklySafe,
+            tone: toneFor(snap.weeklySafe),
+            hint: daysOpen ? `${Math.min(7, snap.daysLeft)}-day slice` : 'Month closed'
         }),
         chip({
             label: 'This week',
             value: snap.weekNet,
             tone: toneFor(snap.weekNet),
-            hint: weeklyOn ? `Target ${formatMoney(plan.weeklySavings)}` : 'Sun–Sat'
+            hint: plan.weeklySavings > 0 ? `Target ${formatMoney(plan.weeklySavings)}` : 'Sun–Sat'
+        }),
+        textChip({
+            label: 'Days of cash',
+            value: snap.runwayDays == null ? '—' : String(snap.runwayDays),
+            hint: snap.avgDailyBurn > 0 ? `${formatMoney(snap.avgDailyBurn)} daily burn` : 'No burn',
+            tone: snap.runwayDays == null ? 'flat' : 'up',
+            track: true
         }),
         chip({
-            label: 'Week leftover',
-            value: snap.weeklyLeft,
-            tone: toneFor(snap.weeklyLeft),
-            hint: weeklyOn ? 'After the weekly target' : 'No weekly target set'
+            label: 'Needs',
+            value: snap.ratioNeedsSpent,
+            tone: snap.ratioNeedsSpent > snap.ratioNeedsCap ? 'down' : 'flat',
+            hint: `of ${formatMoney(snap.ratioNeedsCap)}`,
+            signed: false,
+            track: true
         }),
         chip({
-            label: 'Month reserve',
-            value: snap.weeklyReserve,
-            tone: snap.reserveOn ? 'flat' : 'up',
-            hint: snap.reserveOn ? `${snap.monthLabel} share` : 'Reserve is off',
+            label: 'Wants',
+            value: snap.ratioWantsSpent,
+            tone: snap.ratioWantsSpent > snap.ratioWantsCap ? 'down' : 'flat',
+            hint: `of ${formatMoney(snap.ratioWantsCap)}`,
+            signed: false,
+            track: true
+        }),
+        chip({
+            label: 'Save hold',
+            value: snap.savingsHold,
+            tone: 'flat',
+            hint: `of ${formatMoney(snap.ratioSaveCap)} target`,
             signed: false,
             track: true
         })
@@ -598,32 +741,28 @@ function budgetSlide(snap, events, currentDate, plan) {
 
     return [
         ...heroSlide({
-            title: weeklyOn ? 'Left this week' : VIEW_COPY.budget.title,
-            description: weeklyOn
-                ? 'This week’s counted income minus spending and the weekly savings target.'
+            title: daysOpen ? 'Daily safe spend' : VIEW_COPY.budget.title,
+            description: daysOpen
+                ? 'Left to spend divided by the days still on this month, including today.'
                 : VIEW_COPY.budget.description,
             dial: createDial({
                 value,
-                label: weeklyOn ? 'Left this week' : 'Left to spend',
-                caption: weeklyOn ? 'This week' : snap.monthLabel,
+                label: daysOpen ? 'Safe / day' : 'Left to spend',
+                caption: daysOpen ? `${snap.daysLeft} days left` : snap.monthLabel,
                 ratio: clampRatio(Math.max(0, value), cap)
             }),
             spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
             bars: createBars({
-                ariaLabel: weeklyOn ? 'This week' : `${snap.monthLabel} plan`,
-                rows: weeklyOn
-                    ? [
-                        { label: 'Week in', value: snap.weekIncome },
-                        { label: 'Week out', value: snap.weekSpend },
-                        { label: 'Target', value: plan.weeklySavings }
-                    ]
+                ariaLabel: `${snap.monthLabel} weekly pace`,
+                rows: weekRows.length
+                    ? weekRows
                     : [
-                        { label: 'Counted in', value: snap.incomeUsed },
-                        { label: 'Counted out', value: snap.spendUsed },
-                        { label: 'Reserve', value: snap.weeklyReserve }
+                        { label: 'Spendable', value: snap.spendableIncome },
+                        { label: 'Spent', value: snap.spendUsed },
+                        { label: 'Hold', value: snap.savingsHold }
                     ]
             }),
-            extrasTitle: 'Plan figures',
+            extrasTitle: 'Planner figures',
             extras
         }),
         planPanel(snap, plan)
@@ -735,7 +874,7 @@ export function renderDashStrip() {
         btn.setAttribute('role', 'tab');
         btn.setAttribute('aria-controls', `dash-slide-${view}`);
         btn.textContent = VIEW_COPY[view].tab;
-        if (view === 'budget') btn.setAttribute('aria-label', 'Budgeting settings');
+        if (view === 'budget') btn.setAttribute('aria-label', 'Planner settings');
         tabs.appendChild(btn);
     });
 

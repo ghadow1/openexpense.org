@@ -480,14 +480,14 @@
                   <h3 class="docs-section-title">Account overview and planning</h3>
                   <p>
                     The snapshot area has four slides: <strong>Overview</strong>, <strong>Income</strong>,
-                    <strong>Expenses</strong>, and <strong>Budget</strong>. Use the pills or swipe sideways
+                    <strong>Expenses</strong>, and <strong>Planner</strong>. Use the pills or swipe sideways
                     to rotate them.
                     Account overview follows the money in one line:
                     <strong>Deposited</strong> is income you have ticked as deposited this month, so a
                     paycheck still sitting on the calendar does not count as cash.
                     <strong>Left to spend</strong> is those deposits less everything the month spends,
-                    paid or still owed — unless Budgeting settings change which income and bills count,
-                    or hold a weekly savings reserve out of that leftover.
+                    paid or still owed — unless Planner settings change which income and bills count,
+                    withhold tax, or hold savings out of that leftover.
                     <strong>Savings funds</strong> is the reserve behind that: what every earlier month
                     settled at, up to today. When a month spends past its deposits, Left to spend goes
                     negative and the difference comes out of Savings funds — the chip says how much is
@@ -508,17 +508,32 @@
                 </section>
 
                 <section class="docs-chapter">
-                  <h3 class="docs-section-title">Budgeting settings</h3>
+                  <h3 class="docs-section-title">Planner settings</h3>
                   <p>
-                    The <strong>Budget</strong> tab is the fourth snapshot slide, after Expenses.
-                    Set a <strong>weekly savings</strong> amount and the rules used for left-to-spend
-                    across Overview, Income, and Expenses. A weekly target can hold this month’s share
-                    (weekly amount × days in the month ÷ 7) out of leftover spending money. You can also
-                    count only paid bills, or count every scheduled paycheck instead of deposits only.
-                    Leave the fields at their defaults and the original cash line stays put.
-                    Category monthly caps are still edited from the same dialog as before — Budget
-                    opens that editor rather than replacing it. The plan is saved with your ledger
-                    and travels with an export.
+                    The <strong>Planner</strong> tab is the fourth snapshot slide, after Expenses.
+                    Left to spend is one waterfall on whole cents: counted income, minus a tax withhold,
+                    minus a savings hold, minus counted spend. Defaults keep the original cash line
+                    (deposits minus every logged bill).
+                  </p>
+                  <p>
+                    <strong>Tax withhold</strong> is a percent of counted income. 15.3 is the IRS
+                    self-employment tax rate (12.4 Social Security + 2.9 Medicare; Topic 554 / Pub 334).
+                    25 and 30 are common quarterly-estimate placeholders used with Pub 505 — they are
+                    not a tax return. <strong>Weekly savings</strong> becomes this month’s share
+                    (weekly × days in the month ÷ 7). A <strong>monthly dollar</strong> and a
+                    <strong>percent of after-tax income</strong> stack with that weekly hold once.
+                    The CFPB 50/30/20 split (Warren and Tyagi, <em>All Your Worth</em>, 2005) is a
+                    scoreboard against after-tax income, not a second deduction. Needs are Housing,
+                    Utilities, Health, Transit, and Groceries. Wants are Dining, Coffee, Entertainment,
+                    Shopping, Travel, and Subscriptions.
+                  </p>
+                  <p>
+                    <strong>Daily safe spend</strong> is leftover divided by the days still on this
+                    month, including today. <strong>Days of cash</strong> is savings funds plus leftover,
+                    divided by this month’s daily burn (counted spend ÷ days elapsed) — the same
+                    cash ÷ burn-rate runway used in corporate finance. Week bars are calendar days
+                    1–7, 8–14, 15–21, 22–28, and 29–end. Category monthly caps still use the existing
+                    editor. The plan is saved with your ledger and travels with an export.
                   </p>
                 </section>
 
