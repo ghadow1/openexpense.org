@@ -587,8 +587,8 @@ textarea,
    welcome card, and neutral under the monochrome theme. The stripe and the
    number line are holes in the path, so the background shows through them. */
 .brand-mark {
-    width: 38px;
-    height: 27px;
+    width: 34px;
+    height: 24px;
     flex-shrink: 0;
     color: var(--header-text);
     display: block;
