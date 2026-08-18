@@ -87,7 +87,7 @@ test('dashboard snapshot nets income against spend', () => {
     assert.equal(snap.monthLabel, 'Aug');
     assert.equal(snap.currentFunds, 140);
     assert.equal(snap.projectedIncome, 1600);
-    assert.equal(snap.incomeReceived, 1600);
+    assert.equal(snap.deposited, 1600);
     assert.equal(snap.leftToPay, 0);
     assert.equal(snap.dueSoon, 0);
     assert.equal(Math.round(snap.savingsRate), 9);
@@ -474,7 +474,7 @@ test('month tables keep paid, pending, and net identities', () => {
     assert.equal(cents(spend.recurring) + cents(spend.oneTime), cents(spend.total));
     assert.equal(cents(income.paid) + cents(income.pending), cents(income.total));
     assert.equal(cents(snap.spendPaid) + cents(snap.leftToPay), cents(snap.monthOut));
-    assert.equal(cents(snap.incomeReceived) + cents(snap.incomeDue), cents(snap.monthIn));
+    assert.equal(cents(snap.deposited) + cents(snap.incomeDue), cents(snap.monthIn));
     assert.equal(cents(snap.monthIn) - cents(snap.monthOut), cents(snap.monthNet));
     assert.equal(cents(snap.ytdIn) - cents(snap.ytdOut), cents(snap.yearNet));
     assert.equal(snap.monthOut, spend.total);

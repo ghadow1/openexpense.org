@@ -320,14 +320,6 @@ function insightCards(summary, copy) {
         }
     ];
 
-    if (summary.isCurrentMonth && summary.itemCount && summary.projectedTotal > summary.total + 0.005) {
-        cards.push({
-            label: 'Projected',
-            value: formatMoney(summary.projectedTotal),
-            hint: `${formatMoney(summary.oneTimePace)}/day leftover  ·  ${summary.daysElapsed}/${summary.daysInMonth} days`
-        });
-    }
-
     if (summary.largest) {
         cards.push({
             label: copy.largest,

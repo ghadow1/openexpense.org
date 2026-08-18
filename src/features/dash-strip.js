@@ -13,7 +13,7 @@ const VIEW_COPY = {
     overview: {
         tab: 'Overview',
         title: 'Account overview',
-        description: 'Growth potential, settled cash, and how this month is tracking.'
+        description: 'What has landed, what is left of it, and how this month is tracking.'
     },
     income: {
         tab: 'Income',
@@ -141,7 +141,7 @@ function countHint(count, one, many) {
     return `${count} ${count === 1 ? one : many}`;
 }
 
-function savingsChip(snap) {
+function savingsRateChip(snap) {
     const saved = snap.savingsRate == null
         ? '—'
         : `${snap.savingsRate > 0 ? '+' : ''}${snap.savingsRate.toFixed(0)}%`;
@@ -234,7 +234,7 @@ function overviewSlide(snap) {
                     signed: false,
                     track: true
                 }),
-                savingsChip(snap),
+                savingsRateChip(snap),
                 chip({
                     label: 'Avg monthly net',
                     value: snap.monthAvg,
@@ -308,7 +308,7 @@ function incomeSlide(snap) {
                     hint: 'Income − spending',
                     track: true
                 }),
-                savingsChip(snap)
+                savingsRateChip(snap)
             ]
         })
     ];
@@ -377,7 +377,7 @@ function expenseSlide(snap) {
                     hint: snap.drawsOnSavings ? 'From savings funds' : 'Deposited − spending',
                     track: true
                 }),
-                savingsChip(snap)
+                savingsRateChip(snap)
             ]
         })
     ];
@@ -514,10 +514,4 @@ export function renderDashStrip() {
     root.classList.toggle('is-fresh', firstPaint);
     bindDeck(root);
     setDeckView(root, activeView);
-
-    const tools = document.getElementById('dash-insights');
-    if (tools) {
-        tools.hidden = true;
-        tools.replaceChildren();
-    }
 }

@@ -261,8 +261,6 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense', asO
         daysInMonth,
         daysElapsed,
         dailyPace,
-        oneTimePace: 0,
-        impliedUnscheduled: 0,
         elapsedTotal: Utils.fromCents(elapsedCents),
         futureTotal: Utils.fromCents(futureCents),
         projectedTotal,
@@ -388,10 +386,13 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
 }
 
 /**
- * Homepage snapshot. Current funds are settled cash. Projected income is
- * the viewed month’s scheduled income (recurring copies already on the
- * calendar). Year totals and monthly averages stop at the viewed month so
- * later recurring copies do not inflate “expense months.” Does not persist.
+ * Homepage snapshot. The cash line is deposited income, what is left of it
+ * after the month's spending, and the savings carried in behind that;
+ * currentFunds is the lifetime settled figure, kept for embed hosts.
+ * Projected income is the viewed month’s scheduled income (recurring copies
+ * already on the calendar). Year totals and monthly averages stop at the
+ * viewed month so later recurring copies do not inflate “expense months.”
+ * Does not persist.
  */
 export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
     const spend = computeMonthlySummary(events, currentDate, 'expense', asOf);
@@ -425,15 +426,12 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         ytdIn: income.yearTotal,
         ytdOut: spend.yearTotal,
         currentFunds: funds.net,
-        fundsIn: funds.incoming,
-        fundsOut: funds.outgoing,
         savingsFunds: savings.net,
         savingsAfterMonth,
         deposited: income.paid,
         leftToSpend,
         drawsOnSavings: leftToSpend < 0,
         projectedIncome: income.total,
-        incomeReceived: income.paid,
         incomeDue: income.pending,
         incomeDueCount: income.pendingCount,
         incomeSoon: incomeSoon.total,

@@ -172,11 +172,6 @@ function renderStatsGrid(summary, copy) {
             summary.oneTime ? `${Utils.formatMoney(summary.oneTime)} ${copy.oneTime}` : copy.noOneTime, '')
     );
 
-    if (summary.isCurrentMonth && summary.itemCount && summary.projectedTotal > summary.total + 0.005) {
-        grid.appendChild(statCard('trending-up', 'Estimated month total', Utils.formatMoney(summary.projectedTotal),
-            `${Utils.formatMoney(summary.oneTimePace)}/day leftover one-time · ${summary.daysElapsed}/${summary.daysInMonth} days`, 'accent'));
-    }
-
     if (summary.largest) {
         grid.appendChild(statCard('arrow-big-up-lines', 'Largest entry', Utils.formatMoney(summary.largest.amount),
             `${Utils.escapeHtml(summary.largest.title)} · ${summary.largest.date}`, ''));

@@ -29,7 +29,8 @@
     "test": "node --test scripts/qc-build-output.mjs scripts/qc-theme.mjs scripts/qc-categories.mjs scripts/qc-groups.mjs scripts/qc-render-deps.mjs scripts/qc-search.mjs scripts/qc-csv.mjs scripts/qc-envelope.mjs scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs scripts/qc-undo-delete.mjs scripts/qc-day-entries.mjs scripts/qc-engine.mjs"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "puppeteer-core": "^23.11.1"
   },
   "dependencies": {
     "fflate": "^0.8.3",

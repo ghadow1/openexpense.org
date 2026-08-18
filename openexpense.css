@@ -362,7 +362,6 @@ textarea:focus:not(:focus-visible) {
     color: var(--danger-text);
 }
 
-.surface-card,
 .toolbar,
 .sidebar,
 .docs-container,
@@ -1249,10 +1248,6 @@ html.is-action-busy [data-lockable] {
     gap: 10px;
 }
 
-.dash-insights[hidden] {
-    display: none !important;
-}
-
 .dash-chips > .skel-chip {
     min-width: 0;
 }
@@ -1436,10 +1431,6 @@ html.is-action-busy [data-lockable] {
     100% { background-position: -100% 0; }
 }
 
-.layout-wrapper {
-    display: contents;
-}
-
 @media (max-width: 1200px) {
     .dash {
         grid-template-columns: minmax(0, 1fr);
@@ -1470,7 +1461,6 @@ html.is-action-busy [data-lockable] {
     }
 }
 
-.layout-wrapper.hidden,
 .app-view.hidden,
 .docs-view.hidden {
     display: none !important;
@@ -3167,77 +3157,6 @@ body:has(.backdrop.open) #global-tooltip {
 }
 
 /* Event rows */
-.expense-group {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--surface2) 70%, transparent);
-    padding: 10px 12px 4px;
-    margin-bottom: 12px;
-}
-
-.expense-group.is-recurring {
-    border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
-    background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
-}
-
-.expense-group.is-income {
-    border-color: color-mix(in srgb, var(--income) 28%, var(--border));
-    background: color-mix(in srgb, var(--income-soft) 70%, var(--surface));
-}
-
-.expense-group-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.expense-group-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.expense-group-title {
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    color: var(--text-strong);
-    letter-spacing: var(--tracking-tight);
-}
-
-.expense-group-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    color: var(--text2);
-}
-
-.expense-group-remove {
-    flex-shrink: 0;
-    border: 1px solid var(--danger-border);
-    background: var(--danger-bg);
-    color: var(--danger-text);
-    border-radius: var(--radius-full);
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-}
-
-.expense-group-remove:hover {
-    background: var(--danger-border);
-    transform: translateY(-1px);
-}
-
-.expense-group .event-row:last-child {
-    border-bottom: none;
-}
-
 .event-row {
     display: flex;
     align-items: flex-start;
@@ -5031,7 +4950,6 @@ textarea:focus-visible {
     border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-[data-theme="dark"] .surface-card,
 [data-theme="dark"] .toolbar,
 [data-theme="dark"] .sidebar,
 [data-theme="dark"] .docs-container,
@@ -5543,11 +5461,6 @@ html.oe-scroll-lock body {
     font-weight: 600;
 }
 
-/* Scan lives on the dash action bar; keep the FAB hidden. */
-.quick-fab {
-    display: none !important;
-}
-
 .ocr-raw summary {
     cursor: pointer;
     color: var(--text2);
@@ -5915,16 +5828,6 @@ html.oe-scroll-lock body {
         padding: 0;
     }
 
-    .expense-group-head {
-        flex-wrap: wrap;
-    }
-
-    .expense-group-remove {
-        width: auto;
-        min-height: 32px;
-        padding: 4px 10px;
-    }
-
     .confirm-check {
         align-items: flex-start;
     }
@@ -6228,9 +6131,7 @@ html.oe-scroll-lock body {
     .ui-btn:hover,
     .docs-nav-tab:hover,
     .close-modal:hover,
-    .expense-group-remove:hover,
     .cal-day:hover,
-    .quick-fab:hover,
     .event-row:hover {
         transform: none;
         box-shadow: none;
@@ -6301,7 +6202,6 @@ html.oe-scroll-lock body {
     .dash-toolbar,
     .dash-actions,
     .dash-chips,
-    .dash-insights,
     .skel,
     .skel-board,
     .skel-side,
@@ -6314,7 +6214,6 @@ html.oe-scroll-lock body {
     .app-container,
     .dash,
     .dash-center,
-    .layout-wrapper,
     .app-view,
     .docs-view {
         display: block !important;
