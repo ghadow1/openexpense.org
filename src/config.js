@@ -26,7 +26,10 @@ export const STORAGE_KEYS = {
     visited: 'hasVisited',
     autosave: 'oe-autosave',
     ledgerFace: 'oe-ledger-face',
-    dashView: 'oe-dash-view'
+    dashView: 'oe-dash-view',
+    // Whether exports ask for a passphrase. Only the choice is stored here,
+    // never the passphrase itself.
+    exportPassphrase: 'oe-export-passphrase'
 };
 
 export const THEMES = {

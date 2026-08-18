@@ -3575,6 +3575,36 @@ body.is-entry-dragging .cal-day {
     border: 1px solid var(--border);
 }
 
+.confirm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 18px;
+}
+
+.confirm-field-label {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text2);
+}
+
+.confirm-field .text-input {
+    width: 100%;
+}
+
+.confirm-field-error {
+    margin: 2px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+    color: var(--danger-text);
+}
+
+.confirm-field-error[hidden] {
+    display: none;
+}
+
 .confirm-choices {
     display: flex;
     flex-direction: column;
