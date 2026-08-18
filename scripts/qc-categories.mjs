@@ -433,3 +433,11 @@ test('cached history refreshes when the ledger changes', async () => {
     // The same object twice must not be rescanned into a different answer.
     assert.equal(cachedCategoryHistory(second), cachedCategoryHistory(second));
 });
+test('every known category belongs to a group', () => {
+    for (const cat of CATEGORIES) {
+        assert.ok(cat.group, `${cat.label} has no group`);
+    }
+    for (const cat of CATEGORIES.filter((c) => c.kind === 'income')) {
+        assert.equal(cat.group, 'Income', `${cat.label} should sit under Income`);
+    }
+});

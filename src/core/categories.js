@@ -14,26 +14,30 @@
 import { Utils } from './utils.js';
 
 /**
+ * `group` is the coarse family a category belongs to. Nothing in the app groups
+ * by it yet; it is what the embed API reports as `tags`, so a host can bucket
+ * spending without knowing every label.
+ *
  * Ten hues, reused across both themes via --cat-* tokens in the stylesheet.
  * Kept deliberately small and muted: colour here is for scanning a list, not
  * decoration, so several categories intentionally share a family.
  */
 export const CATEGORIES = [
-    { label: 'Groceries', kind: 'expense', tone: 'leaf' },
-    { label: 'Dining', kind: 'expense', tone: 'amber' },
-    { label: 'Coffee', kind: 'expense', tone: 'amber' },
-    { label: 'Transit', kind: 'expense', tone: 'sky' },
-    { label: 'Travel', kind: 'expense', tone: 'sky' },
-    { label: 'Housing', kind: 'expense', tone: 'clay' },
-    { label: 'Utilities', kind: 'expense', tone: 'clay' },
-    { label: 'Subscriptions', kind: 'expense', tone: 'violet' },
-    { label: 'Entertainment', kind: 'expense', tone: 'violet' },
-    { label: 'Shopping', kind: 'expense', tone: 'rose' },
-    { label: 'Health', kind: 'expense', tone: 'teal' },
-    { label: 'Other', kind: 'expense', tone: 'slate' },
-    { label: 'Paycheck', kind: 'income', tone: 'leaf' },
-    { label: 'Refund', kind: 'income', tone: 'teal' },
-    { label: 'Income', kind: 'income', tone: 'leaf' }
+    { label: 'Groceries', kind: 'expense', tone: 'leaf', group: 'Food' },
+    { label: 'Dining', kind: 'expense', tone: 'amber', group: 'Food' },
+    { label: 'Coffee', kind: 'expense', tone: 'amber', group: 'Food' },
+    { label: 'Transit', kind: 'expense', tone: 'sky', group: 'Travel' },
+    { label: 'Travel', kind: 'expense', tone: 'sky', group: 'Travel' },
+    { label: 'Housing', kind: 'expense', tone: 'clay', group: 'Bills' },
+    { label: 'Utilities', kind: 'expense', tone: 'clay', group: 'Bills' },
+    { label: 'Subscriptions', kind: 'expense', tone: 'violet', group: 'Bills' },
+    { label: 'Entertainment', kind: 'expense', tone: 'violet', group: 'Lifestyle' },
+    { label: 'Shopping', kind: 'expense', tone: 'rose', group: 'Lifestyle' },
+    { label: 'Health', kind: 'expense', tone: 'teal', group: 'Health' },
+    { label: 'Other', kind: 'expense', tone: 'slate', group: 'Other' },
+    { label: 'Paycheck', kind: 'income', tone: 'leaf', group: 'Income' },
+    { label: 'Refund', kind: 'income', tone: 'teal', group: 'Income' },
+    { label: 'Income', kind: 'income', tone: 'leaf', group: 'Income' }
 ];
 
 /** Shown as one-tap chips on the entry form; the rest live behind "More". */
@@ -71,14 +75,14 @@ const BY_LABEL = new Map(CATEGORIES.map((cat) => [cat.label.toLowerCase(), cat])
 export function categoryInfo(label, kind = 'expense') {
     const name = String(label ?? '').trim();
     if (!name) {
-        return { label: UNCATEGORIZED, tone: 'slate', known: false, uncategorized: true, kind };
+        return { label: UNCATEGORIZED, tone: 'slate', group: '', known: false, uncategorized: true, kind };
     }
     const known = BY_LABEL.get(name.toLowerCase());
     if (known) return { ...known, known: true, uncategorized: false };
 
     // A category from another tool. Keep the label and give it a stable tone so
     // it at least stays visually consistent between renders.
-    return { label: name, tone: customTone(name), known: false, uncategorized: false, kind };
+    return { label: name, tone: customTone(name), group: '', known: false, uncategorized: false, kind };
 }
 
 const TONES = ['leaf', 'amber', 'sky', 'clay', 'violet', 'rose', 'teal', 'slate'];

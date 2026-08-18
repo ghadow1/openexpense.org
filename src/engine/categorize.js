@@ -18,7 +18,12 @@ function haystack(raw) {
 export function categorize(raw) {
     const given = String(raw?.category || '').trim();
     if (given) {
-        return { category: given.slice(0, 40), tags: [], kind: raw?.kind === 'income' ? 'income' : 'expense' };
+        const info = categoryInfo(given);
+        return {
+            category: given.slice(0, 40),
+            tags: info.group ? [info.group] : [],
+            kind: raw?.kind === 'income' ? 'income' : 'expense'
+        };
     }
 
     const text = haystack(raw);
@@ -30,7 +35,7 @@ export function categorize(raw) {
     if (guess) {
         const info = categoryInfo(guess);
         const kind = info.kind === 'income' || raw?.kind === 'income' ? 'income' : 'expense';
-        return { category: guess, tags: [], kind };
+        return { category: guess, tags: info.group ? [info.group] : [], kind };
     }
 
     return {

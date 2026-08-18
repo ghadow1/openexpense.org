@@ -103,3 +103,16 @@ test('embed.html is a public path', () => {
     assert.equal(shouldShowNotFound('/embed.html'), false);
     assert.equal(shouldShowNotFound('/engine.js'), false);
 });
+
+test('categorize still reports a tag group for matched merchants', () => {
+    // tags is part of the embed API surface; it must not silently go empty.
+    assert.deepEqual(categorize({ merchant: "SQ *TRADER JOE'S #123" }).tags, ['Food']);
+    assert.deepEqual(categorize({ merchant: 'Shell gas' }).tags, ['Travel']);
+    assert.deepEqual(categorize({ name: 'ACME PAYROLL DIRECT DEP' }).tags, ['Income']);
+    assert.deepEqual(categorize({ merchant: 'Unknown Shop' }).tags, []);
+});
+
+test('a host-supplied category still reports its group', () => {
+    assert.deepEqual(categorize({ merchant: 'Anything', category: 'Coffee' }).tags, ['Food']);
+    assert.deepEqual(categorize({ merchant: 'Anything', category: 'Boat fuel' }).tags, []);
+});
