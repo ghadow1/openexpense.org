@@ -325,9 +325,13 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
         const days = end - start + 1;
         let spent = 0;
         let incoming = 0;
+        let overDailyCount = 0;
+        const dailySafeCents = extras.dailySafe != null ? Utils.toCents(extras.dailySafe) : null;
         for (let day = start; day <= end; day += 1) {
-            spent += Utils.toCents(dailySpend[day - 1] || 0);
+            const daySpend = Utils.toCents(dailySpend[day - 1] || 0);
+            spent += daySpend;
             incoming += Utils.toCents(dailyIncome[day - 1] || 0);
+            if (dailySafeCents != null && daySpend > dailySafeCents) overDailyCount += 1;
         }
         const last = end === length;
         const target = last
@@ -347,6 +351,7 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
             target: Utils.fromCents(target),
             over: spent > target,
             overSpend: spent > target,
+            overDailyCount,
             income: Utils.fromCents(incoming),
             incomeGoal: Utils.fromCents(incomeGoal),
             overIncome: incoming > incomeGoal
@@ -355,7 +360,7 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
     return rows;
 }
 
-export function trackCalendarWeeks(events, currentDate, plan, spendableIncome) {
+export function trackCalendarWeeks(events, currentDate, plan, spendableIncome, extras = {}) {
     const rules = sanitizePlan(plan);
     const firstWeekday = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -367,7 +372,8 @@ export function trackCalendarWeeks(events, currentDate, plan, spendableIncome) {
         spendableIncome,
         {
             dailyIncome,
-            weeklyIncome: rules.weeklyIncome
+            weeklyIncome: rules.weeklyIncome,
+            dailySafe: extras.dailySafe
         }
     );
 }

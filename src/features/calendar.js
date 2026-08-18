@@ -3,15 +3,15 @@
  *
  * Renders the day grid, collapses same-title pills, opens the day editor,
  * and lets a chip drag onto another day to move those copies. Sunday–Saturday
- * rows get a thin red or green rail when spend or gross income misses
- * its weekly goal. Day squares stay the surface colour.
+ * rows get a thin red rail when two or more days blow the daily safe amount.
+ * In-budget weeks stay unmarked. Day squares stay the surface colour.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
 import { computeNetSnapshot, dayNetBadge } from '../core/summary.js';
-import { trackCalendarWeeks } from '../core/plan.js';
+import { monthDaySpend, trackCalendarWeeks } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { openModal } from './modal.js';
 import { moveIndexes } from '../core/day-entries.js';
@@ -178,17 +178,17 @@ function formatDayTotal(amount) {
     return `$${Math.round(abs)}`;
 }
 
-function appendDayTotal(head, dayEvents) {
+function appendDayTotal(head, dayEvents, overDaily) {
     const badge = dayNetBadge(dayEvents);
     if (!badge) return;
 
     const up = badge.direction === 'up';
     const down = badge.direction === 'down';
-    const label = up ? 'net up' : down ? 'net down' : 'net even';
+    const label = overDaily ? 'over the daily budget' : (up ? 'net up' : down ? 'net down' : 'net even');
     const spark = up ? '1,6 4.5,3.5 7,5 11,1.5' : down ? '1,2 4.5,4.5 7,3 11,6.5' : '1,4 11,4';
 
     const total = document.createElement('span');
-    total.className = `cal-day-total${up ? ' is-up' : ''}${down ? ' is-down' : ''}`;
+    total.className = `cal-day-total${up ? ' is-up' : ''}${down ? ' is-down' : ''}${overDaily ? ' is-over' : ''}`;
     total.title = badge.expense > 0 && badge.income > 0
         ? `Net ${up ? '+' : down ? '-' : ''}${Utils.formatMoney(badge.amount)} · spent ${Utils.formatMoney(badge.expense)} · income ${Utils.formatMoney(badge.income)}`
         : (up
@@ -276,10 +276,19 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
 
 function weekHintRows(events, currentDate, plan) {
     const snap = computeNetSnapshot(events, currentDate, new Date(), plan);
-    const weeks = trackCalendarWeeks(events, currentDate, plan, snap.spendableIncome);
+    const weeks = trackCalendarWeeks(events, currentDate, plan, snap.spendableIncome, {
+        dailySafe: snap.dailySafe
+    });
+    const daily = monthDaySpend(events, currentDate, plan);
+    const cap = Utils.toCents(snap.dailySafe);
+    const overDays = new Set();
+    daily.forEach((amount, index) => {
+        if (Utils.toCents(amount) > cap) overDays.add(index + 1);
+    });
     return {
-        over: new Set(weeks.filter((week) => week.overSpend).map((week) => week.row)),
-        ahead: new Set(weeks.filter((week) => week.overIncome).map((week) => week.row))
+        over: new Set(weeks.filter((week) => (week.overDailyCount || 0) >= 3).map((week) => week.row)),
+        warn: new Set(weeks.filter((week) => week.overDailyCount === 2).map((week) => week.row)),
+        overDays
     };
 }
 
@@ -329,7 +338,9 @@ function paintDayCell(cell, i, firstDay, y, m, today, events, hints) {
     numLabel.className = `cal-day-num${isToday ? ' is-today' : ''}`;
     numLabel.textContent = d;
     head.appendChild(numLabel);
-    if (dayEvents.length) appendDayTotal(head, dayEvents);
+    const overDaily = hints.overDays.has(d);
+    if (overDaily) cell.classList.add('is-over-day');
+    if (dayEvents.length) appendDayTotal(head, dayEvents, overDaily);
     cell.appendChild(head);
 
     const badge = dayNetBadge(dayEvents);
@@ -342,8 +353,8 @@ function paintDayCell(cell, i, firstDay, y, m, today, events, hints) {
                 : ', net even'));
     const row = Math.floor(i / 7);
     const weekHints = [
-        hints.over.has(row) ? 'over this week’s spend plan' : '',
-        hints.ahead.has(row) ? 'ahead of this week’s income goal' : ''
+        hints.over.has(row) ? 'three or more days over the daily budget this week' : '',
+        hints.warn.has(row) ? 'two days over the daily budget this week' : ''
     ].filter(Boolean);
     const weekHint = weekHints.length ? `, ${weekHints.join(', ')}` : '';
     cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}${weekHint}`);
@@ -376,18 +387,15 @@ function renderGrid(y, m, events, plan) {
         const week = document.createElement('div');
         week.className = 'cal-week';
         const over = hints.over.has(row);
-        const ahead = hints.ahead.has(row);
+        const warn = hints.warn.has(row);
         if (over) week.classList.add('is-over-week');
-        if (ahead) week.classList.add('is-ahead-week');
+        if (warn) week.classList.add('is-warn-week');
 
         const rail = document.createElement('span');
         rail.className = 'cal-week-rail';
         rail.setAttribute('aria-hidden', 'true');
-        const railHints = [
-            over ? 'Over this week’s spend plan' : '',
-            ahead ? 'Ahead of this week’s income goal' : ''
-        ].filter(Boolean);
-        if (railHints.length) rail.title = railHints.join(' · ');
+        if (over) rail.title = 'Three or more days over the daily budget';
+        else if (warn) rail.title = 'Two days over the daily budget';
         week.appendChild(rail);
 
         const start = row * 7;

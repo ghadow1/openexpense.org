@@ -243,6 +243,21 @@ test('an explicit weekly income goal beats the month’s own pace', () => {
     assert.equal(rows[1].overIncome, true);
 });
 
+test('a week counts how many days blow the daily safe amount', () => {
+    // August 2026 starts Saturday, so row 1 is Sun 2 through Sat 8.
+    const daily = new Array(31).fill(0);
+    daily[1] = 50;
+    daily[2] = 50;
+    daily[3] = 10;
+    const two = calendarRowWeeks(daily, 31, 6, 2000, { dailySafe: 40 });
+    assert.equal(two[1].overDailyCount, 2);
+
+    daily[4] = 41;
+    const three = calendarRowWeeks(daily, 31, 6, 2000, { dailySafe: 40 });
+    assert.equal(three[1].overDailyCount, 3);
+    assert.equal(three[0].overDailyCount, 0);
+});
+
 test('trackCalendarWeeks reads gross paychecks and counted bills together', () => {
     const events = {
         '2026-08-05': [{ title: 'Groceries', price: 500, paid: true }],
