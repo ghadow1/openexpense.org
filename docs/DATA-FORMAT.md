@@ -52,12 +52,39 @@ Unknown fields are dropped on load and import. Quality control keeps only the fi
 
 | File | Format | Purpose |
 | --- | --- | --- |
-| `{name}-{date}.json` | `{ format: "openexpense-encrypted", version, kid, iv, ct }` | AES-256-GCM envelope. No plaintext expenses or income. |
-| `{name}-{date}.key.json` | `{ format: "openexpense-key", version, kid, key }` | Portable JWK for that envelope only |
+| `{name}-{date}.json` | `{ format: "openexpense-encrypted", version: 2, alg, kdf, kid, salt, iv, commit, ct, createdAt }` | AES-256-GCM envelope. No plaintext expenses or income. |
+| `{name}-{date}.key.json` | `{ format: "openexpense-key", version: 2, kid, alg, kdf, secret }` or `{ …, wrap }` | The master secret for that envelope only |
 
 The two files share a `kid`. Import refuses a key that does not match. The portable key is **never** written to IndexedDB or `localStorage`. It exists only in the downloaded `key.json` (and briefly in memory while you unlock a file).
 
-Older `.zip` backups (ciphertext + key + README) still import.
+### Envelope v2
+
+`key.json` does not hold the AES key. It holds a 32-byte **master secret**, and HKDF-SHA-256 splits that into two independent values using the envelope's `salt`:
+
+| Info string | Output | Where it goes |
+| --- | --- | --- |
+| `openexpense/v2/enc` | AES-256-GCM key | Never leaves memory |
+| `openexpense/v2/commit` | 32-byte commitment | Published as `commit` in the envelope |
+
+The commitment is checked before any decryption is attempted. AES-GCM is not key-committing on its own — a ciphertext can be constructed to authenticate under more than one key, which is the property partitioning-oracle attacks exploit. Publishing a commitment makes "wrong key" a definite answer.
+
+Every header field is passed to AES-GCM as additional authenticated data, using a canonical JSON encoding with sorted keys. That covers fields this version does not know about, so no part of the envelope — `kid`, `createdAt`, `salt`, `commit`, or anything added later — can be edited without breaking decryption. The tag length is pinned to 128 bits.
+
+### Passphrase (optional)
+
+If the user sets one, `key.json` carries `wrap` instead of `secret`:
+
+```json
+{ "kdf": "PBKDF2-HMAC-SHA-256", "iterations": 600000, "salt": "…", "iv": "…", "ct": "…" }
+```
+
+The master secret is encrypted under a key derived from the passphrase, so a copied pair of files is no longer enough to read the ledger. The iteration count is itself authenticated in the wrap's AAD and floored at 210,000 on read, so it cannot be edited down to make guessing cheap. Passphrases are NFKC-normalized before use so the same typed word matches regardless of how the platform composes it.
+
+PBKDF2 is used because it is the strongest passphrase KDF the Web Crypto API offers natively. It is not memory-hard the way Argon2id is; choosing it keeps the crypto free of third-party code and WASM, which matters for an offline-first app served as static files. 600,000 iterations follows OWASP's 2023 guidance for PBKDF2-HMAC-SHA-256.
+
+### Older files
+
+v1 envelopes — a raw AES-256-GCM JWK in `key.json`, no salt, no commitment, no AAD — still import. Older `.zip` backups (ciphertext + key + README) still import too. Exports are always written as v2.
 
 ### Import order
 
@@ -71,10 +98,12 @@ Older `.zip` backups (ciphertext + key + README) still import.
 The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext import, IndexedDB boot, and autosave:
 
 - File size cap (8 MB) before parse
-- Format / version / `AES-GCM` / `kid` checks
-- Key type `oct` (AES-256-GCM JWK)
+- Format / version / algorithm / `kid` checks
+- v2: `kdf` is HKDF-SHA-256, `salt` is 32 bytes, `commit` is 32 bytes, `iv` is 12 bytes
+- v2 key file: a 32-byte `secret`, or a `wrap` whose iteration count clears the floor
+- v1 key file: key type `oct` (AES-256-GCM JWK)
 - Matching `kid` between ledger and key.json
-- Successful AES-GCM decrypt
+- Key commitment match, then a successful AES-GCM decrypt over the authenticated header
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 
@@ -84,7 +113,7 @@ OpenExpense drops its portable-key references after unlock, on timeout, and when
 
 | Database | Store | Key | Value |
 | --- | --- | --- | --- |
-| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events }` |
+| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events }`, with its own header bound in as AAD |
 | `openexpense` (v2) | `meta` | `ledger-key-v1` | Non-extractable `CryptoKey` for **autosave only** — not the portable `key.json` |
 
 Do not check a real database dump or `*.key.json` into git. The sample under `examples/` is fictional plaintext for humans to read; it is not a user export.

@@ -159,7 +159,8 @@ export function zipBundle(enc, keyFile) {
             'files saved next to each other (encrypted ledger.json + key.json).\n' +
             'This zip is a legacy bundle of the same pair.\n\n' +
             'The portable key is only in key.json. OpenExpense does not keep it\n' +
-            'in the browser. Anyone with BOTH files can read the ledger.\n'
+            'in the browser. Without a passphrase, anyone with BOTH files can\n' +
+            'read the ledger. With one, key.json is useless on its own.\n'
         )
     };
     return zipSync(files, { level: 6 });
