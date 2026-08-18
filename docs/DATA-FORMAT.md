@@ -19,6 +19,9 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
       }
     ]
   },
+  "budgets": {
+    "Groceries": 400
+  },
   "savedAt": 1780000000000
 }
 ```
@@ -27,6 +30,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | --- | --- | --- |
 | `name` | no | Sanitized file-safe string, max 80 characters. Shown in the header and used as the export filename. |
 | `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. The array order on a date is the order shown on that day after a drag-reorder. |
+| `budgets` | no | Monthly cap per category label, e.g. `{ "Groceries": 400 }`. Positive numbers only, max 60 entries. Omitted entirely when no caps are set. Kept in the ledger rather than in browser storage so restoring a backup on another device brings the caps back with the history. |
 | `savedAt` | export only | Unix ms, written by `Ledger.exportPayload()`. Ignored on import. |
 
 ## Expense
@@ -40,7 +44,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `kind` | string | `"expense"` | `expense` (default, omitted) or `income`. Calendar colors and the sidebar face use this. |
 | `paid` | boolean | `false` | Used by the summary paid / pending split. Receipts save as paid. On income, the UI label is Received. |
 | `note` | string | `""` | Free text. HTML is escaped before render. |
-| `category` | string | omitted | Optional host/API label (max 40). Not shown in the current UI. |
+| `category` | string | omitted | Spending category label (max 40), e.g. `Groceries`. Set from the entry form, guessed from the title by the keyword rules in `src/core/categories.js`, or supplied by a host import. Stored as the human label rather than an id so a ledger written elsewhere keeps its own vocabulary; an unrecognised label renders as a custom category rather than being rewritten. |
 | `source` | string | omitted | Optional origin, e.g. `bank` or `ocr` (max 24). |
 | `sourceId` | string | omitted | Optional bank transaction id for idempotent host imports (max 80). |
 
@@ -107,6 +111,7 @@ The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext
 - Matching `kid` between ledger and key.json
 - Key commitment match, then a successful AES-GCM decrypt over the authenticated header
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
+- Sanitized `budgets` map: non-empty labels, positive finite amounts, prototype keys refused, count capped
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 
 OpenExpense drops its portable-key references after unlock, on timeout, and when the page unloads. JavaScript cannot guarantee physical memory erasure. The portable key is never intentionally written to IndexedDB or `localStorage`. Exporting again creates a **new** key pair; the previous `key.json` still unlocks the earlier file.

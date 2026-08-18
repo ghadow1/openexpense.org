@@ -12,6 +12,9 @@ import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Toast } from '../ui/toast.js';
 import { closeModal, openModal } from './modal.js';
+import { backfillCategories, budgetProgress, categoriesFor, rollUpCategories } from '../core/categories.js';
+import { sanitizeBudgets } from '../core/ledger-file.js';
+import { confirmDialog } from '../ui/confirm.js';
 
 const FACE_COPY = {
     expense: {
@@ -21,7 +24,8 @@ const FACE_COPY = {
         empty: 'No expenses this month.',
         emptyHint: 'Tap a calendar day to log spending.',
         emptyIcon: 'receipt',
-        top: 'Where your money went',
+        top: 'Top merchants',
+        byCategory: 'Where your money went',
         pdfLabel: 'Download spending report',
         paid: 'Paid',
         pending: 'Pending',
@@ -39,7 +43,8 @@ const FACE_COPY = {
         empty: 'No income this month.',
         emptyHint: 'Tap a calendar day and save an income entry.',
         emptyIcon: 'coin',
-        top: 'Where income came from',
+        top: 'Top sources',
+        byCategory: 'Where income came from',
         pdfLabel: 'Download income report',
         paid: 'Received',
         pending: 'Expected',
@@ -206,6 +211,170 @@ function renderTopMerchants(summary, copy) {
     return section;
 }
 
+function renderCategoryBreakdown(summary, copy) {
+    const rows = rollUpCategories(summary.allItems || []);
+    if (!rows.length) return null;
+
+    const section = el('section', 'summary-section');
+    section.appendChild(el('div', 'summary-section-title', copy.byCategory));
+    section.appendChild(el('p', 'summary-section-description', 'Share of the month on screen.'));
+
+    const list = el('div', 'cat-breakdown');
+    // Long tails are noise here; anything past the top handful is rolled up so
+    // the section answers "where did it go" in one glance.
+    const top = rows.slice(0, 6);
+    const rest = rows.slice(6);
+
+    for (const row of top) list.appendChild(categoryRow(row));
+
+    // A ledger written before categories existed is entirely uncategorized, and
+    // re-entering years of history by hand is not a real option.
+    if (rows.some((row) => row.uncategorized)) list.appendChild(backfillPrompt());
+    if (rest.length) {
+        const other = rest.reduce((acc, row) => ({
+            amount: acc.amount + row.amount,
+            share: acc.share + row.share,
+            count: acc.count + row.count
+        }), { amount: 0, share: 0, count: 0 });
+        list.appendChild(categoryRow({
+            label: `${rest.length} more`,
+            tone: 'slate',
+            ...other
+        }, true));
+    }
+
+    section.appendChild(list);
+    return section;
+}
+
+function backfillPrompt() {
+    const wrap = el('div', 'cat-backfill');
+    const btn = UI.createButton('File these by name', () => runBackfill(), { icon: 'wand' });
+    btn.classList.add('cat-backfill-btn');
+    wrap.appendChild(btn);
+    return wrap;
+}
+
+async function runBackfill() {
+    const { events: current } = getState();
+    const { events: filed, filled } = backfillCategories(current);
+
+    if (!filled) {
+        Toast.show('Nothing here matches a known merchant. Set those categories on each entry.', 'info', 5000);
+        return;
+    }
+
+    const ok = await confirmDialog({
+        title: `File ${filled} entr${filled === 1 ? 'y' : 'ies'} by name?`,
+        message: 'Entries with no category yet will be filed from their title, across the whole ledger and not just this month. Anything already categorised is left alone, and you can change any of them afterwards.',
+        confirmText: 'File them',
+        cancelText: 'Cancel'
+    });
+    if (!ok?.confirmed) return;
+
+    patch({ events: filed });
+    Toast.show(`Filed ${filled} entr${filled === 1 ? 'y' : 'ies'}.`, 'success');
+}
+
+function categoryRow(row, muted = false) {
+    const el_ = el('div', `cat-row${muted ? ' is-muted' : ''}`);
+    const pct = Math.max(2, Math.min(100, row.share));
+    el_.innerHTML = `
+        <div class="cat-row-head">
+            <span class="cat-badge"><span class="cat-dot" data-tone="${row.tone}"></span><span>${Utils.escapeHtml(row.label)}</span></span>
+            <span class="cat-row-amt">${Utils.formatMoney(row.amount)}</span>
+        </div>
+        <div class="cat-track"><span style="width:${pct}%" data-tone="${row.tone}"></span></div>
+        <div class="cat-row-meta">${Math.round(row.share)}% · ${row.count} entr${row.count === 1 ? 'y' : 'ies'}</div>
+    `;
+    return el_;
+}
+
+function renderBudgets(summary, copy) {
+    if (summary.kind === 'income') return null;
+
+    const { budgets } = getState();
+    const rows = budgetProgress(
+        rollUpCategories(summary.allItems || []),
+        budgets,
+        { daysElapsed: summary.daysElapsed, daysInMonth: summary.daysInMonth }
+    );
+
+    const section = el('section', 'summary-section');
+    const head = el('div', 'summary-section-head');
+    head.appendChild(el('div', 'summary-section-title', 'Budgets'));
+    const editBtn = UI.createButton('', () => openBudgetEditor(), { icon: 'adjustments', iconOnly: true });
+    editBtn.classList.add('sidebar-print-btn');
+    editBtn.setAttribute('aria-label', 'Set category budgets');
+    editBtn.title = 'Set category budgets';
+    head.appendChild(editBtn);
+    section.appendChild(head);
+
+    if (!rows.length) {
+        section.appendChild(el(
+            'p',
+            'summary-section-description',
+            'No caps set yet. Add one to see what is left in a category as the month runs.'
+        ));
+        return section;
+    }
+
+    const list = el('div', 'budget-list');
+    for (const row of rows) {
+        const item = el('div', `budget-item is-${row.state}`);
+        const pct = Math.max(2, Math.min(100, row.used));
+        const left = row.remaining >= 0
+            ? `${Utils.formatMoney(row.remaining)} left`
+            : `${Utils.formatMoney(row.overBy)} over`;
+        item.innerHTML = `
+            <div class="cat-row-head">
+                <span class="cat-badge"><span class="cat-dot" data-tone="${row.tone}"></span><span>${Utils.escapeHtml(row.label)}</span></span>
+                <span class="cat-row-amt">${left}</span>
+            </div>
+            <div class="cat-track"><span style="width:${pct}%" data-tone="${row.tone}"></span></div>
+            <div class="cat-row-meta">${Utils.formatMoney(row.spent)} of ${Utils.formatMoney(row.limit)} · ${BUDGET_NOTE[row.state]}</div>
+        `;
+        list.appendChild(item);
+    }
+    section.appendChild(list);
+    return section;
+}
+
+const BUDGET_NOTE = {
+    over: 'over the cap',
+    close: 'nearly used up',
+    ahead: 'ahead of the month',
+    'on-track': 'on track'
+};
+
+async function openBudgetEditor() {
+    const { budgets } = getState();
+    const summary = computeMonthlySummary(getState().events, getState().currentDate, 'expense');
+    const spent = rollUpCategories(summary.allItems || []);
+
+    // Offer the categories actually in use first; a cap on something you never
+    // buy is not the one you came to set.
+    const used = spent.filter((row) => !row.uncategorized).map((row) => row.label);
+    const known = categoriesFor('expense');
+    const options = [...new Set([...used, ...known.quick, ...known.rest, ...Object.keys(budgets || {})])];
+
+    const choice = await confirmDialog({
+        title: 'Category budgets',
+        message: 'Set a monthly cap. Leave a field blank to remove its cap. Budgets are saved with your ledger and travel with an export.',
+        confirmText: 'Save budgets',
+        cancelText: 'Cancel',
+        budgetFields: options.map((label) => ({
+            label,
+            value: budgets?.[label] != null ? String(budgets[label]) : '',
+            spent: spent.find((row) => row.label.toLowerCase() === label.toLowerCase())?.amount || 0
+        }))
+    });
+    if (!choice?.confirmed) return;
+
+    patch({ budgets: sanitizeBudgets(choice.budgets) });
+    Toast.show('Budgets updated.', 'success');
+}
+
 function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-section');
     section.appendChild(el('div', 'summary-section-title', `${summary.year} at a glance`));
@@ -347,6 +516,12 @@ function paintFace(faceEl, kind) {
     statsSection.appendChild(el('p', 'summary-section-description', 'Averages and patterns from the month on screen.'));
     statsSection.appendChild(renderStatsGrid(summary, copy));
     faceEl.appendChild(statsSection);
+
+    const categories = renderCategoryBreakdown(summary, copy);
+    if (categories) faceEl.appendChild(categories);
+
+    const budgets = renderBudgets(summary, copy);
+    if (budgets) faceEl.appendChild(budgets);
 
     const merchants = renderTopMerchants(summary, copy);
     if (merchants) faceEl.appendChild(merchants);

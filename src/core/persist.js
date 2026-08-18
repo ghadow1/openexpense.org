@@ -33,8 +33,8 @@ if (syncChannel) {
     });
 }
 
-function ledgerSignature(name, events) {
-    return JSON.stringify({ name: name || '', events: events || {} });
+function ledgerSignature(name, events, budgets) {
+    return JSON.stringify({ name: name || '', events: events || {}, budgets: budgets || {} });
 }
 
 function openDb() {
@@ -144,7 +144,7 @@ async function commitLedger(data) {
         throw new Error('ENCRYPTED_STORAGE_UNAVAILABLE');
     }
     const cleaned = sanitizeLedger(data) || { name: '', events: {}, savedAt: Date.now() };
-    const sig = ledgerSignature(cleaned.name, cleaned.events);
+    const sig = ledgerSignature(cleaned.name, cleaned.events, cleaned.budgets);
     if (sig === lastSavedSig) return;
     const record = await encryptJSON(cleaned);
     await idbPut(STORE_NAME, KEY, record);
@@ -175,11 +175,11 @@ export function purgeStoredLedger(deviceKeyId = 'ledger-key-v1') {
     return operation;
 }
 
-const LEDGER_PATCH_KEYS = new Set(['events', 'ledgerName', 'autosaveEnabled']);
+const LEDGER_PATCH_KEYS = new Set(['events', 'ledgerName', 'autosaveEnabled', 'budgets']);
 
 export function initPersist(store) {
     const boot = store.getState();
-    lastSavedSig = ledgerSignature(boot.ledgerName, boot.events);
+    lastSavedSig = ledgerSignature(boot.ledgerName, boot.events, boot.budgets);
 
     store.subscribe((partial) => {
         if (partial && !Object.keys(partial).some((key) => LEDGER_PATCH_KEYS.has(key))) return;
@@ -188,7 +188,7 @@ export function initPersist(store) {
         saveTimer = setTimeout(() => {
             if (!store.getState().autosaveEnabled) return;
             const s = store.getState();
-            saveLedger({ name: s.ledgerName, events: s.events, savedAt: Date.now() })
+            saveLedger({ name: s.ledgerName, events: s.events, budgets: s.budgets, savedAt: Date.now() })
                 .catch((err) => console.error('[OpenExpense] encrypted autosave failed:', err));
         }, 400);
     });

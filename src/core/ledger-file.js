@@ -29,7 +29,8 @@ export const FILE_LIMITS = {
     maxPrice: 1e9,
     maxCategory: 40,
     maxSource: 24,
-    maxSourceId: 80
+    maxSourceId: 80,
+    maxBudgets: 60
 };
 
 export function ledgerFileBase(ledgerName) {
@@ -339,11 +340,37 @@ export function sanitizeLedger(payload) {
         days += 1;
     }
 
-    return {
+    const ledger = {
         name: Utils.sanitizeFilename(payload.name ?? payload.ledgerName ?? ''),
         events,
         savedAt: Number(payload.savedAt) || Date.now()
     };
+
+    // Budgets are part of the ledger, not of this browser: someone restoring a
+    // backup on a new device should get their limits back with their history.
+    const budgets = sanitizeBudgets(payload.budgets);
+    if (Object.keys(budgets).length) ledger.budgets = budgets;
+
+    return ledger;
+}
+
+/** `{ Groceries: 400 }` — a positive monthly cap per category label. */
+export function sanitizeBudgets(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+
+    let kept = 0;
+    for (const [key, value] of Object.entries(raw)) {
+        if (kept >= FILE_LIMITS.maxBudgets) break;
+        if (FORBIDDEN_KEYS.has(key)) continue;
+        const label = String(key).trim().slice(0, FILE_LIMITS.maxCategory);
+        if (!label) continue;
+        const amount = Number(value);
+        if (!Number.isFinite(amount) || amount <= 0 || amount > FILE_LIMITS.maxPrice) continue;
+        out[label] = Utils.fromCents(Utils.toCents(amount));
+        kept += 1;
+    }
+    return out;
 }
 
 export function countEntries(events) {

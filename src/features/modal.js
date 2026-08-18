@@ -39,6 +39,8 @@ import {
     togglePaidAt
 } from '../core/day-entries.js';
 import { clearDropMarks, makeGhost, placeGhost } from '../ui/pointer-drag.js';
+import { categoryBadge, createCategoryPicker } from '../ui/category-picker.js';
+import { categoryHistory, resolveCategory } from '../core/categories.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -196,6 +198,10 @@ function renderDayInsights(dateKey) {
 }
 
 let addFormReady = false;
+let addCategoryPicker = null;
+// Edit rows are rebuilt on every refresh, so pickers are keyed by row index and
+// cleared with the list rather than held for the lifetime of the modal.
+const editPickers = new Map();
 
 function refreshEventList() {
     const { selectedKey, events } = getState();
@@ -205,6 +211,7 @@ function refreshEventList() {
 
     eventsContainer.classList.add('day-entry-list');
     eventsContainer.replaceChildren();
+    editPickers.clear();
     const list = events[selectedKey] || [];
     if (!list.length) {
         const p = document.createElement('p');
@@ -348,7 +355,13 @@ function ensureAddForm(formContainer) {
     form.appendChild(repeatPrompt);
     bindRepeatToggle(optWrap.querySelector('#er'), repeatPrompt);
 
-    form.appendChild(UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea'));
+    addCategoryPicker = createCategoryPicker({ id: 'ec', kind: readKind('ek') });
+    form.appendChild(addCategoryPicker.element);
+    if (titleInput) titleInput.addEventListener('input', refreshAddCategory);
+
+    const noteField = UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea');
+    noteField.querySelector('textarea')?.addEventListener('input', refreshAddCategory);
+    form.appendChild(noteField);
 
     const act = document.createElement('div');
     act.className = 'form-actions';
@@ -361,6 +374,13 @@ function ensureAddForm(formContainer) {
     addFormReady = true;
     bindKindPrompt(form);
     syncAddFormKind();
+}
+
+function refreshAddCategory() {
+    addCategoryPicker?.refreshSuggestion({
+        title: document.getElementById('et')?.value || '',
+        note: document.getElementById('en')?.value || ''
+    });
 }
 
 function resetAddForm() {
@@ -378,10 +398,11 @@ function resetAddForm() {
     if (monthly) monthly.checked = true;
     const prompt = document.getElementById('er-repeat-prompt');
     if (prompt) prompt.hidden = true;
+    addCategoryPicker?.reset();
     syncAddFormKind();
 }
 
-export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind } = {}) {
+export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind, category } = {}) {
     const t = String(title ?? '').trim();
     if (!t || !dateKey) return false;
 
@@ -389,14 +410,27 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
         ? parseFloat(String(price).replace(/[^0-9.]/g, ''))
         : null;
 
+    const entryKind = Utils.entryKind({ kind });
     const newEv = {
         title: t,
         note: String(note ?? '').trim(),
         price: parsedPrice != null && !Number.isNaN(parsedPrice) ? parsedPrice : null,
         recurring: !!recurring,
         paid: !!paid,
-        kind: Utils.entryKind({ kind })
+        kind: entryKind
     };
+
+    // Callers that never pass a category — the receipt scanner, the embed
+    // importer — still get one filed for them from the title.
+    const filed = resolveCategory({
+        category,
+        title: t,
+        note: newEv.note,
+        kind: entryKind,
+        history: categoryHistory(getState().events)
+    });
+    if (filed) newEv.category = filed;
+
     if (newEv.kind === 'expense') delete newEv.kind;
     if (newEv.recurring) newEv.repeat = normalizeRepeat(repeat);
 
@@ -492,6 +526,7 @@ function buildRow(e, i) {
         kindBadge.textContent = 'Income';
         titleRow.appendChild(kindBadge);
     }
+    if (e.category) titleRow.appendChild(categoryBadge(e.category, Utils.entryKind(e)));
     if (e.recurring) {
         const rec = document.createElement('span');
         rec.className = 'event-badge-icon';
@@ -610,6 +645,17 @@ function buildEditRow(e, i) {
     bindRepeatToggle(recCb, editRepeat);
     form.appendChild(editRepeat);
 
+    const editPicker = createCategoryPicker({
+        id: `edit-cat-${i}`,
+        kind: Utils.entryKind(e),
+        value: e.category || ''
+    });
+    editPickers.set(i, editPicker);
+    form.querySelectorAll(`input[name="edit-kind-${i}"]`).forEach((input) => {
+        input.addEventListener('change', () => editPicker.setKind(readKind(`edit-kind-${i}`)));
+    });
+    form.appendChild(editPicker.element);
+
     form.appendChild(UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea'));
     wrap.appendChild(form);
 
@@ -663,6 +709,9 @@ function saveEdit(i) {
     if (updatedEv.kind === 'expense') delete updatedEv.kind;
     if (isRecurring) updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
     else delete updatedEv.repeat;
+
+    const picked = editPickers.get(i)?.getValue();
+    if (picked) updatedEv.category = picked;
 
     const { selectedKey, events } = getState();
     const original = events[selectedKey]?.[i];
@@ -828,6 +877,8 @@ function syncAddFormKind() {
         if (submit.tagName === 'SPAN') submit.textContent = income ? 'Save income' : 'Save expense';
         else if (!submit.querySelector('span')) submit.textContent = income ? 'Save income' : 'Save expense';
     }
+    addCategoryPicker?.setKind(kind);
+    refreshAddCategory();
     paintSmartChips();
 }
 
@@ -931,7 +982,8 @@ function addEvent() {
         recurring: document.getElementById('er')?.checked,
         paid: document.getElementById('epad')?.checked,
         repeat: readRepeat('er-repeat'),
-        kind: readKind('ek')
+        kind: readKind('ek'),
+        category: addCategoryPicker?.getValue()
     });
     if (!ok) return;
 
