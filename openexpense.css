@@ -3426,6 +3426,10 @@ body:has(.backdrop.open) #global-tooltip {
     border-bottom: 1px solid var(--border);
 }
 
+.day-select-bar[hidden] {
+    display: none;
+}
+
 .day-select-count {
     font-size: var(--fs-xs);
     font-weight: 700;

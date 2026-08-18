@@ -263,16 +263,15 @@ function refreshEventList() {
 function paintDaySelectBar(container) {
     if (!container) return;
     let bar = container.querySelector('.day-select-bar');
+    const count = selectedDayIndexes.size;
+    if (!count) {
+        bar?.remove();
+        return;
+    }
     if (!bar) {
         bar = document.createElement('div');
         bar.className = 'day-select-bar';
         container.prepend(bar);
-    }
-    const count = selectedDayIndexes.size;
-    if (!count) {
-        bar.hidden = true;
-        bar.replaceChildren();
-        return;
     }
     bar.hidden = false;
     bar.replaceChildren();

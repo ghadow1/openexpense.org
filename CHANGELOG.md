@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Day list spacer
+
+The empty multi-select bar no longer sits under **This day**, so the heading and first entry share one line instead of two.
+
 ## 2026-08-18 — Full-width day net card
 
 The day sheet’s net dial now spans the sheet. Previous / next sit in their own squares and leave a reserved slot for Close, so they no longer crowd the X.
