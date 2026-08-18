@@ -3,7 +3,9 @@
  *
  * Four swipeable views. Each slide is one period dial plus a three-point
  * year spark. Budget holds weekly savings and the rules Overview uses.
- * Extra figures stay folded so the strip never fills the screen.
+ * Extra figures and Planner settings stay folded so the strip never
+ * fills the screen or pushes the calendar off. Hidden carousel slides
+ * collapse so only the active tab sets the height.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -746,6 +748,14 @@ function budgetSlide(snap, events, currentDate, plan) {
         })
     ];
 
+    const settings = document.createElement('details');
+    settings.className = 'dash-fold';
+    settings.open = isWideDash();
+    const settingsSum = document.createElement('summary');
+    settingsSum.className = 'dash-fold-sum';
+    settingsSum.textContent = 'Planner settings';
+    settings.append(settingsSum, planPanel(snap, plan));
+
     return [
         ...heroSlide({
             title: daysOpen ? 'Daily safe spend' : VIEW_COPY.budget.title,
@@ -772,7 +782,7 @@ function budgetSlide(snap, events, currentDate, plan) {
             extrasTitle: 'Planner figures',
             extras
         }),
-        planPanel(snap, plan)
+        settings
     ];
 }
 
@@ -798,6 +808,7 @@ function setDeckView(root, view) {
     });
     root.querySelectorAll('.dash-slide').forEach((slide) => {
         const on = slide.dataset.view === view;
+        slide.classList.toggle('is-active', on);
         slide.setAttribute('aria-hidden', on ? 'false' : 'true');
     });
 }
@@ -898,6 +909,8 @@ export function renderDashStrip() {
         slide.dataset.view = view;
         slide.setAttribute('role', 'tabpanel');
         slide.setAttribute('aria-labelledby', `dash-tab-${view}`);
+        slide.setAttribute('aria-hidden', view === activeView ? 'false' : 'true');
+        slide.classList.toggle('is-active', view === activeView);
         slide.append(...slideFor(view, snap, events, currentDate, rules));
         track.appendChild(slide);
     });

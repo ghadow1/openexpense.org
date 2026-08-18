@@ -1240,6 +1240,7 @@ html.is-action-busy [data-lockable] {
 
 .dash-deck-track {
     display: flex;
+    align-items: flex-start;
     width: 100%;
     transition: transform 280ms var(--ease-out);
     will-change: transform;
@@ -1251,6 +1252,15 @@ html.is-action-busy [data-lockable] {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* Hidden slides must not set the viewport height. The Planner form used to
+   stretch Overview and push the calendar below the fold. */
+.dash-slide[aria-hidden="true"] {
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .dash-chips:not(.is-ready) {
@@ -1320,6 +1330,13 @@ html.is-action-busy [data-lockable] {
     background: var(--surface);
     width: 100%;
     box-sizing: border-box;
+}
+
+.dash-fold .dash-plan {
+    padding: 0 0 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .dash-plan .input-group {
@@ -1460,6 +1477,7 @@ html.is-action-busy [data-lockable] {
 }
 
 .dash-fold[open] .dash-block-grid,
+.dash-fold[open] .dash-plan,
 .summary-fold[open] > :not(summary) {
     margin-bottom: 10px;
 }
