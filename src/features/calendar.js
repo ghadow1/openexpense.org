@@ -3,8 +3,8 @@
  *
  * Renders the day grid, collapses same-title pills, opens the day editor,
  * and lets a chip drag onto another day to move those copies. Sunday–Saturday
- * rows wash red or green as a hint when spend or gross income misses
- * its weekly goal. Pills and amounts stay as they are.
+ * rows get a thin red or green rail when spend or gross income misses
+ * its weekly goal. Day squares stay the surface colour.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -153,6 +153,10 @@ function ensureShell(calCol) {
 
     gridHeadEl = document.createElement('div');
     gridHeadEl.className = 'grid-head';
+    const headRail = document.createElement('span');
+    headRail.className = 'grid-head-rail';
+    headRail.setAttribute('aria-hidden', 'true');
+    gridHeadEl.appendChild(headRail);
     DAYS.forEach(d => gridHeadEl.appendChild(Object.assign(document.createElement('span'), { textContent: d })));
     shellEl.appendChild(gridHeadEl);
 
@@ -299,6 +303,77 @@ function weekHintRows(events, currentDate, plan) {
     };
 }
 
+function paintDayCell(cell, i, firstDay, y, m, today, events, hints) {
+    cell.className = 'cal-day';
+    cell.replaceChildren();
+    cell.onclick = null;
+    cell.onkeydown = null;
+    cell.removeAttribute('role');
+    cell.removeAttribute('tabindex');
+    cell.removeAttribute('aria-label');
+    delete cell.dataset.date;
+
+    if (i < firstDay) {
+        cell.classList.add('is-empty');
+        return;
+    }
+
+    const d = i - firstDay + 1;
+    const dateKey = Utils.dateKey(y, m, d);
+    cell.dataset.date = dateKey;
+    const isToday = y === today.getFullYear() && m === today.getMonth() && d === today.getDate();
+
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', '0');
+    cell.onclick = () => openModal(dateKey);
+    cell.onkeydown = (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openModal(dateKey); }
+    };
+
+    const dayEvents = events[dateKey] || [];
+    if (dayEvents.length) {
+        cell.classList.add('has-items');
+        if (dayEvents.some((e) => Utils.entryKind(e) === 'expense')) cell.classList.add('has-expense');
+        if (dayEvents.some((e) => Utils.entryKind(e) === 'income')) cell.classList.add('has-income');
+    }
+
+    const head = document.createElement('div');
+    head.className = 'cal-day-head';
+    const numLabel = document.createElement('div');
+    numLabel.className = `cal-day-num${isToday ? ' is-today' : ''}`;
+    numLabel.textContent = d;
+    head.appendChild(numLabel);
+    if (dayEvents.length) appendDayTotal(head, dayEvents);
+    cell.appendChild(head);
+
+    const badge = dayNetBadge(dayEvents);
+    const moneyHint = !badge
+        ? ''
+        : (badge.direction === 'up'
+            ? `, net up ${Utils.formatMoney(badge.amount)}`
+            : (badge.direction === 'down'
+                ? `, net down ${Utils.formatMoney(badge.amount)}`
+                : ', net even'));
+    const row = Math.floor(i / 7);
+    const weekHints = [
+        hints.over.has(row) ? 'over this week’s spend plan' : '',
+        hints.ahead.has(row) ? 'ahead of this week’s income goal' : ''
+    ].filter(Boolean);
+    const weekHint = weekHints.length ? `, ${weekHints.join(', ')}` : '';
+    cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}${weekHint}`);
+
+    const body = document.createElement('div');
+    body.className = 'cal-day-body';
+    const density = getCalendarDensity(document.getElementById('cal-col'));
+    if (density === 'mobile' || density === 'compact') {
+        if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
+    } else {
+        const maxVisible = density === 'narrow' ? 1 : density === 'tablet' ? 1 : 3;
+        appendPills(body, dayEvents, dateKey, maxVisible, density);
+    }
+    cell.appendChild(body);
+}
+
 function renderGrid(y, m, events, plan) {
     if (!gridEl) return;
 
@@ -306,89 +381,37 @@ function renderGrid(y, m, events, plan) {
     const firstDay = new Date(y, m, 1).getDay();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const totalCells = firstDay + daysInMonth;
+    const weekCount = Math.ceil(totalCells / 7);
     const hints = weekHintRows(events, new Date(y, m, 1), plan);
 
-    while (gridEl.children.length < totalCells) {
-        gridEl.appendChild(document.createElement('div'));
-    }
-    while (gridEl.children.length > totalCells) {
-        gridEl.lastChild.remove();
-    }
+    gridEl.replaceChildren();
 
-    for (let i = 0; i < totalCells; i++) {
-        const cell = gridEl.children[i];
-        cell.className = 'cal-day';
-        cell.replaceChildren();
-        cell.onclick = null;
-        cell.onkeydown = null;
-        cell.removeAttribute('role');
-        cell.removeAttribute('tabindex');
-        cell.removeAttribute('aria-label');
-        delete cell.dataset.date;
-        const row = Math.floor(i / 7);
-        if (hints.over.has(row)) cell.classList.add('is-over-week');
-        if (hints.ahead.has(row)) cell.classList.add('is-ahead-week');
+    for (let row = 0; row < weekCount; row++) {
+        const week = document.createElement('div');
+        week.className = 'cal-week';
+        const over = hints.over.has(row);
+        const ahead = hints.ahead.has(row);
+        if (over) week.classList.add('is-over-week');
+        if (ahead) week.classList.add('is-ahead-week');
 
-        if (i >= firstDay) {
-            const d = i - firstDay + 1;
-            const dateKey = Utils.dateKey(y, m, d);
-            cell.dataset.date = dateKey;
-            const isToday = y === today.getFullYear() && m === today.getMonth() && d === today.getDate();
+        const rail = document.createElement('span');
+        rail.className = 'cal-week-rail';
+        rail.setAttribute('aria-hidden', 'true');
+        const railHints = [
+            over ? 'Over this week’s spend plan' : '',
+            ahead ? 'Ahead of this week’s income goal' : ''
+        ].filter(Boolean);
+        if (railHints.length) rail.title = railHints.join(' · ');
+        week.appendChild(rail);
 
-            cell.setAttribute('role', 'button');
-            cell.setAttribute('tabindex', '0');
-            cell.onclick = () => openModal(dateKey);
-            cell.onkeydown = (ev) => {
-                if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openModal(dateKey); }
-            };
-
-            const dayEvents = events[dateKey] || [];
-            if (dayEvents.length) {
-                cell.classList.add('has-items');
-                if (dayEvents.some((e) => Utils.entryKind(e) === 'expense')) cell.classList.add('has-expense');
-                if (dayEvents.some((e) => Utils.entryKind(e) === 'income')) cell.classList.add('has-income');
-            }
-
-            const head = document.createElement('div');
-            head.className = 'cal-day-head';
-            const numLabel = document.createElement('div');
-            numLabel.className = `cal-day-num${isToday ? ' is-today' : ''}`;
-            numLabel.textContent = d;
-            head.appendChild(numLabel);
-            if (dayEvents.length) appendDayTotal(head, dayEvents);
-            cell.appendChild(head);
-
-            const badge = dayNetBadge(dayEvents);
-            const moneyHint = !badge
-                ? ''
-                : (badge.direction === 'up'
-                    ? `, net up ${Utils.formatMoney(badge.amount)}`
-                    : (badge.direction === 'down'
-                        ? `, net down ${Utils.formatMoney(badge.amount)}`
-                        : ', net even'));
-            const weekHints = [
-                hints.over.has(Math.floor(i / 7)) ? 'over this week’s spend plan' : '',
-                hints.ahead.has(Math.floor(i / 7)) ? 'ahead of this week’s income goal' : ''
-            ].filter(Boolean);
-            const weekHint = weekHints.length ? `, ${weekHints.join(', ')}` : '';
-            cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}${weekHint}`);
-
-            const body = document.createElement('div');
-            body.className = 'cal-day-body';
-
-            const density = getCalendarDensity(document.getElementById('cal-col'));
-
-            if (density === 'mobile' || density === 'compact') {
-                if (dayEvents.length) appendCompactMobileDay(body, dayEvents);
-            } else {
-                const maxVisible = density === 'narrow' ? 1 : density === 'tablet' ? 1 : 3;
-                appendPills(body, dayEvents, dateKey, maxVisible, density);
-            }
-
-            cell.appendChild(body);
-        } else {
-            cell.classList.add('is-empty');
+        const start = row * 7;
+        const end = Math.min(start + 7, totalCells);
+        for (let i = start; i < end; i++) {
+            const cell = document.createElement('div');
+            paintDayCell(cell, i, firstDay, y, m, today, events, hints);
+            week.appendChild(cell);
         }
+        gridEl.appendChild(week);
     }
 }
 

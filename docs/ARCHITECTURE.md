@@ -55,7 +55,7 @@ src/main.js         boot, event delegation, render subscription
 | Layer | Job |
 | --- | --- |
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
-| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); over-budget Sun–Sat rows |
+| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); red/green week rails |
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
 | `features/sidebar.js` | Month math + statement PDF; click a group or category to search |

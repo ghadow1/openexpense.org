@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Week status rails
+
+Sunday–Saturday weeks no longer wash the day squares pink or mint. Each row keeps a white (or Black Card black) square, with a thin red rail when that week spends past its leftover share and a thin green rail when gross income beats the weekly income goal. Pills and amounts stay as they are.
+
 ## 2026-08-18 — One scroll on the phone
 
 On a phone or tablet the monthly spending card sits under the calendar and no longer has its own 72vh scroller. Swiping the page moves the calendar and the statement together.
