@@ -67,3 +67,16 @@ test('overview splits so a phone can lift the calendar', async () => {
     assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the two-column board');
     assert.match(css, /html\[data-frame="tablet"\]/, 'tablet must have its own frame');
 });
+
+test('planner is isolated from the shared tracker stage', async () => {
+    const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
+    assert.match(
+        css,
+        /html\[data-shell="planner"\] \.ledger-stage\s*\{[^}]*display:\s*none !important/s,
+        'Planner must not render the tracker toolbar, calendar, and sidebar'
+    );
+
+    const source = await readFile(join(ROOT, 'src/features/dash-strip.js'), 'utf8');
+    assert.match(source, /data-plan-preset/, 'Planner should expose strategy presets');
+    assert.match(source, /dataset\.planSave/, 'Planner should expose an explicit save action');
+});
