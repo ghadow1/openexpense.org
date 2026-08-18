@@ -3,7 +3,8 @@
  *
  * Four primary tabs: Overview, Tracker, Planner, and Privacy.
  * Privacy is the existing docs pane. The calendar stays in `#view-app`
- * on Overview, Tracker, and Planner.
+ * on Tracker, and on desktop Overview beside the compact strip. Phone
+ * and tablet Overview are snapshot-only. Planner is its own workspace.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';

@@ -587,7 +587,8 @@ textarea,
 
 .overview-root,
 .planner-root,
-.planner-stack {
+.planner-stack,
+.tracker-head-root {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -683,28 +684,35 @@ textarea,
     margin-top: 12px;
 }
 
-/* Planner is a standalone workspace. The tracker/calendar stage is shared by
-   Overview and Tracker only, otherwise Planner appears to contain every tab. */
+/* Planner is its own workspace. */
 html[data-shell="planner"] .ledger-stage {
     display: none !important;
 }
 
-#pane-overview-more:has(#overview-more-root:empty) {
+/* Phone and tablet Overview are snapshot-only so they do not lean into
+   the same calendar page as Tracker. Desktop Overview still sits the
+   compact strip beside the month grid. */
+html[data-frame="phone"][data-shell="overview"] .ledger-stage,
+html[data-frame="tablet"][data-shell="overview"] .ledger-stage {
+    display: none !important;
+}
+
+#pane-overview-more:has(#overview-more-root:empty),
+#pane-tracker-head:has(#tracker-head-root:empty) {
     display: none;
 }
 
-/* Phone Overview: calendar sits under Left to spend, above Deposited. */
-html[data-frame="phone"][data-shell="overview"] #pane-overview-hero {
-    order: 1;
+html[data-frame="desktop"] #pane-tracker-head {
+    display: none !important;
 }
 
-html[data-frame="phone"][data-shell="overview"] .ledger-stage {
-    order: 2;
-    margin-top: 0;
+html[data-frame="phone"][data-shell="overview"] #view-app,
+html[data-frame="tablet"][data-shell="overview"] #view-app {
+    gap: 16px;
 }
 
-html[data-frame="phone"][data-shell="overview"] #pane-overview-more {
-    order: 3;
+html[data-frame="phone"] .ov-pair {
+    grid-template-columns: 1fr;
 }
 
 html[data-frame="phone"] .tracker-board {
@@ -803,7 +811,8 @@ html[data-frame="desktop"] #cal-col { grid-area: cal; }
 html[data-frame="desktop"] #sidebar { grid-area: side; }
 
 html[data-frame="desktop"] .ledger-stage,
-html[data-frame="tablet"] .ledger-stage {
+html[data-frame="tablet"] .ledger-stage,
+html[data-frame="phone"] .ledger-stage {
     margin-top: 0;
 }
 
@@ -825,8 +834,16 @@ html[data-frame="tablet"] .tracker-board {
         align-items: start;
     }
 
+    html[data-frame="tablet"][data-shell="overview"] #view-app {
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: none;
+        grid-template-areas: none;
+    }
+
     html[data-frame="tablet"][data-shell="tracker"] #view-app {
         grid-template-areas:
+            "head head"
             "tools side"
             "cal side";
     }
@@ -837,6 +854,7 @@ html[data-frame="tablet"] .tracker-board {
 
     html[data-frame="tablet"] #pane-overview-hero { grid-area: hero; }
     html[data-frame="tablet"] #pane-planner { grid-area: planner; }
+    html[data-frame="tablet"] #pane-tracker-head { grid-area: head; }
     html[data-frame="tablet"] .tracker-toolbar { grid-area: tools; }
     html[data-frame="tablet"] #cal-col { grid-area: cal; }
     html[data-frame="tablet"] #sidebar { grid-area: side; }

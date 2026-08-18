@@ -2,10 +2,10 @@
  * OpenExpense — Overview and Planner panes
  *
  * Overview is the cash snapshot. Planner is daily safe spend plus the
- * withholding, savings-hold, and 50/30/20 form. Extra figures stay folded
- * on a narrow screen. A phone paints the stacked cards with the calendar
- * between Left to spend and Deposited. Tablet and desktop paint the compact
- * dial strip from this morning.
+ * withholding, savings-hold, and 50/30/20 form. Phone and tablet Overview
+ * are snapshot-only (Left to spend, deposits, spending, year). Desktop
+ * keeps the compact dial strip beside the calendar. Tracker owns the
+ * month grid on every frame; Planner stays its own workspace.
  */
 import { getState, patch } from '../core/store.js';
 import {
@@ -320,6 +320,22 @@ function sectionKicker(text) {
     node.className = 'ov-kicker dash-plan-kicker';
     node.textContent = text;
     return node;
+}
+
+function pageHead({ kicker, title, description, monthLabel }) {
+    const header = document.createElement('header');
+    header.className = 'planner-page-head';
+    const copy = document.createElement('div');
+    const heading = document.createElement('h2');
+    heading.textContent = title;
+    const lede = document.createElement('p');
+    lede.textContent = description;
+    copy.append(sectionKicker(kicker), heading, lede);
+    const month = document.createElement('span');
+    month.className = 'planner-month';
+    month.innerHTML = `<i class="ti ti-calendar" aria-hidden="true"></i>${monthLabel}`;
+    header.append(copy, month);
+    return header;
 }
 
 function planSection(icon, title, description, ...children) {
@@ -785,7 +801,7 @@ function renderOverview(snap, events, currentDate) {
     const moreRoot = document.getElementById('overview-more-root');
     if (!heroRoot || !moreRoot) return;
 
-    if (readFrame() !== 'phone') {
+    if (readFrame() === 'desktop') {
         heroRoot.replaceChildren(...overviewCompact(snap, events, currentDate));
         heroRoot.classList.add('is-ready');
         moreRoot.replaceChildren();
@@ -842,7 +858,7 @@ function renderOverview(snap, events, currentDate) {
     year.className = 'oe-card ov-year';
     const yearTitle = document.createElement('p');
     yearTitle.className = 'ov-kicker';
-    yearTitle.textContent = `${currentDate.getFullYear()} cash flow trajectory`;
+    yearTitle.textContent = `${currentDate.getFullYear()} cash flow`;
     const spend = computeMonthlySummary(events, currentDate, 'expense');
     const charts = document.createElement('div');
     charts.className = 'ov-year-charts';
@@ -855,10 +871,30 @@ function renderOverview(snap, events, currentDate) {
     foot.textContent = `Daily average ${formatMoney(spend.avgPerDay)}  ·  Average entry ${formatMoney(spend.avgPerEntry)}`;
     year.append(yearTitle, charts, foot);
 
-    heroRoot.replaceChildren(hero);
+    heroRoot.replaceChildren(pageHead({
+        kicker: 'This month',
+        title: 'What’s left',
+        description: 'Deposits minus this month’s spending.',
+        monthLabel: snap.monthLabel
+    }), hero);
     heroRoot.classList.add('is-ready');
-    moreRoot.replaceChildren(pair, ...(readFrame() === 'phone' ? [] : [year]));
+    moreRoot.replaceChildren(pair, year);
     moreRoot.classList.add('is-ready');
+}
+
+function renderTrackerHead(snap) {
+    const root = document.getElementById('tracker-head-root');
+    if (!root) return;
+    if (readFrame() === 'desktop') {
+        root.replaceChildren();
+        return;
+    }
+    root.replaceChildren(pageHead({
+        kicker: 'This month',
+        title: 'Month tracker',
+        description: 'Filter, add, and tap a day.',
+        monthLabel: snap.monthLabel
+    }));
 }
 
 function formulaCard(snap) {
@@ -881,20 +917,12 @@ function renderPlannerPane(snap, events, currentDate, plan) {
     if (!root) return;
     const slide = document.createElement('div');
     slide.className = 'planner-stack';
-    const header = document.createElement('header');
-    header.className = 'planner-page-head';
-    const copy = document.createElement('div');
-    const kicker = sectionKicker('Monthly plan');
-    const title = document.createElement('h2');
-    title.textContent = 'Build a plan for your money';
-    const description = document.createElement('p');
-    description.textContent = 'Choose what counts, reserve tax and savings, then set targets you can update any time.';
-    copy.append(kicker, title, description);
-    const month = document.createElement('span');
-    month.className = 'planner-month';
-    month.innerHTML = `<i class="ti ti-calendar" aria-hidden="true"></i>${snap.monthLabel}`;
-    header.append(copy, month);
-    slide.append(header, ...budgetSlide(snap, events, currentDate, plan), formulaCard(snap));
+    slide.append(pageHead({
+        kicker: 'Monthly plan',
+        title: 'Build a plan for your money',
+        description: 'Choose what counts, reserve tax and savings, then set targets you can update any time.',
+        monthLabel: snap.monthLabel
+    }), ...budgetSlide(snap, events, currentDate, plan), formulaCard(snap));
     root.replaceChildren(slide);
 }
 
@@ -912,6 +940,7 @@ export function renderDashStrip() {
     const rules = sanitizePlan(plan);
     const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
     renderOverview(snap, events, currentDate);
+    renderTrackerHead(snap);
     renderPlannerPane(snap, events, currentDate, rules);
     syncTrackerFilter();
 }

@@ -29,15 +29,17 @@ test('the page stamps a frame before paint', async () => {
     assert.match(html, /w <= 1099 \? 'tablet'/, 'tablet snap is 1099px');
 });
 
-test('overview still splits so a phone can lift the calendar', async () => {
+test('overview still splits so a phone can lift the snapshot cards', async () => {
     const html = await readFile(join(ROOT, 'index.html'), 'utf8');
     assert.match(html, /id="overview-hero-root"/);
     assert.match(html, /id="overview-more-root"/);
+    assert.match(html, /id="tracker-head-root"/);
 });
 
-test('tablet and desktop overview can paint the compact strip', async () => {
+test('only desktop overview paints the compact strip beside the calendar', async () => {
     const src = await readFile(join(ROOT, 'src/features/dash-strip.js'), 'utf8');
     assert.match(src, /function savingsRateChip/, 'compact extras need the income-left chip');
-    assert.match(src, /function overviewCompact/, 'tablet/desktop paint the morning strip');
-    assert.match(src, /readFrame\(\) !== 'phone'/, 'phone keeps the stacked cards');
+    assert.match(src, /function overviewCompact/, 'desktop paints the morning strip');
+    assert.match(src, /readFrame\(\) === 'desktop'/, 'phone and tablet keep the snapshot cards');
+    assert.match(src, /function renderTrackerHead/, 'Tracker gets its own mobile page head');
 });

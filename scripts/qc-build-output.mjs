@@ -54,15 +54,21 @@ test('the entry points the page loads are present', async () => {
     assert.match(html, /src="app\.js"/, 'index.html should load app.js');
 });
 
-test('overview splits so a phone can lift the calendar', async () => {
+test('phone and tablet overview hide the shared tracker stage', async () => {
     const html = await readFile(join(ROOT, 'index.html'), 'utf8');
     assert.match(html, /id="overview-hero-root"/, 'Left to spend needs its own root');
     assert.match(html, /id="overview-more-root"/, 'Deposited / spending need a second root');
+    assert.match(html, /id="tracker-head-root"/, 'Tracker needs its own page head on mobile');
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
         /html\[data-frame="phone"\]\[data-shell="overview"\] \.ledger-stage/,
-        'phone Overview must be able to reorder the calendar'
+        'phone Overview must hide the calendar board'
+    );
+    assert.match(
+        css,
+        /html\[data-frame="tablet"\]\[data-shell="overview"\] \.ledger-stage/,
+        'tablet Overview must hide the calendar board'
     );
     assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the two-column board');
     assert.match(css, /html\[data-frame="tablet"\]/, 'tablet must have its own frame');
