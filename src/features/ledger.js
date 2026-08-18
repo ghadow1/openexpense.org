@@ -306,6 +306,10 @@ export const Ledger = {
         try {
             const choice = await Ledger.resolveExportPassphrase({ reconsider: pickFolder });
             if (!choice.ok) return;
+            // A forgotten passphrase cannot be recovered, so say so on the way out.
+            const keyNote = choice.passphrase
+                ? 'You will need your passphrase to open it again.'
+                : 'not stored in this browser.';
             const { enc, keyFile } = await encryptBundle(
                 Ledger.exportPayload(),
                 { passphrase: choice.passphrase }
@@ -326,7 +330,7 @@ export const Ledger = {
                 await writeBlobsToFolder(folder, pair);
                 await refreshExportButtons();
                 Toast.show(
-                    `Updated ${names.ledger} in your ${EXPORT_FOLDER_NAME} folder. The matching key is ${names.key} — not stored in this browser.`,
+                    `Updated ${names.ledger} in your ${EXPORT_FOLDER_NAME} folder. The matching key is ${names.key} — ${keyNote}`,
                     'success',
                     5200
                 );
@@ -366,7 +370,7 @@ export const Ledger = {
                 return;
             }
 
-            Toast.show('Saved encrypted ledger.json and key.json. The key is only in that download — not in this browser.', 'success', 5200);
+            Toast.show(`Saved encrypted ledger.json and key.json. The key is only in that download — ${keyNote}`, 'success', 5200);
         } catch (err) {
             if (err?.code === 'FOLDER_PERMISSION' || err?.message === 'FOLDER_PERMISSION') {
                 await refreshExportButtons();

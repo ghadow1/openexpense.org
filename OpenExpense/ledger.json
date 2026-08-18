@@ -1,0 +1,12 @@
+{
+  "format": "openexpense-encrypted",
+  "kid": "e0de1e6cd3bf880c6ed754297bec6159",
+  "createdAt": 1787015024251,
+  "version": 2,
+  "alg": "AES-256-GCM",
+  "kdf": "HKDF-SHA-256",
+  "salt": "QxyKxr7LKFRXvCiuE2ZX5oWmEseABks8jFyrJP7cTKk=",
+  "iv": "JcNqyytqBpV75jVv",
+  "commit": "DgntBqLDqrjNUOfXU8mPGu5/X8DG4mh3HxW5xrrxssk=",
+  "ct": "bMD9htIrSHgJppNeOgYDJX4/0ZtWnE678Jn0KOxnCcqptyWrJiTNJRHCL1EcYEZqnKb/LCVEmLiwVWII62axh0C/qLrpCOpYJ9Nm14GYwFamZEEoTqOwbbcNbmbXsSPa3LNak9+1wIQyqZ8BRM8qfuiyUTzTuDh1wbMK5toz4jgxgQqtWnew01Fvol273YoyQwIq"
+}
