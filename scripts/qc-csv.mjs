@@ -65,12 +65,12 @@ test('rows render with resolved category, group and readable status', () => {
     assert.equal(lines[2], '2026-08-04,Mystery,3.00,Expense,Uncategorized,,Unpaid,Yes,');
 });
 
-test('income rows say Received rather than Paid', () => {
+test('income rows say Deposited rather than Paid', () => {
     const csv = toCsv([{
         date: '2026-08-01', title: 'Paycheck', amount: 3200, kind: 'income',
         category: 'Paycheck', group: '', paid: true, recurring: true, note: ''
     }]);
-    assert.match(csv, /Income,Paycheck,,Received,Yes/);
+    assert.match(csv, /Income,Paycheck,,Deposited,Yes/);
 });
 
 test('a group set on an entry reaches the export', () => {

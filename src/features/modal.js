@@ -582,7 +582,7 @@ function buildRow(e, i) {
     const act = document.createElement('div');
     act.className = 'row-actions';
     const paidLabel = Utils.entryKind(e) === 'income'
-        ? (e.paid ? 'Mark not received' : 'Mark received')
+        ? (e.paid ? 'Mark not deposited' : 'Mark deposited')
         : (e.paid ? 'Mark unpaid' : 'Mark paid');
     const paidBtn = iconAction(
         `btn-icon-paid${e.paid ? ' is-on' : ''}`,
@@ -662,7 +662,7 @@ function buildEditRow(e, i) {
     paidWrap.className = 'cb-wrap';
     const paidCb = UI.createInput(`edit-paid-${i}`, e.paid, '', 'checkbox');
     paidWrap.append(paidCb, Object.assign(document.createElement('span'), {
-        textContent: Utils.entryKind(e) === 'income' ? 'Received' : 'Paid'
+        textContent: Utils.entryKind(e) === 'income' ? 'Deposited' : 'Paid'
     }));
 
     optRow.append(recWrap, paidWrap);
@@ -916,7 +916,7 @@ function syncAddFormKind() {
     const costLabel = form.querySelector('label[for="ep"]');
     if (costLabel) costLabel.textContent = income ? 'Amount' : 'Cost';
     const paidSpan = form.querySelector('#epad')?.closest('label')?.querySelector('span');
-    if (paidSpan) paidSpan.textContent = income ? 'Received' : 'Paid';
+    if (paidSpan) paidSpan.textContent = income ? 'Deposited' : 'Paid';
     const submit = form.querySelector('button[type="submit"] span') || form.querySelector('button[type="submit"]');
     if (submit) {
         if (submit.tagName === 'SPAN') submit.textContent = income ? 'Save income' : 'Save expense';

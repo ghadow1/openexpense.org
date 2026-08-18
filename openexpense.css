@@ -98,6 +98,18 @@
     --header: #002244;
     --header-text: #ffffff;
 
+    /* Brand mark. The card sits on the tile, so --oe-line and --oe-stripe are
+       read against --oe-face and stay dark in both themes. */
+    --oe-tile-a: #3b82f6;
+    --oe-tile-b: #1170cf;
+    --oe-tile-c: #00295a;
+    --oe-face-a: #ffffff;
+    --oe-face-b: #dce9f7;
+    --oe-stripe: #00295a;
+    --oe-chip: #1170cf;
+    --oe-line: rgba(10, 77, 154, 0.4);
+    --oe-ghost: rgba(0, 27, 56, 0.22);
+
     /* Accent */
     --accent: #1170cf;
     --accent-hover: #0a4d9a;
@@ -179,6 +191,17 @@
     --text-strong: #ffffff;
     --header: #000000;
     --header-text: #ffffff;
+
+    /* Same artwork, drained to the monochrome ramp. */
+    --oe-tile-a: #333333;
+    --oe-tile-b: #1a1a1a;
+    --oe-tile-c: #000000;
+    --oe-face-a: #ffffff;
+    --oe-face-b: #cfcfcf;
+    --oe-stripe: #000000;
+    --oe-chip: #6f6f6f;
+    --oe-line: rgba(0, 0, 0, 0.4);
+    --oe-ghost: rgba(255, 255, 255, 0.16);
 
     --accent: #ffffff;
     --accent-hover: #d4d4d4;
@@ -594,15 +617,13 @@ textarea,
     color: inherit;
 }
 
-/* The mark is a bare glyph in currentColor rather than a coloured tile, so it
-   takes the ink of whatever it sits on: white on the navy header, dark on the
-   welcome card, and neutral under the monochrome theme. The stripe and the
-   number line are holes in the path, so the background shows through them. */
+/* The mark is drawn from CSS custom properties rather than baked-in fills, so
+   one piece of artwork serves both themes: full colour under Professional, the
+   same card rendered in greys under Black Card. */
 .brand-mark {
-    width: 34px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
-    color: var(--header-text);
     display: block;
 }
 
@@ -640,9 +661,8 @@ textarea,
 }
 
 .brand-mark--lg {
-    width: 64px;
-    height: 46px;
-    color: var(--accent);
+    width: 60px;
+    height: 60px;
 }
 
 .welcome-brand {

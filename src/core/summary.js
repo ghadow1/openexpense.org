@@ -321,6 +321,38 @@ export function settledFundsThrough(events, asOf = new Date()) {
     };
 }
 
+/**
+ * Settled cash carried in from before a month started: deposited income minus
+ * paid spending on every earlier date, up to today.
+ *
+ * This is the reserve the month leans on. Keeping it separate from the month's
+ * own cash flow is the whole point — one number answers "what did I arrive
+ * with", the other answers "how is this month going", and a single combined
+ * figure cannot say which of the two is running out.
+ */
+export function savingsCarriedInto(events, monthStartKey, asOf = new Date()) {
+    const asOfKey = dateKeyOf(asOf);
+    let incoming = 0;
+    let outgoing = 0;
+
+    Object.keys(events || {}).forEach((date) => {
+        if (date >= monthStartKey || date > asOfKey) return;
+        (events[date] || []).forEach((e) => {
+            if (!e.paid) return;
+            const cents = Utils.toCents(Utils.getPrice(e));
+            if (cents <= 0) return;
+            if (Utils.entryKind(e) === 'income') incoming += cents;
+            else outgoing += cents;
+        });
+    });
+
+    return {
+        incoming: Utils.fromCents(incoming),
+        outgoing: Utils.fromCents(outgoing),
+        net: Utils.fromCents(incoming - outgoing)
+    };
+}
+
 /** Unpaid entries in an inclusive date window, optionally one kind. */
 export function pendingInWindow(events, fromKey, toKey, kind) {
     let total = 0;
@@ -374,6 +406,15 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         ? (monthNet / income.total) * 100
         : null;
 
+    // Only income actually marked deposited counts as cash in hand; a paycheck
+    // still on the calendar is a plan, not money, and spending it would be the
+    // easiest way for this figure to lie.
+    const monthStartKey = Utils.dateKey(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const savings = savingsCarriedInto(events, monthStartKey, asOf);
+    const leftToSpend = subMoney(income.paid, spend.total);
+    // A month that outruns its deposits is covered by the reserve behind it.
+    const savingsAfterMonth = addMoney(savings.net, leftToSpend);
+
     return {
         monthIn: income.total,
         monthOut: spend.total,
@@ -386,6 +427,11 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         currentFunds: funds.net,
         fundsIn: funds.incoming,
         fundsOut: funds.outgoing,
+        savingsFunds: savings.net,
+        savingsAfterMonth,
+        deposited: income.paid,
+        leftToSpend,
+        drawsOnSavings: leftToSpend < 0,
         projectedIncome: income.total,
         incomeReceived: income.paid,
         incomeDue: income.pending,

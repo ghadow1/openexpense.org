@@ -162,45 +162,62 @@ function overviewSlide(snap) {
         ? `${countHint(snap.leftToPayCount, 'bill', 'bills')} · ${snap.monthLabel}`
         : snap.monthLabel;
     const incomeHint = snap.incomeDue > 0
-        ? `${formatMoney(snap.incomeDue)} still expected`
-        : (snap.incomeReceived > 0 ? `${formatMoney(snap.incomeReceived)} received` : snap.monthLabel);
+        ? `${formatMoney(snap.incomeDue)} not in yet`
+        : (snap.deposited > 0 ? `${formatMoney(snap.deposited)} deposited` : snap.monthLabel);
+    const depositedHint = snap.incomeDue > 0
+        ? `${formatMoney(snap.incomeDue)} still to land`
+        : `Landed in ${snap.monthLabel}`;
+    // Spending past the deposits is not a loss, it is the reserve doing its job,
+    // so the hint names where the money is coming from instead.
+    const leftHint = snap.drawsOnSavings
+        ? `${formatMoney(Math.abs(snap.leftToSpend))} from savings funds`
+        : 'Deposited − spending';
+    const savingsHint = snap.drawsOnSavings
+        ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
+        : `Carried into ${snap.monthLabel}`;
 
     return [
         blockGroup({
             title: 'Account overview',
-            description: 'What is settled now and how this month is tracking.',
+            description: 'What has landed, what is left of it, and the reserve behind it.',
             items: [
                 chip({
-                    label: 'Available funds',
-                    value: snap.currentFunds,
-                    tone: toneFor(snap.currentFunds),
-                    hint: 'Paid income − paid spending'
+                    label: 'Deposited',
+                    value: snap.deposited,
+                    tone: snap.deposited > 0 ? 'up' : 'flat',
+                    hint: depositedHint
                 }),
                 chip({
-                    label: 'Scheduled income',
-                    value: snap.projectedIncome,
-                    tone: snap.projectedIncome > 0 ? 'up' : 'flat',
-                    hint: incomeHint
+                    label: 'Left to spend',
+                    value: snap.leftToSpend,
+                    tone: toneFor(snap.leftToSpend),
+                    hint: leftHint
+                }),
+                chip({
+                    label: 'Savings funds',
+                    value: snap.savingsFunds,
+                    tone: toneFor(snap.savingsFunds),
+                    hint: savingsHint
                 }),
                 chip({
                     label: 'Month net',
                     value: snap.monthNet,
                     tone: toneFor(snap.monthNet),
                     hint: 'Income − spending'
-                }),
-                chip({
-                    label: 'Avg monthly net',
-                    value: snap.monthAvg,
-                    tone: toneFor(snap.monthAvg),
-                    hint: `Through ${snap.monthLabel}`
                 })
             ]
         }),
         blockGroup({
             title: 'Upcoming & savings',
-            description: 'Open bills and the share of income left after spending.',
+            description: 'Income still to land, open bills, and how the months average out.',
             className: 'is-planning',
             items: [
+                chip({
+                    label: 'Scheduled income',
+                    value: snap.projectedIncome,
+                    tone: snap.projectedIncome > 0 ? 'up' : 'flat',
+                    hint: incomeHint
+                }),
                 chip({
                     label: 'Due next 7 days',
                     value: snap.dueSoon,
@@ -217,7 +234,13 @@ function overviewSlide(snap) {
                     signed: false,
                     track: true
                 }),
-                savingsChip(snap)
+                savingsChip(snap),
+                chip({
+                    label: 'Avg monthly net',
+                    value: snap.monthAvg,
+                    tone: toneFor(snap.monthAvg),
+                    hint: `Through ${snap.monthLabel}`
+                })
             ]
         })
     ];

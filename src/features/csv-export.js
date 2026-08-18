@@ -39,7 +39,7 @@ export function toCsv(rows) {
             row.kind === 'income' ? 'Income' : 'Expense',
             categoryInfo(row.category, row.kind).label,
             row.group || '',
-            row.paid ? (row.kind === 'income' ? 'Received' : 'Paid') : 'Unpaid',
+            row.paid ? (row.kind === 'income' ? 'Deposited' : 'Paid') : 'Unpaid',
             row.recurring ? 'Yes' : 'No',
             row.note
         ].map(csvCell).join(','));

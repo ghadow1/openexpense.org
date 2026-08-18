@@ -169,6 +169,105 @@ test('current funds ignore pending and future paid entries', () => {
     assert.equal(snap.leftToPay, 400);
 });
 
+/**
+ * The cash model the overview reports: deposits are money that has landed,
+ * what is left of them is this month's spending money, and the reserve behind
+ * it is whatever earlier months settled at.
+ */
+const cashLedger = {
+    // Earlier months settle into the reserve.
+    '2026-06-01': [entry({ title: 'Paycheck', price: 3000, kind: 'income', paid: true })],
+    '2026-06-10': [entry({ title: 'Rent', price: 1200, paid: true })],
+    '2026-07-01': [entry({ title: 'Paycheck', price: 3000, kind: 'income', paid: true })],
+    '2026-07-10': [entry({ title: 'Rent', price: 2400, paid: true })],
+    // The month on screen.
+    '2026-08-01': [entry({ title: 'Paycheck', price: 2000, kind: 'income', paid: true })],
+    '2026-08-05': [entry({ title: 'Groceries', price: 500, paid: true })],
+    '2026-08-12': [entry({ title: 'Rent', price: 900, paid: false })],
+    '2026-08-28': [entry({ title: 'Bonus', price: 1000, kind: 'income', paid: false })]
+};
+const cashAsOf = new Date(2026, 7, 17);
+
+test('deposited counts only income marked deposited', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf);
+    // The $1000 bonus is on the calendar but has not landed, so it is not cash.
+    assert.equal(snap.deposited, 2000);
+    assert.equal(snap.incomeDue, 1000);
+    assert.equal(snap.projectedIncome, 3000, 'scheduled income still counts both');
+    assert.equal(snap.deposited + snap.incomeDue, snap.projectedIncome);
+});
+
+test('left to spend is the deposits less everything the month spends', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf);
+    // 2000 deposited - (500 paid + 900 still owed).
+    assert.equal(snap.leftToSpend, 600);
+    assert.equal(snap.drawsOnSavings, false);
+});
+
+test('savings funds are what earlier months settled at, not this month', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf);
+    // June 3000-1200, July 3000-2400. August is deliberately excluded.
+    assert.equal(snap.savingsFunds, 2400);
+    assert.equal(snap.savingsAfterMonth, 3000, 'the month adds its leftover back');
+});
+
+test('a month that outruns its deposits draws on savings', () => {
+    const events = {
+        '2026-07-01': [entry({ title: 'Paycheck', price: 1000, kind: 'income', paid: true })],
+        '2026-08-01': [entry({ title: 'Paycheck', price: 500, kind: 'income', paid: true })],
+        '2026-08-06': [entry({ title: 'Repair', price: 800, paid: true })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, cashAsOf);
+    assert.equal(snap.deposited, 500);
+    assert.equal(snap.leftToSpend, -300);
+    assert.equal(snap.drawsOnSavings, true);
+    assert.equal(snap.savingsFunds, 1000);
+    // The overdraft comes out of the reserve rather than vanishing.
+    assert.equal(snap.savingsAfterMonth, 700);
+});
+
+test('savings funds ignore future dates and undeposited income', () => {
+    const events = {
+        '2026-07-01': [entry({ title: 'Paycheck', price: 900, kind: 'income', paid: true })],
+        // Not deposited, so not cash, even though it is in the past.
+        '2026-07-02': [entry({ title: 'Refund', price: 5000, kind: 'income', paid: false })],
+        // Dated after asOf, so it has not happened yet.
+        '2026-07-30': [entry({ title: 'Ghost', price: 4000, kind: 'income', paid: true })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, new Date(2026, 6, 15));
+    assert.equal(snap.savingsFunds, 900);
+});
+
+test('an empty ledger reports zeroes rather than nothing', () => {
+    const snap = computeNetSnapshot({}, cashAsOf, cashAsOf);
+    assert.equal(snap.deposited, 0);
+    assert.equal(snap.leftToSpend, 0);
+    assert.equal(snap.savingsFunds, 0);
+    assert.equal(snap.savingsAfterMonth, 0);
+    assert.equal(snap.drawsOnSavings, false);
+});
+
+test('the cash figures keep their identities', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf);
+    assert.equal(snap.leftToSpend, snap.deposited - snap.monthOut);
+    assert.equal(snap.savingsAfterMonth, snap.savingsFunds + snap.leftToSpend);
+    assert.equal(snap.drawsOnSavings, snap.leftToSpend < 0);
+    // Savings is a slice of settled cash, never more than all of it.
+    assert.ok(snap.savingsFunds <= snap.currentFunds + snap.monthOut);
+});
+
+test('cash figures stay exact in cents', () => {
+    const events = {
+        '2026-07-01': [entry({ title: 'In', price: 0.1, kind: 'income', paid: true })],
+        '2026-08-01': [entry({ title: 'Pay', price: 0.2, kind: 'income', paid: true })],
+        '2026-08-02': [entry({ title: 'Out', price: 0.1, paid: true })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, cashAsOf);
+    assert.equal(snap.leftToSpend, 0.1);
+    assert.equal(snap.savingsFunds, 0.1);
+    assert.equal(snap.savingsAfterMonth, 0.2);
+});
+
 test('sumDay splits spend down and income up', () => {
     const totals = sumDay([
         entry({ title: 'Coffee', price: 5 }),
