@@ -8,7 +8,8 @@
  */
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { formatMoney, sumDay } from '../core/summary.js';
+import { formatAxisMoney, formatMoney, sumDay } from '../core/summary.js';
+import { createDial } from '../ui/dial-chart.js';
 import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
@@ -166,12 +167,15 @@ function applyLedgerEvents(nextEvents, extra = {}) {
     patch({ events: nextEvents, ...extra });
 }
 
-function moneySpark(up) {
-    return `<svg class="day-insight-spark" viewBox="0 0 12 8" width="18" height="12" aria-hidden="true">
-        <polyline points="${up ? '1,6 4.5,3.5 7,5 11,1.5' : '1,2 4.5,4.5 7,3 11,6.5'}"
-            fill="none" stroke="currentColor" stroke-width="1.4"
-            stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
+function foldFields(title, nodes, { open = false } = {}) {
+    const details = document.createElement('details');
+    details.className = 'form-fold';
+    details.open = !!open;
+    const summary = document.createElement('summary');
+    summary.className = 'form-fold-sum';
+    summary.textContent = title;
+    details.append(summary, ...nodes.filter(Boolean));
+    return details;
 }
 
 function renderDayInsights(dateKey) {
@@ -181,37 +185,20 @@ function renderDayInsights(dateKey) {
     const list = getState().events[dateKey] || [];
     const { expense, income, net } = sumDay(list);
     const pending = list.filter((e) => !e.paid).length;
-    const downFlex = expense > 0 ? expense : (income > 0 ? 0 : 1);
-    const upFlex = income > 0 ? income : (expense > 0 ? 0 : 1);
-    const netLabel = net === 0
-        ? 'Net even'
-        : `Net ${net > 0 ? '+' : '-'}${formatMoney(Math.abs(net))}`;
+    const scale = Math.max(expense, income, Math.abs(net), 1);
+    const caption = list.length
+        ? `${list.length} ${list.length === 1 ? 'entry' : 'entries'}${pending ? ` · ${pending} pending` : ''}`
+        : 'Nothing on this day yet';
 
     el.hidden = false;
-    el.innerHTML = `
-        <div class="day-insight-pair">
-            <div class="day-insight is-down">
-                ${moneySpark(false)}
-                <div class="day-insight-copy">
-                    <span class="day-insight-label">Spent</span>
-                    <strong>${formatMoney(expense)}</strong>
-                </div>
-            </div>
-            <div class="day-insight is-up">
-                ${moneySpark(true)}
-                <div class="day-insight-copy">
-                    <span class="day-insight-label">Income</span>
-                    <strong>${formatMoney(income)}</strong>
-                </div>
-            </div>
-        </div>
-        <div class="day-insight-track" role="img"
-            aria-label="Spent ${formatMoney(expense)}, income ${formatMoney(income)}">
-            <span class="day-insight-fill is-down" style="flex:${downFlex}"></span>
-            <span class="day-insight-fill is-up" style="flex:${upFlex}"></span>
-        </div>
-        <p class="day-insight-meta">${netLabel} · ${list.length} ${list.length === 1 ? 'entry' : 'entries'}${pending ? ` · ${pending} pending` : ''}</p>
-    `;
+    el.replaceChildren(createDial({
+        value: net,
+        label: 'Day net',
+        caption,
+        ratio: Math.min(1, Math.abs(net) / scale),
+        display: formatAxisMoney(net)
+    }));
+    el.setAttribute('aria-label', `Day net ${formatMoney(net)}. Spent ${formatMoney(expense)}, income ${formatMoney(income)}. ${caption}`);
 }
 
 let addFormReady = false;
@@ -505,15 +492,17 @@ function ensureAddForm(formContainer) {
         kind: readKind('ek'),
         ...categoryFieldHooks()
     });
-    form.appendChild(addCategoryPicker.element);
     if (titleInput) titleInput.addEventListener('input', refreshAddCategory);
 
     addGroupField = createGroupField({ id: 'eg', ...groupFieldHooks() });
-    form.appendChild(addGroupField.element);
 
     const noteField = UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea');
     noteField.querySelector('textarea')?.addEventListener('input', refreshAddCategory);
-    form.appendChild(noteField);
+    form.appendChild(foldFields('Category, group, and notes', [
+        addCategoryPicker.element,
+        addGroupField.element,
+        noteField
+    ]));
 
     const act = document.createElement('div');
     act.className = 'form-actions';
@@ -847,7 +836,6 @@ function buildEditRow(e, i) {
     form.querySelectorAll(`input[name="edit-kind-${i}"]`).forEach((input) => {
         input.addEventListener('change', () => editPicker.setKind(readKind(`edit-kind-${i}`)));
     });
-    form.appendChild(editPicker.element);
 
     const editGroup = createGroupField({
         id: `edit-group-${i}`,
@@ -855,9 +843,12 @@ function buildEditRow(e, i) {
         ...groupFieldHooks()
     });
     editGroupFields.set(i, editGroup);
-    form.appendChild(editGroup.element);
 
-    form.appendChild(UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea'));
+    form.appendChild(foldFields('Category, group, and notes', [
+        editPicker.element,
+        editGroup.element,
+        UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea')
+    ], { open: !!(e.category || e.group || e.note) }));
     wrap.appendChild(form);
 
     const act = document.createElement('div');

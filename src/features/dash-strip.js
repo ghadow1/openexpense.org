@@ -1,29 +1,37 @@
 /**
- * OpenExpense — dashboard snapshot chips
+ * OpenExpense — dashboard snapshot
  *
- * Three swipeable views: overview, income, and expenses.
- * Read-only over events. Does not persist or change ledger data.
+ * Three swipeable views. Each slide is one period dial plus a three-point
+ * year spark. Extra figures stay folded so the strip never fills the screen.
  */
 import { STORAGE_KEYS } from '../config.js';
-import { getState } from '../core/store.js';
-import { computeNetSnapshot, formatMoney, formatChipMoney } from '../core/summary.js';
+import { getState, patch } from '../core/store.js';
+import {
+    computeMonthlySummary,
+    computeNetSnapshot,
+    formatMoney,
+    formatChipMoney,
+    yearSeriesPoints
+} from '../core/summary.js';
+import { createDial, createSpark } from '../ui/dial-chart.js';
+import { closeModal } from './modal.js';
 
 const VIEWS = ['overview', 'income', 'expense'];
 const VIEW_COPY = {
     overview: {
         tab: 'Overview',
-        title: 'Account overview',
-        description: 'What has landed, what is left of it, and how this month is tracking.'
+        title: 'Left to spend',
+        description: 'Deposits minus this month’s spending.'
     },
     income: {
         tab: 'Income',
-        title: 'Income',
-        description: 'What has arrived and what is still expected.'
+        title: 'Deposited',
+        description: 'What has landed this month.'
     },
     expense: {
         tab: 'Expenses',
-        title: 'Expenses',
-        description: 'What is paid and which bills are still open.'
+        title: 'Month spending',
+        description: 'Logged bills for the month on screen.'
     }
 };
 
@@ -104,32 +112,6 @@ function textChip({ label, value, hint, tone, track = false }) {
     return article;
 }
 
-function blockGroup({ title, description, items, className = '' }) {
-    const section = document.createElement('section');
-    section.className = `dash-block-group${className ? ` ${className}` : ''}`;
-
-    const header = document.createElement('header');
-    header.className = 'dash-block-head';
-
-    const heading = document.createElement('h3');
-    heading.className = 'dash-block-title';
-    heading.textContent = title;
-
-    const copy = document.createElement('p');
-    copy.className = 'dash-block-description';
-    copy.textContent = description;
-    header.append(heading, copy);
-
-    const grid = document.createElement('div');
-    grid.className = 'dash-block-grid';
-    grid.setAttribute('role', 'list');
-    grid.setAttribute('aria-label', title);
-    grid.append(...items);
-
-    section.append(header, grid);
-    return section;
-}
-
 function toneFor(n) {
     if (n > 0) return 'up';
     if (n < 0) return 'down';
@@ -139,6 +121,73 @@ function toneFor(n) {
 function countHint(count, one, many) {
     if (!count) return many;
     return `${count} ${count === 1 ? one : many}`;
+}
+
+function clampRatio(part, whole) {
+    if (!(whole > 0)) return part > 0 ? 1 : 0;
+    return Math.max(0, Math.min(1, part / whole));
+}
+
+function goMonth(year, monthIndex) {
+    patch({ currentDate: new Date(year, monthIndex, 1) });
+    if (getState().selectedKey) closeModal();
+}
+
+function yearSpark(events, currentDate, kind, ariaLabel) {
+    const year = currentDate.getFullYear();
+    let totals;
+    if (kind === 'overview') {
+        const income = computeMonthlySummary(events, currentDate, 'income');
+        const spend = computeMonthlySummary(events, currentDate, 'expense');
+        totals = Array.from({ length: 12 }, (_, i) => (income.monthTotals[i] || 0) - (spend.monthTotals[i] || 0));
+    } else {
+        totals = computeMonthlySummary(events, currentDate, kind).monthTotals;
+    }
+    return createSpark({
+        points: yearSeriesPoints(totals, year),
+        ariaLabel,
+        onSelect: (pt) => goMonth(year, pt.index)
+    });
+}
+
+function foldExtras(title, items) {
+    const details = document.createElement('details');
+    details.className = 'dash-fold';
+
+    const summary = document.createElement('summary');
+    summary.className = 'dash-fold-sum';
+    summary.textContent = title;
+
+    const grid = document.createElement('div');
+    grid.className = 'dash-block-grid';
+    grid.setAttribute('role', 'list');
+    grid.setAttribute('aria-label', title);
+    grid.append(...items);
+
+    details.append(summary, grid);
+    return details;
+}
+
+function heroSlide({ title, description, dial, spark, extrasTitle, extras }) {
+    const section = document.createElement('section');
+    section.className = 'dash-hero-card';
+
+    const header = document.createElement('header');
+    header.className = 'dash-block-head';
+    const heading = document.createElement('h3');
+    heading.className = 'dash-block-title';
+    heading.textContent = title;
+    const copy = document.createElement('p');
+    copy.className = 'dash-block-description';
+    copy.textContent = description;
+    header.append(heading, copy);
+
+    const row = document.createElement('div');
+    row.className = 'dash-hero';
+    row.append(dial, spark);
+
+    section.append(header, row, foldExtras(extrasTitle, extras));
+    return [section];
 }
 
 function savingsRateChip(snap) {
@@ -154,21 +203,16 @@ function savingsRateChip(snap) {
     });
 }
 
-function overviewSlide(snap) {
+function overviewSlide(snap, events, currentDate) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
         : 'Next 7 days';
     const unpaidHint = snap.leftToPayCount
         ? `${countHint(snap.leftToPayCount, 'bill', 'bills')} · ${snap.monthLabel}`
         : snap.monthLabel;
-    const incomeHint = snap.incomeDue > 0
-        ? `${formatMoney(snap.incomeDue)} not in yet`
-        : (snap.deposited > 0 ? `${formatMoney(snap.deposited)} deposited` : snap.monthLabel);
     const depositedHint = snap.incomeDue > 0
         ? `${formatMoney(snap.incomeDue)} still to land`
         : `Landed in ${snap.monthLabel}`;
-    // Spending past the deposits is not a loss, it is the reserve doing its job,
-    // so the hint names where the money is coming from instead.
     const leftHint = snap.drawsOnSavings
         ? `${formatMoney(Math.abs(snap.leftToSpend))} from savings funds`
         : 'Deposited − spending';
@@ -176,145 +220,94 @@ function overviewSlide(snap) {
         ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
         : `Carried into ${snap.monthLabel}`;
 
-    return [
-        blockGroup({
-            title: 'Account overview',
-            description: 'What has landed, what is left of it, and the reserve behind it.',
-            items: [
-                chip({
-                    label: 'Deposited',
-                    value: snap.deposited,
-                    tone: snap.deposited > 0 ? 'up' : 'flat',
-                    hint: depositedHint
-                }),
-                chip({
-                    label: 'Left to spend',
-                    value: snap.leftToSpend,
-                    tone: toneFor(snap.leftToSpend),
-                    hint: leftHint
-                }),
-                chip({
-                    label: 'Savings funds',
-                    value: snap.savingsFunds,
-                    tone: toneFor(snap.savingsFunds),
-                    hint: savingsHint
-                }),
-                chip({
-                    label: 'Month net',
-                    value: snap.monthNet,
-                    tone: toneFor(snap.monthNet),
-                    hint: 'Income − spending'
-                })
-            ]
+    return heroSlide({
+        title: VIEW_COPY.overview.title,
+        description: VIEW_COPY.overview.description,
+        dial: createDial({
+            value: snap.leftToSpend,
+            label: 'Left to spend',
+            caption: snap.monthLabel,
+            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
         }),
-        blockGroup({
-            title: 'Upcoming & savings',
-            description: 'Income still to land, open bills, and how the months average out.',
-            className: 'is-planning',
-            items: [
-                chip({
-                    label: 'Scheduled income',
-                    value: snap.projectedIncome,
-                    tone: snap.projectedIncome > 0 ? 'up' : 'flat',
-                    hint: incomeHint
-                }),
-                chip({
-                    label: 'Due next 7 days',
-                    value: snap.dueSoon,
-                    tone: snap.dueSoon > 0 ? 'flat' : 'up',
-                    hint: dueHint,
-                    signed: false,
-                    track: true
-                }),
-                chip({
-                    label: 'Unpaid bills',
-                    value: snap.leftToPay,
-                    tone: snap.leftToPay > 0 ? 'flat' : 'up',
-                    hint: unpaidHint,
-                    signed: false,
-                    track: true
-                }),
-                savingsRateChip(snap),
-                chip({
-                    label: 'Avg monthly net',
-                    value: snap.monthAvg,
-                    tone: toneFor(snap.monthAvg),
-                    hint: `Through ${snap.monthLabel}`
-                })
-            ]
-        })
-    ];
+        spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+        extrasTitle: 'More figures',
+        extras: [
+            chip({
+                label: 'Deposited',
+                value: snap.deposited,
+                tone: snap.deposited > 0 ? 'up' : 'flat',
+                hint: depositedHint
+            }),
+            chip({
+                label: 'Savings funds',
+                value: snap.savingsFunds,
+                tone: toneFor(snap.savingsFunds),
+                hint: savingsHint
+            }),
+            chip({
+                label: 'Due next 7 days',
+                value: snap.dueSoon,
+                tone: snap.dueSoon > 0 ? 'flat' : 'up',
+                hint: dueHint,
+                signed: false,
+                track: true
+            }),
+            chip({
+                label: 'Unpaid bills',
+                value: snap.leftToPay,
+                tone: snap.leftToPay > 0 ? 'flat' : 'up',
+                hint: unpaidHint,
+                signed: false,
+                track: true
+            }),
+            savingsRateChip(snap)
+        ]
+    });
 }
 
-function incomeSlide(snap) {
+function incomeSlide(snap, events, currentDate) {
     const expectedHint = snap.incomeDueCount
         ? countHint(snap.incomeDueCount, 'check', 'checks')
         : snap.monthLabel;
-    const soonHint = snap.incomeSoonCount
-        ? countHint(snap.incomeSoonCount, 'check', 'checks')
-        : 'Next 7 days';
 
-    return [
-        blockGroup({
-            title: 'Income this month',
-            description: 'Scheduled pay, what has arrived, and what is still open.',
-            items: [
-                chip({
-                    label: 'Scheduled income',
-                    value: snap.projectedIncome,
-                    tone: snap.projectedIncome > 0 ? 'up' : 'flat',
-                    hint: snap.monthLabel
-                }),
-                chip({
-                    label: 'Deposited',
-                    value: snap.deposited,
-                    tone: snap.deposited > 0 ? 'up' : 'flat',
-                    hint: 'Marked deposited',
-                    signed: false
-                }),
-                chip({
-                    label: 'Still expected',
-                    value: snap.incomeDue,
-                    tone: snap.incomeDue > 0 ? 'up' : 'flat',
-                    hint: expectedHint,
-                    signed: false
-                }),
-                chip({
-                    label: 'Expected next 7 days',
-                    value: snap.incomeSoon,
-                    tone: snap.incomeSoon > 0 ? 'up' : 'flat',
-                    hint: soonHint,
-                    signed: false
-                })
-            ]
+    return heroSlide({
+        title: VIEW_COPY.income.title,
+        description: VIEW_COPY.income.description,
+        dial: createDial({
+            value: snap.deposited,
+            label: 'Deposited',
+            caption: snap.monthLabel,
+            ratio: clampRatio(snap.deposited, snap.projectedIncome)
         }),
-        blockGroup({
-            title: 'Income mix',
-            description: 'Recurring pay and how much of this month stays after spending.',
-            className: 'is-planning',
-            items: [
-                chip({
-                    label: 'Recurring income',
-                    value: snap.incomeRecurring,
-                    tone: snap.incomeRecurring > 0 ? 'up' : 'flat',
-                    hint: 'On the calendar',
-                    signed: false,
-                    track: true
-                }),
-                chip({
-                    label: 'Month net',
-                    value: snap.monthNet,
-                    tone: toneFor(snap.monthNet),
-                    hint: 'Income − spending',
-                    track: true
-                }),
-                savingsRateChip(snap)
-            ]
-        })
-    ];
+        spark: yearSpark(events, currentDate, 'income', `${currentDate.getFullYear()} income`),
+        extrasTitle: 'More figures',
+        extras: [
+            chip({
+                label: 'Scheduled income',
+                value: snap.projectedIncome,
+                tone: snap.projectedIncome > 0 ? 'up' : 'flat',
+                hint: snap.monthLabel
+            }),
+            chip({
+                label: 'Still expected',
+                value: snap.incomeDue,
+                tone: snap.incomeDue > 0 ? 'up' : 'flat',
+                hint: expectedHint,
+                signed: false
+            }),
+            chip({
+                label: 'Recurring income',
+                value: snap.incomeRecurring,
+                tone: snap.incomeRecurring > 0 ? 'up' : 'flat',
+                hint: 'On the calendar',
+                signed: false,
+                track: true
+            })
+        ]
+    });
 }
 
-function expenseSlide(snap) {
+function expenseSlide(snap, events, currentDate) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
         : 'Next 7 days';
@@ -322,71 +315,55 @@ function expenseSlide(snap) {
         ? countHint(snap.leftToPayCount, 'bill', 'bills')
         : snap.monthLabel;
 
-    return [
-        blockGroup({
-            title: 'Spending this month',
-            description: 'Logged bills, what is paid, and what is still open.',
-            items: [
-                chip({
-                    label: 'Month spending',
-                    value: snap.monthOut,
-                    tone: snap.monthOut > 0 ? 'flat' : 'up',
-                    hint: `Logged in ${snap.monthLabel}`,
-                    signed: false
-                }),
-                chip({
-                    label: 'Paid',
-                    value: snap.spendPaid,
-                    tone: 'up',
-                    hint: 'Marked paid',
-                    signed: false
-                }),
-                chip({
-                    label: 'Unpaid bills',
-                    value: snap.leftToPay,
-                    tone: snap.leftToPay > 0 ? 'flat' : 'up',
-                    hint: unpaidHint,
-                    signed: false
-                }),
-                chip({
-                    label: 'Due next 7 days',
-                    value: snap.dueSoon,
-                    tone: snap.dueSoon > 0 ? 'flat' : 'up',
-                    hint: dueHint,
-                    signed: false
-                })
-            ]
+    return heroSlide({
+        title: VIEW_COPY.expense.title,
+        description: VIEW_COPY.expense.description,
+        dial: createDial({
+            value: snap.monthOut,
+            label: 'Month spending',
+            caption: snap.monthLabel,
+            ratio: clampRatio(snap.spendPaid, snap.monthOut)
         }),
-        blockGroup({
-            title: 'Spending mix',
-            description: 'Recurring bills and the share of income left after spending.',
-            className: 'is-planning',
-            items: [
-                chip({
-                    label: 'Recurring spend',
-                    value: snap.spendRecurring,
-                    tone: 'flat',
-                    hint: 'On the calendar',
-                    signed: false,
-                    track: true
-                }),
-                chip({
-                    label: 'Left to spend',
-                    value: snap.leftToSpend,
-                    tone: toneFor(snap.leftToSpend),
-                    hint: snap.drawsOnSavings ? 'From savings funds' : 'Deposited − spending',
-                    track: true
-                }),
-                savingsRateChip(snap)
-            ]
-        })
-    ];
+        spark: yearSpark(events, currentDate, 'expense', `${currentDate.getFullYear()} spending`),
+        extrasTitle: 'More figures',
+        extras: [
+            chip({
+                label: 'Paid',
+                value: snap.spendPaid,
+                tone: 'up',
+                hint: 'Marked paid',
+                signed: false
+            }),
+            chip({
+                label: 'Unpaid bills',
+                value: snap.leftToPay,
+                tone: snap.leftToPay > 0 ? 'flat' : 'up',
+                hint: unpaidHint,
+                signed: false
+            }),
+            chip({
+                label: 'Due next 7 days',
+                value: snap.dueSoon,
+                tone: snap.dueSoon > 0 ? 'flat' : 'up',
+                hint: dueHint,
+                signed: false
+            }),
+            chip({
+                label: 'Recurring spend',
+                value: snap.spendRecurring,
+                tone: 'flat',
+                hint: 'On the calendar',
+                signed: false,
+                track: true
+            })
+        ]
+    });
 }
 
-function slideFor(view, snap) {
-    if (view === 'income') return incomeSlide(snap);
-    if (view === 'expense') return expenseSlide(snap);
-    return overviewSlide(snap);
+function slideFor(view, snap, events, currentDate) {
+    if (view === 'income') return incomeSlide(snap, events, currentDate);
+    if (view === 'expense') return expenseSlide(snap, events, currentDate);
+    return overviewSlide(snap, events, currentDate);
 }
 
 function setDeckView(root, view) {
@@ -442,6 +419,8 @@ function bindDeck(root) {
     let dragging = false;
     root.addEventListener('pointerdown', (event) => {
         if (event.target.closest('[data-dash-view]')) return;
+        if (event.target.closest('.dash-fold')) return;
+        if (event.target.closest('.oe-spark-hit')) return;
         if (event.button != null && event.button !== 0) return;
         startX = event.clientX;
         startY = event.clientY;
@@ -499,15 +478,13 @@ export function renderDashStrip() {
         slide.dataset.view = view;
         slide.setAttribute('role', 'tabpanel');
         slide.setAttribute('aria-labelledby', `dash-tab-${view}`);
-        slide.append(...slideFor(view, snap));
+        slide.append(...slideFor(view, snap, events, currentDate));
         track.appendChild(slide);
     });
 
     viewport.appendChild(track);
     deck.append(tabs, viewport);
 
-    // Chips fade in the first time the deck appears. Later repaints (theme
-    // swap, an edit) update in place instead of replaying the animation.
     const firstPaint = !root.classList.contains('is-ready');
     root.replaceChildren(deck);
     root.classList.add('is-ready');

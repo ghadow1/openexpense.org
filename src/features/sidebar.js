@@ -7,8 +7,9 @@
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { computeMonthlySummary, formatDelta } from '../core/summary.js';
+import { computeMonthlySummary, formatAxisMoney, formatDelta, yearSeriesPoints } from '../core/summary.js';
 import { UI } from '../ui/components.js';
+import { createDial, createSpark } from '../ui/dial-chart.js';
 import { Ledger } from './ledger.js';
 import { Toast } from '../ui/toast.js';
 import { closeModal, openModal } from './modal.js';
@@ -108,20 +109,30 @@ function statCard(icon, label, value, hint, tone) {
     return card;
 }
 
+function foldBlock(title, ...nodes) {
+    const live = nodes.filter(Boolean);
+    if (!live.length) return null;
+    const details = el('details', 'summary-fold');
+    const sum = document.createElement('summary');
+    sum.className = 'summary-fold-sum';
+    sum.textContent = title;
+    details.append(sum, ...live);
+    return details;
+}
+
 function renderHero(summary, copy) {
     const hero = el('section', `summary-hero${summary.kind === 'income' ? ' is-income' : ''}`);
     const meta = summary.itemCount
         ? `${summary.itemCount} item${summary.itemCount === 1 ? '' : 's'} · ${summary.activeDays} active day${summary.activeDays === 1 ? '' : 's'}`
         : summary.kind === 'income' ? 'No income logged yet' : 'No expenses logged yet';
 
-    hero.innerHTML = `
-        <div class="summary-hero-top">
-            <span class="summary-hero-label">${copy.hero}</span>
-            ${summary.isCurrentMonth && summary.itemCount ? `<span class="summary-hero-badge">Live</span>` : ''}
-        </div>
-        <div class="summary-hero-amount">${Utils.formatMoney(summary.total)}</div>
-        <div class="summary-hero-meta">${meta}</div>
-    `;
+    hero.appendChild(createDial({
+        value: summary.total,
+        label: copy.hero,
+        caption: meta,
+        ratio: summary.total ? Math.min(1, Math.max(0, summary.pctPaid / 100)) : 0,
+        display: formatAxisMoney(summary.total)
+    }));
     return hero;
 }
 
@@ -445,10 +456,20 @@ async function openBudgetEditor() {
 }
 
 function renderYearChart(summary, currentDate, copy) {
-    const section = el('section', 'summary-section');
-    section.appendChild(el('div', 'summary-section-title', `${summary.year} at a glance`));
-    section.appendChild(el('p', 'summary-section-description', 'Year-to-date through this month. Later bars are scheduled copies only.'));
+    const section = el('section', 'summary-year');
+    section.appendChild(el('div', 'summary-section-title', `${summary.year}`));
+    section.appendChild(createSpark({
+        points: yearSeriesPoints(summary.monthTotals, summary.year),
+        ariaLabel: `${summary.year} ${copy.yearAria}`,
+        onSelect: (pt) => {
+            patch({ currentDate: new Date(summary.year, pt.index, 1) });
+            if (getState().selectedKey) closeModal();
+        }
+    }));
+    return section;
+}
 
+function renderYearStats(summary) {
     const cards = el('div', 'summary-stats-grid is-compact');
     const ytdHint = `January–${summary.shortMonth}`;
     const avgHint = summary.ytdActiveMonths
@@ -458,43 +479,7 @@ function renderYearChart(summary, currentDate, copy) {
         statCard('chart-bar', 'Year to date', Utils.formatMoney(summary.yearTotal), ytdHint, 'accent'),
         statCard('chart-dots', 'Monthly average', Utils.formatMoney(summary.yearAvg), avgHint, '')
     );
-    section.appendChild(cards);
-
-    const maxMonth = Math.max(...summary.monthTotals, 1);
-    const plot = el('div', 'year-chart');
-    plot.setAttribute('role', 'group');
-    plot.setAttribute('aria-label', `${summary.year} ${copy.yearAria}`);
-
-    summary.monthTotals.forEach((amt, i) => {
-        const col = el('button', 'year-chart-col');
-        col.type = 'button';
-        const isCur = i === currentDate.getMonth();
-        col.classList.toggle('is-current', isCur);
-        col.classList.toggle('is-hot', amt > 0);
-        col.dataset.month = String(i);
-
-        const monthName = new Date(summary.year, i).toLocaleString('default', { month: 'short' });
-        col.setAttribute('aria-label', `${monthName}: ${Utils.formatMoney(amt)}`);
-        Utils.bindTooltip(col, `${monthName}: ${Utils.formatMoney(amt)}`);
-
-        const fill = el('span', 'year-chart-fill');
-        const pct = amt > 0 ? Math.max(12, (amt / maxMonth) * 100) : 4;
-        fill.style.height = `${pct}%`;
-        fill.style.setProperty('--month-pct', String(amt > 0 ? amt / maxMonth : 0));
-
-        const label = el('span', 'year-chart-label');
-        label.textContent = monthName.slice(0, 1);
-
-        col.append(fill, label);
-        col.onclick = () => {
-            patch({ currentDate: new Date(summary.year, i, 1) });
-            if (getState().selectedKey) closeModal();
-        };
-        plot.appendChild(col);
-    });
-
-    section.appendChild(plot);
-    return section;
+    return cards;
 }
 
 function renderItemRow(item) {
@@ -578,28 +563,24 @@ function paintFace(faceEl, kind) {
 
     faceEl.appendChild(header);
     faceEl.appendChild(renderHero(summary, copy));
-    faceEl.appendChild(renderProgress(summary, copy));
+    faceEl.appendChild(renderYearChart(summary, currentDate, copy));
 
     const statsSection = el('section', 'summary-section');
     statsSection.appendChild(el('div', 'summary-section-title', 'This month at a glance'));
-    statsSection.appendChild(el('p', 'summary-section-description', 'Averages and patterns from the month on screen.'));
     statsSection.appendChild(renderStatsGrid(summary, copy));
-    faceEl.appendChild(statsSection);
 
-    const categories = renderCategoryBreakdown(summary, copy);
-    if (categories) faceEl.appendChild(categories);
-
-    const groups = renderGroupBreakdown(summary);
-    if (groups) faceEl.appendChild(groups);
-
-    const budgets = renderBudgets(summary, copy);
-    if (budgets) faceEl.appendChild(budgets);
-
-    const merchants = renderTopMerchants(summary, copy);
-    if (merchants) faceEl.appendChild(merchants);
-
-    faceEl.appendChild(renderYearChart(summary, currentDate, copy));
-    faceEl.appendChild(renderItemList(summary, copy));
+    const more = foldBlock(
+        'Month details',
+        renderProgress(summary, copy),
+        statsSection,
+        renderYearStats(summary),
+        renderCategoryBreakdown(summary, copy),
+        renderGroupBreakdown(summary),
+        renderBudgets(summary, copy),
+        renderTopMerchants(summary, copy),
+        renderItemList(summary, copy)
+    );
+    if (more) faceEl.appendChild(more);
 }
 
 function ensureSidebarShell(sidebar) {

@@ -64,7 +64,9 @@ src/main.js         boot, event delegation, render subscription
 
 `src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly). Blank or leftover placeholder titles never join a series. The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger. Date and cadence can still shift the series; name and amount stay on the edited row unless **Change all** confirms other rows that share both.
 
-The right-hand card flips between an expense face and an income face. The calendar stays one grid and paints income pills green.
+The right-hand card flips between an expense face and an income face. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
+
+Snapshot and sidebar charts plot one period total on a small ring and a year spark with only the start, one peak or valley, and the end. Extra figures fold away so a card stays small. Future-dated recurring copies still count in month totals.
 
 ## Labels, groups, and Change All
 

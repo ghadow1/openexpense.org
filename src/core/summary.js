@@ -1,10 +1,10 @@
 /**
  * OpenExpense — monthly summary math
  *
- * Pure functions over `events`. The sidebar, snapshot chips, and PDF
+ * Pure functions over `events`. The sidebar, snapshot dials, and PDF
  * exporter all consume computeMonthlySummary(). Year cards are year-to-date
  * through the viewed month. Month totals are the calendar register for that
- * month. Money display goes through Utils.formatMoney.
+ * month, including future scheduled copies. Axis labels use formatAxisMoney.
  */
 import { Utils } from './utils.js';
 
@@ -282,6 +282,78 @@ export function formatChipMoney(value) {
     const sign = n > 0 ? '+' : n < 0 ? '-' : '';
     if (abs >= 10000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
     return `${sign}${Utils.formatMoney(abs)}`;
+}
+
+/**
+ * Short axis labels for a banking chart: $5k, $10k, $1.2m. Intermediate
+ * cents and a long $3,364.42 would crowd a 60px plot.
+ */
+export function formatAxisMoney(value) {
+    const n = Utils.fromCents(Utils.toCents(value));
+    const abs = Math.abs(n);
+    const sign = n < 0 ? '-' : '';
+    if (abs >= 1000000) {
+        const m = abs / 1000000;
+        const body = m >= 10 || Number.isInteger(m) ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '');
+        return `${sign}$${body}m`;
+    }
+    if (abs >= 1000) {
+        const k = abs / 1000;
+        const body = k >= 10 || Number.isInteger(k) ? String(Math.round(k)) : k.toFixed(1).replace(/\.0$/, '');
+        return `${sign}$${body}k`;
+    }
+    if (abs === 0) return '$0';
+    return `${sign}$${Math.round(abs)}`;
+}
+
+/** Two or three ticks from 0 to a rounded ceiling. */
+export function axisTicks(max) {
+    const n = Math.max(0, Number(max) || 0);
+    if (n <= 0) return [0, 0, 0];
+    const raw = n / 2;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = Math.ceil(raw / mag) * mag;
+    const top = step * 2;
+    return [0, step, top];
+}
+
+/**
+ * Keep start, end, and one peak or valley. Twelve monthly dots become three
+ * so a year of planned copies can be read at a glance.
+ */
+export function reduceSeries(points = []) {
+    const rows = (points || []).map((point, index) => ({
+        label: point?.label ?? '',
+        value: Number(point?.value) || 0,
+        index: point?.index ?? index
+    }));
+    if (rows.length <= 3) return rows;
+    const start = rows[0];
+    const end = rows[rows.length - 1];
+    let extreme = rows[1];
+    let score = -1;
+    for (let i = 1; i < rows.length - 1; i += 1) {
+        const mag = Math.abs(rows[i].value - start.value);
+        if (mag > score) {
+            score = mag;
+            extreme = rows[i];
+        }
+    }
+    if (extreme.index === start.index || extreme.index === end.index || score <= 0) {
+        return [start, end];
+    }
+    return [start, extreme, end];
+}
+
+/** Jan–Dec labels, then start / peak-or-valley / end. */
+export function yearSeriesPoints(monthTotals = [], year = 2000) {
+    const y = Number(year) || 2000;
+    const points = Array.from({ length: 12 }, (_, index) => ({
+        label: new Date(y, index, 1).toLocaleString('en-US', { month: 'short' }),
+        value: Number(monthTotals[index]) || 0,
+        index
+    }));
+    return reduceSeries(points);
 }
 
 function dateKeyOf(date) {

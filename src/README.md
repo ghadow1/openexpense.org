@@ -40,7 +40,7 @@ Each module starts with a short header describing what it owns.
 | [`core/groups.js`](core/groups.js) | User group fold, collect / suggest / canonical, sidebar rollup |
 | [`core/search.js`](core/search.js) | Query language: `group:`, `tag:` / `cat:`, amounts, `is:`, dates |
 | [`core/day-entries.js`](core/day-entries.js) | Day-list reorder, move, duplicate, paid toggle, group / ungroup, title memory |
-| [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window |
+| [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window, short axis labels |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
 | [`core/pdf-theme.js`](core/pdf-theme.js) | PDF colors and fonts |
 
@@ -56,7 +56,7 @@ Each module starts with a short header describing what it owns.
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
-| [`features/dash-strip.js`](features/dash-strip.js) | Snapshot carousel: overview, income, and expense views |
+| [`features/dash-strip.js`](features/dash-strip.js) | Snapshot carousel: one period dial and a three-point year spark |
 | [`features/undo-delete.js`](features/undo-delete.js) | Short-lived Undo after delete or clear (memory snapshot only) |
 
 ## `ui/` — chrome
@@ -71,6 +71,7 @@ Each module starts with a short header describing what it owns.
 | [`ui/group-field.js`](ui/group-field.js) | Find-or-add group field + row badge |
 | [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |
 | [`ui/pointer-drag.js`](ui/pointer-drag.js) | Thresholded pointer drag for day rows and calendar chips |
+| [`ui/dial-chart.js`](ui/dial-chart.js) | Small ring dial and a three-point spark with `$5k` labels |
 
 ## Public exports
 

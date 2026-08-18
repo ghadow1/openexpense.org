@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney } from '../src/core/summary.js';
+import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney, formatAxisMoney, axisTicks, reduceSeries, yearSeriesPoints } from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, removeSeriesWeekday, groupExpenses,
@@ -74,6 +74,41 @@ test('snapshot chips compact large nets', () => {
     assert.equal(formatChipMoney(-3364.42), '-$3364.42');
     assert.equal(formatChipMoney(12.5), '+$12.50');
     assert.equal(formatChipMoney(0), '$0.00');
+});
+
+test('axis labels use k and m', () => {
+    assert.equal(formatAxisMoney(0), '$0');
+    assert.equal(formatAxisMoney(42), '$42');
+    assert.equal(formatAxisMoney(5000), '$5k');
+    assert.equal(formatAxisMoney(10000), '$10k');
+    assert.equal(formatAxisMoney(1200000), '$1.2m');
+    assert.equal(formatAxisMoney(-5000), '-$5k');
+});
+
+test('a year series keeps start, one extreme, and end', () => {
+    const points = [
+        { label: 'Jan', value: 100, index: 0 },
+        { label: 'Feb', value: 110, index: 1 },
+        { label: 'Mar', value: 400, index: 2 },
+        { label: 'Apr', value: 120, index: 3 },
+        { label: 'May', value: 90, index: 4 },
+        { label: 'Jun', value: 95, index: 5 },
+        { label: 'Jul', value: 80, index: 6 },
+        { label: 'Aug', value: 85, index: 7 },
+        { label: 'Sep', value: 88, index: 8 },
+        { label: 'Oct', value: 92, index: 9 },
+        { label: 'Nov', value: 94, index: 10 },
+        { label: 'Dec', value: 130, index: 11 }
+    ];
+    const slim = reduceSeries(points);
+    assert.deepEqual(slim.map((row) => row.label), ['Jan', 'Mar', 'Dec']);
+    assert.equal(slim.length, 3);
+
+    const flat = yearSeriesPoints([10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 2026);
+    assert.equal(flat.length, 2);
+    assert.equal(flat[0].label, 'Jan');
+    assert.equal(flat[1].label, 'Dec');
+    assert.deepEqual(axisTicks(10000), [0, 5000, 10000]);
 });
 
 test('dashboard snapshot nets income against spend', () => {
