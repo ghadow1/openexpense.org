@@ -1911,7 +1911,11 @@ html.is-action-busy [data-lockable] {
 }
 
 .planner-form-actions .ui-btn:disabled {
-    opacity: 0.45;
+    border-color: var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    box-shadow: none;
+    opacity: 0.72;
     cursor: not-allowed;
 }
 
