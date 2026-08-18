@@ -289,7 +289,11 @@
         </div>
       </section>
 
-      <section class="shell-pane" id="pane-tracker" data-shell="tracker" hidden>
+      <section class="shell-pane" id="pane-planner" data-shell="planner" hidden>
+        <div id="planner-root" class="planner-root" role="region" aria-label="Planner"></div>
+      </section>
+
+      <div class="ledger-stage">
         <div class="tracker-toolbar">
           <div class="tracker-filter" role="tablist" aria-label="Transaction filter">
             <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-selected="true" title="All transactions">All</button>
@@ -332,11 +336,7 @@
             </div>
           </aside>
         </div>
-      </section>
-
-      <section class="shell-pane" id="pane-planner" data-shell="planner" hidden>
-        <div id="planner-root" class="planner-root" role="region" aria-label="Planner"></div>
-      </section>
+      </div>
     </main>
 
     <main class="docs-view hidden" id="view-docs">
@@ -502,12 +502,13 @@
                   <h3 class="docs-section-title">Four-tab shell</h3>
                   <p>
                     The bottom bar is <strong>Overview</strong>, <strong>Tracker</strong>,
-                    <strong>Planner</strong>, and <strong>Privacy</strong>. Overview is the cash snapshot:
-                    left to spend, daily safe spend, deposited vs expected, paid vs pending, and the
-                    year income and spending lines.
-                    Tracker is the calendar and month register. Use All / Expenses / Income to filter
-                    both the grid and the statement.
-                    Planner holds tax withhold, savings holds, 50/30/20, and daily safe spend.
+                    <strong>Planner</strong>, and <strong>Privacy</strong>. The calendar and month
+                    register stay on the main view under every app tab.
+                    Overview adds the cash snapshot above that board: left to spend, daily safe spend,
+                    deposited vs expected, paid vs pending, and the year income and spending lines.
+                    Tracker is the same board with All / Expenses / Income in focus.
+                    Planner holds tax withhold, savings holds, 50/30/20, and daily safe spend above
+                    the same calendar.
                     Privacy is this help plus backup, import, and clear.
                   </p>
                   <p>
@@ -586,11 +587,12 @@
                     icon to jump back to the current month. Days with items show that day’s net (up or down); tap a day
                     to open its sheet. Drag a chip onto another day to move those entries. On a phone that sheet snaps
                     to the bottom and shows spent vs income before the list.
-                    Sunday–Saturday squares get a light color hint only: red when that week’s counted
-                    spending is over its share of leftover money, green when that week’s gross income
-                    beats the weekly income goal (or this month’s own income pace if no goal is set).
-                    Pills and amounts stay as they are. The check reruns when the month loads and when
-                    an expense, income, or planner rule changes.
+                    A thin rail sits on the left of each Sunday–Saturday row: red when that week’s
+                    counted spending is over its share of leftover money, green when that week’s
+                    gross income beats the weekly income goal (or this month’s own income pace if no
+                    goal is set). The day squares stay the surface colour. Pills and amounts stay as
+                    they are. The check reruns when the month loads and when an expense, income, or
+                    planner rule changes.
                   </p>
                   <p>Toolbar icons on the calendar (names are on hover):</p>
                   <ul class="docs-list">
@@ -794,8 +796,10 @@
                   <p>
                     The app is now <strong>Overview</strong>, <strong>Tracker</strong>,
                     <strong>Planner</strong>, and <strong>Privacy</strong> on a bottom bar.
-                    Overview is the cash snapshot. Tracker is the calendar and month register.
-                    Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20.
+                    The calendar stays on the main view. Overview is the snapshot above that
+                    board. Tracker is All / Expenses / Income on the same calendar.
+                    Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20
+                    above the same board.
                     Privacy keeps help plus backup, import, and clear. The old stacked
                     Expenses | Privacy and Overview | Income | Expenses | Planner rows are gone.
                   </p>

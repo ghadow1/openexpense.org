@@ -58,7 +58,7 @@ src/main.js         boot, event delegation, render subscription
 | Layer | Job |
 | --- | --- |
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
-| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); over-budget Sun–Sat rows |
+| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); red/green week rails |
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
 | `features/sidebar.js` | Month math + statement PDF; click a group or category to search |
@@ -73,7 +73,7 @@ The right-hand card flips between an expense face and an income face. The calend
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The bottom bar has four tabs. Overview is left-to-spend, daily safe spend, deposited vs expected, paid vs pending, and the year income/spend lines. Tracker is the calendar and month register, filtered All / Expenses / Income. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`). Privacy is the existing help pane plus backup, import, and clear. Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. At 1100px and up Planner also draws the split as bars beside the dial and opens the figure cards. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
+The bottom bar has four tabs. The calendar and month register stay in `#view-app` on Overview, Tracker, and Planner. Overview adds the cash snapshot above that board. Tracker is the same board with All / Expenses / Income in focus. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`) above the same calendar. Privacy is the existing help pane plus backup, import, and clear. Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. At 1100px and up Planner also draws the split as bars beside the dial and opens the figure cards. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
 
 ## Labels, groups, and Change All
 

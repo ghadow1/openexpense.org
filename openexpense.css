@@ -675,13 +675,20 @@ textarea,
     gap: 10px;
 }
 
+.ledger-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    margin-top: 12px;
+}
+
 .tracker-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 12px;
 }
 
 .tracker-filter {
@@ -2322,12 +2329,21 @@ html.is-action-busy [data-lockable] {
 /* ==========================================================================
    Calendar grid
    ========================================================================== */
+.cal-shell {
+    --cal-rail: 4px;
+    --cal-gap: 0px;
+}
+
 .grid-head {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: var(--cal-rail) repeat(7, minmax(0, 1fr));
     gap: 6px;
     margin-bottom: 8px;
     padding: 0 4px;
+}
+
+.grid-head-rail {
+    width: var(--cal-rail);
 }
 
 .grid-head span {
@@ -2340,13 +2356,44 @@ html.is-action-busy [data-lockable] {
 }
 
 .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--cal-gap);
     /* Six rows at this height keep a whole month on a laptop screen. Taller
        cells pushed the last week under the fold with mostly empty space. */
     --cal-row: 88px;
+}
+
+.cal-week {
+    display: grid;
+    grid-template-columns: var(--cal-rail) repeat(7, minmax(0, 1fr));
+    column-gap: var(--cal-gap);
     grid-auto-rows: minmax(var(--cal-row), auto);
+    min-width: 0;
+}
+
+.cal-week-rail {
+    width: var(--cal-rail);
+    align-self: stretch;
+    margin: 4px 0;
+    border-radius: 1px;
+    background: transparent;
+}
+
+.cal-week.is-over-week .cal-week-rail {
+    background: var(--danger-text);
+}
+
+.cal-week.is-ahead-week .cal-week-rail {
+    background: #15803d;
+}
+
+.cal-week.is-over-week.is-ahead-week .cal-week-rail {
+    background: linear-gradient(
+        180deg,
+        var(--danger-text) 0 50%,
+        #15803d 50% 100%
+    );
 }
 
 .cal-shell[data-density="tablet"] .cal-grid {
@@ -2355,13 +2402,11 @@ html.is-action-busy [data-lockable] {
 
 .cal-shell[data-density="narrow"] .cal-grid {
     --cal-row: 92px;
-    gap: 0;
 }
 
 .cal-shell[data-density="compact"] .cal-grid,
 .cal-shell[data-density="mobile"] .cal-grid {
     --cal-row: 72px;
-    gap: 0;
 }
 
 .cal-day {
@@ -2390,60 +2435,6 @@ html.is-action-busy [data-lockable] {
 
 .cal-day:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-ring);
-}
-
-.cal-day.has-items {
-    background: color-mix(in srgb, var(--pill-bg) 35%, var(--day-bg));
-}
-
-.cal-day.has-income:not(.has-expense) {
-    background: color-mix(in srgb, var(--income-soft) 70%, var(--day-bg));
-}
-
-.cal-day.has-expense.has-income {
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--pill-bg) 42%, var(--day-bg)) 0 48%,
-        color-mix(in srgb, var(--income-soft) 75%, var(--day-bg)) 52% 100%
-    );
-}
-
-.cal-day.is-over-week::before,
-.cal-day.is-ahead-week::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.cal-day.is-over-week::before {
-    background: color-mix(in srgb, var(--danger-text) 12%, transparent);
-}
-
-.cal-day.is-ahead-week::before {
-    background: color-mix(in srgb, #15803d 14%, transparent);
-}
-
-.cal-day.is-over-week.is-ahead-week::before {
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--danger-text) 12%, transparent) 0 48%,
-        color-mix(in srgb, #15803d 14%, transparent) 52% 100%
-    );
-}
-
-.cal-day.is-empty.is-over-week,
-.cal-day.is-empty.is-ahead-week {
-    opacity: 1;
-    background: var(--day-bg);
-    border: 1px solid var(--day-border);
-}
-
-.cal-day.is-over-week > *,
-.cal-day.is-ahead-week > * {
-    position: relative;
-    z-index: 1;
 }
 
 .cal-day-body {
@@ -2696,7 +2687,7 @@ html.is-action-busy [data-lockable] {
 @container cal (max-width: 820px) {
     .cal-grid {
         --cal-row: 92px;
-        gap: 5px;
+        --cal-gap: 5px;
     }
 
     .cal-day {
@@ -2716,7 +2707,7 @@ html.is-action-busy [data-lockable] {
 @container cal (max-width: 640px) {
     .cal-grid {
         --cal-row: 72px;
-        gap: 4px;
+        --cal-gap: 4px;
     }
 }
 
@@ -5871,24 +5862,16 @@ textarea:focus-visible {
     background: #000;
 }
 
-[data-theme="dark"] .cal-day.has-items {
-    background: #050505;
+[data-theme="dark"] .cal-week.is-over-week .cal-week-rail {
+    background: #a3a3a3;
 }
 
-[data-theme="dark"] .cal-day.is-over-week::before {
-    background: rgba(255, 255, 255, 0.08);
+[data-theme="dark"] .cal-week.is-ahead-week .cal-week-rail {
+    background: #ffffff;
 }
 
-[data-theme="dark"] .cal-day.is-ahead-week::before {
-    background: rgba(255, 255, 255, 0.16);
-}
-
-[data-theme="dark"] .cal-day.is-over-week.is-ahead-week::before {
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.08) 0 48%,
-        rgba(255, 255, 255, 0.16) 52% 100%
-    );
+[data-theme="dark"] .cal-week.is-over-week.is-ahead-week .cal-week-rail {
+    background: linear-gradient(180deg, #a3a3a3 0 50%, #ffffff 50% 100%);
 }
 
 [data-theme="dark"] .cal-day-num.is-today {
@@ -6487,7 +6470,7 @@ html.oe-scroll-lock body {
     }
 
     .cal-grid {
-        gap: 4px;
+        --cal-gap: 4px;
     }
 
     .cal-shell[data-density="tablet"] .cal-grid {
@@ -6790,13 +6773,16 @@ html.oe-scroll-lock body {
         display: none;
     }
 
-    .grid-head,
-    .cal-grid {
-        gap: 2px;
+    .cal-shell {
+        --cal-gap: 2px;
+    }
+
+    .grid-head {
+        gap: var(--cal-gap);
     }
 
     .cal-grid {
-        grid-auto-rows: 50px;
+        --cal-row: 50px;
     }
 
     .grid-head span {
@@ -6813,10 +6799,6 @@ html.oe-scroll-lock body {
     .cal-day:hover {
         transform: none;
         box-shadow: none;
-    }
-
-    .cal-day.has-items {
-        background: color-mix(in srgb, var(--pill-bg) 45%, var(--day-bg));
     }
 
     .cal-day-head {
@@ -7075,7 +7057,7 @@ html.oe-scroll-lock body {
 
 @media (max-width: 380px) {
     .cal-grid {
-        grid-auto-rows: 46px;
+        --cal-row: 46px;
     }
 
     .header-btn {

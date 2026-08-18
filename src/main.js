@@ -166,7 +166,7 @@ function bindSearchShortcut() {
         if (!combo && (event.key !== '/' || typing)) return;
         if (combo && typing && event.target.id === 'search-input') return;
         event.preventDefault();
-        switchView('tracker');
+        if (getState().shellTab === 'privacy') switchView('overview');
         openSearch();
     });
 }
@@ -187,12 +187,12 @@ function handleDelegatedClick(e) {
                 closeModal();
                 break;
             case 'scan-receipt':
-                switchView('tracker');
+                if (getState().shellTab === 'privacy') switchView('overview');
                 Receipt.pickImage();
                 break;
             case 'quick-add-today': {
                 const now = new Date();
-                switchView('tracker');
+                if (getState().shellTab === 'privacy') switchView('overview');
                 openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));
                 break;
             }
@@ -206,7 +206,7 @@ function handleDelegatedClick(e) {
                 Ledger.clearLedger();
                 break;
             case 'search-ledger':
-                switchView('tracker');
+                if (getState().shellTab === 'privacy') switchView('overview');
                 openSearch();
                 break;
             case 'undo-delete':

@@ -2,7 +2,8 @@
  * OpenExpense — shell switching
  *
  * Four primary tabs: Overview, Tracker, Planner, and Privacy.
- * Privacy is the existing docs pane. The other three live in `#view-app`.
+ * Privacy is the existing docs pane. The calendar stays in `#view-app`
+ * on Overview, Tracker, and Planner.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -55,7 +56,7 @@ export function applyShell(tab) {
 
 export function switchView(viewName) {
     let tab = viewName;
-    if (viewName === 'app') tab = getState().shellTab === 'privacy' ? 'tracker' : (getState().shellTab || 'tracker');
+    if (viewName === 'app') tab = getState().shellTab === 'privacy' ? 'overview' : (getState().shellTab || 'overview');
     if (viewName === 'docs') tab = 'privacy';
     if (!SHELL_TABS.includes(tab)) return;
 

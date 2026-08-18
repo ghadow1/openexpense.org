@@ -8,7 +8,7 @@ These notes describe what is on `main` (the site at [openexpense.org](https://ww
 
 ## 2026-08-18 — Four-tab shell
 
-The app is now Overview, Tracker, Planner, and Privacy on a bottom bar. Overview is the cash snapshot. Tracker is the calendar and month register, with All / Expenses / Income. Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20. Privacy keeps help plus backup, import, and clear. The calendar is no longer stacked under a second row of tabs.
+The app is now Overview, Tracker, Planner, and Privacy on a bottom bar. The calendar and month register stay on the main view — they sit under Overview’s snapshot, Tracker’s filter, and Planner’s rules. They never move to a second page. All / Expenses / Income filters that same board. Privacy keeps help plus backup, import, and clear. Sunday–Saturday weeks use a thin red or green rail instead of washing the squares.
 
 ## 2026-08-18 — Calendar back under the snapshot tabs
 
