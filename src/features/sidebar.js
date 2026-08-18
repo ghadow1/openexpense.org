@@ -12,7 +12,7 @@ import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Toast } from '../ui/toast.js';
 import { closeModal, openModal } from './modal.js';
-import { budgetProgress, categoriesFor, rollUpCategories } from '../core/categories.js';
+import { backfillCategories, budgetProgress, categoriesFor, rollUpCategories } from '../core/categories.js';
 import { sanitizeBudgets } from '../core/ledger-file.js';
 import { confirmDialog } from '../ui/confirm.js';
 
@@ -226,6 +226,10 @@ function renderCategoryBreakdown(summary, copy) {
     const rest = rows.slice(6);
 
     for (const row of top) list.appendChild(categoryRow(row));
+
+    // A ledger written before categories existed is entirely uncategorized, and
+    // re-entering years of history by hand is not a real option.
+    if (rows.some((row) => row.uncategorized)) list.appendChild(backfillPrompt());
     if (rest.length) {
         const other = rest.reduce((acc, row) => ({
             amount: acc.amount + row.amount,
@@ -241,6 +245,35 @@ function renderCategoryBreakdown(summary, copy) {
 
     section.appendChild(list);
     return section;
+}
+
+function backfillPrompt() {
+    const wrap = el('div', 'cat-backfill');
+    const btn = UI.createButton('File these by name', () => runBackfill(), { icon: 'wand' });
+    btn.classList.add('cat-backfill-btn');
+    wrap.appendChild(btn);
+    return wrap;
+}
+
+async function runBackfill() {
+    const { events: current } = getState();
+    const { events: filed, filled } = backfillCategories(current);
+
+    if (!filled) {
+        Toast.show('Nothing here matches a known merchant. Set those categories on each entry.', 'info', 5000);
+        return;
+    }
+
+    const ok = await confirmDialog({
+        title: `File ${filled} entr${filled === 1 ? 'y' : 'ies'} by name?`,
+        message: 'Entries with no category yet will be filed from their title, across the whole ledger and not just this month. Anything already categorised is left alone, and you can change any of them afterwards.',
+        confirmText: 'File them',
+        cancelText: 'Cancel'
+    });
+    if (!ok?.confirmed) return;
+
+    patch({ events: filed });
+    Toast.show(`Filed ${filled} entr${filled === 1 ? 'y' : 'ies'}.`, 'success');
 }
 
 function categoryRow(row, muted = false) {

@@ -6169,3 +6169,12 @@ body.is-embed #view-docs,
 body.is-embed #welcome-modal {
     display: none !important;
 }
+
+.cat-backfill {
+    padding-top: 4px;
+}
+
+.cat-backfill-btn {
+    width: 100%;
+    justify-content: center;
+}

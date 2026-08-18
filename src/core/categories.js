@@ -154,6 +154,51 @@ export function categoryHistory(events) {
 }
 
 /**
+ * File every entry that has no category yet, using the keyword rules and the
+ * user's own past choices.
+ *
+ * Anyone who used the app before categories existed has a ledger where every
+ * row is uncategorized, and re-entering years of history by hand is not a real
+ * option. Entries that already have a category are never touched, and one that
+ * matches no rule is left alone rather than swept into Other.
+ *
+ * @returns {{events: object, filled: number}} a new events map, or the original
+ *   when nothing changed, so callers can skip a pointless save.
+ */
+export function backfillCategories(events) {
+    if (!events || typeof events !== 'object') return { events, filled: 0 };
+
+    const history = categoryHistory(events);
+    const next = {};
+    let filled = 0;
+
+    for (const [date, list] of Object.entries(events)) {
+        if (!Array.isArray(list)) {
+            next[date] = list;
+            continue;
+        }
+        next[date] = list.map((entry) => {
+            if (!entry || typeof entry !== 'object') return entry;
+            if (String(entry.category ?? '').trim()) return entry;
+
+            const kind = entry.kind === 'income' ? 'income' : 'expense';
+            const guess = resolveCategory({
+                title: entry.title,
+                note: entry.note,
+                kind,
+                history
+            });
+            if (!guess) return entry;
+
+            filled += 1;
+            return { ...entry, category: guess };
+        });
+    }
+
+    return filled ? { events: next, filled } : { events, filled: 0 };
+}
+
+/**
  * Compare a month's spend against its caps.
  *
  * `pace` is the part people actually act on: how far through the month you are

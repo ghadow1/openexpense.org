@@ -336,3 +336,72 @@ test('a budget-only change still counts as a change worth saving', async () => {
     const after = sanitizeLedger({ ...base, budgets: { Groceries: 400 } });
     assert.notDeepEqual(before, after);
 });
+
+test('backfill files uncategorized entries from their titles', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const { events, filled } = backfillCategories({
+        '2026-08-01': [{ title: 'Starbucks', price: 5 }, { title: 'Rent', price: 1800 }],
+        '2026-08-02': [{ title: 'Netflix', price: 15 }]
+    });
+    assert.equal(filled, 3);
+    assert.equal(events['2026-08-01'][0].category, 'Coffee');
+    assert.equal(events['2026-08-01'][1].category, 'Housing');
+    assert.equal(events['2026-08-02'][0].category, 'Subscriptions');
+});
+
+test('backfill never overwrites a category the user already set', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const { events, filled } = backfillCategories({
+        '2026-08-01': [{ title: 'Starbucks', price: 5, category: 'Dining' }]
+    });
+    assert.equal(filled, 0);
+    assert.equal(events['2026-08-01'][0].category, 'Dining');
+});
+
+test('backfill leaves an unrecognised entry alone rather than filing it as Other', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const { events, filled } = backfillCategories({
+        '2026-08-01': [{ title: 'Zzyzx', price: 5 }]
+    });
+    assert.equal(filled, 0);
+    assert.equal('category' in events['2026-08-01'][0], false);
+});
+
+test('backfill follows the user past choices before the keyword rules', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const { events } = backfillCategories({
+        '2026-07-01': [{ title: 'Starbucks', price: 5, category: 'Dining' }],
+        '2026-08-01': [{ title: 'Starbucks', price: 5 }]
+    });
+    assert.equal(events['2026-08-01'][0].category, 'Dining', 'a past correction should win');
+});
+
+test('backfill does not mutate the ledger it was given', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const original = { '2026-08-01': [{ title: 'Starbucks', price: 5 }] };
+    const snapshot = JSON.parse(JSON.stringify(original));
+    backfillCategories(original);
+    assert.deepEqual(original, snapshot);
+});
+
+test('backfill returns the original ledger when there is nothing to do', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const original = { '2026-08-01': [{ title: 'Zzyzx', price: 5 }] };
+    const result = backfillCategories(original);
+    assert.equal(result.events, original, 'an unchanged ledger should skip a pointless save');
+});
+
+test('backfill respects income and expense separately', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    const { events } = backfillCategories({
+        '2026-08-01': [{ title: 'Paycheck', price: 3000, kind: 'income' }]
+    });
+    assert.equal(events['2026-08-01'][0].category, 'Paycheck');
+});
+
+test('backfill survives a malformed ledger', async () => {
+    const { backfillCategories } = await import('../src/core/categories.js');
+    assert.doesNotThrow(() => backfillCategories(null));
+    assert.doesNotThrow(() => backfillCategories({ '2026-08-01': null }));
+    assert.doesNotThrow(() => backfillCategories({ '2026-08-01': [null, 5, 'x'] }));
+});
