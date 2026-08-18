@@ -61,29 +61,35 @@ export const THEMES = {
         header: '#002244',
         headerText: '#ffffff'
     },
+    // Black Card is monochrome: black, greys, white and nothing else. Meaning
+    // that colour used to carry — accent, income, danger — is carried by
+    // brightness instead, so the scale from #737373 to #ffffff is doing real
+    // work here and the steps in it should not be flattened.
     dark: {
         bg: '#000000', surface: '#000000', surface2: '#0a0a0a',
         border: '#3a3a3a', borderStrong: '#6b6b6b',
         text: '#f5f5f5', text2: '#a3a3a3', textMuted: '#737373', textStrong: '#ffffff',
-        accent: '#7dd3fc', accentHover: '#bae6fd',
+        accent: '#ffffff', accentHover: '#d4d4d4',
         btnBg: '#000000', btnText: '#ffffff', btnBorder: '#3a3a3a',
         inputBg: '#000000', inputBorder: '#3a3a3a',
         dayBg: '#000000', dayBorder: '#2e2e2e',
         overlay: 'rgba(0, 0, 0, 0.78)',
-        pillBg: '#111111', pillText: '#e8ff4d', pillBorder: '#3a3a3a',
-        dangerBg: '#1a0a0a', dangerText: '#fda4af', dangerBorder: '#7f1d1d',
+        pillBg: '#111111', pillText: '#f5f5f5', pillBorder: '#3a3a3a',
+        // Danger has no red to lean on, so it reads through a brighter border
+        // and the brightest text in the palette.
+        dangerBg: '#141414', dangerText: '#ffffff', dangerBorder: '#8a8a8a',
         shadowSm: 'none',
         shadowHover: 'transparent',
-        success: '#c6f135',
-        income: '#c6f135',
-        incomeSoft: 'rgba(198, 241, 53, 0.12)',
-        incomeText: '#e8ff4d',
-        incomeBorder: '#84994a',
-        accentRing: 'rgba(125, 211, 252, 0.28)', thumbBg: '#111111',
+        success: '#ffffff',
+        income: '#ffffff',
+        incomeSoft: 'rgba(255, 255, 255, 0.12)',
+        incomeText: '#ffffff',
+        incomeBorder: '#6b6b6b',
+        accentRing: 'rgba(255, 255, 255, 0.28)', thumbBg: '#111111',
         modalShadow: '0 0 0 1px #3a3a3a',
         glass: '#000000',
         glassBorder: '#3a3a3a',
-        accentSoft: 'rgba(125, 211, 252, 0.12)',
+        accentSoft: 'rgba(255, 255, 255, 0.12)',
         shadowMd: 'none',
         shadowLg: 'none',
         header: '#000000',

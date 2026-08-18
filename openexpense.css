@@ -101,6 +101,9 @@
     /* Accent */
     --accent: #1170cf;
     --accent-hover: #0a4d9a;
+    /* Text that sits on top of an accent fill. Dark flips this to black,
+       because its accent is white. */
+    --on-accent: #ffffff;
     --accent-soft: rgba(17, 112, 207, 0.10);
     --glass: #ffffff;
     --glass-border: #e2e8f0;
@@ -177,9 +180,10 @@
     --header: #000000;
     --header-text: #ffffff;
 
-    --accent: #7dd3fc;
-    --accent-hover: #bae6fd;
-    --accent-soft: rgba(125, 211, 252, 0.12);
+    --accent: #ffffff;
+    --accent-hover: #d4d4d4;
+    --on-accent: #000000;
+    --accent-soft: rgba(255, 255, 255, 0.12);
     --glass: #000000;
     --glass-border: #3a3a3a;
 
@@ -192,43 +196,45 @@
     --day-bg: #000000;
     --day-border: #2e2e2e;
     --pill-bg: #111111;
-    --pill-text: #c6f135;
+    --pill-text: #f5f5f5;
     --pill-border: #3a3a3a;
 
     --overlay: rgba(0, 0, 0, 0.78);
-    --danger-bg: #1a0a0a;
-    --danger-text: #fda4af;
-    --danger-border: #7f1d1d;
-    --success: #c6f135;
+    --danger-bg: #141414;
+    --danger-text: #ffffff;
+    --danger-border: #8a8a8a;
+    --success: #ffffff;
     --shadow-sm: none;
     --shadow-md: none;
     --shadow-lg: none;
     --shadow-hover: transparent;
 
-    --accent-ring: rgba(125, 211, 252, 0.28);
+    --accent-ring: rgba(255, 255, 255, 0.28);
     --thumb-bg: #111111;
     --modal-shadow: 0 0 0 1px #3a3a3a;
-    --success-bg: rgba(198, 241, 53, 0.14);
-    --danger-bg-soft: rgba(253, 164, 175, 0.12);
-    --income: #c6f135;
-    --income-soft: rgba(198, 241, 53, 0.12);
-    --income-text: #c6f135;
-    --income-border: #84994a;
+    --success-bg: rgba(255, 255, 255, 0.14);
+    --danger-bg-soft: rgba(255, 255, 255, 0.1);
+    --income: #ffffff;
+    --income-soft: rgba(255, 255, 255, 0.12);
+    --income-text: #ffffff;
+    --income-border: #6b6b6b;
 
-    /* Lifted against true black, where the light-theme tones go muddy. */
-    --cat-leaf: #a3e635;
-    --cat-amber: #fbbf24;
-    --cat-sky: #7dd3fc;
-    --cat-clay: #fb923c;
-    --cat-violet: #c4b5fd;
-    --cat-rose: #fda4af;
-    --cat-teal: #5eead4;
-    --cat-slate: #94a3b8;
+    /* Category tones become a grey ramp. The steps are wide and evenly spaced
+       so neighbouring categories stay tellable apart in an 8px dot; the label
+       always sits beside the dot, so shade reinforces rather than carries it. */
+    --cat-leaf: #ffffff;
+    --cat-amber: #e0e0e0;
+    --cat-sky: #c2c2c2;
+    --cat-clay: #a5a5a5;
+    --cat-violet: #8a8a8a;
+    --cat-rose: #6f6f6f;
+    --cat-teal: #575757;
+    --cat-slate: #424242;
 
     --docs-bg-pane: #000000;
     --docs-code-bg: #0a0a0a;
-    --docs-note-bg: #1a0a0a;
-    --docs-info-bg: #0a1218;
+    --docs-note-bg: #141414;
+    --docs-info-bg: #0f0f0f;
     --docs-text-main: #f5f5f5;
 }
 
@@ -311,14 +317,14 @@ textarea:focus:not(:focus-visible) {
 
 .ui-btn--accent {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     border-color: var(--accent);
     box-shadow: none;
 }
 
 .ui-btn--accent:hover {
     background: var(--accent-hover);
-    color: #fff;
+    color: var(--on-accent);
     border-color: transparent;
 }
 
@@ -501,7 +507,7 @@ textarea,
     padding: 8px 12px;
     border-radius: var(--radius-sm);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: var(--fs-sm);
     font-weight: 600;
     text-decoration: none;
@@ -694,13 +700,13 @@ textarea,
 .header-btn.is-active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .header-btn button.is-active:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .header-icon-slot {
@@ -751,14 +757,14 @@ textarea,
 .header-icon-btn.is-active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .header-icon-btn.is-active:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .header-icon-btn i {
@@ -844,7 +850,7 @@ textarea,
 
 .view-tab.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     box-shadow: none;
     border-color: transparent;
 }
@@ -1109,19 +1115,19 @@ textarea,
     border-radius: var(--control-radius);
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .dash-act.is-linked {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .dash-act.is-linked:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 html.is-action-busy [data-lockable] {
@@ -1133,7 +1139,7 @@ html.is-action-busy [data-lockable] {
 .dash-act--add:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .dash-chips {
@@ -1522,7 +1528,7 @@ html.is-action-busy [data-lockable] {
     transform: rotateY(180deg);
     background: var(--income);
     border-color: var(--income);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .sidebar-flip {
@@ -1808,7 +1814,7 @@ html.is-action-busy [data-lockable] {
 
 .cal-day-num.is-today {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
@@ -3941,7 +3947,7 @@ body.is-entry-dragging .cal-day {
     padding: 10px 14px;
     border: 1px solid var(--accent);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: var(--fs-sm);
     font-weight: 600;
     border-radius: var(--radius-sm);
@@ -3972,6 +3978,25 @@ body.is-entry-dragging .cal-day {
 .btn-primary.btn-danger:hover {
     background: #b91c1c;
     border-color: #b91c1c;
+}
+
+/* No red to warn with, so the destructive confirm inverts instead: an outlined
+   black button, unmistakably not the solid white of an ordinary confirm. */
+[data-theme="dark"] .btn-primary.btn-danger {
+    background: #000000;
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .btn-primary.btn-danger:hover {
+    background: #1a1a1a;
+    border-color: #ffffff;
+}
+
+/* The accent glow reads as bloom around a white button. */
+[data-theme="dark"] .btn-primary {
+    box-shadow: none;
 }
 
 .btn-ghost {
@@ -4861,6 +4886,20 @@ textarea:focus-visible {
     box-shadow: 0 0 0 2px #000, 0 0 0 3px var(--accent);
 }
 
+/* Income used to be the odd colour out among the day dots. Now it is the only
+   pure white one, and everyday spending steps back to grey. */
+[data-theme="dark"] .cal-day-dot {
+    background: #8a8a8a;
+}
+
+[data-theme="dark"] .cal-day-dot.is-income {
+    background: #ffffff;
+}
+
+[data-theme="dark"] .cal-day-dot.is-paid {
+    background: var(--text2);
+}
+
 [data-theme="dark"] .cal-day-dot,
 [data-theme="dark"] .legend-dot {
     border-radius: 50%;
@@ -4874,7 +4913,7 @@ textarea:focus-visible {
 
 [data-theme="dark"] .dash-chip.is-up {
     background: #000;
-    border-color: rgba(198, 241, 53, 0.35);
+    border-color: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme="dark"] .dash-chip.is-down .dash-chip-value {
@@ -4903,12 +4942,27 @@ textarea:focus-visible {
     border-color: rgba(255, 255, 255, 0.16);
 }
 
+/* Paid and pending were two hues; monochrome makes them one, so pending drops
+   to a mid grey and paid keeps the solid white. Same split for the legend dots
+   and the day-insight bar below. */
 [data-theme="dark"] .budget-fill-paid {
     background: var(--income);
 }
 
 [data-theme="dark"] .budget-fill-pending {
-    background: var(--accent);
+    background: #6f6f6f;
+}
+
+[data-theme="dark"] .legend-dot.is-paid {
+    background: #ffffff;
+}
+
+[data-theme="dark"] .legend-dot.is-pending {
+    background: #6f6f6f;
+}
+
+[data-theme="dark"] .day-insight-fill.is-down {
+    background: #6f6f6f;
 }
 
 [data-theme="dark"] .year-chart-col::before {
