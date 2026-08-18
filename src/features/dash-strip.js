@@ -266,10 +266,10 @@ function incomeSlide(snap) {
                     hint: snap.monthLabel
                 }),
                 chip({
-                    label: 'Received',
-                    value: snap.incomeReceived,
-                    tone: snap.incomeReceived > 0 ? 'up' : 'flat',
-                    hint: 'Marked received',
+                    label: 'Deposited',
+                    value: snap.deposited,
+                    tone: snap.deposited > 0 ? 'up' : 'flat',
+                    hint: 'Marked deposited',
                     signed: false
                 }),
                 chip({
@@ -371,10 +371,10 @@ function expenseSlide(snap) {
                     track: true
                 }),
                 chip({
-                    label: 'Available funds',
-                    value: snap.currentFunds,
-                    tone: toneFor(snap.currentFunds),
-                    hint: 'Paid income − paid spending',
+                    label: 'Left to spend',
+                    value: snap.leftToSpend,
+                    tone: toneFor(snap.leftToSpend),
+                    hint: snap.drawsOnSavings ? 'From savings funds' : 'Deposited − spending',
                     track: true
                 }),
                 savingsChip(snap)
