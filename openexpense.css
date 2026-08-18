@@ -1290,6 +1290,8 @@ html.is-action-busy [data-lockable] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Surface, border and the theme-swap transition come from the shared block
+   this selector also appears in. */
 .dash-chip {
     display: flex;
     flex-direction: column;
@@ -1297,9 +1299,6 @@ html.is-action-busy [data-lockable] {
     min-width: 0;
     padding: 12px 14px;
     border-radius: var(--radius-md);
-    transition:
-        background var(--dur-med) var(--ease-out),
-        border-color var(--dur-med) var(--ease-out);
 }
 
 .dash-chips.is-fresh .dash-chip {
@@ -3975,7 +3974,9 @@ body.is-entry-dragging .cal-day {
     box-sizing: border-box;
 }
 
-.btn-icon-edit {
+.btn-icon-edit,
+.btn-icon-copy,
+.btn-icon-paid {
     border: 1px solid var(--border-strong);
     color: var(--text2);
 }
@@ -3986,12 +3987,6 @@ body.is-entry-dragging .cal-day {
     background: var(--surface2);
     color: var(--text-strong);
     border-color: var(--text);
-}
-
-.btn-icon-copy,
-.btn-icon-paid {
-    border: 1px solid var(--border-strong);
-    color: var(--text2);
 }
 
 .btn-icon-paid.is-on {
@@ -4585,6 +4580,13 @@ textarea:focus-visible {
     color: var(--text2);
     font-size: 11px;
     line-height: 1.45;
+}
+
+/* The pull-up above tightens the gap under a bare title. A head row is taller
+   than its text because it carries a button on the right, so pulling the
+   description into it ran the first line under that button. */
+.summary-section-head + .summary-section-description {
+    margin-top: 2px;
 }
 
 .summary-stats-grid {

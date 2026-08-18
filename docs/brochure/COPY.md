@@ -34,7 +34,7 @@ Target audience: privacy-first households, contractors, and teams who want a cal
 - Kicker: Product brochure · Version 2.2.0
 - Title: OpenExpense
 - Subtitle: Encrypted local expense wallet
-- Tagline: Current funds, projected income, and a calendar that never leaves this browser.
+- Tagline: Deposits, what is left to spend, and a calendar that never leaves this browser.
 - Meta: openexpense.org · MIT License · August 2026
 - Hero vector: navy field, arc grid, credit-card mark, lock chip
 - Photo marker: `[PHOTO: navy header + snapshot chips, 16:9]`
@@ -67,7 +67,7 @@ Architecture strip: Browser → Store → Encrypted IndexedDB → Optional key.j
 
 1. Open https://www.openexpense.org on https or localhost.
 2. Name the ledger. Autosave encrypts in IndexedDB.
-3. Tap a day. Add expense or income. Mark paid or received.
+3. Tap a day. Add expense or income. Mark it paid or deposited.
 4. Scan a receipt if you want a draft line.
 5. Export the encrypted pair. Keep both files.
 6. Import later with the matching key.json.

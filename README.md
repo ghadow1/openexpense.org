@@ -1,6 +1,6 @@
 # [openexpense.org](https://www.openexpense.org)
 
-**Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves your browser.**
+**Encrypted local expense ledger. Deposits, what is left to spend, and a calendar wallet that never leaves your browser.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-002244.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.2.0-1170cf.svg)](src/config.js)

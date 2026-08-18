@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "private": true,
   "type": "module",
-  "description": "Encrypted local expense ledger. Current funds, projected income, and a calendar wallet that never leaves the browser.",
+  "description": "Encrypted local expense ledger. Deposits, what is left to spend, and a calendar wallet that never leaves the browser.",
   "license": "MIT",
   "homepage": "https://www.openexpense.org",
   "repository": {
@@ -29,8 +29,7 @@
     "test": "node --test scripts/qc-build-output.mjs scripts/qc-theme.mjs scripts/qc-categories.mjs scripts/qc-groups.mjs scripts/qc-render-deps.mjs scripts/qc-search.mjs scripts/qc-csv.mjs scripts/qc-envelope.mjs scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs scripts/qc-undo-delete.mjs scripts/qc-day-entries.mjs scripts/qc-engine.mjs"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "puppeteer-core": "^23.11.1"
+    "esbuild": "^0.25.0"
   },
   "dependencies": {
     "fflate": "^0.8.3",
