@@ -141,6 +141,17 @@
     --income-text: #047857;
     --income-border: #6ee7b7;
 
+    /* Category tones. Muted on purpose: these read as a small dot beside a
+       label, so they only need to be told apart, not to carry the design. */
+    --cat-leaf: #4d7c0f;
+    --cat-amber: #b45309;
+    --cat-sky: #0369a1;
+    --cat-clay: #9a3412;
+    --cat-violet: #6d28d9;
+    --cat-rose: #be123c;
+    --cat-teal: #0f766e;
+    --cat-slate: #64748b;
+
     /* Documentation surfaces (light) */
     --docs-bg-pane: #ffffff;
     --docs-code-bg: #f4f5f8;
@@ -203,6 +214,16 @@
     --income-soft: rgba(198, 241, 53, 0.12);
     --income-text: #c6f135;
     --income-border: #84994a;
+
+    /* Lifted against true black, where the light-theme tones go muddy. */
+    --cat-leaf: #a3e635;
+    --cat-amber: #fbbf24;
+    --cat-sky: #7dd3fc;
+    --cat-clay: #fb923c;
+    --cat-violet: #c4b5fd;
+    --cat-rose: #fda4af;
+    --cat-teal: #5eead4;
+    --cat-slate: #94a3b8;
 
     --docs-bg-pane: #000000;
     --docs-code-bg: #0a0a0a;
@@ -3282,6 +3303,105 @@ body.is-entry-dragging .cal-day {
 .smart-chip:focus-visible {
     border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
     color: var(--accent);
+}
+
+/* ---- Categories ---- */
+
+.cat-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--cat-slate);
+}
+
+.cat-dot[data-tone="leaf"] { background: var(--cat-leaf); }
+.cat-dot[data-tone="amber"] { background: var(--cat-amber); }
+.cat-dot[data-tone="sky"] { background: var(--cat-sky); }
+.cat-dot[data-tone="clay"] { background: var(--cat-clay); }
+.cat-dot[data-tone="violet"] { background: var(--cat-violet); }
+.cat-dot[data-tone="rose"] { background: var(--cat-rose); }
+.cat-dot[data-tone="teal"] { background: var(--cat-teal); }
+.cat-dot[data-tone="slate"] { background: var(--cat-slate); }
+
+.cat-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cat-field-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cat-auto-note {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.cat-auto-note[hidden] {
+    display: none;
+}
+
+.cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+.cat-chip:hover,
+.cat-chip:focus-visible {
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.cat-chip.is-active {
+    border-color: var(--accent);
+    color: var(--text-strong);
+    background: var(--accent-soft);
+}
+
+/* A guess still has to look provisional, or it reads as a choice already made. */
+.cat-chip.is-auto {
+    border-style: dashed;
+}
+
+.cat-chip--more {
+    color: var(--text-muted);
+}
+
+.cat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+}
+
+.cat-badge.is-empty {
+    color: var(--text-muted);
 }
 
 .event-info {
