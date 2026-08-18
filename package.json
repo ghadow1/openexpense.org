@@ -26,7 +26,7 @@
   "scripts": {
     "build": "node scripts/write-sitemap.mjs && node scripts/clean-chunks.mjs && npx esbuild src/main.js --bundle --format=esm --minify --target=es2020 --splitting --alias:onnxruntime-web=onnxruntime-web/wasm --outdir=. --entry-names=app --chunk-names=chunk-[hash] && npx esbuild src/engine/index.js --bundle --format=esm --minify --target=es2020 --outfile=engine.js",
     "serve": "python3 -m http.server 8765",
-    "test": "node --test scripts/qc-build-output.mjs scripts/qc-theme.mjs scripts/qc-categories.mjs scripts/qc-groups.mjs scripts/qc-labeling.mjs scripts/qc-render-deps.mjs scripts/qc-search.mjs scripts/qc-csv.mjs scripts/qc-envelope.mjs scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs scripts/qc-plan.mjs scripts/qc-undo-delete.mjs scripts/qc-day-entries.mjs scripts/qc-engine.mjs scripts/qc-pdf.mjs"
+    "test": "node --test scripts/qc-build-output.mjs scripts/qc-theme.mjs scripts/qc-categories.mjs scripts/qc-groups.mjs scripts/qc-labeling.mjs scripts/qc-render-deps.mjs scripts/qc-search.mjs scripts/qc-csv.mjs scripts/qc-envelope.mjs scripts/qc-ledger-file.mjs scripts/qc-expense-income.mjs scripts/qc-plan.mjs scripts/qc-undo-delete.mjs scripts/qc-day-entries.mjs scripts/qc-engine.mjs scripts/qc-pdf.mjs scripts/qc-frame.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

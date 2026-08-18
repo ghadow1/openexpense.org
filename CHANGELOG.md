@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Phone, tablet, and desktop frames
+
+The layout now snaps to three views. A phone keeps today’s stacked Overview (calendar under Left to spend). A tablet gets the compact dial strip without squeezing a desktop sidebar onto the portrait grid. Desktop restores this morning’s strip beside the calendar and month register.
+
 ## 2026-08-18 — Calendar under Left to spend on phones
 
 On a phone, Overview now puts the month calendar directly under **Left to spend**, above **Deposited this month**. Wider screens still keep the snapshot cards together, then the calendar.

@@ -23,6 +23,7 @@ import { actionBusy } from './core/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
 import { restoreDeleteUndo } from './features/undo-delete.js';
 import { setLedgerFace } from './features/sidebar.js';
+import { bootFrame } from './ui/frame.js';
 import { attachHostApi, isEmbedMode } from './engine/host.js';
 
 const LOCKED_ACTIONS = new Set(['export-ledger', 'import-ledger', 'clear-ledger', 'scan-receipt', 'quick-add-today']);
@@ -114,6 +115,7 @@ async function initApplication() {
     }
 
     await refreshExportButtons().catch(() => {});
+    bootFrame(() => render());
     bootShell();
     render();
     if (localLoadFailed) {

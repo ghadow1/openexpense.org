@@ -683,19 +683,96 @@ textarea,
     margin-top: 12px;
 }
 
+#pane-overview-more:has(#overview-more-root:empty) {
+    display: none;
+}
+
 /* Phone Overview: calendar sits under Left to spend, above Deposited. */
-@media (max-width: 640px) {
-    html[data-shell="overview"] #pane-overview-hero {
-        order: 1;
+html[data-frame="phone"][data-shell="overview"] #pane-overview-hero {
+    order: 1;
+}
+
+html[data-frame="phone"][data-shell="overview"] .ledger-stage {
+    order: 2;
+    margin-top: 0;
+}
+
+html[data-frame="phone"][data-shell="overview"] #pane-overview-more {
+    order: 3;
+}
+
+html[data-frame="phone"] .tracker-board {
+    grid-template-columns: 1fr;
+}
+
+/* Desktop: compact strip + calendar in the left column, register on the right. */
+html[data-frame="desktop"] #view-app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: clamp(16px, 2vw, 24px);
+    align-items: start;
+}
+
+html[data-frame="desktop"] #view-app > #ledger-name-input,
+html[data-frame="tablet"] #view-app > #ledger-name-input {
+    display: none;
+}
+
+html[data-frame="desktop"] .ledger-stage,
+html[data-frame="desktop"] .tracker-board {
+    display: contents;
+}
+
+html[data-frame="desktop"] #sidebar {
+    grid-column: 2;
+    grid-row: 1 / -1;
+}
+
+html[data-frame="desktop"] #pane-overview-hero,
+html[data-frame="desktop"] #pane-overview-more,
+html[data-frame="desktop"] #pane-planner,
+html[data-frame="desktop"] .tracker-toolbar,
+html[data-frame="desktop"] #cal-col {
+    grid-column: 1;
+}
+
+html[data-frame="desktop"] .ledger-stage {
+    margin-top: 0;
+}
+
+/* Tablet portrait stays one column. Landscape (980+) borrows the desktop grid. */
+html[data-frame="tablet"] .tracker-board {
+    grid-template-columns: 1fr;
+}
+
+html[data-frame="tablet"] .ledger-stage {
+    margin-top: 0;
+}
+
+@media (min-width: 980px) {
+    html[data-frame="tablet"] #view-app {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+        gap: 16px;
+        align-items: start;
     }
 
-    html[data-shell="overview"] .ledger-stage {
-        order: 2;
-        margin-top: 0;
+    html[data-frame="tablet"] .ledger-stage,
+    html[data-frame="tablet"] .tracker-board {
+        display: contents;
     }
 
-    html[data-shell="overview"] #pane-overview-more {
-        order: 3;
+    html[data-frame="tablet"] #sidebar {
+        grid-column: 2;
+        grid-row: 1 / -1;
+    }
+
+    html[data-frame="tablet"] #pane-overview-hero,
+    html[data-frame="tablet"] #pane-overview-more,
+    html[data-frame="tablet"] #pane-planner,
+    html[data-frame="tablet"] .tracker-toolbar,
+    html[data-frame="tablet"] #cal-col {
+        grid-column: 1;
     }
 }
 

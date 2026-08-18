@@ -61,7 +61,9 @@ test('overview splits so a phone can lift the calendar', async () => {
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
-        /html\[data-shell="overview"\] \.ledger-stage/,
+        /html\[data-frame="phone"\]\[data-shell="overview"\] \.ledger-stage/,
         'phone Overview must be able to reorder the calendar'
     );
+    assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the two-column board');
+    assert.match(css, /html\[data-frame="tablet"\]/, 'tablet must have its own frame');
 });

@@ -3,8 +3,9 @@
  *
  * Overview is the cash snapshot. Planner is daily safe spend plus the
  * withholding, savings-hold, and 50/30/20 form. Extra figures stay folded
- * on a narrow screen. Left-to-spend and the month cards paint into two
- * roots so a phone can sit the calendar between them.
+ * on a narrow screen. A phone paints the stacked cards with the calendar
+ * between Left to spend and Deposited. Tablet and desktop paint the compact
+ * dial strip from this morning.
  */
 import { getState, patch } from '../core/store.js';
 import {
@@ -19,6 +20,7 @@ import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
 import { UI } from '../ui/components.js';
 import { closeModal } from './modal.js';
 import { openBudgetEditor } from './sidebar.js';
+import { readFrame } from '../ui/frame.js';
 
 /** Wide enough to read a dial, a year line, and the split side by side. */
 const WIDE_DASH = '(min-width: 1100px)';
@@ -30,19 +32,6 @@ function wideQuery() {
 
 function isWideDash() {
     return !!wideQuery()?.matches;
-}
-
-/**
- * The slide is built for one width, so crossing the breakpoint has to repaint
- * it. Without this the bars stay on a window that has been dragged narrow.
- */
-let widthBound = false;
-function bindWidth() {
-    if (widthBound) return;
-    const query = wideQuery();
-    if (!query?.addEventListener) return;
-    widthBound = true;
-    query.addEventListener('change', () => renderDashStrip());
 }
 
 function chip({ label, value, tone, hint, signed = true, track = false }) {
@@ -116,6 +105,10 @@ function toneFor(n) {
 function clampRatio(part, whole) {
     if (!(whole > 0)) return part > 0 ? 1 : 0;
     return Math.max(0, Math.min(1, part / whole));
+}
+
+function countHint(count, one, many) {
+    return `${count} ${count === 1 ? one : many}`;
 }
 
 function goMonth(year, monthIndex) {
@@ -500,10 +493,85 @@ function overviewCard(kicker, title, hint, bar) {
     return card;
 }
 
+function overviewCompact(snap, events, currentDate) {
+    const dueHint = snap.dueSoonCount
+        ? countHint(snap.dueSoonCount, 'bill', 'bills')
+        : 'Next 7 days';
+    const unpaidHint = snap.leftToPayCount
+        ? `${countHint(snap.leftToPayCount, 'bill', 'bills')} · ${snap.monthLabel}`
+        : snap.monthLabel;
+    const depositedHint = snap.incomeDue > 0
+        ? `${formatMoney(snap.incomeDue)} still to land`
+        : `Landed in ${snap.monthLabel}`;
+    const savingsHint = snap.drawsOnSavings
+        ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
+        : `Carried into ${snap.monthLabel}`;
+
+    return heroSlide({
+        title: 'Left to spend',
+        description: 'Deposits minus this month’s spending.',
+        dial: createDial({
+            value: snap.leftToSpend,
+            label: 'Left to spend',
+            caption: snap.monthLabel,
+            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
+        }),
+        spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+        bars: createBars({
+            ariaLabel: `${snap.monthLabel} cash`,
+            rows: [
+                { label: 'Deposited', value: snap.deposited },
+                { label: 'Spent', value: snap.monthOut },
+                { label: 'Savings', value: snap.savingsFunds }
+            ]
+        }),
+        extrasTitle: 'More figures',
+        extras: [
+            chip({
+                label: 'Deposited',
+                value: snap.deposited,
+                tone: snap.deposited > 0 ? 'up' : 'flat',
+                hint: depositedHint
+            }),
+            chip({
+                label: 'Savings funds',
+                value: snap.savingsFunds,
+                tone: toneFor(snap.savingsFunds),
+                hint: savingsHint
+            }),
+            chip({
+                label: 'Due next 7 days',
+                value: snap.dueSoon,
+                tone: snap.dueSoon > 0 ? 'flat' : 'up',
+                hint: dueHint,
+                signed: false,
+                track: true
+            }),
+            chip({
+                label: 'Unpaid bills',
+                value: snap.leftToPay,
+                tone: snap.leftToPay > 0 ? 'flat' : 'up',
+                hint: unpaidHint,
+                signed: false,
+                track: true
+            }),
+            savingsRateChip(snap)
+        ]
+    });
+}
+
 function renderOverview(snap, events, currentDate) {
     const heroRoot = document.getElementById('overview-hero-root');
     const moreRoot = document.getElementById('overview-more-root');
     if (!heroRoot || !moreRoot) return;
+
+    if (readFrame() !== 'phone') {
+        heroRoot.replaceChildren(...overviewCompact(snap, events, currentDate));
+        heroRoot.classList.add('is-ready');
+        moreRoot.replaceChildren();
+        moreRoot.classList.add('is-ready');
+        return;
+    }
 
     const hero = document.createElement('section');
     hero.className = 'oe-card ov-hero';
@@ -607,7 +675,6 @@ function syncTrackerFilter() {
 }
 
 export function renderDashStrip() {
-    bindWidth();
     const { events, currentDate, plan } = getState();
     const rules = sanitizePlan(plan);
     const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
