@@ -8,6 +8,7 @@ import { CONFIG, STORAGE_KEYS } from './config.js';
 import { getState, patch, subscribe } from './core/store.js';
 import * as store from './core/store.js';
 import { loadLedger, initPersist } from './core/persist.js';
+import { openSearch } from './features/search-panel.js';
 import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
@@ -141,9 +142,23 @@ async function initApplication() {
     bindResponsiveCalendar();
 
     Ledger.bindFolderGesture(document.querySelector('[data-action="export-ledger"]'));
+    bindSearchShortcut();
 
     attachHostApi();
     window.__oeBoot = { ok: true };
+}
+
+/** Ctrl/Cmd+K, and "/" when the user is not already typing somewhere. */
+function bindSearchShortcut() {
+    document.addEventListener('keydown', (event) => {
+        const typing = event.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+        const combo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
+        if (!combo && (event.key !== '/' || typing)) return;
+        if (combo && typing && event.target.id === 'search-input') return;
+        event.preventDefault();
+        switchView('app');
+        openSearch();
+    });
 }
 
 function handleDelegatedClick(e) {
@@ -173,6 +188,10 @@ function handleDelegatedClick(e) {
             }
             case 'export-ledger':
                 Ledger.export();
+                break;
+            case 'search-ledger':
+                if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
+                openSearch();
                 break;
             case 'undo-delete':
                 restoreDeleteUndo();
