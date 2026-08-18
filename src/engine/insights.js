@@ -63,6 +63,6 @@ export function budgetStatus(events, { cap, date = new Date(), kind = 'expense' 
     return { total: summary.total, cap: limit, remaining, over: remaining < 0 };
 }
 
-export function snapshot(events, date = new Date()) {
-    return computeNetSnapshot(events || {}, date, date);
+export function snapshot(events, date = new Date(), plan) {
+    return computeNetSnapshot(events || {}, date, date, plan);
 }

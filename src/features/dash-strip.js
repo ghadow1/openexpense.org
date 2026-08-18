@@ -1,8 +1,9 @@
 /**
  * OpenExpense — dashboard snapshot
  *
- * Three swipeable views. Each slide is one period dial plus a three-point
- * year spark. Extra figures stay folded so the strip never fills the screen.
+ * Four swipeable views. Each slide is one period dial plus a three-point
+ * year spark. Budget holds weekly savings and the rules Overview uses.
+ * Extra figures stay folded so the strip never fills the screen.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -13,8 +14,11 @@ import {
     formatChipMoney,
     yearSeriesPoints
 } from '../core/summary.js';
+import { sanitizePlan } from '../core/plan.js';
 import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
+import { UI } from '../ui/components.js';
 import { closeModal } from './modal.js';
+import { openBudgetEditor } from './sidebar.js';
 
 /** Wide enough to read a dial, a year line, and the split side by side. */
 const WIDE_DASH = '(min-width: 1100px)';
@@ -41,7 +45,7 @@ function bindWidth() {
     query.addEventListener('change', () => renderDashStrip());
 }
 
-const VIEWS = ['overview', 'income', 'expense'];
+const VIEWS = ['overview', 'income', 'expense', 'budget'];
 const VIEW_COPY = {
     overview: {
         tab: 'Overview',
@@ -57,6 +61,11 @@ const VIEW_COPY = {
         tab: 'Expenses',
         title: 'Month spending',
         description: 'Logged bills for the month on screen.'
+    },
+    budget: {
+        tab: 'Budget',
+        title: 'Budgeting settings',
+        description: 'Weekly savings and the rules used for left-to-spend.'
     }
 };
 
@@ -240,6 +249,16 @@ function savingsRateChip(snap) {
     });
 }
 
+function overviewDescription(snap) {
+    if (snap.reserveOn) {
+        return 'Counted income minus counted spending and this month’s savings reserve.';
+    }
+    if (snap.spendUsed !== snap.monthOut || snap.incomeUsed !== snap.deposited) {
+        return 'Counted income minus counted spending for this month.';
+    }
+    return VIEW_COPY.overview.description;
+}
+
 function overviewSlide(snap, events, currentDate) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
@@ -252,19 +271,23 @@ function overviewSlide(snap, events, currentDate) {
         : `Landed in ${snap.monthLabel}`;
     const leftHint = snap.drawsOnSavings
         ? `${formatMoney(Math.abs(snap.leftToSpend))} from savings funds`
-        : 'Deposited − spending';
+        : (snap.reserveOn
+            ? `After ${formatMoney(snap.weeklyReserve)} reserved`
+            : (snap.planCaption && snap.planCaption !== 'deposited income minus all logged bills'
+                ? snap.planCaption
+                : 'Deposited − spending'));
     const savingsHint = snap.drawsOnSavings
         ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
         : `Carried into ${snap.monthLabel}`;
 
     return heroSlide({
         title: VIEW_COPY.overview.title,
-        description: VIEW_COPY.overview.description,
+        description: overviewDescription(snap),
         dial: createDial({
             value: snap.leftToSpend,
             label: 'Left to spend',
             caption: snap.monthLabel,
-            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
+            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.incomeUsed || snap.deposited)
         }),
         spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
         bars: createBars({
@@ -305,6 +328,14 @@ function overviewSlide(snap, events, currentDate) {
                 signed: false,
                 track: true
             }),
+            ...(snap.reserveOn ? [chip({
+                label: 'Savings reserve',
+                value: snap.weeklyReserve,
+                tone: 'flat',
+                hint: `${formatMoney(snap.weeklySavings)} / week`,
+                signed: false,
+                track: true
+            })] : []),
             savingsRateChip(snap)
         ]
     });
@@ -355,7 +386,13 @@ function incomeSlide(snap, events, currentDate) {
                 hint: 'On the calendar',
                 signed: false,
                 track: true
-            })
+            }),
+            ...(snap.incomeUsed !== snap.deposited ? [chip({
+                label: 'Counted income',
+                value: snap.incomeUsed,
+                tone: snap.incomeUsed > 0 ? 'up' : 'flat',
+                hint: 'Used for left-to-spend'
+            })] : [])
         ]
     });
 }
@@ -416,14 +453,187 @@ function expenseSlide(snap, events, currentDate) {
                 hint: 'On the calendar',
                 signed: false,
                 track: true
-            })
+            }),
+            ...(snap.spendUsed !== snap.monthOut ? [chip({
+                label: 'Counted spend',
+                value: snap.spendUsed,
+                tone: 'flat',
+                hint: 'Paid bills only',
+                signed: false,
+                track: true
+            })] : [])
         ]
     });
 }
 
-function slideFor(view, snap, events, currentDate) {
+function choiceButton(name, value, label, checked) {
+    const wrap = document.createElement('label');
+    wrap.className = `dash-plan-choice${checked ? ' is-on' : ''}`;
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = name;
+    input.value = value;
+    input.checked = checked;
+    const text = document.createElement('span');
+    text.textContent = label;
+    wrap.append(input, text);
+    return wrap;
+}
+
+function readPlanForm(form) {
+    const weekly = Number(form.querySelector('#dash-plan-weekly')?.value);
+    return sanitizePlan({
+        weeklySavings: weekly,
+        reserveSavings: !!form.querySelector('#dash-plan-reserve')?.checked,
+        spendBasis: form.querySelector('input[name="dash-plan-spend"]:checked')?.value,
+        incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value
+    });
+}
+
+function planPanel(snap, plan) {
+    const form = document.createElement('form');
+    form.className = 'dash-plan';
+    form.setAttribute('aria-label', 'Budgeting settings');
+    form.addEventListener('submit', (event) => event.preventDefault());
+
+    const weekly = UI.createFieldGroup(
+        'dash-plan-weekly',
+        'Weekly savings',
+        plan.weeklySavings ? String(plan.weeklySavings) : '',
+        '0.00',
+        'number'
+    );
+    const weeklyInput = weekly.querySelector('input');
+    weeklyInput.min = '0';
+    weeklyInput.inputMode = 'decimal';
+    weeklyInput.setAttribute('aria-describedby', 'dash-plan-weekly-hint');
+
+    const weeklyHint = document.createElement('p');
+    weeklyHint.className = 'dash-plan-hint';
+    weeklyHint.id = 'dash-plan-weekly-hint';
+    weeklyHint.textContent = plan.weeklySavings > 0
+        ? `${formatMoney(snap.weeklyReserve)} reserved across ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days ÷ 7).`
+        : 'Set a weekly amount. The month’s share is held out of left-to-spend when reserve is on.';
+
+    const reserve = document.createElement('label');
+    reserve.className = 'dash-plan-check';
+    const reserveBox = document.createElement('input');
+    reserveBox.type = 'checkbox';
+    reserveBox.id = 'dash-plan-reserve';
+    reserveBox.checked = plan.reserveSavings;
+    const reserveText = document.createElement('span');
+    reserveText.textContent = 'Hold this month’s share out of left-to-spend';
+    reserve.append(reserveBox, reserveText);
+
+    const spendField = document.createElement('fieldset');
+    spendField.className = 'dash-plan-row';
+    const spendLegend = document.createElement('legend');
+    spendLegend.className = 'dash-plan-legend';
+    spendLegend.textContent = 'Spending counted';
+    const spendChoices = document.createElement('div');
+    spendChoices.className = 'dash-plan-choices';
+    spendChoices.append(
+        choiceButton('dash-plan-spend', 'logged', 'All logged bills', plan.spendBasis !== 'paid'),
+        choiceButton('dash-plan-spend', 'paid', 'Paid only', plan.spendBasis === 'paid')
+    );
+    spendField.append(spendLegend, spendChoices);
+
+    const incomeField = document.createElement('fieldset');
+    incomeField.className = 'dash-plan-row';
+    const incomeLegend = document.createElement('legend');
+    incomeLegend.className = 'dash-plan-legend';
+    incomeLegend.textContent = 'Income counted';
+    const incomeChoices = document.createElement('div');
+    incomeChoices.className = 'dash-plan-choices';
+    incomeChoices.append(
+        choiceButton('dash-plan-income', 'deposited', 'Deposited only', plan.incomeBasis !== 'scheduled'),
+        choiceButton('dash-plan-income', 'scheduled', 'All scheduled', plan.incomeBasis === 'scheduled')
+    );
+    incomeField.append(incomeLegend, incomeChoices);
+
+    const caps = UI.createButton('Category monthly caps', () => openBudgetEditor(), { icon: 'adjustments' });
+    caps.classList.add('dash-plan-caps');
+
+    form.append(weekly, weeklyHint, reserve, spendField, incomeField, caps);
+    form.addEventListener('change', () => {
+        patch({ plan: readPlanForm(form) });
+    });
+    return form;
+}
+
+function budgetSlide(snap, events, currentDate, plan) {
+    const weeklyOn = plan.weeklySavings > 0;
+    const value = weeklyOn ? snap.weeklyLeft : snap.leftToSpend;
+    const cap = weeklyOn
+        ? (snap.weekIncome > 0 ? snap.weekIncome : plan.weeklySavings)
+        : (snap.incomeUsed || snap.deposited);
+    const extras = [
+        chip({
+            label: 'Left to spend',
+            value: snap.leftToSpend,
+            tone: toneFor(snap.leftToSpend),
+            hint: snap.reserveOn ? `After ${formatMoney(snap.weeklyReserve)} reserved` : snap.monthLabel
+        }),
+        chip({
+            label: 'This week',
+            value: snap.weekNet,
+            tone: toneFor(snap.weekNet),
+            hint: weeklyOn ? `Target ${formatMoney(plan.weeklySavings)}` : 'Sun–Sat'
+        }),
+        chip({
+            label: 'Week leftover',
+            value: snap.weeklyLeft,
+            tone: toneFor(snap.weeklyLeft),
+            hint: weeklyOn ? 'After the weekly target' : 'No weekly target set'
+        }),
+        chip({
+            label: 'Month reserve',
+            value: snap.weeklyReserve,
+            tone: snap.reserveOn ? 'flat' : 'up',
+            hint: snap.reserveOn ? `${snap.monthLabel} share` : 'Reserve is off',
+            signed: false,
+            track: true
+        })
+    ];
+
+    return [
+        ...heroSlide({
+            title: weeklyOn ? 'Left this week' : VIEW_COPY.budget.title,
+            description: weeklyOn
+                ? 'This week’s counted income minus spending and the weekly savings target.'
+                : VIEW_COPY.budget.description,
+            dial: createDial({
+                value,
+                label: weeklyOn ? 'Left this week' : 'Left to spend',
+                caption: weeklyOn ? 'This week' : snap.monthLabel,
+                ratio: clampRatio(Math.max(0, value), cap)
+            }),
+            spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+            bars: createBars({
+                ariaLabel: weeklyOn ? 'This week' : `${snap.monthLabel} plan`,
+                rows: weeklyOn
+                    ? [
+                        { label: 'Week in', value: snap.weekIncome },
+                        { label: 'Week out', value: snap.weekSpend },
+                        { label: 'Target', value: plan.weeklySavings }
+                    ]
+                    : [
+                        { label: 'Counted in', value: snap.incomeUsed },
+                        { label: 'Counted out', value: snap.spendUsed },
+                        { label: 'Reserve', value: snap.weeklyReserve }
+                    ]
+            }),
+            extrasTitle: 'Plan figures',
+            extras
+        }),
+        planPanel(snap, plan)
+    ];
+}
+
+function slideFor(view, snap, events, currentDate, plan) {
     if (view === 'income') return incomeSlide(snap, events, currentDate);
     if (view === 'expense') return expenseSlide(snap, events, currentDate);
+    if (view === 'budget') return budgetSlide(snap, events, currentDate, plan);
     return overviewSlide(snap, events, currentDate);
 }
 
@@ -481,6 +691,7 @@ function bindDeck(root) {
     root.addEventListener('pointerdown', (event) => {
         if (event.target.closest('[data-dash-view]')) return;
         if (event.target.closest('.dash-fold')) return;
+        if (event.target.closest('.dash-plan')) return;
         if (event.target.closest('.oe-spark-hit')) return;
         if (event.button != null && event.button !== 0) return;
         startX = event.clientX;
@@ -502,8 +713,9 @@ export function renderDashStrip() {
     const root = document.getElementById('dash-chips');
     if (!root) return;
 
-    const { events, currentDate } = getState();
-    const snap = computeNetSnapshot(events, currentDate);
+    const { events, currentDate, plan } = getState();
+    const rules = sanitizePlan(plan);
+    const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
 
     const deck = document.createElement('section');
     deck.className = 'dash-deck';
@@ -523,6 +735,7 @@ export function renderDashStrip() {
         btn.setAttribute('role', 'tab');
         btn.setAttribute('aria-controls', `dash-slide-${view}`);
         btn.textContent = VIEW_COPY[view].tab;
+        if (view === 'budget') btn.setAttribute('aria-label', 'Budgeting settings');
         tabs.appendChild(btn);
     });
 
@@ -539,7 +752,7 @@ export function renderDashStrip() {
         slide.dataset.view = view;
         slide.setAttribute('role', 'tabpanel');
         slide.setAttribute('aria-labelledby', `dash-tab-${view}`);
-        slide.append(...slideFor(view, snap, events, currentDate));
+        slide.append(...slideFor(view, snap, events, currentDate, rules));
         track.appendChild(slide);
     });
 

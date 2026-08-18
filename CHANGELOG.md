@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Budgeting settings
+
+A fourth snapshot tab, **Budget**, sits after Expenses. Set a weekly savings amount and the rules Overview uses: whether unpaid bills count, whether undeposited income counts, and whether the month’s share of that weekly target is held out of left-to-spend. Defaults stay the original cash line. The plan is saved with the ledger, the same way category caps already are.
+
 ## 2026-08-18 — Month figures back on screen, wider dash
 
 The sidebar had folded every total away, so a month that added up looked like one that had not. Totals, paid vs pending, and the stat grid are visible again, and the exact total sits beside the rounded ring; only the long lists fold. The dash card fills its column, and a wide screen also shows the split as bars beside the dial. Year charts label the month you are viewing, so the headline figure is a point on the line. Calendar rows are shorter so a whole month fits.

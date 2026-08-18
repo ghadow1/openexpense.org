@@ -1,7 +1,7 @@
 /**
  * OpenExpense — in-memory store
  *
- * Single source of truth for the ledger, theme, and UI selection.
+ * Single source of truth for the ledger, plan, theme, and UI selection.
  * Features call patch(); persist.js and the renderer subscribe().
  */
 import { CONFIG, THEMES } from '../config.js';
@@ -10,6 +10,7 @@ const state = {
     currentDate: new Date(),
     events: {},
     budgets: {},
+    plan: {},
     ledgerName: '',
     isDark: CONFIG.defaultTheme === 'dark',
     autosaveEnabled: true,

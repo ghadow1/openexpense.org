@@ -13,6 +13,12 @@ test('a saved budget repaints the sidebar', () => {
     assert.equal(shouldRender('sidebar', ['budgets']), true);
 });
 
+test('a saved plan repaints the dash and sidebar', () => {
+    assert.equal(shouldRender('dash', ['plan']), true);
+    assert.equal(shouldRender('sidebar', ['plan']), true);
+    assert.equal(shouldRender('calendar', ['plan']), false);
+});
+
 test('every surface redraws on a full render', () => {
     for (const surface of Object.keys(RENDER_DEPS)) {
         assert.equal(shouldRender(surface, null), true, `${surface} ignored a full render`);
@@ -27,19 +33,20 @@ test('an unrelated key repaints nothing', () => {
 });
 
 test('ledger content reaches every surface that shows it', () => {
-    for (const surface of ['calendar', 'sidebar', 'fileStatus']) {
+    for (const surface of ['calendar', 'dash', 'sidebar', 'fileStatus']) {
         assert.equal(shouldRender(surface, ['events']), true, `${surface} missed an events change`);
     }
 });
 
 test('a theme swap reaches everything that paints colour', () => {
-    for (const surface of ['theme', 'headerToggles', 'calendar', 'sidebar']) {
+    for (const surface of ['theme', 'headerToggles', 'calendar', 'dash', 'sidebar']) {
         assert.equal(shouldRender(surface, ['isDark']), true, `${surface} missed a theme change`);
     }
 });
 
-test('changing month repaints the calendar and sidebar only', () => {
+test('changing month repaints the calendar, dash, and sidebar', () => {
     assert.equal(shouldRender('calendar', ['currentDate']), true);
+    assert.equal(shouldRender('dash', ['currentDate']), true);
     assert.equal(shouldRender('sidebar', ['currentDate']), true);
     assert.equal(shouldRender('privacyStatus', ['currentDate']), false);
 });
