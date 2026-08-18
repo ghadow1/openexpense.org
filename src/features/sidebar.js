@@ -69,7 +69,7 @@ async function downloadSummaryPdf() {
     const { currentDate, events, ledgerName, isDark, ledgerFace } = getState();
     const kind = ledgerFace === 'income' ? 'income' : 'expense';
     const summary = computeMonthlySummary(events, currentDate, kind);
-    const reportName = kind === 'income' ? 'Monthly income report' : 'Monthly spending report';
+    const reportName = kind === 'income' ? 'Monthly income statement' : 'Monthly spending statement';
 
     try {
         const { exportMonthlySummaryPdf } = await import('../core/summary-pdf.js');
@@ -81,13 +81,13 @@ async function downloadSummaryPdf() {
             { 'application/pdf': ['.pdf'] }
         );
         if (result !== 'abort') {
-            const empty = kind === 'income' ? 'Empty income report PDF downloaded.' : 'Empty spending report PDF downloaded.';
-            const ready = kind === 'income' ? 'Income report PDF downloaded.' : 'Spending report PDF downloaded.';
+            const empty = kind === 'income' ? 'Empty income statement PDF downloaded.' : 'Empty spending statement PDF downloaded.';
+            const ready = kind === 'income' ? 'Income statement PDF downloaded.' : 'Spending statement PDF downloaded.';
             Toast.show(summary.itemCount ? ready : empty, 'success');
         }
     } catch (err) {
         console.error('[OpenExpense] PDF export failed:', err);
-        Toast.show('Could not create PDF.', 'error');
+        Toast.show('Could not create the statement PDF.', 'error');
     } finally {
         downloadSummaryPdf._busy = false;
     }

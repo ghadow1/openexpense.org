@@ -392,12 +392,12 @@ test('monthly summary includes a full-month daily breakdown', () => {
 
 test('PDF text sanitizer keeps latin and drops diamond markers', async () => {
     const { safePdfText } = await import('../src/core/pdf-theme.js');
-    assert.equal(safePdfText('August ◆'), 'August ');
+    assert.equal(safePdfText('August ◆'), 'August');
     assert.equal(safePdfText('Paid — pending'), 'Paid - pending');
     assert.equal(safePdfText('Coffee ×2'), 'Coffee x2');
 });
 
-test('brochure PDF builds for the viewed month', async () => {
+test('statement PDF builds for the viewed month', async () => {
     const { exportMonthlySummaryPdf } = await import('../src/core/summary-pdf.js');
     const date = new Date(2026, 7, 17);
     const spend = computeMonthlySummary(ledger.events, date, 'expense');

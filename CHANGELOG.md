@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Invoice-style statement PDF
+
+The sidebar PDF is a one-column spending or income statement: letterhead, period and reference, paid vs unpaid (or deposited vs expected), a line-item register, and a totals box. Thin settlement bars and empty months no longer crash the export. The file is still built on this device.
+
 ## 2026-08-18 — Calendar week hints
 
 Sunday–Saturday squares get a light wash only — red when the week spends past its leftover share, green when gross income beats the weekly income goal. Pills, amounts, and text stay as they are. The check runs when the calendar loads and when an expense, income, or planner rule changes.

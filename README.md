@@ -45,7 +45,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
-- **Monthly summary PDF** — generated locally with jsPDF.
+- **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
 
 ## Repository map
 

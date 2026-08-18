@@ -1,7 +1,7 @@
 /**
  * OpenExpense — monthly summary math
  *
- * Pure functions over `events`. The sidebar, snapshot dials, and PDF
+ * Pure functions over `events`. The sidebar, snapshot dials, and statement PDF
  * exporter all consume computeMonthlySummary(). Year cards are year-to-date
  * through the viewed month. Month totals are the calendar register for that
  * month, including future scheduled copies. Axis labels use formatAxisMoney.

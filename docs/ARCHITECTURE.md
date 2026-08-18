@@ -58,7 +58,7 @@ src/main.js         boot, event delegation, render subscription
 | `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); over-budget Sun–Sat rows |
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
-| `features/sidebar.js` | Month math + brochure PDF; click a group or category to search |
+| `features/sidebar.js` | Month math + statement PDF; click a group or category to search |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 

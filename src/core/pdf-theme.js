@@ -1,11 +1,12 @@
 /**
  * OpenExpense — PDF theme tokens
  *
- * Maps the on-screen light/dark palettes onto jsPDF colors, fonts, and
- * brochure primitives (brand mark, cards, kickers). Glyphs stay in the
- * Inter latin set so month labels never render as mojibake.
+ * Maps the on-screen light/dark palettes onto jsPDF colors and fonts.
+ * Drawing primitives go through pdf-frame so thin pills cannot crash jsPDF.
+ * Glyphs stay in the Helvetica latin set so month labels never render as mojibake.
  */
 import { THEMES } from '../config.js';
+import { fillBox, pdfSafeText as frameSafeText, strokeBox } from './pdf-frame.js';
 
 /** @param {string} hex #rrggbb */
 function hexToRgb(hex) {
@@ -30,13 +31,7 @@ export function mixHex(baseHex, overlayHex, alpha) {
  * The previous diamond marker became "%AE" in the monthly list.
  */
 export function safePdfText(value) {
-    return String(value ?? '')
-        .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"')
-        .replace(/[\u2013\u2014]/g, '-')
-        .replace(/\u2026/g, '...')
-        .replace(/\u00D7/g, 'x')
-        .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '');
+    return frameSafeText(value);
 }
 
 /** Map site theme tokens to PDF draw colors (hex strings for jsPDF). */
@@ -84,23 +79,11 @@ export function getPdfTheme(isDark, kind = 'expense') {
     };
 }
 
-/** Capsule corner radius — jsPDF breaks when radius exceeds half width/height. */
-function pillRadius(w, h, max = 8) {
-    return Math.min(w / 2, h / 2, max);
-}
-
 /** Draw a rounded pill/badge. Fill and stroke are separate passes. */
 export function drawPill(doc, x, y, w, h, { fill, stroke, lineWidth = 0.4 } = {}) {
-    const r = pillRadius(w, h);
-    if (fill != null) {
-        doc.setFillColor(fill);
-        doc.roundedRect(x, y, w, h, r, r, 'F');
-    }
-    if (stroke != null) {
-        doc.setDrawColor(stroke);
-        doc.setLineWidth(lineWidth);
-        doc.roundedRect(x, y, w, h, r, r, 'S');
-    }
+    const radius = Math.min(8, Math.abs(w) / 2, Math.abs(h) / 2);
+    if (fill != null) fillBox(doc, x, y, w, h, fill, radius);
+    if (stroke != null) strokeBox(doc, x, y, w, h, stroke, radius, lineWidth);
 }
 
 export function setFill(doc, hex) { doc.setFillColor(hex); }
@@ -109,18 +92,10 @@ export function setText(doc, hex) { doc.setTextColor(hex); }
 
 /** Rounded content card. Optional top accent bar. */
 export function drawCard(doc, x, y, w, h, c, { fill, stroke, accent, radius } = {}) {
-    const r = Math.min(radius ?? c.radius.card, w / 2, h / 2);
-    setFill(doc, fill || c.card);
-    doc.roundedRect(x, y, w, h, r, r, 'F');
-    if (stroke) {
-        setDraw(doc, stroke === true ? c.border : stroke);
-        doc.setLineWidth(0.45);
-        doc.roundedRect(x, y, w, h, r, r, 'S');
-    }
-    if (accent) {
-        setFill(doc, accent);
-        doc.rect(x, y, w, 3, 'F');
-    }
+    const r = radius ?? c.radius.card;
+    fillBox(doc, x, y, w, h, fill || c.card, r);
+    if (stroke) strokeBox(doc, x, y, w, h, stroke === true ? c.border : stroke, r, 0.45);
+    if (accent) fillBox(doc, x, y, w, 3, accent, 0);
 }
 
 /**
@@ -128,9 +103,7 @@ export function drawCard(doc, x, y, w, h, c, { fill, stroke, accent, radius } = 
  * drawn with rects so the PDF does not need an SVG embed.
  */
 export function drawBrandMark(doc, x, y, size, c) {
-    const r = size * 0.28;
-    setFill(doc, c.brandIndigo);
-    doc.roundedRect(x, y, size, size, r, r, 'F');
+    fillBox(doc, x, y, size, size, c.brandIndigo, size * 0.28);
 
     const cx = x + size * 0.16;
     const cy = y + size * 0.30;
@@ -138,19 +111,16 @@ export function drawBrandMark(doc, x, y, size, c) {
     const ch = size * 0.44;
     const cr = Math.max(1.4, size * 0.08);
 
-    setFill(doc, c.brandCard);
-    doc.roundedRect(cx, cy, cw, ch, cr, cr, 'F');
-
-    setFill(doc, c.brandStripe);
-    doc.rect(cx, cy + ch * 0.24, cw, Math.max(1.6, ch * 0.16), 'F');
-
-    setFill(doc, c.brandChip);
-    doc.roundedRect(
+    fillBox(doc, cx, cy, cw, ch, c.brandCard, cr);
+    fillBox(doc, cx, cy + ch * 0.24, cw, Math.max(1.6, ch * 0.16), c.brandStripe, 0);
+    fillBox(
+        doc,
         cx + cw * 0.12,
         cy + ch * 0.58,
         cw * 0.24,
         Math.max(2, ch * 0.20),
-        1, 1, 'F'
+        c.brandChip,
+        1
     );
 }
 
