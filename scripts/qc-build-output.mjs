@@ -78,5 +78,5 @@ test('planner is isolated from the shared tracker stage', async () => {
 
     const source = await readFile(join(ROOT, 'src/features/dash-strip.js'), 'utf8');
     assert.match(source, /data-plan-preset/, 'Planner should expose strategy presets');
-    assert.match(source, /data-plan-save/, 'Planner should expose an explicit save action');
+    assert.match(source, /dataset\.planSave/, 'Planner should expose an explicit save action');
 });
