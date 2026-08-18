@@ -52,8 +52,21 @@ function readResult(confirmed, dismissed = false) {
         checked: !!box?.checked,
         choice: picked?.value || null,
         value: confirmed ? value : '',
-        repeat: confirmed ? repeat : ''
+        repeat: confirmed ? repeat : '',
+        budgets: confirmed ? readBudgetFields() : {}
     };
+}
+
+/** A blank row means "no cap", which is how a budget gets removed. */
+function readBudgetFields() {
+    const out = {};
+    for (const input of backdropEl?.querySelectorAll('[data-budget-for]') || []) {
+        const raw = String(input.value ?? '').trim();
+        if (!raw) continue;
+        const amount = Number(raw.replace(/[^0-9.]/g, ''));
+        if (Number.isFinite(amount) && amount > 0) out[input.dataset.budgetFor] = amount;
+    }
+    return out;
 }
 
 // Promise-based confirm dialog. Enter confirms, Escape / backdrop click cancels.
@@ -68,9 +81,10 @@ export function confirmDialog({
     choices = null,
     choice = null,
     field = null,
+    budgetFields = null,
     validate = null
 } = {}) {
-    teardown({ confirmed: false, checked: false, choice: null, value: '', repeat: '' });
+    teardown({ confirmed: false, checked: false, choice: null, value: '', repeat: '', budgets: {} });
 
     return new Promise((resolve) => {
         resolveActive = resolve;
@@ -110,6 +124,22 @@ export function confirmDialog({
               </div>`
             : '';
 
+        const budgetRows = Array.isArray(budgetFields) ? budgetFields : [];
+        const budgetHtml = budgetRows.length
+            ? `<div class="budget-editor">
+                ${budgetRows.map((row) => `<label class="budget-editor-row">
+                    <span class="budget-editor-name">${Utils.escapeHtml(row.label)}</span>
+                    <span class="budget-editor-spent">${row.spent ? Utils.formatMoney(row.spent) : ''}</span>
+                    <span class="budget-editor-input">
+                      <span class="form-dollar">$</span>
+                      <input class="text-input amount-input" type="number" inputmode="decimal" step="0.01" min="0"
+                             data-budget-for="${Utils.escapeHtml(row.label)}"
+                             value="${Utils.escapeHtml(row.value || '')}" placeholder="none">
+                    </span>
+                  </label>`).join('')}
+              </div>`
+            : '';
+
         backdropEl = document.createElement('div');
         backdropEl.className = 'backdrop open';
         backdropEl.innerHTML = `
@@ -121,6 +151,7 @@ export function confirmDialog({
               <p class="confirm-copy" id="confirm-desc"></p>
               ${choiceHtml}
               ${fieldHtml}
+              ${budgetHtml}
               ${checkHtml}
               <div class="confirm-actions">
                 <button type="button" class="btn-ghost" data-confirm="cancel"></button>
