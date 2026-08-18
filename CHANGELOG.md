@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Calendar under Left to spend on phones
+
+On a phone, Overview now puts the month calendar directly under **Left to spend**, above **Deposited this month**. Wider screens still keep the snapshot cards together, then the calendar.
+
 ## 2026-08-18 — Shorter full-width status chips
 
 On a phone the **You own your data** and **File loaded** chips sit on one full-width row. Ownership is the wider chip. Both are 28px tall instead of matching the 40px action squares.

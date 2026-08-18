@@ -3,7 +3,8 @@
  *
  * Overview is the cash snapshot. Planner is daily safe spend plus the
  * withholding, savings-hold, and 50/30/20 form. Extra figures stay folded
- * on a narrow screen. Tracker (calendar + register) is painted elsewhere.
+ * on a narrow screen. Left-to-spend and the month cards paint into two
+ * roots so a phone can sit the calendar between them.
  */
 import { getState, patch } from '../core/store.js';
 import {
@@ -500,8 +501,9 @@ function overviewCard(kicker, title, hint, bar) {
 }
 
 function renderOverview(snap, events, currentDate) {
-    const root = document.getElementById('overview-root');
-    if (!root) return;
+    const heroRoot = document.getElementById('overview-hero-root');
+    const moreRoot = document.getElementById('overview-more-root');
+    if (!heroRoot || !moreRoot) return;
 
     const hero = document.createElement('section');
     hero.className = 'oe-card ov-hero';
@@ -565,8 +567,10 @@ function renderOverview(snap, events, currentDate) {
     foot.textContent = `Daily average ${formatMoney(spend.avgPerDay)}  ·  Average entry ${formatMoney(spend.avgPerEntry)}`;
     year.append(yearTitle, charts, foot);
 
-    root.replaceChildren(hero, pair, year);
-    root.classList.add('is-ready');
+    heroRoot.replaceChildren(hero);
+    heroRoot.classList.add('is-ready');
+    moreRoot.replaceChildren(pair, year);
+    moreRoot.classList.add('is-ready');
 }
 
 function formulaCard(snap) {

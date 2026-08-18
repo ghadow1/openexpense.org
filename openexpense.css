@@ -683,6 +683,22 @@ textarea,
     margin-top: 12px;
 }
 
+/* Phone Overview: calendar sits under Left to spend, above Deposited. */
+@media (max-width: 640px) {
+    html[data-shell="overview"] #pane-overview-hero {
+        order: 1;
+    }
+
+    html[data-shell="overview"] .ledger-stage {
+        order: 2;
+        margin-top: 0;
+    }
+
+    html[data-shell="overview"] #pane-overview-more {
+        order: 3;
+    }
+}
+
 .tracker-toolbar {
     display: flex;
     flex-wrap: wrap;
