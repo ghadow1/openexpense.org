@@ -45,13 +45,6 @@ function subtleCrypto() {
     return c && c.subtle ? c : null;
 }
 
-function base64ToU8(b64) {
-    const bin = atob(b64);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
-}
-
 /**
  * Seal a payload under a fresh, single-use master secret.
  *
@@ -113,9 +106,9 @@ async function decryptLegacyBundle(enc, keyFile) {
     const jwk = isKeyFile(keyFile) ? (keyFile.key || keyFile) : keyFile;
     const key = await c.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, false, ['decrypt']);
     const buf = await c.subtle.decrypt(
-        { name: 'AES-GCM', iv: base64ToU8(enc.iv) },
+        { name: 'AES-GCM', iv: fromBase64(enc.iv) },
         key,
-        base64ToU8(enc.ct)
+        fromBase64(enc.ct)
     );
     return JSON.parse(strFromU8(new Uint8Array(buf)));
 }

@@ -258,6 +258,82 @@ test('a short master secret is refused', async () => {
     await assert.rejects(() => sealPayload(payload, randomBytes(16), {}), /ENVELOPE_BAD_SECRET/);
 });
 
+test('randomBytes fills past the getRandomValues call limit', () => {
+    // getRandomValues throws over 65,536 bytes, so the helper must chunk.
+    const big = randomBytes(200000);
+    assert.equal(big.length, 200000);
+
+    // Every chunk must actually be written, not left as zeroes.
+    for (let offset = 0; offset < big.length; offset += 65536) {
+        const slice = big.subarray(offset, Math.min(offset + 65536, big.length));
+        assert.ok(slice.some((byte) => byte !== 0), `chunk at ${offset} was never filled`);
+    }
+});
+
+test('randomBytes does not repeat itself', () => {
+    const seen = new Set();
+    for (let i = 0; i < 200; i++) seen.add(toBase64(randomBytes(32)));
+    assert.equal(seen.size, 200);
+
+    // A crude spread check: 32 random bytes should not be dominated by one value.
+    const counts = new Map();
+    for (const byte of randomBytes(65536)) counts.set(byte, (counts.get(byte) || 0) + 1);
+    assert.equal(counts.size, 256, 'every byte value should appear across 64 KiB');
+    const worst = Math.max(...counts.values());
+    assert.ok(worst < 512, `byte value appeared ${worst} times, expected roughly 256`);
+});
+
+test('base64 round-trips payloads larger than one chunk', () => {
+    for (const size of [0, 1, 32, 0x8000 - 1, 0x8000, 0x8000 + 1, 300000]) {
+        const bytes = new Uint8Array(size);
+        for (let i = 0; i < size; i++) bytes[i] = (i * 31 + 7) & 0xff;
+        const back = fromBase64(toBase64(bytes));
+        assert.equal(back.length, size, `length changed at ${size}`);
+        assert.ok(equalBytes(back, bytes), `bytes changed at ${size}`);
+    }
+});
+
+test('a large ledger seals and opens intact', async () => {
+    const events = {};
+    for (let month = 0; month < 12; month++) {
+        for (let day = 1; day <= 28; day++) {
+            const key = `2026-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            events[key] = [{ title: `Entry ${day}`, price: 12.34, paid: true, note: 'x'.repeat(80) }];
+        }
+    }
+    const big = { name: 'Big', events, savedAt: 1780000000000 };
+    const { enc, keyFile } = await encryptBundle(big);
+    assert.equal(validateEncFile(enc).ok, true);
+    assert.deepEqual(await decryptBundle(enc, keyFile), big);
+});
+
+test('the same secret and salt never reuse an iv', async () => {
+    const secret = randomBytes(32);
+    const ivs = new Set();
+    for (let i = 0; i < 25; i++) {
+        const enc = await sealPayload(payload, secret, { kid: 'abc' });
+        assert.equal(ivs.has(enc.iv), false, 'iv reuse under one key breaks AES-GCM');
+        ivs.add(enc.iv);
+    }
+});
+
+test('key material never appears in the files that get written', async () => {
+    const secret = randomBytes(32);
+    const enc = await sealPayload(payload, secret, { kid: 'abc' });
+    const secretB64 = toBase64(secret);
+    const onDisk = JSON.stringify(enc);
+    assert.equal(onDisk.includes(secretB64), false, 'the envelope must not carry the secret');
+
+    // Nor may the commitment leak it, even though it ships in the clear.
+    assert.equal(enc.commit === secretB64, false);
+
+    // With a passphrase the key file must not carry it either.
+    const { keyFile } = await encryptBundle(payload, { passphrase: PASSPHRASE });
+    const keyJson = JSON.stringify(keyFile);
+    assert.equal(/"secret"/.test(keyJson), false);
+    assert.equal(keyJson.includes(PASSPHRASE), false, 'the passphrase must never be written');
+});
+
 /* The device autosave record in IndexedDB, sealed under a non-extractable key. */
 
 async function deviceKey() {

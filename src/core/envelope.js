@@ -48,16 +48,28 @@ function webcrypto() {
     return c;
 }
 
+/** getRandomValues refuses more than 65,536 bytes at once, so fill in chunks. */
+const RANDOM_CHUNK = 65536;
+
 export function randomBytes(length) {
+    const c = webcrypto();
     const out = new Uint8Array(length);
-    webcrypto().getRandomValues(out);
+    for (let i = 0; i < length; i += RANDOM_CHUNK) {
+        c.getRandomValues(out.subarray(i, Math.min(i + RANDOM_CHUNK, length)));
+    }
     return out;
 }
+
+// Building the binary string one character at a time costs ~430ms for a 6 MB
+// ciphertext on the export path. Batching through fromCharCode makes it ~50ms.
+const B64_CHUNK = 0x8000;
 
 export function toBase64(bytes) {
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     let bin = '';
-    for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+    for (let i = 0; i < u8.length; i += B64_CHUNK) {
+        bin += String.fromCharCode.apply(null, u8.subarray(i, i + B64_CHUNK));
+    }
     return btoa(bin);
 }
 
