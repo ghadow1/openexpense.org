@@ -683,6 +683,12 @@ textarea,
     margin-top: 12px;
 }
 
+/* Planner is a standalone workspace. The tracker/calendar stage is shared by
+   Overview and Tracker only, otherwise Planner appears to contain every tab. */
+html[data-shell="planner"] .ledger-stage {
+    display: none !important;
+}
+
 #pane-overview-more:has(#overview-more-root:empty) {
     display: none;
 }
@@ -730,10 +736,7 @@ html[data-frame="desktop"][data-shell="tracker"] #view-app {
 }
 
 html[data-frame="desktop"][data-shell="planner"] #view-app {
-    grid-template-areas:
-        "planner side"
-        "tools side"
-        "cal side";
+    display: block;
 }
 
 html[data-frame="desktop"] .ledger-stage,
@@ -779,10 +782,7 @@ html[data-frame="tablet"] .tracker-board {
     }
 
     html[data-frame="tablet"][data-shell="planner"] #view-app {
-        grid-template-areas:
-            "planner side"
-            "tools side"
-            "cal side";
+        display: block;
     }
 
     html[data-frame="tablet"] #pane-overview-hero { grid-area: hero; }
@@ -1709,6 +1709,212 @@ html.is-action-busy [data-lockable] {
     box-sizing: border-box;
 }
 
+.planner-stack {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    gap: 16px;
+}
+
+.planner-page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 4px 2px;
+}
+
+.planner-page-head h2 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: clamp(1.45rem, 4vw, 2rem);
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+}
+
+.planner-page-head p:not(.ov-kicker) {
+    max-width: 660px;
+    margin: 7px 0 0;
+    color: var(--text2);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+.planner-month {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--surface);
+    color: var(--text-strong);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.planner-form {
+    gap: 18px;
+    padding: clamp(14px, 2.5vw, 24px);
+}
+
+.planner-presets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.planner-preset {
+    appearance: none;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    min-height: 70px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.planner-preset > .ti:first-child {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-strong);
+    font-size: 17px;
+}
+
+.planner-preset span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.planner-preset strong {
+    color: var(--text-strong);
+    font-size: var(--fs-xs);
+}
+
+.planner-preset small {
+    color: var(--text2);
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.planner-preset-arrow {
+    color: var(--text-muted);
+}
+
+.planner-preset:hover,
+.planner-preset.is-active {
+    border-color: var(--border-strong);
+    background: var(--surface);
+}
+
+.planner-preset.is-active {
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.planner-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 10px;
+}
+
+.planner-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+}
+
+.planner-form-section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding-bottom: 2px;
+}
+
+.planner-form-section-head > .ti {
+    margin-top: 1px;
+    color: var(--text-strong);
+    font-size: 18px;
+}
+
+.planner-form-section-head h3 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--fs-sm);
+    line-height: 1.2;
+}
+
+.planner-form-section-head p {
+    margin: 4px 0 0;
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.4;
+}
+
+.planner-ratio-status {
+    margin: 7px 0 0;
+    color: var(--success);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.planner-ratio-status.is-error {
+    color: var(--danger-text);
+}
+
+.planner-form-actions {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.planner-form-actions-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.planner-save-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text2);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+}
+
+.planner-form.is-dirty .planner-save-status {
+    color: var(--text-strong);
+}
+
+.planner-form-actions .ui-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .dash-fold .dash-plan {
     padding: 0 0 10px;
     border: 0;
@@ -1797,6 +2003,39 @@ html.is-action-busy [data-lockable] {
 
 .dash-plan-caps {
     align-self: flex-start;
+}
+
+@media (max-width: 760px) {
+    .planner-page-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .planner-presets,
+    .planner-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .planner-form-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .planner-form-actions > [data-plan-save] {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .planner-form-actions-secondary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 761px) and (max-width: 1040px) {
+    .planner-presets {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .dash-hero-card {

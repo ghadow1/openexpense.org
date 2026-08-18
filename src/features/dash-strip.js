@@ -15,9 +15,10 @@ import {
     formatChipMoney,
     yearSeriesPoints
 } from '../core/summary.js';
-import { sanitizePlan } from '../core/plan.js';
+import { PLAN_DEFAULTS, planIsDefault, sanitizePlan } from '../core/plan.js';
 import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
 import { UI } from '../ui/components.js';
+import { Toast } from '../ui/toast.js';
 import { closeModal } from './modal.js';
 import { openBudgetEditor } from './sidebar.js';
 import { readFrame } from '../ui/frame.js';
@@ -213,6 +214,43 @@ function choiceButton(name, value, label, checked) {
     return wrap;
 }
 
+const PLAN_PRESETS = Object.freeze([
+    {
+        id: 'simple',
+        icon: 'sparkles',
+        title: 'Simple',
+        description: 'Deposits minus every logged bill.',
+        plan: PLAN_DEFAULTS
+    },
+    {
+        id: 'balanced',
+        icon: 'scale',
+        title: 'Balanced',
+        description: 'Hold 20% and track a 50 / 30 / 20 split.',
+        plan: { ...PLAN_DEFAULTS, savingsPct: 20 }
+    },
+    {
+        id: 'contractor',
+        icon: 'briefcase',
+        title: 'Contractor',
+        description: 'Hold 25% for tax and 10% for savings.',
+        plan: { ...PLAN_DEFAULTS, taxWithholdPct: 25, savingsPct: 10 }
+    },
+    {
+        id: 'save-more',
+        icon: 'pig-money',
+        title: 'Save more',
+        description: 'Hold 30% with a 50 / 20 / 30 target.',
+        plan: {
+            ...PLAN_DEFAULTS,
+            savingsPct: 30,
+            ratioNeeds: 50,
+            ratioWants: 20,
+            ratioSave: 30
+        }
+    }
+]);
+
 function readPlanForm(form) {
     return sanitizePlan({
         weeklySavings: Number(form.querySelector('#dash-plan-weekly')?.value),
@@ -227,6 +265,34 @@ function readPlanForm(form) {
         ratioWants: Number(form.querySelector('#dash-plan-wants')?.value),
         ratioSave: Number(form.querySelector('#dash-plan-save')?.value)
     });
+}
+
+function plansMatch(left, right) {
+    return JSON.stringify(sanitizePlan(left)) === JSON.stringify(sanitizePlan(right));
+}
+
+function setPlanForm(form, plan) {
+    const next = sanitizePlan(plan);
+    const values = {
+        'dash-plan-weekly': next.weeklySavings,
+        'dash-plan-weekly-income': next.weeklyIncome,
+        'dash-plan-tax': next.taxWithholdPct,
+        'dash-plan-fixed': next.savingsFixed,
+        'dash-plan-savepct': next.savingsPct,
+        'dash-plan-needs': next.ratioNeeds,
+        'dash-plan-wants': next.ratioWants,
+        'dash-plan-save': next.ratioSave
+    };
+    Object.entries(values).forEach(([id, value]) => {
+        const input = form.querySelector(`#${id}`);
+        if (input) input.value = value || '';
+    });
+    const reserve = form.querySelector('#dash-plan-reserve');
+    if (reserve) reserve.checked = next.reserveSavings;
+    const spend = form.querySelector(`input[name="dash-plan-spend"][value="${next.spendBasis}"]`);
+    const income = form.querySelector(`input[name="dash-plan-income"][value="${next.incomeBasis}"]`);
+    if (spend) spend.checked = true;
+    if (income) income.checked = true;
 }
 
 function hint(id, text) {
@@ -252,11 +318,29 @@ function sectionKicker(text) {
     return node;
 }
 
+function planSection(icon, title, description, ...children) {
+    const section = document.createElement('section');
+    section.className = 'planner-form-section';
+    const head = document.createElement('header');
+    head.className = 'planner-form-section-head';
+    const mark = document.createElement('i');
+    mark.className = `ti ti-${icon}`;
+    mark.setAttribute('aria-hidden', 'true');
+    const copy = document.createElement('div');
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    const detail = document.createElement('p');
+    detail.textContent = description;
+    copy.append(heading, detail);
+    head.append(mark, copy);
+    section.append(head, ...children);
+    return section;
+}
+
 function planPanel(snap, plan) {
     const form = document.createElement('form');
-    form.className = 'dash-plan';
+    form.className = 'dash-plan planner-form';
     form.setAttribute('aria-label', 'Planner settings');
-    form.addEventListener('submit', (event) => event.preventDefault());
 
     const weekly = moneyField('dash-plan-weekly', 'Weekly savings ($)', plan.weeklySavings);
     weekly.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-hint');
@@ -328,44 +412,169 @@ function planPanel(snap, plan) {
     ratioLegend.textContent = 'After-tax split (needs / wants / save)';
     const ratioRow = document.createElement('div');
     ratioRow.className = 'dash-plan-split';
-    ratioRow.append(
+    const ratioGroups = [
         moneyField('dash-plan-needs', 'Needs %', plan.ratioNeeds, '50'),
         moneyField('dash-plan-wants', 'Wants %', plan.ratioWants, '30'),
         moneyField('dash-plan-save', 'Save %', plan.ratioSave, '20')
-    );
+    ];
+    ratioGroups.forEach((group) => {
+        const input = group.querySelector('input');
+        input.max = '100';
+        input.step = '1';
+    });
+    ratioRow.append(...ratioGroups);
     ratioField.append(ratioLegend, ratioRow);
 
     const caps = UI.createButton('Manage category monthly caps', () => openBudgetEditor());
     caps.classList.add('dash-plan-caps');
 
-    form.append(
-        sectionKicker('Tax withholding'),
-        tax,
-        taxPresets,
-        hint('', '15.3 is IRS self-employment tax (12.4 Social Security + 2.9 Medicare; Topic 554 / Pub 334). 25 and 30 are common quarterly-estimate placeholders from Pub 505 practice, not a tax filing.'),
-        sectionKicker('Savings and hold reserves'),
-        weekly,
-        hint('dash-plan-weekly-hint', plan.weeklySavings > 0
-            ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
-            : 'Month share is weekly × days in this month ÷ 7.'),
-        weeklyIn,
-        hint('dash-plan-weekly-income-hint', plan.weeklyIncome > 0
-            ? `A Sunday–Saturday row turns green when gross income beats ${formatMoney(plan.weeklyIncome)} × days in that row ÷ 7.`
-            : 'Leave blank to use this month’s own income pace. A week turns green when its gross income beats that share.'),
-        fixed,
-        savePct,
-        hint('', 'Fixed dollars and this percent stack with the weekly hold. They come out of after-tax income before left-to-spend.'),
-        reserve,
-        spendField,
-        incomeField,
-        sectionKicker('After-tax split'),
-        ratioField,
-        hint('', `50/30/20 is Warren and Tyagi, All Your Worth (2005), as taught by the CFPB. Needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}, save hold ${formatMoney(snap.savingsHold)} of ${formatMoney(snap.ratioSaveCap)}.`),
-        caps
-    );
-    form.addEventListener('change', () => {
-        patch({ plan: readPlanForm(form) });
+    const presets = document.createElement('div');
+    presets.className = 'planner-presets';
+    PLAN_PRESETS.forEach((preset) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'planner-preset';
+        button.dataset.planPreset = preset.id;
+        button.innerHTML = `
+            <i class="ti ti-${preset.icon}" aria-hidden="true"></i>
+            <span><strong>${preset.title}</strong><small>${preset.description}</small></span>
+            <i class="ti ti-chevron-right planner-preset-arrow" aria-hidden="true"></i>
+        `;
+        button.addEventListener('click', () => {
+            setPlanForm(form, preset.plan);
+            form.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        presets.appendChild(button);
     });
+
+    const ratioStatus = document.createElement('p');
+    ratioStatus.className = 'planner-ratio-status';
+    ratioStatus.setAttribute('role', 'status');
+    ratioField.append(ratioStatus);
+
+    const formGrid = document.createElement('div');
+    formGrid.className = 'planner-form-grid';
+    formGrid.append(
+        planSection(
+            'arrows-exchange',
+            'What counts',
+            'Choose whether your plan uses every scheduled item or only settled cash.',
+            incomeField,
+            spendField
+        ),
+        planSection(
+            'receipt-tax',
+            'Tax withholding',
+            'Set aside an estimate before calculating what is safe to spend.',
+            tax,
+            taxPresets,
+            hint('', 'Common estimates only. Your actual tax depends on your filing and location.')
+        ),
+        planSection(
+            'pig-money',
+            'Savings reserves',
+            'Stack a weekly amount, a monthly amount, or a percentage of after-tax income.',
+            weekly,
+            hint('dash-plan-weekly-hint', plan.weeklySavings > 0
+                ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
+                : 'Month share is weekly × days in this month ÷ 7.'),
+            fixed,
+            savePct,
+            reserve
+        ),
+        planSection(
+            'calendar-stats',
+            'Weekly pace',
+            'Give calendar weeks an income target so you can see when you are ahead.',
+            weeklyIn,
+            hint('dash-plan-weekly-income-hint', plan.weeklyIncome > 0
+                ? `A Sunday–Saturday row turns green when gross income beats ${formatMoney(plan.weeklyIncome)} × days in that row ÷ 7.`
+                : 'Leave blank to use this month’s own income pace.')
+        ),
+        planSection(
+            'chart-pie',
+            'Spending targets',
+            'Split after-tax income across needs, wants, and saving. The total must equal 100%.',
+            ratioField,
+            hint('', `Current month: needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}.`),
+            caps
+        )
+    );
+
+    const status = document.createElement('div');
+    status.className = 'planner-save-status';
+    status.setAttribute('role', 'status');
+    const statusIcon = document.createElement('i');
+    statusIcon.className = 'ti ti-circle-check';
+    statusIcon.setAttribute('aria-hidden', 'true');
+    const statusText = document.createElement('span');
+    status.append(statusIcon, statusText);
+
+    const reset = UI.createButton('Reset defaults', () => {
+        setPlanForm(form, PLAN_DEFAULTS);
+        form.dispatchEvent(new Event('input', { bubbles: true }));
+    }, { icon: 'restore' });
+    const cancel = UI.createButton('Cancel changes', () => {
+        setPlanForm(form, plan);
+        form.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const save = UI.createButton(planIsDefault(plan) ? 'Save plan' : 'Update plan', null, {
+        accent: true,
+        icon: 'device-floppy'
+    });
+    save.type = 'submit';
+    save.dataset.planSave = '';
+
+    const actions = document.createElement('footer');
+    actions.className = 'planner-form-actions';
+    const secondary = document.createElement('div');
+    secondary.className = 'planner-form-actions-secondary';
+    secondary.append(reset, cancel);
+    actions.append(status, secondary, save);
+
+    form.append(
+        sectionKicker('Quick start'),
+        presets,
+        formGrid,
+        actions
+    );
+
+    const syncForm = () => {
+        const taxValue = Number(form.querySelector('#dash-plan-tax')?.value) || 0;
+        form.querySelectorAll('input[name="dash-plan-tax-preset"]').forEach((input) => {
+            input.checked = Number(input.value) === taxValue;
+        });
+        form.querySelectorAll('.dash-plan-choice').forEach((choice) => {
+            choice.classList.toggle('is-on', !!choice.querySelector('input')?.checked);
+        });
+        const ratioTotal = ['dash-plan-needs', 'dash-plan-wants', 'dash-plan-save']
+            .reduce((sum, id) => sum + (Number(form.querySelector(`#${id}`)?.value) || 0), 0);
+        const validRatio = Math.abs(ratioTotal - 100) < 0.001;
+        ratioStatus.textContent = `${ratioTotal}% allocated${validRatio ? '' : ' — adjust to 100%'}`;
+        ratioStatus.classList.toggle('is-error', !validRatio);
+
+        const draft = readPlanForm(form);
+        const dirty = !plansMatch(draft, plan);
+        form.classList.toggle('is-dirty', dirty);
+        save.disabled = !dirty || !validRatio;
+        cancel.disabled = !dirty;
+        statusIcon.className = `ti ti-${dirty ? 'edit' : 'circle-check'}`;
+        statusText.textContent = dirty ? 'Unsaved changes' : 'Plan is up to date';
+        PLAN_PRESETS.forEach((preset) => {
+            form.querySelector(`[data-plan-preset="${preset.id}"]`)
+                ?.classList.toggle('is-active', plansMatch(draft, preset.plan));
+        });
+    };
+
+    form.addEventListener('input', syncForm);
+    form.addEventListener('change', syncForm);
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (save.disabled) return;
+        patch({ plan: readPlanForm(form) });
+        Toast.show(planIsDefault(plan) ? 'Planner saved.' : 'Planner updated.', 'success');
+    });
+    syncForm();
     return form;
 }
 
@@ -437,14 +646,6 @@ function budgetSlide(snap, events, currentDate, plan) {
         })
     ];
 
-    const settings = document.createElement('details');
-    settings.className = 'dash-fold';
-    settings.open = true;
-    const settingsSum = document.createElement('summary');
-    settingsSum.className = 'dash-fold-sum';
-    settingsSum.textContent = 'Planner settings';
-    settings.append(settingsSum, planPanel(snap, plan));
-
     return [
         ...heroSlide({
             title: daysOpen ? 'Daily safe spend' : 'Planner',
@@ -471,7 +672,7 @@ function budgetSlide(snap, events, currentDate, plan) {
             extrasTitle: 'Planner figures',
             extras
         }),
-        settings
+        planPanel(snap, plan)
     ];
 }
 
@@ -676,7 +877,20 @@ function renderPlannerPane(snap, events, currentDate, plan) {
     if (!root) return;
     const slide = document.createElement('div');
     slide.className = 'planner-stack';
-    slide.append(formulaCard(snap), ...budgetSlide(snap, events, currentDate, plan));
+    const header = document.createElement('header');
+    header.className = 'planner-page-head';
+    const copy = document.createElement('div');
+    const kicker = sectionKicker('Monthly plan');
+    const title = document.createElement('h2');
+    title.textContent = 'Build a plan for your money';
+    const description = document.createElement('p');
+    description.textContent = 'Choose what counts, reserve tax and savings, then set targets you can update any time.';
+    copy.append(kicker, title, description);
+    const month = document.createElement('span');
+    month.className = 'planner-month';
+    month.innerHTML = `<i class="ti ti-calendar" aria-hidden="true"></i>${snap.monthLabel}`;
+    header.append(copy, month);
+    slide.append(header, ...budgetSlide(snap, events, currentDate, plan), formulaCard(snap));
     root.replaceChildren(slide);
 }
 
