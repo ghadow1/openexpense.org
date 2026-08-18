@@ -35,7 +35,7 @@ export const RENDER_DEPS = {
     fileStatus: ['ledgerName', 'events'],
     ledgerNameInput: ['ledgerName'],
     calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter'],
-    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan'],
+    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'trackerFilter'],
     sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter']
 };
 

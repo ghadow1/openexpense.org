@@ -841,20 +841,6 @@ textarea,
     margin-top: 0;
 }
 
-.sidebar.is-both .sidebar-flip-inner {
-    transform: none;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.sidebar.is-both .sidebar-face,
-.sidebar.is-both .sidebar-face--income {
-    position: relative;
-    transform: none;
-    backface-visibility: visible;
-}
-
 .site-header {
     position: sticky;
     top: 0;

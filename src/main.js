@@ -22,6 +22,7 @@ import { Toast } from './ui/toast.js';
 import { actionBusy } from './core/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
 import { restoreDeleteUndo } from './features/undo-delete.js';
+import { setLedgerFace } from './features/sidebar.js';
 import { attachHostApi, isEmbedMode } from './engine/host.js';
 
 const LOCKED_ACTIONS = new Set(['export-ledger', 'import-ledger', 'clear-ledger', 'scan-receipt', 'quick-add-today']);
@@ -222,13 +223,22 @@ function handleDelegatedClick(e) {
         return;
     }
 
+    const faceEl = e.target.closest('[data-face]');
+    if (faceEl) {
+        setLedgerFace(faceEl.dataset.face);
+        return;
+    }
+
     const filterEl = e.target.closest('[data-tracker-filter]');
     if (filterEl) {
         const filter = filterEl.dataset.trackerFilter;
         if (filter === 'all' || filter === 'expense' || filter === 'income') {
             try { localStorage.setItem(STORAGE_KEYS.trackerFilter, filter); } catch (_) { /* ignore */ }
             const next = { trackerFilter: filter };
-            if (filter !== 'all') next.ledgerFace = filter;
+            if (filter !== 'all') {
+                next.ledgerFace = filter;
+                try { localStorage.setItem(STORAGE_KEYS.ledgerFace, filter); } catch (_) { /* ignore */ }
+            }
             patch(next);
         }
         return;

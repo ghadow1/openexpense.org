@@ -570,9 +570,10 @@ function renderItemList(summary, copy) {
 let expenseFace = null;
 let incomeFace = null;
 
-function setLedgerFace(face) {
+export function setLedgerFace(face) {
     const next = face === 'income' ? 'income' : 'expense';
-    if (getState().ledgerFace === next) return;
+    const current = getState().ledgerFace === 'income' ? 'income' : 'expense';
+    if (current === next) return;
     patch({ ledgerFace: next });
     try { localStorage.setItem(STORAGE_KEYS.ledgerFace, next); } catch (_) { }
 }
@@ -654,13 +655,11 @@ function ensureSidebarShell(sidebar) {
 }
 
 function syncFlip(sidebar) {
-    const filter = getState().trackerFilter || 'all';
-    const both = filter === 'all';
     const face = getState().ledgerFace === 'income' ? 'income' : 'expense';
-    sidebar.classList.toggle('is-both', both);
-    sidebar.classList.toggle('is-income', !both && face === 'income');
+    sidebar.classList.remove('is-both');
+    sidebar.classList.toggle('is-income', face === 'income');
     const switcher = sidebar.querySelector('.ledger-switch');
-    if (switcher) switcher.hidden = both;
+    if (switcher) switcher.hidden = false;
     sidebar.querySelectorAll('.ledger-switch-btn').forEach((btn) => {
         const on = btn.dataset.face === face;
         btn.classList.toggle('is-active', on);
