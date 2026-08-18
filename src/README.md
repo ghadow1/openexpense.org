@@ -19,7 +19,7 @@ Each module starts with a short header describing what it owns.
 | File | Role |
 | --- | --- |
 | [`app/render.js`](app/render.js) | Theme + calendar + sidebar + snapshot chips + status chips |
-| [`app/views.js`](app/views.js) | Expenses vs Privacy & Help; welcome modal |
+| [`app/views.js`](app/views.js) | Overview / Tracker / Planner / Privacy; welcome modal |
 
 ## `core/` — data and crypto
 
@@ -58,7 +58,7 @@ Each module starts with a short header describing what it owns.
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
-| [`features/dash-strip.js`](features/dash-strip.js) | Snapshot carousel: Overview, Income, Expenses, Budget |
+| [`features/dash-strip.js`](features/dash-strip.js) | Overview snapshot and Planner form |
 | [`features/undo-delete.js`](features/undo-delete.js) | Short-lived Undo after delete or clear (memory snapshot only) |
 
 ## `ui/` — chrome

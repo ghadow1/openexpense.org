@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   OpenExpense shell. Application code lives in src/ and is bundled to app.js.
-  Two views only: #view-app (expenses) and #view-docs (privacy & help).
+  Four shell tabs: Overview, Tracker, Planner, and Privacy.
 -->
 <html lang="en">
 
@@ -251,16 +251,20 @@
           </div>
         </div>
 
-        <nav class="view-segment-bar" aria-label="Primary">
-          <button id="vt-app" class="view-tab active" data-view="app" aria-current="page" aria-label="Expenses">
-            <i class="ti ti-calendar" aria-hidden="true"></i>
-            <span class="view-tab-label">Expenses</span>
+        <div class="header-status" role="status" aria-label="Ledger status">
+          <span id="privacy-status" class="status-chip privacy-chip" hidden>
+            <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
+            <span class="privacy-chip-text">You own your data</span>
+          </span>
+          <span id="file-status" class="status-chip is-empty" hidden>
+            <i class="status-dot" aria-hidden="true"></i>
+            <span class="file-status-text">Not loaded</span>
+          </span>
+          <button type="button" id="undo-delete" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
+            <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+            <span class="undo-delete-text">Undo</span>
           </button>
-          <button id="vt-docs" class="view-tab" data-view="docs" aria-label="Privacy and help">
-            <i class="ti ti-shield-lock" aria-hidden="true"></i>
-            <span class="view-tab-label">Privacy &amp; Help</span>
-          </button>
-        </nav>
+        </div>
 
         <div class="header-actions">
           <a href="https://github.com/ghadow1/openexpense.org" target="_blank" rel="noopener" class="header-btn" aria-label="View source on GitHub" title="View source on GitHub">
@@ -275,46 +279,39 @@
     <div class="app-container">
 
     <main class="app-view" id="view-app">
-      <div class="dash">
-        <div class="dash-center">
-          <input id="ledger-name-input" class="ledger-name-field" type="text"
-            spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
-          <div class="dash-head">
-            <div id="dash-chips" class="dash-chips" role="region" aria-label="Ledger snapshot">
-              <div class="skel skel-dial" aria-hidden="true"></div>
-              <div class="skel skel-chip" aria-hidden="true"></div>
-            </div>
-            <div class="dash-toolbar">
-              <div class="dash-actions" role="toolbar" aria-label="Quick actions">
-                <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">
-                  <i class="ti ti-plus" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="dash-act" data-action="scan-receipt" data-lockable aria-label="Scan receipt" title="Scan receipt">
-                  <i class="ti ti-camera" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="dash-act" data-action="search-ledger" aria-label="Search entries" title="Search entries">
-                  <i class="ti ti-search" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="dash-act" data-action="export-ledger" data-lockable aria-label="Export ledger" title="Export ledger">
-                  <i class="ti ti-download" aria-hidden="true"></i>
-                </button>
-              </div>
-              <div class="dash-status" role="status" aria-label="Ledger status">
-                <span id="privacy-status" class="status-chip privacy-chip" hidden>
-                  <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
-                  <span class="privacy-chip-text">You own your data</span>
-                </span>
-                <span id="file-status" class="status-chip is-empty" hidden>
-                  <i class="status-dot" aria-hidden="true"></i>
-                  <span class="file-status-text">Not loaded</span>
-                </span>
-                <button type="button" id="undo-delete" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
-                  <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
-                  <span class="undo-delete-text">Undo</span>
-                </button>
-              </div>
-            </div>
+      <input id="ledger-name-input" class="ledger-name-field" type="text"
+        spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
+
+      <section class="shell-pane" id="pane-overview" data-shell="overview">
+        <div id="overview-root" class="overview-root" role="region" aria-label="Overview">
+          <div class="skel skel-dial" aria-hidden="true"></div>
+          <div class="skel skel-chip" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="shell-pane" id="pane-tracker" data-shell="tracker" hidden>
+        <div class="tracker-toolbar">
+          <div class="tracker-filter" role="tablist" aria-label="Transaction filter">
+            <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-selected="true" title="All transactions">All</button>
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="expense" aria-selected="false" title="Expenses only">Expenses</button>
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="income" aria-selected="false" title="Income only">Income</button>
           </div>
+          <div class="dash-actions" role="toolbar" aria-label="Quick actions">
+            <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">
+              <i class="ti ti-plus" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="dash-act" data-action="scan-receipt" data-lockable aria-label="Scan receipt" title="Scan receipt">
+              <i class="ti ti-camera" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="dash-act" data-action="search-ledger" aria-label="Search entries" title="Search entries">
+              <i class="ti ti-search" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="dash-act" data-action="export-ledger" data-lockable aria-label="Export ledger" title="Export ledger">
+              <i class="ti ti-download" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="tracker-board">
           <div class="cal-main" id="cal-col">
             <div class="skel-board" aria-hidden="true">
               <div class="skel skel-toolbar"></div>
@@ -326,19 +323,41 @@
               </div>
             </div>
           </div>
+          <aside class="sidebar" id="sidebar">
+            <div class="skel-side" aria-hidden="true">
+              <div class="skel skel-hero"></div>
+              <div class="skel skel-line"></div>
+              <div class="skel skel-line short"></div>
+              <div class="skel skel-block"></div>
+            </div>
+          </aside>
         </div>
-        <aside class="sidebar" id="sidebar">
-          <div class="skel-side" aria-hidden="true">
-            <div class="skel skel-hero"></div>
-            <div class="skel skel-line"></div>
-            <div class="skel skel-line short"></div>
-            <div class="skel skel-block"></div>
-          </div>
-        </aside>
-      </div>
+      </section>
+
+      <section class="shell-pane" id="pane-planner" data-shell="planner" hidden>
+        <div id="planner-root" class="planner-root" role="region" aria-label="Planner"></div>
+      </section>
     </main>
 
     <main class="docs-view hidden" id="view-docs">
+      <section class="privacy-tools oe-card" aria-label="Data control">
+        <p class="ov-kicker">Data ownership</p>
+        <p class="privacy-tools-copy">Data is encrypted and stored locally on this device. The header chips show ownership and whether a file is loaded. Use the disk button to pause autosave.</p>
+        <div class="privacy-tools-actions">
+          <button type="button" class="privacy-tool-btn" data-action="export-ledger" data-lockable>
+            <i class="ti ti-download" aria-hidden="true"></i>
+            <span>Download JSON backup</span>
+          </button>
+          <button type="button" class="privacy-tool-btn" data-action="import-ledger" data-lockable>
+            <i class="ti ti-upload" aria-hidden="true"></i>
+            <span>Import data file</span>
+          </button>
+          <button type="button" class="privacy-tool-btn" data-action="clear-ledger" data-lockable>
+            <i class="ti ti-trash" aria-hidden="true"></i>
+            <span>Clear local data</span>
+          </button>
+        </div>
+      </section>
       <div class="docs-container">
         <nav class="docs-nav" aria-label="Documentation sections">
           <button id="dt-manual" class="docs-nav-tab active" data-tab="manual">
@@ -399,7 +418,10 @@
 
                 <h3 class="docs-section-title">What you get</h3>
                 <ul class="docs-list">
-                  <li><strong>Account overview</strong> — income you have marked deposited, what is left of it after this month’s spending, and the savings funds behind that.</li>
+                  <li><strong>Overview</strong> — left to spend, daily safe spend, deposited vs expected, and paid vs pending for the month.</li>
+                  <li><strong>Tracker</strong> — calendar, month register, and add / scan / search. Filter All, Expenses, or Income.</li>
+                  <li><strong>Planner</strong> — tax withhold, savings holds, 50/30/20, and daily safe spend.</li>
+                  <li><strong>Privacy</strong> — local backup, import, clear, and this help.</li>
                   <li><strong>Calendar ledger</strong> — tap any day to log one or more expenses or income.</li>
                   <li><strong>Search</strong> — <code>/</code> or Ctrl/Cmd+K. Filter with <code>group:</code>, <code>tag:</code> or <code>cat:</code>, <code>is:unpaid</code>, amounts, and dates.</li>
                   <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
@@ -452,7 +474,7 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Search, category tags, and groups</h3>
                   <p>
-                    Open search from the snapshot row, or press <code>/</code> or Ctrl/Cmd+K.
+                    Open search from Tracker, or press <code>/</code> or Ctrl/Cmd+K.
                     Keys stay attached to the words after them, including a space after the colon:
                     <code>group: Rome trip</code>, <code>tag: groceries</code>, <code>cat:food</code>
                     (every tag in that family), <code>is:unpaid</code>, <code>&gt;50</code>,
@@ -477,12 +499,19 @@
                 </section>
 
                 <section class="docs-chapter">
-                  <h3 class="docs-section-title">Account overview and planning</h3>
+                  <h3 class="docs-section-title">Four-tab shell</h3>
                   <p>
-                    The snapshot area has four slides: <strong>Overview</strong>, <strong>Income</strong>,
-                    <strong>Expenses</strong>, and <strong>Planner</strong>. Use the pills or swipe sideways
-                    to rotate them.
-                    Account overview follows the money in one line:
+                    The bottom bar is <strong>Overview</strong>, <strong>Tracker</strong>,
+                    <strong>Planner</strong>, and <strong>Privacy</strong>. Overview is the cash snapshot:
+                    left to spend, daily safe spend, deposited vs expected, paid vs pending, and the
+                    year income and spending lines.
+                    Tracker is the calendar and month register. Use All / Expenses / Income to filter
+                    both the grid and the statement.
+                    Planner holds tax withhold, savings holds, 50/30/20, and daily safe spend.
+                    Privacy is this help plus backup, import, and clear.
+                  </p>
+                  <p>
+                    Account math is unchanged:
                     <strong>Deposited</strong> is income you have ticked as deposited this month, so a
                     paycheck still sitting on the calendar does not count as cash.
                     <strong>Left to spend</strong> is those deposits less everything the month spends,
@@ -490,27 +519,17 @@
                     withhold tax, or hold savings out of that leftover.
                     <strong>Savings funds</strong> is the reserve behind that: what every earlier month
                     settled at, up to today. When a month spends past its deposits, Left to spend goes
-                    negative and the difference comes out of Savings funds — the chip says how much is
-                    left once it has.
+                    negative and the difference comes out of Savings funds.
                     <strong>Month net</strong> is income minus spending, counting income whether or not
                     it has landed.
-                  </p>
-                  <p>
-                    Upcoming numbers are what is still ahead:
-                    <strong>Scheduled income</strong> is this month’s income already on the calendar,
-                    and <strong>Due next 7 days</strong> and <strong>Unpaid bills</strong> are bills only.
-                    Unpaid paychecks live on the Income slide as <strong>Still expected</strong>.
-                    <strong>Income left</strong> is the share of this month’s income remaining after
-                    spending, and <strong>Avg monthly net</strong> averages each month’s net across
-                    months with activity.
-                    Positive nets stay on the green blocks; amounts still due stay navy, not alarm red.
+                    Unpaid paychecks show as expected on Overview and on the Tracker income register.
                   </p>
                 </section>
 
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Planner settings</h3>
                   <p>
-                    The <strong>Planner</strong> tab is the fourth snapshot slide, after Expenses.
+                    The <strong>Planner</strong> tab is the third item on the bottom bar.
                     Left to spend is one waterfall on whole cents: counted income, minus a tax withhold,
                     minus a savings hold, minus counted spend. Defaults keep the original cash line
                     (deposits minus every logged bill).
@@ -542,21 +561,21 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Quick actions</h3>
                   <p>
-                    Plus, camera, and download sit under the snapshot chips as icon-only squares.
-                    Hover or long-press for the name. After a folder is linked, download becomes a disk
-                    and saves over the existing JSON pair.
+                    On Tracker, plus, camera, search, and download sit beside the All / Expenses / Income
+                    filter. Hover or long-press for the name. After a folder is linked, download becomes a
+                    disk and saves over the existing JSON pair. Backup, import, and clear also live on Privacy.
                   </p>
                 </section>
 
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Status badges</h3>
                   <p>
-                    On the same row as the Add, Scan, and Export icons — snapped to their right, under Monthly avg —
-                    two pills show status: <strong>You own your data</strong> (green when encryption and
-                    autosave are on; amber if autosave is paused or encryption is unavailable) and
-                    <strong>File loaded</strong> / <strong>Not loaded</strong> (whether a named ledger or
-                    any expenses are present). After a delete or clear, <strong>Undo</strong> sits next
-                    to File loaded for about ten seconds.
+                    The header holds status next to the brand: <strong>You own your data</strong>
+                    (encryption and autosave on; amber if autosave is paused or encryption is unavailable)
+                    and <strong>File loaded</strong> / <strong>Not loaded</strong> (whether a named ledger
+                    or any expenses are present). After a delete or clear, <strong>Undo</strong> sits next
+                    to File loaded for about ten seconds. GitHub, the autosave disk, and the theme toggle
+                    stay on the right.
                   </p>
                 </section>
 
@@ -762,7 +781,7 @@
                 <p class="docs-eyebrow">Chapter 4</p>
                 <h2 class="docs-hero-title">Updates</h2>
                 <p class="docs-hero-lead">
-                  What changed in OpenExpense recently. The product is still two screens, still offline,
+                  What changed in OpenExpense recently. The product is still four tabs, still offline,
                   and still encrypted on this device. A dated list also lives in
                   <a href="https://github.com/ghadow1/openexpense.org/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>
                   on GitHub.
@@ -770,6 +789,27 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">18 August 2026 — Four-tab shell</h3>
+                  <p>
+                    The app is now <strong>Overview</strong>, <strong>Tracker</strong>,
+                    <strong>Planner</strong>, and <strong>Privacy</strong> on a bottom bar.
+                    Overview is the cash snapshot. Tracker is the calendar and month register.
+                    Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20.
+                    Privacy keeps help plus backup, import, and clear. The old stacked
+                    Expenses | Privacy and Overview | Income | Expenses | Planner rows are gone.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">18 August 2026 — Calendar back under the snapshot tabs</h3>
+                  <p>
+                    Overview, Income, Expenses, and Planner stay a compact strip.
+                    Hidden tabs no longer stretch the card, and Planner settings
+                    fold like More figures, so the calendar sits directly underneath.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">18 August 2026 — One scroll on the phone</h3>
                   <p>
@@ -1132,6 +1172,25 @@
       </div>
     </footer>
     </div>
+
+    <nav class="app-dock" aria-label="Primary">
+      <button type="button" class="dock-tab is-active" data-view="overview" aria-current="page">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+        <span>Overview</span>
+      </button>
+      <button type="button" class="dock-tab" data-view="tracker">
+        <i class="ti ti-calendar" aria-hidden="true"></i>
+        <span>Tracker</span>
+      </button>
+      <button type="button" class="dock-tab" data-view="planner">
+        <i class="ti ti-calculator" aria-hidden="true"></i>
+        <span>Planner</span>
+      </button>
+      <button type="button" class="dock-tab" data-view="privacy">
+        <i class="ti ti-shield-lock" aria-hidden="true"></i>
+        <span>Privacy</span>
+      </button>
+    </nav>
   </div>
 
   <div class="backdrop" id="modal">

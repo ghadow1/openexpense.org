@@ -654,8 +654,13 @@ function ensureSidebarShell(sidebar) {
 }
 
 function syncFlip(sidebar) {
+    const filter = getState().trackerFilter || 'all';
+    const both = filter === 'all';
     const face = getState().ledgerFace === 'income' ? 'income' : 'expense';
-    sidebar.classList.toggle('is-income', face === 'income');
+    sidebar.classList.toggle('is-both', both);
+    sidebar.classList.toggle('is-income', !both && face === 'income');
+    const switcher = sidebar.querySelector('.ledger-switch');
+    if (switcher) switcher.hidden = both;
     sidebar.querySelectorAll('.ledger-switch-btn').forEach((btn) => {
         const on = btn.dataset.face === face;
         btn.classList.toggle('is-active', on);

@@ -19,6 +19,11 @@ test('a saved plan repaints the dash, sidebar, and calendar weeks', () => {
     assert.equal(shouldRender('calendar', ['plan']), true);
 });
 
+test('the tracker filter repaints the calendar and sidebar', () => {
+    assert.equal(shouldRender('calendar', ['trackerFilter']), true);
+    assert.equal(shouldRender('sidebar', ['trackerFilter']), true);
+});
+
 test('every surface redraws on a full render', () => {
     for (const surface of Object.keys(RENDER_DEPS)) {
         assert.equal(shouldRender(surface, null), true, `${surface} ignored a full render`);

@@ -1,7 +1,7 @@
 /**
  * OpenExpense — render orchestration
  *
- * Applies theme, paints the calendar, snapshot chips, dash, and sidebar, and
+ * Applies theme, paints the calendar, Overview/Planner, and sidebar, and
  * keeps the header chips (privacy + file-loaded) in sync with store state.
  */
 import { applyTheme, setTheme, themeFace } from '../ui/theme.js';
@@ -34,9 +34,9 @@ export const RENDER_DEPS = {
     privacyStatus: ['storageEncrypted', 'autosaveEnabled'],
     fileStatus: ['ledgerName', 'events'],
     ledgerNameInput: ['ledgerName'],
-    calendar: ['isDark', 'currentDate', 'events', 'plan'],
+    calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter'],
     dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan'],
-    sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan']
+    sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter']
 };
 
 /** A null or empty patch means "redraw everything". */

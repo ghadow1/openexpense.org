@@ -6,6 +6,14 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Four-tab shell
+
+The app is now Overview, Tracker, Planner, and Privacy on a bottom bar. Overview is the cash snapshot. Tracker is the calendar and month register, with All / Expenses / Income. Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20. Privacy keeps help plus backup, import, and clear. The calendar is no longer stacked under a second row of tabs.
+
+## 2026-08-18 — Calendar back under the snapshot tabs
+
+The Overview / Income / Expenses / Planner strip no longer stretches to the tallest tab. Hidden slides collapse, and Planner settings fold the same way More figures does, so the calendar sits directly under the strip again.
+
 ## 2026-08-18 — One scroll on the phone
 
 On a phone or tablet the monthly spending card sits under the calendar and no longer has its own 72vh scroller. Swiping the page moves the calendar and the statement together.

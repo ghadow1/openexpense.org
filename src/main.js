@@ -13,7 +13,7 @@ import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
-import { switchView, switchDocTab, showWelcome, closeWelcomeModal, shouldShowNotFound } from './app/views.js';
+import { switchView, switchDocTab, showWelcome, closeWelcomeModal, shouldShowNotFound, bootShell } from './app/views.js';
 import { closeModal, initModalBindings, renderModal, openModal, shiftSelectedDay } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
@@ -24,7 +24,7 @@ import { refreshExportButtons } from './features/export-buttons.js';
 import { restoreDeleteUndo } from './features/undo-delete.js';
 import { attachHostApi, isEmbedMode } from './engine/host.js';
 
-const LOCKED_ACTIONS = new Set(['export-ledger', 'scan-receipt', 'quick-add-today']);
+const LOCKED_ACTIONS = new Set(['export-ledger', 'import-ledger', 'clear-ledger', 'scan-receipt', 'quick-add-today']);
 
 function openNotFoundPage() {
     try {
@@ -52,6 +52,14 @@ async function initApplication() {
     try {
         if (localStorage.getItem(STORAGE_KEYS.ledgerFace) === 'income') {
             bootPatch.ledgerFace = 'income';
+        }
+    } catch (_) { }
+
+    try {
+        const filter = localStorage.getItem(STORAGE_KEYS.trackerFilter);
+        if (filter === 'income' || filter === 'expense' || filter === 'all') {
+            bootPatch.trackerFilter = filter;
+            if (filter !== 'all') bootPatch.ledgerFace = filter;
         }
     } catch (_) { }
 
@@ -105,7 +113,8 @@ async function initApplication() {
     }
 
     await refreshExportButtons().catch(() => {});
-    switchView('app');
+    bootShell();
+    render();
     if (localLoadFailed) {
         Toast.show(
             'Encrypted local data could not be opened. Autosave is paused to preserve it. Import a known-good backup or use another browser profile.',
@@ -142,7 +151,7 @@ async function initApplication() {
     initModalBindings();
     bindResponsiveCalendar();
 
-    Ledger.bindFolderGesture(document.querySelector('[data-action="export-ledger"]'));
+    document.querySelectorAll('[data-action="export-ledger"]').forEach((btn) => Ledger.bindFolderGesture(btn));
     bindSearchShortcut();
 
     attachHostApi();
@@ -157,7 +166,7 @@ function bindSearchShortcut() {
         if (!combo && (event.key !== '/' || typing)) return;
         if (combo && typing && event.target.id === 'search-input') return;
         event.preventDefault();
-        switchView('app');
+        switchView('tracker');
         openSearch();
     });
 }
@@ -178,20 +187,26 @@ function handleDelegatedClick(e) {
                 closeModal();
                 break;
             case 'scan-receipt':
-                if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
+                switchView('tracker');
                 Receipt.pickImage();
                 break;
             case 'quick-add-today': {
                 const now = new Date();
-                switchView('app');
+                switchView('tracker');
                 openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));
                 break;
             }
             case 'export-ledger':
                 Ledger.export();
                 break;
+            case 'import-ledger':
+                Ledger.import();
+                break;
+            case 'clear-ledger':
+                Ledger.clearLedger();
+                break;
             case 'search-ledger':
-                if (document.getElementById('view-app')?.classList.contains('hidden')) switchView('app');
+                switchView('tracker');
                 openSearch();
                 break;
             case 'undo-delete':
@@ -203,6 +218,18 @@ function handleDelegatedClick(e) {
             case 'day-next':
                 shiftSelectedDay(1);
                 break;
+        }
+        return;
+    }
+
+    const filterEl = e.target.closest('[data-tracker-filter]');
+    if (filterEl) {
+        const filter = filterEl.dataset.trackerFilter;
+        if (filter === 'all' || filter === 'expense' || filter === 'income') {
+            try { localStorage.setItem(STORAGE_KEYS.trackerFilter, filter); } catch (_) { /* ignore */ }
+            const next = { trackerFilter: filter };
+            if (filter !== 'all') next.ledgerFace = filter;
+            patch(next);
         }
         return;
     }
@@ -232,7 +259,7 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
-        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace'].includes(k));
+        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace', 'trackerFilter', 'plan', 'budgets'].includes(k));
         const needsModal = getState().selectedKey
             && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark', 'ledgerFace'].includes(k));
 

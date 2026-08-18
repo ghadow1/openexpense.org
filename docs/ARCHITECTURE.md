@@ -3,15 +3,15 @@
 OpenExpense is a single-page static app. The browser is the runtime. There is no API.
 
 ```
-index.html          two views + day modal + welcome
+index.html          four tabs + day modal + welcome
         │
         ▼
 src/main.js         boot, event delegation, render subscription
-        │
+    │
         ├─► core/store.js      getState / patch / subscribe
         ├─► core/persist.js    encrypted IndexedDB (debounced)
         ├─► app/render.js      theme, calendar, sidebar, status chips
-        ├─► app/views.js       Expenses ↔ Privacy & Help
+        ├─► app/views.js       Overview / Tracker / Planner / Privacy
         └─► features/*         calendar, modal, ledger, receipt, sidebar
 ```
 
@@ -39,6 +39,9 @@ src/main.js         boot, event delegation, render subscription
 | `storageEncrypted` | Web Crypto available |
 | `selectedKey` | Open day (`YYYY-MM-DD`) or `null` |
 | `editingIndex` | Row being edited in that day |
+| `ledgerFace` | Expense or income register face |
+| `trackerFilter` | Tracker filter: `all`, `expense`, or `income` |
+| `shellTab` | Active bottom tab: `overview`, `tracker`, `planner`, or `privacy` |
 
 `patch(partial)` merges fields and notifies subscribers. The render loop in `main.js` coalesces those notifications into one animation frame.
 
@@ -48,7 +51,7 @@ src/main.js         boot, event delegation, render subscription
 - **Export** (`bundle.js` + `ledger.js` + `ledger-file.js` + `folder.js`): new portable key per save. A linked-folder save verifies the existing pair, stages and verifies a complete recovery pair, updates both destinations, then removes recovery files. Otherwise one share sheet (iPhone / Android) or dated downloads. The folder handle may be remembered in IndexedDB `meta` — that is not `key.json`. The JWK is not cached. Mutating actions share one in-flight lock (`action-lock.js`). Unknown URLs serve `404.html`.
 - **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy zip, or confirmed plaintext. `ledger-file.js` validates, decrypts, sanitizes, and is reused on boot.
 
-`localStorage` never holds expenses or keys. It only stores `oe-theme`, `oe-autosave`, `hasVisited`, and the expense/income sidebar face.
+`localStorage` never holds expenses or keys. It only stores `oe-theme`, `oe-autosave`, `hasVisited`, the expense/income sidebar face, `oe-shell-tab`, `oe-tracker-filter`, the export-passphrase choice, and a leftover `oe-dash-view` used only to migrate an old Planner/Overview pill.
 
 ## UI layers
 
@@ -70,7 +73,7 @@ The right-hand card flips between an expense face and an income face. The calend
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The dash card has four slides: Overview, Income, Expenses, and Planner. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`). Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. The dash card fills its column. At 1100px and up it also draws the split as bars beside the dial and opens the figure cards; crossing that width repaints the slide. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
+The bottom bar has four tabs. Overview is left-to-spend, daily safe spend, deposited vs expected, paid vs pending, and the year income/spend lines. Tracker is the calendar and month register, filtered All / Expenses / Income. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`). Privacy is the existing help pane plus backup, import, and clear. Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. At 1100px and up Planner also draws the split as bars beside the dial and opens the figure cards. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
 
 ## Labels, groups, and Change All
 
@@ -116,6 +119,6 @@ SEO metadata (Open Graph, Twitter, JSON-LD) lives in `index.html` and is documen
 ## What not to add
 
 - A server, database, or auth provider
-- A third top-level view or client-side router
+- A router or extra primary tabs beyond Overview / Tracker / Planner / Privacy
 - Analytics or error-reporting that uploads ledger text
 - Hand-edited bundles

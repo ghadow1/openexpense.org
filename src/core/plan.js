@@ -423,7 +423,7 @@ export function unpaidRecurring(items = [], plan) {
 
 /**
  * Apply the waterfall and every derived planner figure. Snapshot math calls
- * this so Overview, Income, Expenses, and Planner share one set of numbers.
+ * this so Overview, Tracker, and Planner share one set of numbers.
  */
 export function computePlanner({
     incomeUsed: incoming = 0,

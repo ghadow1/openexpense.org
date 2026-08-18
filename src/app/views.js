@@ -1,52 +1,75 @@
 /**
- * OpenExpense — view switching
+ * OpenExpense — shell switching
  *
- * Toggles the two top-level panes: Expenses (`#view-app`) and
- * Privacy & Help (`#view-docs`). Also owns the first-visit welcome modal.
+ * Four primary tabs: Overview, Tracker, Planner, and Privacy.
+ * Privacy is the existing docs pane. The other three live in `#view-app`.
  */
 import { STORAGE_KEYS } from '../config.js';
+import { getState, patch } from '../core/store.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { render } from './render.js';
 import { shouldShowNotFound } from '../core/routes.js';
 
 export { shouldShowNotFound };
 
-const KNOWN_VIEWS = new Set(['app', 'docs']);
+export const SHELL_TABS = ['overview', 'tracker', 'planner', 'privacy'];
 
-export function switchView(viewName) {
-    if (!KNOWN_VIEWS.has(viewName)) return;
+function readStoredTab() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.shellTab);
+        if (SHELL_TABS.includes(stored)) return stored;
+        const legacy = localStorage.getItem(STORAGE_KEYS.dashView);
+        if (legacy === 'budget' || legacy === 'planner' || legacy === 'plan') return 'planner';
+        if (legacy === 'overview' || legacy === 'income' || legacy === 'expense') return 'overview';
+    } catch (_) { /* ignore */ }
+    return 'overview';
+}
 
+export function persistShellTab(tab) {
+    try { localStorage.setItem(STORAGE_KEYS.shellTab, tab); } catch (_) { /* ignore */ }
+}
+
+export function applyShell(tab) {
+    const next = SHELL_TABS.includes(tab) ? tab : 'overview';
     const appView = document.getElementById('view-app');
     const docsView = document.getElementById('view-docs');
-    const tabApp = document.getElementById('vt-app');
-    const tabDocs = document.getElementById('vt-docs');
+    const privacy = next === 'privacy';
 
-    if (viewName === 'app') {
-        if (appView) appView.classList.remove('hidden');
-        if (docsView) docsView.classList.add('hidden');
-        if (tabApp) {
-            tabApp.classList.add('active');
-            tabApp.setAttribute('aria-current', 'page');
-        }
-        if (tabDocs) {
-            tabDocs.classList.remove('active');
-            tabDocs.removeAttribute('aria-current');
-        }
-        render();
-    } else {
-        if (appView) appView.classList.add('hidden');
-        if (docsView) docsView.classList.remove('hidden');
-        if (tabApp) {
-            tabApp.classList.remove('active');
-            tabApp.removeAttribute('aria-current');
-        }
-        if (tabDocs) {
-            tabDocs.classList.add('active');
-            tabDocs.setAttribute('aria-current', 'page');
-        }
-    }
+    document.documentElement.dataset.shell = next;
+    if (appView) appView.classList.toggle('hidden', privacy);
+    if (docsView) docsView.classList.toggle('hidden', !privacy);
 
+    document.querySelectorAll('[data-shell]').forEach((pane) => {
+        const on = pane.dataset.shell === next;
+        pane.hidden = !on;
+        pane.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+
+    document.querySelectorAll('.dock-tab[data-view]').forEach((btn) => {
+        const on = btn.dataset.view === next;
+        btn.classList.toggle('is-active', on);
+        if (on) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+    });
+}
+
+export function switchView(viewName) {
+    let tab = viewName;
+    if (viewName === 'app') tab = getState().shellTab === 'privacy' ? 'tracker' : (getState().shellTab || 'tracker');
+    if (viewName === 'docs') tab = 'privacy';
+    if (!SHELL_TABS.includes(tab)) return;
+
+    persistShellTab(tab);
+    if (getState().shellTab !== tab) patch({ shellTab: tab });
+    applyShell(tab);
+    if (tab !== 'privacy') render();
     window.scrollTo(0, 0);
+}
+
+export function bootShell() {
+    const tab = readStoredTab();
+    patch({ shellTab: tab });
+    applyShell(tab);
 }
 
 export function switchDocTab(tabName) {

@@ -573,12 +573,279 @@ textarea,
 .app-container {
     width: min(var(--page), 100%);
     margin: 0 auto;
-    padding: 16px var(--gutter) 32px;
+    padding: 16px var(--gutter) calc(32px + 72px + env(safe-area-inset-bottom, 0px));
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+}
+
+.shell-pane[hidden] {
+    display: none !important;
+}
+
+.overview-root,
+.planner-root,
+.planner-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.oe-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.ov-kicker {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.ov-hero-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ov-kpi {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: clamp(1.5rem, 6vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.ov-sub,
+.ov-settle-meta,
+.ov-year-foot,
+.privacy-tools-copy {
+    margin: 6px 0 0;
+    color: var(--text2);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+}
+
+.ov-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ov-flow-value {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: 1.125rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-settle-track {
+    margin-top: 10px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.ov-settle-track > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+
+.ov-year-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tracker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.tracker-filter {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+}
+
+.tracker-filter-btn {
+    appearance: none;
+    flex: 1 1 0;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    padding: 8px 6px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.tracker-filter-btn.is-active {
+    background: var(--surface);
+    color: var(--text-strong);
+    box-shadow: 0 0 0 1px var(--text-strong);
+}
+
+.tracker-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: clamp(16px, 2vw, 24px);
+    align-items: start;
+}
+
+.header-status {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.header-status .status-chip,
+.header-status .privacy-chip,
+.header-status .undo-delete-btn {
+    height: var(--header-control);
+    min-height: var(--header-control);
+    max-height: var(--header-control);
+}
+
+.app-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 180;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--header);
+    color: var(--header-text);
+    border-top: 1px solid var(--border);
+}
+
+.dock-tab {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 48px;
+    border: 1px solid transparent;
+    border-radius: var(--control-radius);
+    background: transparent;
+    color: color-mix(in srgb, var(--header-text) 70%, transparent);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.dock-tab i {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.dock-tab.is-active {
+    color: var(--header-text);
+    background: color-mix(in srgb, var(--header-text) 12%, transparent);
+    border-color: color-mix(in srgb, var(--header-text) 22%, transparent);
+}
+
+.privacy-tools {
+    margin-bottom: 16px;
+}
+
+.privacy-tools-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.privacy-tool-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--control);
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.privacy-tool-btn:focus-visible {
+    outline: 2px solid var(--text-strong);
+    outline-offset: 2px;
+}
+
+.ov-formula-line {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--fs-sm);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.45;
+}
+
+.dash-plan-kicker {
+    margin: 10px 0 0;
+}
+
+.dash-plan-kicker:first-child {
+    margin-top: 0;
+}
+
+.sidebar.is-both .sidebar-flip-inner {
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sidebar.is-both .sidebar-face,
+.sidebar.is-both .sidebar-face--income {
+    position: relative;
+    transform: none;
+    backface-visibility: visible;
 }
 
 .site-header {
@@ -1240,6 +1507,7 @@ html.is-action-busy [data-lockable] {
 
 .dash-deck-track {
     display: flex;
+    align-items: flex-start;
     width: 100%;
     transition: transform 280ms var(--ease-out);
     will-change: transform;
@@ -1251,6 +1519,15 @@ html.is-action-busy [data-lockable] {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* Hidden slides must not set the viewport height. The Planner form used to
+   stretch Overview and push the calendar below the fold. */
+.dash-slide[aria-hidden="true"] {
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .dash-chips:not(.is-ready) {
@@ -1320,6 +1597,13 @@ html.is-action-busy [data-lockable] {
     background: var(--surface);
     width: 100%;
     box-sizing: border-box;
+}
+
+.dash-fold .dash-plan {
+    padding: 0 0 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .dash-plan .input-group {
@@ -1394,7 +1678,7 @@ html.is-action-busy [data-lockable] {
 .dash-plan-choice.is-on {
     background: var(--surface);
     color: var(--text-strong);
-    box-shadow: 0 0 0 1px var(--border);
+    box-shadow: 0 0 0 1px var(--text-strong);
 }
 
 .dash-plan-choice input {
@@ -1460,6 +1744,7 @@ html.is-action-busy [data-lockable] {
 }
 
 .dash-fold[open] .dash-block-grid,
+.dash-fold[open] .dash-plan,
 .summary-fold[open] > :not(summary) {
     margin-bottom: 10px;
 }
@@ -6163,7 +6448,8 @@ html.oe-scroll-lock body {
    Responsive: tablet
    ========================================================================== */
 @media (max-width: 1024px) {
-    .dash {
+    .dash,
+    .tracker-board {
         grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
@@ -6299,26 +6585,25 @@ html.oe-scroll-lock body {
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas:
             "brand actions"
-            "nav nav";
+            "status status";
     }
 
     .brand { grid-area: brand; }
     .header-actions { grid-area: actions; }
-
-    .view-segment-bar {
-        grid-area: nav;
+    .header-status {
+        grid-area: status;
+        justify-content: flex-start;
         width: 100%;
-        justify-self: stretch;
-    }
-
-    .view-tab {
-        min-height: 40px;
     }
 }
 
 @media (max-width: 640px) {
     .app-container {
-        padding: 12px var(--gutter) calc(24px + env(safe-area-inset-bottom, 0px));
+        padding: 12px var(--gutter) calc(88px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .tracker-board {
+        grid-template-columns: 1fr;
     }
 
     .dash {

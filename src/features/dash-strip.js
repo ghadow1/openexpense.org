@@ -1,11 +1,10 @@
 /**
- * OpenExpense — dashboard snapshot
+ * OpenExpense — Overview and Planner panes
  *
- * Four swipeable views. Each slide is one period dial plus a three-point
- * year spark. Budget holds weekly savings and the rules Overview uses.
- * Extra figures stay folded so the strip never fills the screen.
+ * Overview is the cash snapshot. Planner is daily safe spend plus the
+ * withholding, savings-hold, and 50/30/20 form. Extra figures stay folded
+ * on a narrow screen. Tracker (calendar + register) is painted elsewhere.
  */
-import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import {
     computeMonthlySummary,
@@ -43,46 +42,6 @@ function bindWidth() {
     if (!query?.addEventListener) return;
     widthBound = true;
     query.addEventListener('change', () => renderDashStrip());
-}
-
-const VIEWS = ['overview', 'income', 'expense', 'budget'];
-const VIEW_COPY = {
-    overview: {
-        tab: 'Overview',
-        title: 'Left to spend',
-        description: 'Deposits minus this month’s spending.'
-    },
-    income: {
-        tab: 'Income',
-        title: 'Deposited',
-        description: 'What has landed this month.'
-    },
-    expense: {
-        tab: 'Expenses',
-        title: 'Month spending',
-        description: 'Logged bills for the month on screen.'
-    },
-    budget: {
-        tab: 'Planner',
-        title: 'Planner',
-        description: 'Withholding, savings hold, and the leftover ÷ days that remain.'
-    }
-};
-
-let activeView = readStoredView();
-
-function readStoredView() {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEYS.dashView);
-        if (stored === 'planner' || stored === 'plan') return 'budget';
-        if (VIEWS.includes(stored)) return stored;
-    } catch (_) { }
-    return 'overview';
-}
-
-function persistView(view) {
-    activeView = view;
-    try { localStorage.setItem(STORAGE_KEYS.dashView, view); } catch (_) { }
 }
 
 function chip({ label, value, tone, hint, signed = true, track = false }) {
@@ -151,11 +110,6 @@ function toneFor(n) {
     if (n > 0) return 'up';
     if (n < 0) return 'down';
     return 'flat';
-}
-
-function countHint(count, one, many) {
-    if (!count) return many;
-    return `${count} ${count === 1 ? one : many}`;
 }
 
 function clampRatio(part, whole) {
@@ -237,287 +191,6 @@ function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras 
     return [section];
 }
 
-function savingsRateChip(snap) {
-    const saved = snap.savingsRate == null
-        ? '—'
-        : `${snap.savingsRate > 0 ? '+' : ''}${snap.savingsRate.toFixed(0)}%`;
-    return textChip({
-        label: 'Income left',
-        value: saved,
-        hint: 'After this month’s spending',
-        tone: snap.savingsRate > 0 ? 'up' : 'flat',
-        track: true
-    });
-}
-
-function overviewDescription(snap) {
-    if (snap.taxWithheld > 0 || snap.savingsHold > 0) {
-        return 'After-tax counted income minus counted spending and the savings hold.';
-    }
-    if (snap.spendUsed !== snap.monthOut || snap.incomeUsed !== snap.deposited) {
-        return 'Counted income minus counted spending for this month.';
-    }
-    return VIEW_COPY.overview.description;
-}
-
-function overviewSlide(snap, events, currentDate) {
-    const dueHint = snap.dueSoonCount
-        ? countHint(snap.dueSoonCount, 'bill', 'bills')
-        : 'Next 7 days';
-    const unpaidHint = snap.leftToPayCount
-        ? `${countHint(snap.leftToPayCount, 'bill', 'bills')} · ${snap.monthLabel}`
-        : snap.monthLabel;
-    const depositedHint = snap.incomeDue > 0
-        ? `${formatMoney(snap.incomeDue)} still to land`
-        : `Landed in ${snap.monthLabel}`;
-    const leftHint = snap.drawsOnSavings
-        ? `${formatMoney(Math.abs(snap.leftToSpend))} from savings funds`
-        : (snap.savingsHold > 0
-            ? `After ${formatMoney(snap.savingsHold)} held`
-            : (snap.taxWithheld > 0
-                ? `After ${formatMoney(snap.taxWithheld)} withheld`
-                : (snap.planCaption && snap.planCaption !== 'deposited income minus all logged bills'
-                    ? snap.planCaption
-                    : 'Deposited − spending')));
-    const savingsHint = snap.drawsOnSavings
-        ? `${formatMoney(snap.savingsAfterMonth)} left after ${snap.monthLabel}`
-        : `Carried into ${snap.monthLabel}`;
-
-    return heroSlide({
-        title: VIEW_COPY.overview.title,
-        description: overviewDescription(snap),
-        dial: createDial({
-            value: snap.leftToSpend,
-            label: 'Left to spend',
-            caption: snap.monthLabel,
-            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.incomeUsed || snap.deposited)
-        }),
-        spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
-        bars: createBars({
-            ariaLabel: `${snap.monthLabel} cash`,
-            rows: [
-                { label: 'Deposited', value: snap.deposited },
-                { label: 'Spent', value: snap.monthOut },
-                { label: 'Savings', value: snap.savingsFunds }
-            ]
-        }),
-        extrasTitle: 'More figures',
-        extras: [
-            chip({
-                label: 'Deposited',
-                value: snap.deposited,
-                tone: snap.deposited > 0 ? 'up' : 'flat',
-                hint: depositedHint
-            }),
-            chip({
-                label: 'Savings funds',
-                value: snap.savingsFunds,
-                tone: toneFor(snap.savingsFunds),
-                hint: savingsHint
-            }),
-            chip({
-                label: 'Due next 7 days',
-                value: snap.dueSoon,
-                tone: snap.dueSoon > 0 ? 'flat' : 'up',
-                hint: dueHint,
-                signed: false,
-                track: true
-            }),
-            chip({
-                label: 'Unpaid bills',
-                value: snap.leftToPay,
-                tone: snap.leftToPay > 0 ? 'flat' : 'up',
-                hint: unpaidHint,
-                signed: false,
-                track: true
-            }),
-            ...(snap.taxWithheld > 0 ? [chip({
-                label: 'Tax withheld',
-                value: snap.taxWithheld,
-                tone: 'flat',
-                hint: `${snap.plan.taxWithholdPct}% of counted income`,
-                signed: false,
-                track: true
-            })] : []),
-            ...(snap.savingsHold > 0 ? [chip({
-                label: 'Savings hold',
-                value: snap.savingsHold,
-                tone: 'flat',
-                hint: snap.reserveOn && snap.weeklyReserve === snap.savingsHold
-                    ? `${formatMoney(snap.weeklySavings)} / week`
-                    : 'Weekly + monthly + percent',
-                signed: false,
-                track: true
-            })] : []),
-            chip({
-                label: 'Daily safe',
-                value: snap.dailySafe,
-                tone: snap.dailySafe >= 0 ? 'up' : 'down',
-                hint: snap.daysLeft ? `${snap.daysLeft} day${snap.daysLeft === 1 ? '' : 's'} left` : 'Month closed'
-            }),
-            textChip({
-                label: 'Days of cash',
-                value: snap.runwayDays == null ? '—' : String(snap.runwayDays),
-                hint: snap.avgDailyBurn > 0
-                    ? `${formatMoney(snap.avgDailyBurn)} / day burn`
-                    : 'No spending to divide',
-                tone: snap.runwayDays == null ? 'flat' : 'up',
-                track: true
-            }),
-            chip({
-                label: 'Recurring unpaid',
-                value: snap.unpaidRecurring,
-                tone: snap.unpaidRecurring > 0 ? 'flat' : 'up',
-                hint: snap.unpaidRecurringCount
-                    ? countHint(snap.unpaidRecurringCount, 'bill', 'bills')
-                    : 'None left this month',
-                signed: false,
-                track: true
-            }),
-            savingsRateChip(snap)
-        ]
-    });
-}
-
-function incomeSlide(snap, events, currentDate) {
-    const expectedHint = snap.incomeDueCount
-        ? countHint(snap.incomeDueCount, 'check', 'checks')
-        : snap.monthLabel;
-
-    return heroSlide({
-        title: VIEW_COPY.income.title,
-        description: VIEW_COPY.income.description,
-        dial: createDial({
-            value: snap.deposited,
-            label: 'Deposited',
-            caption: snap.monthLabel,
-            ratio: clampRatio(snap.deposited, snap.projectedIncome)
-        }),
-        spark: yearSpark(events, currentDate, 'income', `${currentDate.getFullYear()} income`),
-        bars: createBars({
-            ariaLabel: `${snap.monthLabel} income`,
-            rows: [
-                { label: 'Deposited', value: snap.deposited },
-                { label: 'Expected', value: snap.incomeDue },
-                { label: 'Recurring', value: snap.incomeRecurring }
-            ]
-        }),
-        extrasTitle: 'More figures',
-        extras: [
-            chip({
-                label: 'Scheduled income',
-                value: snap.projectedIncome,
-                tone: snap.projectedIncome > 0 ? 'up' : 'flat',
-                hint: snap.monthLabel
-            }),
-            chip({
-                label: 'Still expected',
-                value: snap.incomeDue,
-                tone: snap.incomeDue > 0 ? 'up' : 'flat',
-                hint: expectedHint,
-                signed: false
-            }),
-            chip({
-                label: 'Recurring income',
-                value: snap.incomeRecurring,
-                tone: snap.incomeRecurring > 0 ? 'up' : 'flat',
-                hint: 'On the calendar',
-                signed: false,
-                track: true
-            }),
-            ...(snap.incomeUsed !== snap.deposited ? [chip({
-                label: 'Counted income',
-                value: snap.incomeUsed,
-                tone: snap.incomeUsed > 0 ? 'up' : 'flat',
-                hint: 'Used for left-to-spend'
-            })] : []),
-            ...(snap.taxWithheld > 0 ? [chip({
-                label: 'After tax',
-                value: snap.afterTax,
-                tone: snap.afterTax > 0 ? 'up' : 'flat',
-                hint: `${formatMoney(snap.taxWithheld)} withheld`
-            })] : [])
-        ]
-    });
-}
-
-function expenseSlide(snap, events, currentDate) {
-    const dueHint = snap.dueSoonCount
-        ? countHint(snap.dueSoonCount, 'bill', 'bills')
-        : 'Next 7 days';
-    const unpaidHint = snap.leftToPayCount
-        ? countHint(snap.leftToPayCount, 'bill', 'bills')
-        : snap.monthLabel;
-
-    return heroSlide({
-        title: VIEW_COPY.expense.title,
-        description: VIEW_COPY.expense.description,
-        dial: createDial({
-            value: snap.monthOut,
-            label: 'Month spending',
-            caption: snap.monthLabel,
-            ratio: clampRatio(snap.spendPaid, snap.monthOut)
-        }),
-        spark: yearSpark(events, currentDate, 'expense', `${currentDate.getFullYear()} spending`),
-        bars: createBars({
-            ariaLabel: `${snap.monthLabel} spending`,
-            rows: [
-                { label: 'Paid', value: snap.spendPaid },
-                { label: 'Unpaid', value: snap.leftToPay },
-                { label: 'Recurring', value: snap.spendRecurring }
-            ]
-        }),
-        extrasTitle: 'More figures',
-        extras: [
-            chip({
-                label: 'Paid',
-                value: snap.spendPaid,
-                tone: 'up',
-                hint: 'Marked paid',
-                signed: false
-            }),
-            chip({
-                label: 'Unpaid bills',
-                value: snap.leftToPay,
-                tone: snap.leftToPay > 0 ? 'flat' : 'up',
-                hint: unpaidHint,
-                signed: false
-            }),
-            chip({
-                label: 'Due next 7 days',
-                value: snap.dueSoon,
-                tone: snap.dueSoon > 0 ? 'flat' : 'up',
-                hint: dueHint,
-                signed: false
-            }),
-            chip({
-                label: 'Recurring spend',
-                value: snap.spendRecurring,
-                tone: 'flat',
-                hint: 'On the calendar',
-                signed: false,
-                track: true
-            }),
-            ...(snap.spendUsed !== snap.monthOut ? [chip({
-                label: 'Counted spend',
-                value: snap.spendUsed,
-                tone: 'flat',
-                hint: 'Paid bills only',
-                signed: false,
-                track: true
-            })] : []),
-            ...(snap.avgDailyBurn > 0 ? [chip({
-                label: 'Daily burn',
-                value: snap.avgDailyBurn,
-                tone: 'flat',
-                hint: 'Counted spend ÷ days elapsed',
-                signed: false,
-                track: true
-            })] : [])
-        ]
-    });
-}
-
 function choiceButton(name, value, label, checked) {
     const wrap = document.createElement('label');
     wrap.className = `dash-plan-choice${checked ? ' is-on' : ''}`;
@@ -564,13 +237,20 @@ function moneyField(id, label, value, placeholder = '0.00') {
     return group;
 }
 
+function sectionKicker(text) {
+    const node = document.createElement('p');
+    node.className = 'ov-kicker dash-plan-kicker';
+    node.textContent = text;
+    return node;
+}
+
 function planPanel(snap, plan) {
     const form = document.createElement('form');
     form.className = 'dash-plan';
     form.setAttribute('aria-label', 'Planner settings');
     form.addEventListener('submit', (event) => event.preventDefault());
 
-    const weekly = moneyField('dash-plan-weekly', 'Weekly savings', plan.weeklySavings);
+    const weekly = moneyField('dash-plan-weekly', 'Weekly savings ($)', plan.weeklySavings);
     weekly.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-hint');
     const weeklyIn = moneyField('dash-plan-weekly-income', 'Weekly income goal', plan.weeklyIncome);
     weeklyIn.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-income-hint');
@@ -592,9 +272,9 @@ function planPanel(snap, plan) {
     taxPresets.className = 'dash-plan-choices';
     taxPresets.append(
         choiceButton('dash-plan-tax-preset', '0', 'Off', plan.taxWithholdPct === 0),
-        choiceButton('dash-plan-tax-preset', '15.3', '15.3 SE tax', plan.taxWithholdPct === 15.3),
-        choiceButton('dash-plan-tax-preset', '25', '25 estimate', plan.taxWithholdPct === 25),
-        choiceButton('dash-plan-tax-preset', '30', '30 estimate', plan.taxWithholdPct === 30)
+        choiceButton('dash-plan-tax-preset', '15.3', '15.3% SE tax', plan.taxWithholdPct === 15.3),
+        choiceButton('dash-plan-tax-preset', '25', '25% estimate', plan.taxWithholdPct === 25),
+        choiceButton('dash-plan-tax-preset', '30', '30% estimate', plan.taxWithholdPct === 30)
     );
     taxPresets.addEventListener('change', (event) => {
         const picked = event.target?.value;
@@ -602,7 +282,7 @@ function planPanel(snap, plan) {
         if (input && picked != null) input.value = picked;
     });
 
-    const fixed = moneyField('dash-plan-fixed', 'Monthly savings $', plan.savingsFixed);
+    const fixed = moneyField('dash-plan-fixed', 'Monthly savings ($)', plan.savingsFixed);
     const savePct = moneyField('dash-plan-savepct', 'Savings % of after-tax', plan.savingsPct, '0');
     savePct.querySelector('input').max = '100';
     savePct.querySelector('input').step = '0.1';
@@ -647,10 +327,15 @@ function planPanel(snap, plan) {
     );
     ratioField.append(ratioLegend, ratioRow);
 
-    const caps = UI.createButton('Category monthly caps', () => openBudgetEditor());
+    const caps = UI.createButton('Manage category monthly caps', () => openBudgetEditor());
     caps.classList.add('dash-plan-caps');
 
     form.append(
+        sectionKicker('Tax withholding'),
+        tax,
+        taxPresets,
+        hint('', '15.3 is IRS self-employment tax (12.4 Social Security + 2.9 Medicare; Topic 554 / Pub 334). 25 and 30 are common quarterly-estimate placeholders from Pub 505 practice, not a tax filing.'),
+        sectionKicker('Savings and hold reserves'),
         weekly,
         hint('dash-plan-weekly-hint', plan.weeklySavings > 0
             ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
@@ -659,15 +344,13 @@ function planPanel(snap, plan) {
         hint('dash-plan-weekly-income-hint', plan.weeklyIncome > 0
             ? `A Sunday–Saturday row turns green when gross income beats ${formatMoney(plan.weeklyIncome)} × days in that row ÷ 7.`
             : 'Leave blank to use this month’s own income pace. A week turns green when its gross income beats that share.'),
-        reserve,
-        tax,
-        taxPresets,
-        hint('', '15.3 is IRS self-employment tax (12.4 Social Security + 2.9 Medicare). 25 and 30 are common quarterly-estimate placeholders from Pub 505 practice, not a tax filing.'),
         fixed,
         savePct,
         hint('', 'Fixed dollars and this percent stack with the weekly hold. They come out of after-tax income before left-to-spend.'),
+        reserve,
         spendField,
         incomeField,
+        sectionKicker('After-tax split'),
         ratioField,
         hint('', `50/30/20 is Warren and Tyagi, All Your Worth (2005), as taught by the CFPB. Needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}, save hold ${formatMoney(snap.savingsHold)} of ${formatMoney(snap.ratioSaveCap)}.`),
         caps
@@ -746,12 +429,20 @@ function budgetSlide(snap, events, currentDate, plan) {
         })
     ];
 
+    const settings = document.createElement('details');
+    settings.className = 'dash-fold';
+    settings.open = true;
+    const settingsSum = document.createElement('summary');
+    settingsSum.className = 'dash-fold-sum';
+    settingsSum.textContent = 'Planner settings';
+    settings.append(settingsSum, planPanel(snap, plan));
+
     return [
         ...heroSlide({
-            title: daysOpen ? 'Daily safe spend' : VIEW_COPY.budget.title,
+            title: daysOpen ? 'Daily safe spend' : 'Planner',
             description: daysOpen
                 ? 'Left to spend divided by the days still on this month, including today.'
-                : VIEW_COPY.budget.description,
+                : 'Withholding, savings hold, and the leftover ÷ days that remain.',
             dial: createDial({
                 value,
                 label: daysOpen ? 'Safe / day' : 'Left to spend',
@@ -772,144 +463,151 @@ function budgetSlide(snap, events, currentDate, plan) {
             extrasTitle: 'Planner figures',
             extras
         }),
-        planPanel(snap, plan)
+        settings
     ];
 }
 
-function slideFor(view, snap, events, currentDate, plan) {
-    if (view === 'income') return incomeSlide(snap, events, currentDate);
-    if (view === 'expense') return expenseSlide(snap, events, currentDate);
-    if (view === 'budget') return budgetSlide(snap, events, currentDate, plan);
-    return overviewSlide(snap, events, currentDate);
+function settleBar(paid, total, paidLabel, openLabel) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ov-settle';
+    const ratio = total > 0 ? Math.max(0, Math.min(1, paid / total)) : 0;
+    const track = document.createElement('div');
+    track.className = 'ov-settle-track';
+    const fill = document.createElement('span');
+    fill.style.width = `${Math.round(ratio * 100)}%`;
+    track.appendChild(fill);
+    const meta = document.createElement('p');
+    meta.className = 'ov-settle-meta';
+    meta.textContent = `${paidLabel} ${formatMoney(paid)}  ·  ${openLabel} ${formatMoney(Math.max(0, total - paid))}`;
+    wrap.append(track, meta);
+    return wrap;
 }
 
-function setDeckView(root, view) {
-    if (!VIEWS.includes(view)) view = 'overview';
-    persistView(view);
-    const index = VIEWS.indexOf(view);
-    root.dataset.view = view;
-    const track = root.querySelector('.dash-deck-track');
-    if (track) track.style.transform = `translateX(-${index * 100}%)`;
-    root.querySelectorAll('[data-dash-view]').forEach((btn) => {
-        const on = btn.dataset.dashView === view;
+function overviewCard(kicker, title, hint, bar) {
+    const card = document.createElement('article');
+    card.className = 'oe-card ov-flow-card';
+    const label = document.createElement('p');
+    label.className = 'ov-kicker';
+    label.textContent = kicker;
+    const value = document.createElement('p');
+    value.className = 'ov-flow-value';
+    value.textContent = title;
+    const sub = document.createElement('p');
+    sub.className = 'ov-sub';
+    sub.textContent = hint;
+    card.append(label, value, sub, bar);
+    return card;
+}
+
+function renderOverview(snap, events, currentDate) {
+    const root = document.getElementById('overview-root');
+    if (!root) return;
+
+    const hero = document.createElement('section');
+    hero.className = 'oe-card ov-hero';
+    const kicker = document.createElement('p');
+    kicker.className = 'ov-kicker';
+    kicker.textContent = 'Left to spend';
+    const row = document.createElement('div');
+    row.className = 'ov-hero-row';
+    const copy = document.createElement('div');
+    const kpi = document.createElement('p');
+    kpi.className = 'ov-kpi';
+    kpi.textContent = formatMoney(snap.leftToSpend);
+    const sub = document.createElement('p');
+    sub.className = 'ov-sub';
+    sub.textContent = snap.daysLeft > 0
+        ? `${formatMoney(snap.dailySafe)} / day · ${snap.daysLeft} day${snap.daysLeft === 1 ? '' : 's'} remaining`
+        : `${snap.monthLabel} is closed`;
+    copy.append(kpi, sub);
+    const spendRatio = snap.spendableIncome > 0
+        ? clampRatio(snap.spendUsed, snap.spendableIncome)
+        : clampRatio(snap.monthOut, snap.deposited || snap.monthOut || 1);
+    row.append(copy, createDial({
+        value: snap.leftToSpend,
+        label: 'Left',
+        caption: snap.monthLabel,
+        ratio: 1 - spendRatio
+    }));
+    hero.append(kicker, row);
+
+    const pair = document.createElement('div');
+    pair.className = 'ov-pair';
+    pair.append(
+        overviewCard(
+            'Deposited this month',
+            formatMoney(snap.deposited),
+            `${formatMoney(snap.monthIn)} scheduled · ${formatMoney(snap.incomeDue)} expected`,
+            settleBar(snap.deposited, snap.monthIn, 'Deposited', 'Expected')
+        ),
+        overviewCard(
+            'Logged spending',
+            formatMoney(snap.monthOut),
+            `${formatMoney(snap.spendPaid)} paid · ${formatMoney(snap.leftToPay)} pending`,
+            settleBar(snap.spendPaid, snap.monthOut, 'Paid', 'Pending')
+        )
+    );
+
+    const year = document.createElement('section');
+    year.className = 'oe-card ov-year';
+    const yearTitle = document.createElement('p');
+    yearTitle.className = 'ov-kicker';
+    yearTitle.textContent = `${currentDate.getFullYear()} cash flow trajectory`;
+    const spend = computeMonthlySummary(events, currentDate, 'expense');
+    const charts = document.createElement('div');
+    charts.className = 'ov-year-charts';
+    charts.append(
+        yearSpark(events, currentDate, 'income', `${currentDate.getFullYear()} income`),
+        yearSpark(events, currentDate, 'expense', `${currentDate.getFullYear()} spending`)
+    );
+    const foot = document.createElement('p');
+    foot.className = 'ov-year-foot';
+    foot.textContent = `Daily average ${formatMoney(spend.avgPerDay)}  ·  Average entry ${formatMoney(spend.avgPerEntry)}`;
+    year.append(yearTitle, charts, foot);
+
+    root.replaceChildren(hero, pair, year);
+    root.classList.add('is-ready');
+}
+
+function formulaCard(snap) {
+    const card = document.createElement('section');
+    card.className = 'oe-card ov-formula';
+    const kicker = document.createElement('p');
+    kicker.className = 'ov-kicker';
+    kicker.textContent = 'Left-to-spend formula';
+    const line = document.createElement('p');
+    line.className = 'ov-formula-line';
+    const taxBit = snap.taxWithheld > 0 ? `  −  ${formatMoney(snap.taxWithheld)} tax` : '';
+    const holdBit = snap.savingsHold > 0 ? `  −  ${formatMoney(snap.savingsHold)} reserves` : '';
+    line.textContent = `${formatMoney(snap.incomeUsed || snap.deposited)} deposits${taxBit}  −  ${formatMoney(snap.spendUsed)} bills${holdBit}  =  ${formatMoney(snap.leftToSpend)}`;
+    card.append(kicker, line);
+    return card;
+}
+
+function renderPlannerPane(snap, events, currentDate, plan) {
+    const root = document.getElementById('planner-root');
+    if (!root) return;
+    const slide = document.createElement('div');
+    slide.className = 'planner-stack';
+    slide.append(formulaCard(snap), ...budgetSlide(snap, events, currentDate, plan));
+    root.replaceChildren(slide);
+}
+
+function syncTrackerFilter() {
+    const filter = getState().trackerFilter || 'all';
+    document.querySelectorAll('[data-tracker-filter]').forEach((btn) => {
+        const on = btn.dataset.trackerFilter === filter;
         btn.classList.toggle('is-active', on);
         btn.setAttribute('aria-selected', on ? 'true' : 'false');
-        btn.tabIndex = on ? 0 : -1;
     });
-    root.querySelectorAll('.dash-slide').forEach((slide) => {
-        const on = slide.dataset.view === view;
-        slide.setAttribute('aria-hidden', on ? 'false' : 'true');
-    });
-}
-
-function shiftView(root, delta) {
-    const index = VIEWS.indexOf(activeView);
-    const next = VIEWS[(index + delta + VIEWS.length) % VIEWS.length];
-    setDeckView(root, next);
-}
-
-function bindDeck(root) {
-    if (root.dataset.deckBound === '1') return;
-    root.dataset.deckBound = '1';
-
-    root.addEventListener('click', (event) => {
-        const tab = event.target.closest('[data-dash-view]');
-        if (!tab || !root.contains(tab)) return;
-        setDeckView(root, tab.dataset.dashView);
-    });
-
-    root.addEventListener('keydown', (event) => {
-        if (!root.contains(document.activeElement)) return;
-        if (event.key === 'ArrowRight') {
-            event.preventDefault();
-            shiftView(root, 1);
-            root.querySelector('[data-dash-view].is-active')?.focus();
-        } else if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            shiftView(root, -1);
-            root.querySelector('[data-dash-view].is-active')?.focus();
-        }
-    });
-
-    let startX = 0;
-    let startY = 0;
-    let dragging = false;
-    root.addEventListener('pointerdown', (event) => {
-        if (event.target.closest('[data-dash-view]')) return;
-        if (event.target.closest('.dash-fold')) return;
-        if (event.target.closest('.dash-plan')) return;
-        if (event.target.closest('.oe-spark-hit')) return;
-        if (event.button != null && event.button !== 0) return;
-        startX = event.clientX;
-        startY = event.clientY;
-        dragging = true;
-    });
-    root.addEventListener('pointerup', (event) => {
-        if (!dragging) return;
-        dragging = false;
-        const dx = event.clientX - startX;
-        const dy = event.clientY - startY;
-        if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
-        shiftView(root, dx < 0 ? 1 : -1);
-    });
-    root.addEventListener('pointercancel', () => { dragging = false; });
 }
 
 export function renderDashStrip() {
-    const root = document.getElementById('dash-chips');
-    if (!root) return;
-
+    bindWidth();
     const { events, currentDate, plan } = getState();
     const rules = sanitizePlan(plan);
     const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
-
-    const deck = document.createElement('section');
-    deck.className = 'dash-deck';
-    deck.setAttribute('aria-roledescription', 'carousel');
-    deck.setAttribute('aria-label', 'Ledger snapshot views');
-
-    const tabs = document.createElement('div');
-    tabs.className = 'dash-deck-tabs';
-    tabs.setAttribute('role', 'tablist');
-    tabs.setAttribute('aria-label', 'Snapshot views');
-    VIEWS.forEach((view) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'dash-deck-tab';
-        btn.dataset.dashView = view;
-        btn.id = `dash-tab-${view}`;
-        btn.setAttribute('role', 'tab');
-        btn.setAttribute('aria-controls', `dash-slide-${view}`);
-        btn.textContent = VIEW_COPY[view].tab;
-        if (view === 'budget') btn.setAttribute('aria-label', 'Planner settings');
-        tabs.appendChild(btn);
-    });
-
-    const viewport = document.createElement('div');
-    viewport.className = 'dash-deck-viewport';
-
-    const track = document.createElement('div');
-    track.className = 'dash-deck-track';
-
-    VIEWS.forEach((view) => {
-        const slide = document.createElement('div');
-        slide.className = 'dash-slide';
-        slide.id = `dash-slide-${view}`;
-        slide.dataset.view = view;
-        slide.setAttribute('role', 'tabpanel');
-        slide.setAttribute('aria-labelledby', `dash-tab-${view}`);
-        slide.append(...slideFor(view, snap, events, currentDate, rules));
-        track.appendChild(slide);
-    });
-
-    viewport.appendChild(track);
-    deck.append(tabs, viewport);
-
-    const firstPaint = !root.classList.contains('is-ready');
-    root.replaceChildren(deck);
-    root.classList.add('is-ready');
-    root.classList.toggle('is-fresh', firstPaint);
-    bindDeck(root);
-    bindWidth();
-    setDeckView(root, activeView);
+    renderOverview(snap, events, currentDate);
+    renderPlannerPane(snap, events, currentDate, rules);
+    syncTrackerFilter();
 }

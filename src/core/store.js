@@ -17,7 +17,9 @@ const state = {
     storageEncrypted: true,
     selectedKey: null,
     editingIndex: null,
-    ledgerFace: 'expense'
+    ledgerFace: 'expense',
+    trackerFilter: 'all',
+    shellTab: 'overview'
 };
 
 const listeners = new Set();

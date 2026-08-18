@@ -1,9 +1,9 @@
 /**
  * OpenExpense — Export / Save button state
  *
- * When a directory handle is linked, both Export controls become Save and
- * write over the existing JSON in that folder. The visible chrome stays
- * icon-only; the name lives in aria-label and title.
+ * When a directory handle is linked, every Export control becomes Save and
+ * writes over the existing JSON in that folder. Tracker keeps the control
+ * icon-only; Privacy shows a text label. The name also lives in aria-label.
  */
 import { getSavedFolder } from '../core/folder.js';
 
@@ -25,24 +25,18 @@ export function paintExportButtons(linked) {
     const label = linked ? 'Save' : 'Export';
     const hint = linked ? SAVE_HINT : EXPORT_HINT;
 
-    const dash = document.querySelector('[data-action="export-ledger"]');
-    if (dash) {
-        setIcon(dash, icon);
-        setLabel(dash, label);
-        dash.setAttribute('aria-label', hint);
-        dash.title = hint;
-        dash.classList.toggle('is-linked', linked);
-    }
-
-    const cal = document.getElementById('cal-export-btn');
-    if (cal) {
-        setIcon(cal, icon);
-        setLabel(cal, label);
-        cal.setAttribute('aria-label', hint);
-        cal.title = hint;
-        cal.classList.toggle('is-linked', linked);
-        cal.classList.toggle('ui-btn--accent', linked);
-    }
+    document.querySelectorAll('[data-action="export-ledger"]').forEach((el) => {
+        setIcon(el, icon);
+        if (el.classList.contains('privacy-tool-btn')) {
+            const span = el.querySelector('span');
+            if (span) span.textContent = linked ? 'Save JSON backup' : 'Download JSON backup';
+        } else {
+            setLabel(el, label);
+        }
+        el.setAttribute('aria-label', hint);
+        el.title = hint;
+        el.classList.toggle('is-linked', linked);
+    });
 }
 
 export async function refreshExportButtons() {

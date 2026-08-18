@@ -24,7 +24,7 @@ npm test               # ledger file QC (encrypt, sanitize, key wipe)
 ## Ground rules
 
 - **No backend.** No analytics, accounts, or remote ledger storage.
-- **No new pages or routes.** The product has two views: Expenses (`#view-app`) and Privacy & Help (`#view-docs`). Wire new UI into those shells.
+- **No new pages or routes.** The product has four tabs on two existing mains: Overview / Tracker / Planner in `#view-app`, and Privacy & Help in `#view-docs`. Wire new UI into those shells.
 - **Do not edit `app.js` or `chunk-*.js` by hand.** Change `src/`, then `npm run build`.
 - **Leave live DOM ids alone** unless the change requires it: `#modal`, `#ledger-name-input`, `[data-action]`, `[data-view]`, `[data-tab]`.
 - **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.

@@ -13,11 +13,7 @@ import { groupExpenses, repeatLabel } from '../core/series.js';
 import { computeNetSnapshot, dayNetBadge } from '../core/summary.js';
 import { trackCalendarWeeks } from '../core/plan.js';
 import { UI } from '../ui/components.js';
-import { Ledger } from './ledger.js';
-import { Receipt } from './receipt.js';
 import { openModal } from './modal.js';
-import { paintExportButtons } from './export-buttons.js';
-import { peekSavedFolder } from '../core/folder.js';
 import { moveIndexes } from '../core/day-entries.js';
 import { dismissUndo } from './undo-delete.js';
 import { Toast } from '../ui/toast.js';
@@ -122,32 +118,16 @@ function ensureShell(calCol) {
 
     const actions = document.createElement('div');
     actions.className = 'nav-group toolbar-actions';
-    const divider = () => Object.assign(document.createElement('div'), { className: 'nav-divider' });
 
     const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event', iconOnly: true });
-    const importBtn = UI.createButton('Import', Ledger.import, { icon: 'upload', iconOnly: true });
-    const exportBtn = UI.createButton('Export', () => Ledger.export(), { icon: 'download', iconOnly: true });
-    exportBtn.id = 'cal-export-btn';
-    Ledger.bindFolderGesture(exportBtn);
-    const clearBtn = UI.createButton('Clear', () => Ledger.clearLedger(), { icon: 'trash', iconOnly: true });
-    const scanBtn = UI.createButton('Scan', () => Receipt.pickImage(), { icon: 'camera', iconOnly: true });
-    clearBtn.classList.add('toolbar-clear-btn');
-    scanBtn.classList.add('toolbar-scan-btn');
-    importBtn.setAttribute('data-lockable', '');
-    exportBtn.setAttribute('data-lockable', '');
-    clearBtn.setAttribute('data-lockable', '');
-    scanBtn.setAttribute('data-lockable', '');
-
-    // Accessible name + tooltip so the buttons stay usable once labels collapse to icons.
-    [[todayBtn, 'Jump to today'], [importBtn, 'Import ledger and key.json from your OpenExpense folder'],
-    [exportBtn, 'Export to the OpenExpense folder. Long-press to choose another folder'],
-    [clearBtn, 'Clear calendar'], [scanBtn, 'Scan receipt — photo or PDF']].forEach(([btn, label]) => {
+    const searchBtn = UI.createButton('Search', () => {}, { icon: 'search', iconOnly: true });
+    searchBtn.setAttribute('data-action', 'search-ledger');
+    [[todayBtn, 'Jump to today'], [searchBtn, 'Search entries']].forEach(([btn, label]) => {
         btn.setAttribute('aria-label', label);
         btn.title = label;
     });
-    paintExportButtons(!!peekSavedFolder());
 
-    actions.append(todayBtn, divider(), importBtn, exportBtn, clearBtn, divider(), scanBtn);
+    actions.append(todayBtn, searchBtn);
     hdr.append(nav, actions);
     shellEl.appendChild(hdr);
 
@@ -299,6 +279,12 @@ function weekHintRows(events, currentDate, plan) {
     };
 }
 
+function visibleDayEvents(rows, filter) {
+    if (filter === 'income') return rows.filter((e) => Utils.entryKind(e) === 'income');
+    if (filter === 'expense') return rows.filter((e) => Utils.entryKind(e) === 'expense');
+    return rows;
+}
+
 function renderGrid(y, m, events, plan) {
     if (!gridEl) return;
 
@@ -342,7 +328,7 @@ function renderGrid(y, m, events, plan) {
                 if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openModal(dateKey); }
             };
 
-            const dayEvents = events[dateKey] || [];
+            const dayEvents = visibleDayEvents(events[dateKey] || [], getState().trackerFilter);
             if (dayEvents.length) {
                 cell.classList.add('has-items');
                 if (dayEvents.some((e) => Utils.entryKind(e) === 'expense')) cell.classList.add('has-expense');
@@ -414,7 +400,7 @@ export function renderCalendar(changedKeys) {
         lastMonthKey = monthKey;
     }
 
-    if (!changedKeys || monthChanged || keys.includes('events') || keys.includes('plan')) {
+    if (!changedKeys || monthChanged || keys.includes('events') || keys.includes('plan') || keys.includes('trackerFilter')) {
         renderGrid(y, m, events, plan);
     }
 }

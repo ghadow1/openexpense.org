@@ -9,7 +9,7 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
-**18 August 2026** — Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks. See [`CHANGELOG.md`](CHANGELOG.md).
+**18 August 2026** — Four-tab shell: Overview, Tracker, Planner, and Privacy on a bottom bar. Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks. See [`CHANGELOG.md`](CHANGELOG.md).
 
 **17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
@@ -46,6 +46,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
+- **Four-tab shell** — Overview (cash snapshot), Tracker (calendar + register), Planner (safe spend and tax rules), Privacy (help and backups).
 
 ## Repository map
 
@@ -54,12 +55,12 @@ CHANGELOG.md           # User-facing update notes (also Privacy & Help → Updat
 src/                   # Application source (edit here)
   main.js              # Bootstrap
   config.js            # Version, preference keys, theme tokens
-  app/                 # Render loop and the two top-level views
+  app/                 # Render loop and the four-tab shell
   core/                # Store, persist, crypto, export zip, summary, series, search
   features/            # Calendar, day editor, search panel, ledger files, receipts, sidebar
   ui/                  # Buttons, theme, toasts, confirm dialog
 docs/                  # Architecture, data format, sample ledger
-index.html             # Shell: header, two views, welcome, day modal + SEO head
+index.html             # Shell: header, four tabs, welcome, day modal + SEO head
 openexpense.css        # Design tokens and layout
 app.js + chunk-*.js    # esbuild output for GitHub Pages — do not edit by hand
 og-image.jpg           # Open Graph / Twitter card
