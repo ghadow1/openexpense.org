@@ -111,6 +111,40 @@ test('a year series keeps start, one extreme, and end', () => {
     assert.deepEqual(axisTicks(10000), [0, 5000, 10000]);
 });
 
+test('the viewed month stays on the chart so the dial has a point to match', () => {
+    const totals = [100, 110, 400, 120, 90, 95, 80, 85, 88, 92, 94, 130];
+    // August is not the peak, but it is the month on screen.
+    const anchored = yearSeriesPoints(totals, 2026, { anchorIndex: 7 });
+    assert.deepEqual(anchored.map((row) => row.label), ['Jan', 'Aug', 'Dec']);
+    assert.equal(anchored[1].value, 85);
+
+    // A flat year still reduces, and January or December as the anchor does
+    // not duplicate an endpoint.
+    assert.equal(yearSeriesPoints(totals, 2026, { anchorIndex: 0 })[1].label, 'Mar');
+    assert.equal(yearSeriesPoints(totals, 2026, { anchorIndex: 11 })[1].label, 'Mar');
+    assert.equal(yearSeriesPoints(totals, 2026).length, 3);
+});
+
+test('the sidebar month total is the sum of that month, paid or not', () => {
+    const date = new Date(2026, 7, 17);
+    const spend = computeMonthlySummary(ledger.events, date, 'expense');
+    const income = computeMonthlySummary(ledger.events, date, 'income');
+
+    // Two $5 coffees and one $1450 rent, all in August.
+    assert.equal(spend.total, 1460);
+    assert.equal(spend.total, spend.paid + spend.pending);
+    assert.equal(spend.itemCount, 3);
+    assert.equal(spend.monthTotals[7], spend.total);
+
+    assert.equal(income.total, 1600);
+    assert.equal(income.total, income.paid + income.pending);
+    assert.equal(income.monthTotals[7], income.total);
+
+    // The dial ratio the hero draws must stay inside the ring.
+    assert.ok(spend.pctPaid >= 0 && spend.pctPaid <= 100);
+    assert.equal(Math.round(spend.pctPaid), 100);
+});
+
 test('dashboard snapshot nets income against spend', () => {
     const asOf = new Date(2026, 7, 24);
     const snap = computeNetSnapshot(ledger.events, new Date(2026, 7, 17), asOf);

@@ -318,10 +318,11 @@ export function axisTicks(max) {
 }
 
 /**
- * Keep start, end, and one peak or valley. Twelve monthly dots become three
- * so a year of planned copies can be read at a glance.
+ * Keep start, end, and one middle point. The middle is the month being viewed
+ * when `anchorIndex` names one, so the figure on the dial is also a point on
+ * the chart; otherwise it is the peak or valley furthest from the start.
  */
-export function reduceSeries(points = []) {
+export function reduceSeries(points = [], { anchorIndex = null } = {}) {
     const rows = (points || []).map((point, index) => ({
         label: point?.label ?? '',
         value: Number(point?.value) || 0,
@@ -330,6 +331,14 @@ export function reduceSeries(points = []) {
     if (rows.length <= 3) return rows;
     const start = rows[0];
     const end = rows[rows.length - 1];
+
+    const anchor = anchorIndex == null
+        ? null
+        : rows.find((row) => row.index === anchorIndex);
+    if (anchor && anchor.index !== start.index && anchor.index !== end.index) {
+        return [start, anchor, end];
+    }
+
     let extreme = rows[1];
     let score = -1;
     for (let i = 1; i < rows.length - 1; i += 1) {
@@ -345,15 +354,15 @@ export function reduceSeries(points = []) {
     return [start, extreme, end];
 }
 
-/** Jan–Dec labels, then start / peak-or-valley / end. */
-export function yearSeriesPoints(monthTotals = [], year = 2000) {
+/** Jan–Dec labels, then start / viewed month (or peak) / end. */
+export function yearSeriesPoints(monthTotals = [], year = 2000, { anchorIndex = null } = {}) {
     const y = Number(year) || 2000;
     const points = Array.from({ length: 12 }, (_, index) => ({
         label: new Date(y, index, 1).toLocaleString('en-US', { month: 'short' }),
         value: Number(monthTotals[index]) || 0,
         index
     }));
-    return reduceSeries(points);
+    return reduceSeries(points, { anchorIndex });
 }
 
 function dateKeyOf(date) {

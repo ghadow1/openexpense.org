@@ -1246,7 +1246,7 @@ html.is-action-busy [data-lockable] {
     display: flex;
     align-items: center;
     gap: 10px;
-    max-width: 420px;
+    width: 100%;
 }
 
 .dash-chips > .skel-chip {
@@ -1300,29 +1300,39 @@ html.is-action-busy [data-lockable] {
 }
 
 .dash-hero-card {
-    max-width: 420px;
+    width: 100%;
     min-width: 0;
 }
 
 .dash-hero {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 16px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
-    max-width: 420px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Wide screens get the split beside the headline, so the card earns its width
+   instead of stretching two elements across it. */
+.dash-hero.has-bars {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
 }
 
 .dash-fold,
 .summary-fold,
 .form-fold {
-    max-width: 420px;
+    width: 100%;
+    box-sizing: border-box;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
-    padding: 0 10px;
+    padding: 0 12px;
 }
 
 .dash-fold-sum,
@@ -1422,8 +1432,54 @@ html.is-action-busy [data-lockable] {
     position: relative;
     flex: 1;
     min-width: 0;
-    max-width: 260px;
     height: 72px;
+}
+
+.oe-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.oe-bar {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 52px;
+    align-items: center;
+    gap: 8px;
+}
+
+.oe-bar-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.oe-bar-track {
+    display: block;
+    height: 8px;
+    min-width: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+}
+
+.oe-bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+
+.oe-bar-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-strong);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 .oe-spark.is-empty {
@@ -1886,7 +1942,9 @@ html.is-action-busy [data-lockable] {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
-    --cal-row: 110px;
+    /* Six rows at this height keep a whole month on a laptop screen. Taller
+       cells pushed the last week under the fold with mostly empty space. */
+    --cal-row: 88px;
     grid-auto-rows: minmax(var(--cal-row), auto);
 }
 
@@ -4781,17 +4839,23 @@ textarea:focus-visible {
 
 .summary-hero {
     display: flex;
-    justify-content: center;
+    align-items: center;
+    gap: 14px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 10px 12px;
+    padding: 12px 14px;
     margin-bottom: 10px;
-    max-width: 220px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.summary-hero-figures {
+    min-width: 0;
 }
 
 .summary-year {
-    max-width: 420px;
+    width: 100%;
     margin-bottom: 10px;
 }
 
@@ -4836,18 +4900,18 @@ textarea:focus-visible {
 }
 
 .summary-hero-amount {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.03em;
-    color: var(--header-text);
+    color: var(--text-strong);
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
 }
 
 .summary-hero-meta {
-    margin-top: 6px;
+    margin-top: 4px;
     font-size: 12px;
-    color: color-mix(in srgb, var(--header-text) 70%, transparent);
+    color: var(--text2);
 }
 
 .summary-progress {
@@ -5307,6 +5371,7 @@ textarea:focus-visible {
 [data-theme="dark"] .sidebar,
 [data-theme="dark"] .docs-container,
 [data-theme="dark"] .dash-chip,
+[data-theme="dark"] .oe-bar-track,
 [data-theme="dark"] .dash-hero,
 [data-theme="dark"] .dash-fold,
 [data-theme="dark"] .summary-fold,
@@ -5921,7 +5986,11 @@ html.oe-scroll-lock body {
     }
 
     .dash-chips:not(.is-ready) {
-        max-width: 420px;
+        width: 100%;
+    }
+
+    .dash-hero.has-bars {
+        display: flex;
     }
 
     .dash-block-grid,
@@ -6101,6 +6170,21 @@ html.oe-scroll-lock body {
 
     .dash-chips {
         gap: 6px;
+    }
+
+    .dash-hero {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .summary-hero {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .summary-hero-amount {
+        font-size: 20px;
     }
 
     .dash-deck {

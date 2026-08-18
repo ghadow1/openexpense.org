@@ -13,8 +13,15 @@ import {
     formatChipMoney,
     yearSeriesPoints
 } from '../core/summary.js';
-import { createDial, createSpark } from '../ui/dial-chart.js';
+import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
 import { closeModal } from './modal.js';
+
+/** Wide enough to read a dial, a year line, and the split side by side. */
+function isWideDash() {
+    return typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(min-width: 1100px)').matches;
+}
 
 const VIEWS = ['overview', 'income', 'expense'];
 const VIEW_COPY = {
@@ -133,26 +140,33 @@ function goMonth(year, monthIndex) {
     if (getState().selectedKey) closeModal();
 }
 
-function yearSpark(events, currentDate, kind, ariaLabel) {
-    const year = currentDate.getFullYear();
-    let totals;
+function yearTotalsFor(events, currentDate, kind) {
     if (kind === 'overview') {
         const income = computeMonthlySummary(events, currentDate, 'income');
         const spend = computeMonthlySummary(events, currentDate, 'expense');
-        totals = Array.from({ length: 12 }, (_, i) => (income.monthTotals[i] || 0) - (spend.monthTotals[i] || 0));
-    } else {
-        totals = computeMonthlySummary(events, currentDate, kind).monthTotals;
+        return Array.from({ length: 12 }, (_, i) => (income.monthTotals[i] || 0) - (spend.monthTotals[i] || 0));
     }
+    return computeMonthlySummary(events, currentDate, kind).monthTotals;
+}
+
+function yearSpark(events, currentDate, kind, ariaLabel) {
+    const year = currentDate.getFullYear();
+    const totals = yearTotalsFor(events, currentDate, kind);
     return createSpark({
-        points: yearSeriesPoints(totals, year),
+        // Anchored on the month on screen so the dial figure is also a point
+        // on the line; otherwise the headline and the chart disagree.
+        points: yearSeriesPoints(totals, year, { anchorIndex: currentDate.getMonth() }),
         ariaLabel,
         onSelect: (pt) => goMonth(year, pt.index)
     });
 }
 
-function foldExtras(title, items) {
+function foldExtras(title, items, open) {
     const details = document.createElement('details');
     details.className = 'dash-fold';
+    // A wide screen has the room, so the figures start open there and the
+    // disclosure only does real work on a laptop or phone.
+    details.open = !!open;
 
     const summary = document.createElement('summary');
     summary.className = 'dash-fold-sum';
@@ -168,7 +182,8 @@ function foldExtras(title, items) {
     return details;
 }
 
-function heroSlide({ title, description, dial, spark, extrasTitle, extras }) {
+function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras }) {
+    const wide = isWideDash();
     const section = document.createElement('section');
     section.className = 'dash-hero-card';
 
@@ -185,8 +200,12 @@ function heroSlide({ title, description, dial, spark, extrasTitle, extras }) {
     const row = document.createElement('div');
     row.className = 'dash-hero';
     row.append(dial, spark);
+    if (wide && bars) {
+        row.classList.add('has-bars');
+        row.appendChild(bars);
+    }
 
-    section.append(header, row, foldExtras(extrasTitle, extras));
+    section.append(header, row, foldExtras(extrasTitle, extras, wide));
     return [section];
 }
 
@@ -230,6 +249,14 @@ function overviewSlide(snap, events, currentDate) {
             ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
         }),
         spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+        bars: createBars({
+            ariaLabel: `${snap.monthLabel} cash`,
+            rows: [
+                { label: 'Deposited', value: snap.deposited },
+                { label: 'Spent', value: snap.monthOut },
+                { label: 'Savings', value: snap.savingsFunds }
+            ]
+        }),
         extrasTitle: 'More figures',
         extras: [
             chip({
@@ -280,6 +307,14 @@ function incomeSlide(snap, events, currentDate) {
             ratio: clampRatio(snap.deposited, snap.projectedIncome)
         }),
         spark: yearSpark(events, currentDate, 'income', `${currentDate.getFullYear()} income`),
+        bars: createBars({
+            ariaLabel: `${snap.monthLabel} income`,
+            rows: [
+                { label: 'Deposited', value: snap.deposited },
+                { label: 'Expected', value: snap.incomeDue },
+                { label: 'Recurring', value: snap.incomeRecurring }
+            ]
+        }),
         extrasTitle: 'More figures',
         extras: [
             chip({
@@ -325,6 +360,14 @@ function expenseSlide(snap, events, currentDate) {
             ratio: clampRatio(snap.spendPaid, snap.monthOut)
         }),
         spark: yearSpark(events, currentDate, 'expense', `${currentDate.getFullYear()} spending`),
+        bars: createBars({
+            ariaLabel: `${snap.monthLabel} spending`,
+            rows: [
+                { label: 'Paid', value: snap.spendPaid },
+                { label: 'Unpaid', value: snap.leftToPay },
+                { label: 'Recurring', value: snap.spendRecurring }
+            ]
+        }),
         extrasTitle: 'More figures',
         extras: [
             chip({

@@ -129,10 +129,18 @@ function renderHero(summary, copy) {
     hero.appendChild(createDial({
         value: summary.total,
         label: copy.hero,
-        caption: meta,
         ratio: summary.total ? Math.min(1, Math.max(0, summary.pctPaid / 100)) : 0,
         display: formatAxisMoney(summary.total)
     }));
+
+    // The ring rounds to $3.7k, which is the wrong number to balance a month
+    // against, so the exact total sits beside it rather than only in a tooltip.
+    const figures = el('div', 'summary-hero-figures');
+    figures.append(
+        el('div', 'summary-hero-amount', Utils.formatMoney(summary.total)),
+        el('div', 'summary-hero-meta', meta)
+    );
+    hero.appendChild(figures);
     return hero;
 }
 
@@ -459,7 +467,7 @@ function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-year');
     section.appendChild(el('div', 'summary-section-title', `${summary.year}`));
     section.appendChild(createSpark({
-        points: yearSeriesPoints(summary.monthTotals, summary.year),
+        points: yearSeriesPoints(summary.monthTotals, summary.year, { anchorIndex: currentDate.getMonth() }),
         ariaLabel: `${summary.year} ${copy.yearAria}`,
         onSelect: (pt) => {
             patch({ currentDate: new Date(summary.year, pt.index, 1) });
@@ -563,17 +571,19 @@ function paintFace(faceEl, kind) {
 
     faceEl.appendChild(header);
     faceEl.appendChild(renderHero(summary, copy));
+    faceEl.appendChild(renderProgress(summary, copy));
     faceEl.appendChild(renderYearChart(summary, currentDate, copy));
 
     const statsSection = el('section', 'summary-section');
     statsSection.appendChild(el('div', 'summary-section-title', 'This month at a glance'));
     statsSection.appendChild(renderStatsGrid(summary, copy));
+    faceEl.appendChild(statsSection);
+    faceEl.appendChild(renderYearStats(summary));
 
+    // Only the long lists fold. The month's own arithmetic stays on screen,
+    // because a card that hides every figure reads as one that failed to add up.
     const more = foldBlock(
-        'Month details',
-        renderProgress(summary, copy),
-        statsSection,
-        renderYearStats(summary),
+        'Breakdown & entries',
         renderCategoryBreakdown(summary, copy),
         renderGroupBreakdown(summary),
         renderBudgets(summary, copy),

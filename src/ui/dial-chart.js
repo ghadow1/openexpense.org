@@ -193,6 +193,53 @@ export function createSpark({ points = [], onSelect = null, ariaLabel = 'Period 
     return wrap;
 }
 
+/**
+ * A few labelled bars sharing one scale. Used beside the dial on a wide screen,
+ * where there is room for the split behind the headline figure.
+ *
+ * @param {object} options
+ * @param {Array<{label: string, value: number}>} options.rows
+ * @param {string} [options.ariaLabel]
+ */
+export function createBars({ rows = [], ariaLabel = 'Breakdown' } = {}) {
+    const wrap = document.createElement('div');
+    wrap.className = 'oe-bars';
+    wrap.setAttribute('role', 'img');
+
+    const live = rows.filter((row) => row && row.label);
+    const max = Math.max(...live.map((row) => Math.abs(Number(row.value) || 0)), 1);
+
+    wrap.setAttribute('aria-label', `${ariaLabel}: ${live
+        .map((row) => `${row.label} ${formatAxisMoney(row.value)}`)
+        .join(', ')}`);
+
+    live.forEach((row) => {
+        const value = Number(row.value) || 0;
+        const line = document.createElement('div');
+        line.className = 'oe-bar';
+
+        const label = document.createElement('span');
+        label.className = 'oe-bar-label';
+        label.textContent = row.label;
+
+        const track = document.createElement('span');
+        track.className = 'oe-bar-track';
+        const fill = document.createElement('span');
+        fill.className = 'oe-bar-fill';
+        fill.style.width = `${Math.max(2, (Math.abs(value) / max) * 100)}%`;
+        track.appendChild(fill);
+
+        const amount = document.createElement('span');
+        amount.className = 'oe-bar-value';
+        amount.textContent = formatAxisMoney(value);
+
+        line.append(label, track, amount);
+        wrap.appendChild(line);
+    });
+
+    return wrap;
+}
+
 function iCenter(pt, coords) {
     if (pt === coords[0]) return 'start';
     if (pt === coords[coords.length - 1]) return 'end';
