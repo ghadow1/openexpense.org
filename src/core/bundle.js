@@ -3,8 +3,16 @@
  *
  * Export writes an encrypted .json and a matching key.json (never stored here).
  * Older .zip backups still import. Device autosave uses crypto.js instead.
+ *
+ * New exports are v2 envelopes (see envelope.js): HKDF-derived keys, a key
+ * commitment, and the whole header authenticated. v1 files — a raw AES-GCM key
+ * in a JWK — still open, so older backups keep working.
  */
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
+import {
+    ENVELOPE, sealPayload, openPayload, randomBytes, toBase64, fromBase64,
+    wrapSecret, unwrapSecret
+} from './envelope.js';
 
 export const BUNDLE = {
     ENC_NAME: 'ledger.enc.json',
@@ -12,7 +20,9 @@ export const BUNDLE = {
     README_NAME: 'README.txt',
     ENC_FORMAT: 'openexpense-encrypted',
     KEY_FORMAT: 'openexpense-key',
-    VERSION: 1
+    /** Written by this build. v1 stays readable. */
+    VERSION: ENVELOPE.VERSION,
+    LEGACY_VERSION: 1
 };
 
 export const ZIP_LIMITS = {
@@ -35,13 +45,6 @@ function subtleCrypto() {
     return c && c.subtle ? c : null;
 }
 
-function abToBase64(buf) {
-    const bytes = new Uint8Array(buf);
-    let bin = '';
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-}
-
 function base64ToU8(b64) {
     const bin = atob(b64);
     const out = new Uint8Array(bin.length);
@@ -49,48 +52,84 @@ function base64ToU8(b64) {
     return out;
 }
 
-// Encrypt a payload object under a fresh, single-use AES-256-GCM key.
-// Returns the encrypted envelope and the key as a portable JWK.
-export async function encryptBundle(payload) {
-    const c = subtleCrypto();
-    if (!c) throw new Error('Web Crypto API unavailable');
-
-    const key = await c.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-    const iv = c.getRandomValues(new Uint8Array(12));
-    const data = strToU8(JSON.stringify(payload));
-    const ct = await c.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
-    const jwk = await c.subtle.exportKey('jwk', key);
+/**
+ * Seal a payload under a fresh, single-use master secret.
+ *
+ * Without a passphrase the secret sits in key.json, so the pair of files is the
+ * whole secret — same as before. With one, key.json only holds the secret
+ * wrapped under PBKDF2, so a copied pair is not enough to read the ledger.
+ */
+export async function encryptBundle(payload, { passphrase = '' } = {}) {
+    if (!subtleCrypto()) throw new Error('Web Crypto API unavailable');
 
     const kid = newKid();
-    const enc = {
-        format: BUNDLE.ENC_FORMAT,
-        version: BUNDLE.VERSION,
-        alg: 'AES-GCM',
-        kid,
-        iv: abToBase64(iv.buffer),
-        ct: abToBase64(ct),
-        createdAt: Date.now()
-    };
-    const keyFile = {
-        format: BUNDLE.KEY_FORMAT,
-        version: BUNDLE.VERSION,
-        kid,
-        alg: 'AES-GCM',
-        key: jwk
-    };
-    return { enc, keyFile };
+    const secret = randomBytes(ENVELOPE.SECRET_BYTES);
+    try {
+        const enc = await sealPayload(payload, secret, {
+            format: BUNDLE.ENC_FORMAT,
+            kid,
+            createdAt: Date.now()
+        });
+        const keyFile = {
+            format: BUNDLE.KEY_FORMAT,
+            version: ENVELOPE.VERSION,
+            kid,
+            alg: ENVELOPE.ALG,
+            kdf: ENVELOPE.KDF
+        };
+        if (passphrase) {
+            keyFile.wrap = await wrapSecret(secret, passphrase, { kid });
+        } else {
+            keyFile.secret = toBase64(secret);
+        }
+        return { enc, keyFile };
+    } finally {
+        secret.fill(0);
+    }
 }
 
-export async function decryptBundle(enc, keyFile) {
-    const c = subtleCrypto();
-    if (!c) throw new Error('Web Crypto API unavailable');
+/** True when this key.json cannot be used without asking the user for words. */
+export function needsPassphrase(keyFile) {
+    return !!keyFile && typeof keyFile === 'object'
+        && !!keyFile.wrap && typeof keyFile.wrap === 'object';
+}
 
-    const jwk = isKeyFile(keyFile) ? keyFile.key : keyFile;
+function envelopeVersion(enc) {
+    return Number(enc?.version) || BUNDLE.LEGACY_VERSION;
+}
+
+async function secretFromKeyFile(keyFile, passphrase) {
+    if (needsPassphrase(keyFile)) {
+        if (!passphrase) throw new Error('PASSPHRASE_REQUIRED');
+        return unwrapSecret(keyFile.wrap, passphrase, { kid: keyFile.kid || '' });
+    }
+    if (typeof keyFile?.secret !== 'string') throw new Error('KEY_FILE_MISSING_SECRET');
+    return fromBase64(keyFile.secret);
+}
+
+// v1: the JWK in key.json is the AES key itself, with no AAD and no commitment.
+async function decryptLegacyBundle(enc, keyFile) {
+    const c = subtleCrypto();
+    const jwk = isKeyFile(keyFile) ? (keyFile.key || keyFile) : keyFile;
     const key = await c.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, false, ['decrypt']);
-    const iv = base64ToU8(enc.iv);
-    const ct = base64ToU8(enc.ct);
-    const buf = await c.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    const buf = await c.subtle.decrypt(
+        { name: 'AES-GCM', iv: base64ToU8(enc.iv) },
+        key,
+        base64ToU8(enc.ct)
+    );
     return JSON.parse(strFromU8(new Uint8Array(buf)));
+}
+
+export async function decryptBundle(enc, keyFile, { passphrase = '' } = {}) {
+    if (!subtleCrypto()) throw new Error('Web Crypto API unavailable');
+    if (envelopeVersion(enc) < ENVELOPE.VERSION) return decryptLegacyBundle(enc, keyFile);
+
+    const secret = await secretFromKeyFile(keyFile, passphrase);
+    try {
+        return await openPayload(enc, secret);
+    } finally {
+        secret.fill(0);
+    }
 }
 
 export function isEncFile(obj) {
@@ -100,7 +139,11 @@ export function isEncFile(obj) {
 
 export function isKeyFile(obj) {
     return !!obj && typeof obj === 'object'
-        && (obj.format === BUNDLE.KEY_FORMAT || (obj.kty && obj.k) || (obj.key && obj.key.kty));
+        && (obj.format === BUNDLE.KEY_FORMAT
+            || typeof obj.secret === 'string'
+            || (obj.wrap && typeof obj.wrap === 'object')
+            || (obj.kty && obj.k)
+            || (obj.key && obj.key.kty));
 }
 
 export function zipBundle(enc, keyFile) {
