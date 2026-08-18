@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {
     CATEGORIES, QUICK_PICKS, UNCATEGORIZED,
     categoryInfo, categoriesFor, suggestCategory, resolveCategory,
-    categoryHistory, rollUpCategories
+    categoryHistory, rollUpCategories, budgetProgress
 } from '../src/core/categories.js';
+import { sanitizeBudgets, FILE_LIMITS } from '../src/core/ledger-file.js';
 
 test('every quick pick is a real category of its kind', () => {
     for (const [kind, labels] of Object.entries(QUICK_PICKS)) {
@@ -182,4 +183,156 @@ test('categoriesFor offers quick picks first and never repeats one', () => {
         const all = [...quick, ...rest];
         assert.equal(new Set(all).size, all.length, 'duplicate categories offered');
     }
+});
+
+const MONTH = { daysElapsed: 15, daysInMonth: 30 };
+
+test('a budget reports what is spent, left, and how far through the cap', () => {
+    const rows = rollUpCategories([{ amount: 120, category: 'Groceries' }]);
+    const [row] = budgetProgress(rows, { Groceries: 400 }, MONTH);
+
+    assert.equal(row.label, 'Groceries');
+    assert.equal(row.spent, 120);
+    assert.equal(row.limit, 400);
+    assert.equal(row.remaining, 280);
+    assert.equal(row.used, 30);
+    assert.equal(row.overBy, 0);
+});
+
+test('a budget with no spending yet is still reported', () => {
+    // Otherwise a category you set a limit on and then ignored would vanish.
+    const [row] = budgetProgress([], { Groceries: 400 }, MONTH);
+    assert.equal(row.spent, 0);
+    assert.equal(row.remaining, 400);
+    assert.equal(row.state, 'on-track');
+});
+
+test('going over a cap reports the overage, not a clamped bar', () => {
+    const rows = rollUpCategories([{ amount: 450, category: 'Groceries' }]);
+    const [row] = budgetProgress(rows, { Groceries: 400 }, MONTH);
+    assert.equal(row.state, 'over');
+    assert.equal(row.overBy, 50);
+    assert.equal(row.remaining, -50);
+    assert.ok(row.used > 100);
+});
+
+test('a cap nearly used up reads as close', () => {
+    const rows = rollUpCategories([{ amount: 330, category: 'Groceries' }]);
+    const [row] = budgetProgress(rows, { Groceries: 400 }, MONTH);
+    assert.equal(row.state, 'close');
+});
+
+test('pace separates halfway-through-the-month from spending too fast', () => {
+    // Same 60% of the cap, read differently depending on the day of the month.
+    const rows = rollUpCategories([{ amount: 240, category: 'Groceries' }]);
+
+    const early = budgetProgress(rows, { Groceries: 400 }, { daysElapsed: 5, daysInMonth: 30 })[0];
+    assert.equal(early.state, 'ahead', '60% of a cap on day 5 is running hot');
+
+    const late = budgetProgress(rows, { Groceries: 400 }, { daysElapsed: 25, daysInMonth: 30 })[0];
+    assert.equal(late.state, 'on-track', '60% of a cap on day 25 is fine');
+});
+
+test('pace does not cry wolf in the first days of a month', () => {
+    // On day 1 almost any spending outruns the month; that is not a signal.
+    const rows = rollUpCategories([{ amount: 40, category: 'Groceries' }]);
+    const row = budgetProgress(rows, { Groceries: 400 }, { daysElapsed: 1, daysInMonth: 30 })[0];
+    assert.equal(row.state, 'on-track');
+});
+
+test('budgets sort trouble to the top', () => {
+    const rows = rollUpCategories([
+        { amount: 450, category: 'Groceries' },
+        { amount: 10, category: 'Coffee' },
+        { amount: 170, category: 'Transit' }
+    ]);
+    const states = budgetProgress(
+        rows,
+        { Groceries: 400, Coffee: 100, Transit: 200 },
+        MONTH
+    ).map((row) => row.state);
+
+    assert.equal(states[0], 'over');
+    assert.equal(states[1], 'close');
+});
+
+test('budget matching ignores casing', () => {
+    const rows = rollUpCategories([{ amount: 50, category: 'groceries' }]);
+    const [row] = budgetProgress(rows, { Groceries: 400 }, MONTH);
+    assert.equal(row.spent, 50, 'a differently-cased category should still count');
+});
+
+test('a budget with no period still reports usage', () => {
+    const rows = rollUpCategories([{ amount: 200, category: 'Groceries' }]);
+    const [row] = budgetProgress(rows, { Groceries: 400 });
+    assert.equal(row.used, 50);
+    assert.equal(row.state, 'on-track');
+});
+
+test('nonsense budgets are dropped rather than rendered', () => {
+    const rows = budgetProgress([], { Groceries: 0, Coffee: -5, Transit: 'abc', Travel: 100 });
+    assert.deepEqual(rows.map((row) => row.label), ['Travel']);
+});
+
+test('sanitizeBudgets keeps only positive numbers under a real label', () => {
+    const clean = sanitizeBudgets({
+        Groceries: 400,
+        Coffee: '75.5',
+        Bad: -1,
+        Zero: 0,
+        Wordy: 'abc',
+        '   ': 50
+    });
+    assert.deepEqual(clean, { Groceries: 400, Coffee: 75.5 });
+});
+
+test('sanitizeBudgets refuses prototype-polluting keys', () => {
+    const clean = sanitizeBudgets({ __proto__: 5, constructor: 5, prototype: 5, Groceries: 400 });
+    assert.deepEqual(Object.keys(clean), ['Groceries']);
+    assert.equal({}.polluted, undefined);
+});
+
+test('sanitizeBudgets survives junk input', () => {
+    for (const junk of [null, undefined, 'text', 42, [1, 2]]) {
+        assert.deepEqual(sanitizeBudgets(junk), {});
+    }
+});
+
+test('sanitizeBudgets caps how many budgets a file can carry', () => {
+    const many = {};
+    for (let i = 0; i < FILE_LIMITS.maxBudgets + 25; i++) many[`Cat ${i}`] = 10;
+    assert.equal(Object.keys(sanitizeBudgets(many)).length, FILE_LIMITS.maxBudgets);
+});
+
+test('budgets survive the export and import round trip', async () => {
+    const { encryptBundle, decryptBundle } = await import('../src/core/bundle.js');
+    const { sanitizeLedger } = await import('../src/core/ledger-file.js');
+
+    const ledger = {
+        name: 'Home',
+        events: { '2026-08-05': [{ title: 'Groceries', price: 40, category: 'Groceries' }] },
+        budgets: { Groceries: 400, Transit: 120 },
+        savedAt: 1780000000000
+    };
+
+    const { enc, keyFile } = await encryptBundle(ledger);
+    const back = sanitizeLedger(await decryptBundle(enc, keyFile));
+    assert.deepEqual(back.budgets, { Groceries: 400, Transit: 120 });
+    assert.equal(back.events['2026-08-05'][0].category, 'Groceries');
+});
+
+test('a ledger with no budgets does not grow an empty budgets key', async () => {
+    const { sanitizeLedger } = await import('../src/core/ledger-file.js');
+    const clean = sanitizeLedger({ name: 'Home', events: {}, savedAt: 1 });
+    assert.equal('budgets' in clean, false, 'an empty map should stay absent from the file');
+});
+
+test('a budget-only change still counts as a change worth saving', async () => {
+    // The autosave signature used to cover name and events only, so editing a
+    // budget and nothing else would have been deduped away and never written.
+    const { sanitizeLedger } = await import('../src/core/ledger-file.js');
+    const base = { name: 'Home', events: {}, savedAt: 1 };
+    const before = sanitizeLedger({ ...base });
+    const after = sanitizeLedger({ ...base, budgets: { Groceries: 400 } });
+    assert.notDeepEqual(before, after);
 });

@@ -9,6 +9,7 @@ import { CONFIG, THEMES } from '../config.js';
 const state = {
     currentDate: new Date(),
     events: {},
+    budgets: {},
     ledgerName: '',
     isDark: CONFIG.defaultTheme === 'dark',
     autosaveEnabled: true,

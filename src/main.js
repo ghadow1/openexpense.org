@@ -73,6 +73,7 @@ async function initApplication() {
         if (cleaned) {
             bootPatch.ledgerName = cleaned.name;
             bootPatch.events = cleaned.events;
+            bootPatch.budgets = cleaned.budgets || {};
         }
     }
 

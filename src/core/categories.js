@@ -154,6 +154,58 @@ export function categoryHistory(events) {
 }
 
 /**
+ * Compare a month's spend against its caps.
+ *
+ * `pace` is the part people actually act on: how far through the month you are
+ * versus how much of the cap is gone. Being 90% spent means nothing on the 28th
+ * and quite a lot on the 5th, so a bare percentage is not enough to judge by.
+ *
+ * @param {Array} rows      output of rollUpCategories
+ * @param {object} budgets  `{ Groceries: 400 }`
+ * @param {object} [period] `{ daysElapsed, daysInMonth }` for the pace read
+ */
+export function budgetProgress(rows = [], budgets = {}, period = {}) {
+    const spentBy = new Map(rows.map((row) => [row.label.toLowerCase(), row]));
+    const elapsed = Number(period.daysElapsed) || 0;
+    const length = Number(period.daysInMonth) || 0;
+    const throughMonth = length > 0 ? Math.min(1, Math.max(0, elapsed / length)) : null;
+
+    const out = [];
+    for (const [label, limit] of Object.entries(budgets || {})) {
+        const cap = Number(limit);
+        if (!Number.isFinite(cap) || cap <= 0) continue;
+
+        const row = spentBy.get(String(label).toLowerCase());
+        const spent = row ? row.amount : 0;
+        const capCents = Utils.toCents(cap);
+        const spentCents = Utils.toCents(spent);
+        const used = (spentCents / capCents) * 100;
+
+        let state = 'on-track';
+        if (spentCents > capCents) state = 'over';
+        else if (used >= 80) state = 'close';
+        // Spending faster than the month is passing, with room still left.
+        else if (throughMonth != null && throughMonth > 0.15 && used / 100 > throughMonth * 1.15) state = 'ahead';
+
+        out.push({
+            label: categoryInfo(label).label,
+            tone: categoryInfo(label).tone,
+            limit: Utils.fromCents(capCents),
+            spent: Utils.fromCents(spentCents),
+            remaining: Utils.fromCents(capCents - spentCents),
+            used,
+            state,
+            overBy: spentCents > capCents ? Utils.fromCents(spentCents - capCents) : 0,
+            count: row ? row.count : 0
+        });
+    }
+
+    // Trouble first: over, then close, then running hot, then the calm ones.
+    const rank = { over: 0, close: 1, ahead: 2, 'on-track': 3 };
+    return out.sort((a, b) => rank[a.state] - rank[b.state] || b.used - a.used);
+}
+
+/**
  * Spend per category for a set of summary items, largest first. `share` is the
  * percent of the period's total, which is what the breakdown bars render.
  */

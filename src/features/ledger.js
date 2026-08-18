@@ -56,12 +56,14 @@ export const Ledger = {
     },
 
     exportPayload() {
-        const { ledgerName, events } = getState();
-        return {
+        const { ledgerName, events, budgets } = getState();
+        const payload = {
             name: ledgerName || '',
             events,
             savedAt: Date.now()
         };
+        if (budgets && Object.keys(budgets).length) payload.budgets = budgets;
+        return payload;
     },
 
     enableAutosave() {
@@ -462,7 +464,7 @@ export const Ledger = {
                 return;
             }
             offerDeleteUndo(getState(), { count: countEntries(events) });
-            patch({ events: {}, ledgerName: '', selectedKey: null, editingIndex: null });
+            patch({ events: {}, budgets: {}, ledgerName: '', selectedKey: null, editingIndex: null });
             Toast.show('Calendar and device encryption key cleared.', 'success');
         });
     },
@@ -753,7 +755,8 @@ export const Ledger = {
         dismissUndo();
         patch({
             ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
-            events: cleaned.events
+            events: cleaned.events,
+            budgets: cleaned.budgets || {}
         });
         const count = countEntries(cleaned.events);
         Toast.show(`Imported ${count} item${count === 1 ? '' : 's'} (expenses and income).`, 'success');

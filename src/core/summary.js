@@ -31,6 +31,7 @@ function collectMonthItems(events, y, m, kind = 'expense') {
                 recurring: !!e.recurring,
                 repeat: e.recurring ? (e.repeat || 'monthly') : null,
                 note: e.note || '',
+                category: e.category || '',
                 kind
             });
         });
