@@ -1,21 +1,11 @@
 /**
  * OpenExpense — lite merchant categorizer
  *
- * Keyword rules only. Hosts can pass their own category; this fills a gap.
+ * Hosts can pass their own category; this fills a gap. The keyword rules live
+ * in core/categories.js so the embed importer and the in-app entry form always
+ * agree on what "Starbucks" is — two rule sets would drift apart.
  */
-const RULES = [
-    [/trader joe|whole foods|safeway|kroger|aldi|grocery|supermarket/i, 'Groceries', ['Food']],
-    [/starbucks|dunkin|coffee|cafe|espresso/i, 'Coffee', ['Food']],
-    [/mcdonald|burger|chipotle|wendy|taco bell|restaurant|doordash|uber eats/i, 'Dining', ['Food']],
-    [/uber|lyft|transit|metro|mta|parking|shell|chevron|exxon|gas/i, 'Transit', ['Travel']],
-    [/delta|united|southwest|airbnb|marriott|hilton|hotel/i, 'Travel', ['Travel']],
-    [/netflix|spotify|hulu|disney|youtube|apple.com\/bill/i, 'Subscriptions', ['Bills']],
-    [/comcast|verizon|at&t|t-mobile|mint mobile|internet|utility|electric|pg&e/i, 'Utilities', ['Bills']],
-    [/rent|landlord|mortgage|hoa/i, 'Housing', ['Bills']],
-    [/cvs|walgreens|pharmacy|rite aid/i, 'Health', ['Health']],
-    [/payroll|paycheck|direct dep|salary|wage/i, 'Paycheck', ['Income']],
-    [/refund|reimburs/i, 'Refund', ['Income']]
-];
+import { categoryInfo, suggestCategory } from '../core/categories.js';
 
 function haystack(raw) {
     if (!raw || typeof raw !== 'object') return '';
@@ -26,17 +16,23 @@ function haystack(raw) {
 }
 
 export function categorize(raw) {
-    const text = haystack(raw);
     const given = String(raw?.category || '').trim();
     if (given) {
         return { category: given.slice(0, 40), tags: [], kind: raw?.kind === 'income' ? 'income' : 'expense' };
     }
-    for (const [pattern, category, tags] of RULES) {
-        if (pattern.test(text)) {
-            const kind = tags.includes('Income') || raw?.kind === 'income' ? 'income' : 'expense';
-            return { category, tags, kind };
-        }
+
+    const text = haystack(raw);
+    // A bank row does not say whether it is income, so try both readings and
+    // let the matching rule decide: "PAYROLL DIRECT DEP" is money coming in.
+    const asIncome = suggestCategory({ title: text, kind: 'income' });
+    const guess = asIncome || suggestCategory({ title: text, kind: 'expense' });
+
+    if (guess) {
+        const info = categoryInfo(guess);
+        const kind = info.kind === 'income' || raw?.kind === 'income' ? 'income' : 'expense';
+        return { category: guess, tags: [], kind };
     }
+
     return {
         category: raw?.kind === 'income' ? 'Income' : 'Other',
         tags: [],

@@ -1,0 +1,193 @@
+/**
+ * OpenExpense — categories
+ *
+ * "Where did my money go?" is a question about categories, not merchants. The
+ * ledger has always had a `category` string on entries, but only the bank/embed
+ * import ever set it. This module is the shared vocabulary: the canonical set,
+ * the keyword rules that guess one from a title, and the colour each gets.
+ *
+ * Categories are stored as their human label ("Groceries"), not an id, because
+ * that is what already sits in ledgers written by the embed importer and what a
+ * CSV export should read as. Unknown labels stay intact and render as custom
+ * categories, so a ledger from elsewhere never loses information.
+ */
+import { Utils } from './utils.js';
+
+/**
+ * Ten hues, reused across both themes via --cat-* tokens in the stylesheet.
+ * Kept deliberately small and muted: colour here is for scanning a list, not
+ * decoration, so several categories intentionally share a family.
+ */
+export const CATEGORIES = [
+    { label: 'Groceries', kind: 'expense', tone: 'leaf' },
+    { label: 'Dining', kind: 'expense', tone: 'amber' },
+    { label: 'Coffee', kind: 'expense', tone: 'amber' },
+    { label: 'Transit', kind: 'expense', tone: 'sky' },
+    { label: 'Travel', kind: 'expense', tone: 'sky' },
+    { label: 'Housing', kind: 'expense', tone: 'clay' },
+    { label: 'Utilities', kind: 'expense', tone: 'clay' },
+    { label: 'Subscriptions', kind: 'expense', tone: 'violet' },
+    { label: 'Entertainment', kind: 'expense', tone: 'violet' },
+    { label: 'Shopping', kind: 'expense', tone: 'rose' },
+    { label: 'Health', kind: 'expense', tone: 'teal' },
+    { label: 'Other', kind: 'expense', tone: 'slate' },
+    { label: 'Paycheck', kind: 'income', tone: 'leaf' },
+    { label: 'Refund', kind: 'income', tone: 'teal' },
+    { label: 'Income', kind: 'income', tone: 'leaf' }
+];
+
+/** Shown as one-tap chips on the entry form; the rest live behind "More". */
+export const QUICK_PICKS = {
+    expense: ['Groceries', 'Dining', 'Transit', 'Shopping', 'Utilities'],
+    income: ['Paycheck', 'Refund', 'Income']
+};
+
+export const UNCATEGORIZED = 'Uncategorized';
+
+/**
+ * Keyword rules, ordered: the first hit wins, so put the specific ahead of the
+ * general ("uber eats" is Dining, plain "uber" is Transit).
+ */
+const RULES = [
+    [/doordash|uber eats|grubhub|postmates|seamless/i, 'Dining'],
+    [/trader joe|whole foods|safeway|kroger|aldi|costco|grocer|supermarket|market/i, 'Groceries'],
+    [/starbucks|dunkin|coffee|cafe|café|espresso|latte/i, 'Coffee'],
+    [/mcdonald|burger|chipotle|wendy|taco bell|pizza|sushi|restaurant|diner|takeout|lunch|dinner/i, 'Dining'],
+    [/uber|lyft|transit|metro|mta|subway pass|parking|shell|chevron|exxon|bp |fuel|gas station|gasoline/i, 'Transit'],
+    [/delta|united|southwest|jetblue|airline|flight|airbnb|marriott|hilton|hotel|hostel/i, 'Travel'],
+    [/netflix|spotify|hulu|disney|hbo|max |prime video|youtube|patreon|substack|icloud|dropbox|apple\.com\/bill|subscription/i, 'Subscriptions'],
+    [/comcast|xfinity|verizon|at&t|t-mobile|mint mobile|internet|utility|electric|water bill|pg&e|con ?ed/i, 'Utilities'],
+    [/rent|landlord|mortgage|hoa|property tax/i, 'Housing'],
+    [/cvs|walgreens|pharmacy|rite aid|doctor|dentist|clinic|hospital|gym|fitness/i, 'Health'],
+    [/amazon|target|walmart|etsy|ebay|best buy|ikea|clothing|shoes/i, 'Shopping'],
+    [/cinema|movie|theater|concert|steam|playstation|xbox|nintendo|game/i, 'Entertainment'],
+    [/payroll|paycheck|direct dep|salary|wages?\b/i, 'Paycheck'],
+    [/refund|reimburs|rebate|cashback/i, 'Refund']
+];
+
+const BY_LABEL = new Map(CATEGORIES.map((cat) => [cat.label.toLowerCase(), cat]));
+
+/** Resolve a stored label to a known category, or describe it as a custom one. */
+export function categoryInfo(label, kind = 'expense') {
+    const name = String(label ?? '').trim();
+    if (!name) {
+        return { label: UNCATEGORIZED, tone: 'slate', known: false, uncategorized: true, kind };
+    }
+    const known = BY_LABEL.get(name.toLowerCase());
+    if (known) return { ...known, known: true, uncategorized: false };
+
+    // A category from another tool. Keep the label and give it a stable tone so
+    // it at least stays visually consistent between renders.
+    return { label: name, tone: customTone(name), known: false, uncategorized: false, kind };
+}
+
+const TONES = ['leaf', 'amber', 'sky', 'clay', 'violet', 'rose', 'teal', 'slate'];
+
+function customTone(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    return TONES[hash % TONES.length];
+}
+
+/** Categories offered for a kind, most useful first. */
+export function categoriesFor(kind = 'expense') {
+    const want = kind === 'income' ? 'income' : 'expense';
+    const quick = QUICK_PICKS[want] || [];
+    const rest = CATEGORIES
+        .filter((cat) => cat.kind === want && !quick.includes(cat.label))
+        .map((cat) => cat.label);
+    return { quick: [...quick], rest };
+}
+
+/**
+ * Guess a category from an entry's text. Returns null rather than a fallback so
+ * callers can tell "no idea" apart from a real guess and avoid stamping
+ * everything as Other.
+ */
+export function suggestCategory({ title = '', note = '', kind = 'expense' } = {}) {
+    const text = `${title} ${note}`.trim();
+    if (!text) return null;
+
+    for (const [pattern, label] of RULES) {
+        if (!pattern.test(text)) continue;
+        const info = categoryInfo(label);
+        // A paycheck rule must not fire on an expense, or vice versa.
+        if (kind === 'income' && info.kind !== 'income') continue;
+        if (kind !== 'income' && info.kind === 'income') continue;
+        return label;
+    }
+    return null;
+}
+
+/**
+ * What a new entry should be filed under: an explicit choice wins, then a
+ * keyword guess, then whatever the user last used for that exact title.
+ */
+export function resolveCategory({ category, title, note, kind = 'expense', history } = {}) {
+    const chosen = String(category ?? '').trim();
+    if (chosen) return chosen.slice(0, 40);
+
+    const remembered = history?.get?.(String(title ?? '').trim().toLowerCase());
+    if (remembered) return remembered;
+
+    return suggestCategory({ title, note, kind }) || '';
+}
+
+/**
+ * Categories the user has already applied to a given title. Their own past
+ * choice should outrank a keyword rule, which is how "learns from corrections"
+ * works without any model.
+ */
+export function categoryHistory(events) {
+    const history = new Map();
+    if (!events || typeof events !== 'object') return history;
+
+    for (const list of Object.values(events)) {
+        if (!Array.isArray(list)) continue;
+        for (const entry of list) {
+            const title = String(entry?.title ?? '').trim().toLowerCase();
+            const category = String(entry?.category ?? '').trim();
+            if (title && category) history.set(title, category);
+        }
+    }
+    return history;
+}
+
+/**
+ * Spend per category for a set of summary items, largest first. `share` is the
+ * percent of the period's total, which is what the breakdown bars render.
+ */
+export function rollUpCategories(items = []) {
+    const buckets = new Map();
+    let totalCents = 0;
+
+    for (const item of items) {
+        const cents = Utils.toCents(item.amount);
+        if (cents <= 0) continue;
+        totalCents += cents;
+
+        const info = categoryInfo(item.category, item.kind);
+        const key = info.label;
+        const bucket = buckets.get(key) || {
+            label: key,
+            tone: info.tone,
+            uncategorized: info.uncategorized,
+            cents: 0,
+            count: 0
+        };
+        bucket.cents += cents;
+        bucket.count += 1;
+        buckets.set(key, bucket);
+    }
+
+    return [...buckets.values()]
+        .map((bucket) => ({
+            label: bucket.label,
+            tone: bucket.tone,
+            uncategorized: bucket.uncategorized,
+            amount: Utils.fromCents(bucket.cents),
+            count: bucket.count,
+            share: totalCents ? (bucket.cents / totalCents) * 100 : 0
+        }))
+        .sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label));
+}
