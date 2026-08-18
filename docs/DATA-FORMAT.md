@@ -15,6 +15,8 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
         "recurring": true,
         "repeat": "monthly",
         "paid": true,
+        "category": "Transit",
+        "group": "Commute",
         "note": "90-day reload"
       }
     ]
@@ -44,8 +46,8 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `kind` | string | `"expense"` | `expense` (default, omitted) or `income`. Calendar colors and the sidebar face use this. |
 | `paid` | boolean | `false` | Used by the summary paid / pending split. Receipts save as paid. On income the UI label is Deposited, and only income with this flag counts as cash in the account overview — one flag rather than two, because "received but not deposited" is a state with no answer. |
 | `note` | string | `""` | Free text. HTML is escaped before render. |
-| `category` | string | omitted | Spending category label (max 40), e.g. `Groceries`. Set from the entry form, guessed from the title by the keyword rules in `src/core/categories.js`, or supplied by a host import. Stored as the human label rather than an id so a ledger written elsewhere keeps its own vocabulary; an unrecognised label renders as a custom category rather than being rewritten. |
-| `group` | string | omitted | A bucket of the user's own naming (max 40), e.g. `Bella`, `Rome trip`, `Rental`. Where `category` answers what a thing was from a fixed vocabulary, `group` answers what it belonged to and has no canonical list. Typed into one find-or-add field, matched case-insensitively with runs of whitespace collapsed, so `bella` joins an existing `Bella` rather than forking it. The spelling stored is the one most recently typed. |
+| `category` | string | omitted | One tag (max 40), e.g. `Groceries`. Typed in the find-or-create field; Enter assigns a new name. Also guessed from the title by `src/core/categories.js`, or supplied by a host import. Stored as the human label rather than an id. Search with `cat:`, `tag:`, or `category:` (a space after the colon is part of the name). `cat:food` matches every built-in tag in that family. |
+| `group` | string | omitted | A bucket of the user's own naming (max 40), e.g. `Bella`, `Rome trip`, `Rental`. Where `category` answers what a thing was, `group` answers what it belonged to and has no canonical list. Assigned from the day sheet (select rows or drop one onto another) or the find-or-add field. Matched case-insensitively with whitespace collapsed, so `bella` joins `Bella`. **Ungroup** removes only this field. Search with `group:` or `grp:`. |
 | `source` | string | omitted | Optional origin, e.g. `bank` or `ocr` (max 24). |
 | `sourceId` | string | omitted | Optional bank transaction id for idempotent host imports (max 80). |
 

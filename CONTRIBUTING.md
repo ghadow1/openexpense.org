@@ -57,6 +57,7 @@ Run `npm test` for ledger-file quality control (one-file expense + income, encry
 Before you open a PR, also click through:
 
 - Add, edit, and delete an expense and an income row, including a recurring series.
+- Search with `group:`, `tag:` / `cat:`, and a space after the colon (`group: Rome trip`). Click a sidebar group or category.
 - Toggle theme and autosave. Confirm the privacy and file-loaded chips update.
 - Export — save the encrypted `.json`, then the sibling `key.json`. Import the ledger and choose that key. Confirm DevTools does not show the portable JWK in `localStorage` or IndexedDB.
 - If you touched OCR: scan a paper receipt photo, a screenshot, and a PDF if you can.

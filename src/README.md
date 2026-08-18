@@ -36,6 +36,9 @@ Each module starts with a short header describing what it owns.
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, date / cadence shift, weekday or series delete |
 | [`core/labeling.js`](core/labeling.js) | Name+amount twins and Change All title/price writes |
+| [`core/categories.js`](core/categories.js) | Built-in tags, keyword guess, collect / suggest / canonical |
+| [`core/groups.js`](core/groups.js) | User group fold, collect / suggest / canonical, sidebar rollup |
+| [`core/search.js`](core/search.js) | Query language: `group:`, `tag:` / `cat:`, amounts, `is:`, dates |
 | [`core/day-entries.js`](core/day-entries.js) | Day-list reorder, move, duplicate, paid toggle, group / ungroup, title memory |
 | [`core/summary.js`](core/summary.js) | Month/year totals, settled funds, due-soon window |
 | [`core/summary-pdf.js`](core/summary-pdf.js) | Brochure monthly PDF (cover, breakdown, register) |
@@ -46,12 +49,13 @@ Each module starts with a short header describing what it owns.
 | File | Role |
 | --- | --- |
 | [`features/calendar.js`](features/calendar.js) | Month grid |
-| [`features/modal.js`](features/modal.js) | Day editor |
+| [`features/modal.js`](features/modal.js) | Day editor; Change All; group / ungroup |
+| [`features/search-panel.js`](features/search-panel.js) | Search sheet (`/` or Ctrl/Cmd+K) |
 | [`features/ledger.js`](features/ledger.js) | Import, export / linked-folder save, autosave toggle, name |
 | [`features/export-buttons.js`](features/export-buttons.js) | Export vs Save labels when a folder is linked |
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
-| [`features/sidebar.js`](features/sidebar.js) | Expense / income summary (coin-flip card) |
+| [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
 | [`features/dash-strip.js`](features/dash-strip.js) | Snapshot carousel: overview, income, and expense views |
 | [`features/undo-delete.js`](features/undo-delete.js) | Short-lived Undo after delete or clear (memory snapshot only) |
 
@@ -63,6 +67,8 @@ Each module starts with a short header describing what it owns.
 | [`ui/theme.js`](ui/theme.js) | CSS variables from `THEMES` |
 | [`ui/toast.js`](ui/toast.js) | Status toasts |
 | [`ui/confirm.js`](ui/confirm.js) | Confirm dialog + optional checkbox |
+| [`ui/category-picker.js`](ui/category-picker.js) | Type-to-tag category field + row badge |
+| [`ui/group-field.js`](ui/group-field.js) | Find-or-add group field + row badge |
 | [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |
 | [`ui/pointer-drag.js`](ui/pointer-drag.js) | Thresholded pointer drag for day rows and calendar chips |
 

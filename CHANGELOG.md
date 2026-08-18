@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Docs for search, tags, and groups
+
+README, architecture, data format, the source map, embed notes, and Privacy & Help now describe Change All, category tags, day-sheet groups, and the search keys (`group:`, `tag:`, `cat:`).
+
 ## 2026-08-18 — Search keys for groups and category tags
 
 `group:` now keeps the name after a space (`group: Rome trip`) instead of dropping it. `tag:` and `category:` mean the same as `cat:`. Typing a key alone offers matching groups or tags rather than “No matches.” Search hits show the group badge, and a sidebar group or category opens that search.

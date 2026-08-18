@@ -403,6 +403,7 @@
                 <ul class="docs-list">
                   <li><strong>Account overview</strong> — income you have marked deposited, what is left of it after this month’s spending, and the savings funds behind that.</li>
                   <li><strong>Calendar ledger</strong> — tap any day to log one or more expenses or income.</li>
+                  <li><strong>Search</strong> — <code>/</code> or Ctrl/Cmd+K. Filter with <code>group:</code>, <code>tag:</code> or <code>cat:</code>, <code>is:unpaid</code>, amounts, and dates.</li>
                   <li><strong>Monthly summary</strong> — paid vs pending totals, trends, top merchants, and a year chart.</li>
                   <li><strong>Receipt scanning</strong> — photograph or upload a receipt or PDF; local OCR suggests fields you review before saving.</li>
                   <li><strong>Encrypted autosave</strong> — changes write to encrypted local storage automatically.</li>
@@ -450,6 +451,24 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">Search, category tags, and groups</h3>
+                  <p>
+                    Open search from the snapshot row, or press <code>/</code> or Ctrl/Cmd+K.
+                    Keys stay attached to the words after them, including a space after the colon:
+                    <code>group: Rome trip</code>, <code>tag: groceries</code>, <code>cat:food</code>
+                    (every tag in that family), <code>is:unpaid</code>, <code>&gt;50</code>,
+                    <code>2026-08</code>. <code>tag:</code> and <code>category:</code> mean the same
+                    as <code>cat:</code>. Typing a key alone offers matching names.
+                  </p>
+                  <p>
+                    Category is a tag you type: Enter creates a new one if it does not exist.
+                    On a day, select several rows or drop one onto another to group them.
+                    <strong>Ungroup</strong> clears only the group — price, date, and the label stay.
+                    Click a sidebar group or category to open that search.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Dashboard groups and plain-language labels</h3>
                   <p>
@@ -714,6 +733,17 @@
               </header>
 
               <div class="docs-prose">
+                <section class="docs-chapter">
+                  <h3 class="docs-section-title">18 August 2026 — Search keys, tags, and Change all</h3>
+                  <p>
+                    <code>group:</code> keeps the name after a space. <code>tag:</code> means the same
+                    as <code>cat:</code>. Category is a type-to-tag field; Enter creates a new tag.
+                    A name or amount edit stays on that row unless another entry shares both — then
+                    <strong>Change all</strong> asks. Day-sheet rows can be grouped or ungrouped
+                    without touching price or date.
+                  </p>
+                </section>
+
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Year chart and mobile chrome</h3>
                   <p>

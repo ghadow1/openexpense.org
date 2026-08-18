@@ -75,4 +75,4 @@ The iframe only accepts `channel: 'openexpense'` from the `origin` query (or `al
 2. Pass transaction arrays into `importTransactions` / `oe:import`.
 3. Render OpenExpense as the calendar and analytics layer.
 
-Optional entry fields `category`, `source`, and `sourceId` are stored for idempotent updates. They are not shown in the current UI.
+Optional entry fields `category`, `group`, `source`, and `sourceId` are stored. `category` and `group` show on the day sheet and in search (`cat:` / `tag:` and `group:`). `source` and `sourceId` are for idempotent host imports and are not shown in the UI.

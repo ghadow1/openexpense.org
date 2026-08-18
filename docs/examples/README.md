@@ -1,6 +1,6 @@
 # Examples
 
-[`sample-ledger.json`](sample-ledger.json) is a **fictional** household ledger you can import to see the calendar, recurring groups, and monthly summary.
+[`sample-ledger.json`](sample-ledger.json) is a **fictional** household ledger you can import to see the calendar, category tags, user groups, and monthly summary. After import, try search keys such as `group:bella`, `tag:groceries`, and `cat:food`.
 
 It is not loaded by the app. To try it:
 

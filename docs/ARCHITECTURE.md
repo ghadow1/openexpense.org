@@ -54,8 +54,9 @@ src/main.js         boot, event delegation, render subscription
 | --- | --- |
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
 | `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`) |
-| `features/modal.js` | Day editor; recurring series delete |
-| `features/sidebar.js` | Month math + brochure PDF; expense/income coin-flip card |
+| `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
+| `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
+| `features/sidebar.js` | Month math + brochure PDF; click a group or category to search |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 
@@ -64,6 +65,29 @@ src/main.js         boot, event delegation, render subscription
 `src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly). Blank or leftover placeholder titles never join a series. The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger. Date and cadence can still shift the series; name and amount stay on the edited row unless **Change all** confirms other rows that share both.
 
 The right-hand card flips between an expense face and an income face. The calendar stays one grid and paints income pills green.
+
+## Labels, groups, and Change All
+
+`src/core/labeling.js` finds **twins**: other entries that share both the same folded title and the same dollar amount. Editing a name or price asks **Change all** only when twins exist. Cancel aborts the save. Blank titles, `Untitled`, and leftover form placeholders never match.
+
+`src/core/categories.js` stores one category string per entry (max 40). The form is a type-to-tag field: suggestions come from used labels and the built-in set; Enter creates a new tag. `tag:` and `category:` are the same search key as `cat:`. `cat:food` also matches every built-in tag in that family (Groceries, Dining, Coffee).
+
+`src/core/groups.js` and `day-entries.js` own user groups. Select several day-sheet rows or drop one row onto another to assign a group. **Ungroup** deletes only `group` — price, date, title, category, paid, and recurring stay put.
+
+## Search
+
+`src/core/search.js` is a small filter language over the whole ledger. `/` or Ctrl/Cmd+K opens `features/search-panel.js`.
+
+| Token | Meaning |
+| --- | --- |
+| `coffee` | Free text over title, note, category, and group |
+| `group:bella` / `grp:` | User group. A space after the colon is part of the name (`group: Rome trip`) |
+| `cat:groceries` / `tag:` / `category:` | Category tag |
+| `is:unpaid` | `paid`, `unpaid`, `income`, `expense`, `recurring`, `once` |
+| `>50` `<100` | Amount bounds |
+| `2026-08` | Year, month, or exact day |
+
+Typing a key alone (`group:`, `tag:`) offers matching names instead of “No matches.” Click a sidebar group or category row to open that search. Hits show both the category tag and the group badge.
 
 ## Receipts
 

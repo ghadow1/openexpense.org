@@ -8,6 +8,7 @@
         "recurring": true,
         "repeat": "monthly",
         "paid": true,
+        "category": "Housing",
         "note": "First of month"
       },
       {
@@ -17,6 +18,7 @@
         "repeat": "monthly",
         "kind": "income",
         "paid": true,
+        "category": "Paycheck",
         "note": "Direct deposit"
       }
     ],
@@ -26,6 +28,8 @@
         "price": 49.99,
         "recurring": true,
         "paid": true,
+        "category": "Transit",
+        "group": "Commute",
         "note": ""
       },
       {
@@ -33,6 +37,8 @@
         "price": 62.4,
         "recurring": false,
         "paid": true,
+        "category": "Groceries",
+        "group": "Bella",
         "note": "Market"
       }
     ],
@@ -106,6 +112,8 @@
         "price": 49.99,
         "recurring": true,
         "paid": true,
+        "category": "Transit",
+        "group": "Commute",
         "note": ""
       }
     ],

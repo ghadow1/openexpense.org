@@ -9,6 +9,8 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
+**18 August 2026** — Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks. See [`CHANGELOG.md`](CHANGELOG.md).
+
 **17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
 - Product brochure (A4 landscape): **[docs/brochure/openexpense-brochure.pdf](docs/brochure/openexpense-brochure.pdf)**
@@ -40,6 +42,9 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
 - **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
+- **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
+- **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
+- **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly summary PDF** — generated locally with jsPDF.
 
 ## Repository map
@@ -50,8 +55,8 @@ src/                   # Application source (edit here)
   main.js              # Bootstrap
   config.js            # Version, preference keys, theme tokens
   app/                 # Render loop and the two top-level views
-  core/                # Store, persist, crypto, export zip, summary, series
-  features/            # Calendar, day editor, ledger files, receipts, sidebar
+  core/                # Store, persist, crypto, export zip, summary, series, search
+  features/            # Calendar, day editor, search panel, ledger files, receipts, sidebar
   ui/                  # Buttons, theme, toasts, confirm dialog
 docs/                  # Architecture, data format, sample ledger
 index.html             # Shell: header, two views, welcome, day modal + SEO head
@@ -73,7 +78,7 @@ Dates are `YYYY-MM-DD` keys. Each day is an array of expenses:
   "name": "Home ledger",
   "events": {
     "2026-06-03": [
-      { "title": "Transit pass", "price": 49.99, "recurring": true, "paid": true, "note": "" }
+      { "title": "Transit pass", "price": 49.99, "recurring": true, "paid": true, "category": "Transit", "group": "Commute", "note": "" }
     ]
   }
 }
