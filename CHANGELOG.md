@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Full-width day net card
+
+The day sheet’s net dial now spans the sheet. Previous / next sit in their own squares and leave a reserved slot for Close, so they no longer crowd the X.
+
 ## 2026-08-18 — Compact banking dials
 
 Snapshot, sidebar, and the day sheet now lead with one small blue ring for the period total. The year plot keeps only the start, one peak or valley, and the end, with short `$5k` / `$10k` axis labels. Extra figures and form fields sit in a fold so a single card never fills the screen. Professional income chips use the same blue as the rest of the palette. Future-dated copies still count in the month math.
