@@ -256,6 +256,13 @@ test('a week counts how many days blow the daily safe amount', () => {
     const three = calendarRowWeeks(daily, 31, 6, 2000, { dailySafe: 40 });
     assert.equal(three[1].overDailyCount, 3);
     assert.equal(three[0].overDailyCount, 0);
+
+    const empty = new Array(31).fill(0);
+    const underwater = calendarRowWeeks(empty, 31, 6, 2000, { dailySafe: -40 });
+    assert.equal(underwater[1].overDailyCount, 0);
+    empty[1] = 1;
+    const spent = calendarRowWeeks(empty, 31, 6, 2000, { dailySafe: -40 });
+    assert.equal(spent[1].overDailyCount, 1);
 });
 
 test('trackCalendarWeeks reads gross paychecks and counted bills together', () => {

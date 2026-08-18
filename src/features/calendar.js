@@ -217,19 +217,6 @@ function appendCompactMobileDay(body, dayEvents) {
         dots.appendChild(dot);
     }
     body.appendChild(dots);
-
-    if (dayEvents.length === 1) {
-        const micro = document.createElement('div');
-        micro.className = 'cal-day-micro';
-        micro.textContent = dayEvents[0].title;
-        body.appendChild(micro);
-        return;
-    }
-
-    const badge = document.createElement('div');
-    badge.className = 'cal-day-count';
-    badge.textContent = `${dayEvents.length} items`;
-    body.appendChild(badge);
 }
 
 function appendPills(body, dayEvents, dateKey, maxVisible, density) {
@@ -283,7 +270,7 @@ function weekHintRows(events, currentDate, plan) {
     const cap = Utils.toCents(snap.dailySafe);
     const overDays = new Set();
     daily.forEach((amount, index) => {
-        if (Utils.toCents(amount) > cap) overDays.add(index + 1);
+        if (Utils.toCents(amount) > 0 && Utils.toCents(amount) > cap) overDays.add(index + 1);
     });
     return {
         over: new Set(weeks.filter((week) => (week.overDailyCount || 0) >= 3).map((week) => week.row)),

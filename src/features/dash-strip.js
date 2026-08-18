@@ -194,8 +194,12 @@ function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras,
         row.appendChild(bars);
     }
 
-    const open = extrasOpen == null ? wide : !!extrasOpen;
-    section.append(header, row, foldExtras(extrasTitle, extras, open));
+    if (readFrame() !== 'phone') {
+        const open = extrasOpen == null ? wide : !!extrasOpen;
+        section.append(header, row, foldExtras(extrasTitle, extras, open));
+    } else {
+        section.append(header, row);
+    }
     return [section];
 }
 
@@ -342,7 +346,7 @@ function planPanel(snap, plan) {
         sectionKicker('Tax withholding'),
         tax,
         taxPresets,
-        hint('', '15.3 is IRS self-employment tax (12.4 Social Security + 2.9 Medicare; Topic 554 / Pub 334). 25 and 30 are common quarterly-estimate placeholders from Pub 505 practice, not a tax filing.'),
+        hint('', '15.3 is SE tax. 25 and 30 are estimates, not a filing.'),
         sectionKicker('Savings and hold reserves'),
         weekly,
         hint('dash-plan-weekly-hint', plan.weeklySavings > 0
@@ -360,7 +364,7 @@ function planPanel(snap, plan) {
         incomeField,
         sectionKicker('After-tax split'),
         ratioField,
-        hint('', `50/30/20 is Warren and Tyagi, All Your Worth (2005), as taught by the CFPB. Needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}, save hold ${formatMoney(snap.savingsHold)} of ${formatMoney(snap.ratioSaveCap)}.`),
+        hint('', `Needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)} · Wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)} · Save ${formatMoney(snap.savingsHold)} of ${formatMoney(snap.ratioSaveCap)}`),
         caps
     );
     form.addEventListener('change', () => {
@@ -652,7 +656,7 @@ function renderOverview(snap, events, currentDate) {
 
     heroRoot.replaceChildren(hero);
     heroRoot.classList.add('is-ready');
-    moreRoot.replaceChildren(pair, year);
+    moreRoot.replaceChildren(pair, ...(readFrame() === 'phone' ? [] : [year]));
     moreRoot.classList.add('is-ready');
 }
 

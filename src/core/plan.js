@@ -331,7 +331,7 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
             const daySpend = Utils.toCents(dailySpend[day - 1] || 0);
             spent += daySpend;
             incoming += Utils.toCents(dailyIncome[day - 1] || 0);
-            if (dailySafeCents != null && daySpend > dailySafeCents) overDailyCount += 1;
+            if (dailySafeCents != null && daySpend > 0 && daySpend > dailySafeCents) overDailyCount += 1;
         }
         const last = end === length;
         const target = last

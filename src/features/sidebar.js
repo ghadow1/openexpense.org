@@ -176,8 +176,8 @@ function renderStatsGrid(summary, copy) {
         ? (spendUp ? 'up' : '')
         : (summary.monthDelta < 0 ? 'up' : '');
     const deltaHint = summary.prevMonthTotal > 0 || summary.total > 0
-        ? `${formatDelta(summary.monthDelta)} vs last month`
-        : 'No prior month data';
+        ? 'vs last month'
+        : 'No prior month';
 
     grid.append(
         statCard('calendar-stats', 'Daily average', Utils.formatMoney(summary.avgPerDay),
@@ -505,15 +505,24 @@ function renderYearChart(summary, currentDate, copy) {
 }
 
 function renderYearStats(summary) {
+    if (!summary.ytdActiveMonths || summary.ytdActiveMonths <= 1) return null;
     const cards = el('div', 'summary-stats-grid is-compact');
-    const ytdHint = `January–${summary.shortMonth}`;
-    const avgHint = summary.ytdActiveMonths
-        ? `${summary.ytdActiveMonths} month${summary.ytdActiveMonths === 1 ? '' : 's'} through ${summary.shortMonth}`
-        : ytdHint;
-    cards.append(
-        statCard('chart-bar', 'Year to date', Utils.formatMoney(summary.yearTotal), ytdHint, 'accent'),
-        statCard('chart-dots', 'Monthly average', Utils.formatMoney(summary.yearAvg), avgHint, '')
-    );
+    cards.append(statCard(
+        'chart-bar',
+        'Year to date',
+        Utils.formatMoney(summary.yearTotal),
+        `January–${summary.shortMonth}`,
+        'accent'
+    ));
+    if (summary.yearAvg !== summary.yearTotal) {
+        cards.append(statCard(
+            'chart-dots',
+            'Monthly average',
+            Utils.formatMoney(summary.yearAvg),
+            `${summary.ytdActiveMonths} months`,
+            ''
+        ));
+    }
     return cards;
 }
 
@@ -606,7 +615,8 @@ function paintFace(faceEl, kind) {
     statsSection.appendChild(el('div', 'summary-section-title', 'This month at a glance'));
     statsSection.appendChild(renderStatsGrid(summary, copy));
     faceEl.appendChild(statsSection);
-    faceEl.appendChild(renderYearStats(summary));
+    const yearStats = renderYearStats(summary);
+    if (yearStats) faceEl.appendChild(yearStats);
 
     // Only the long lists fold. The month's own arithmetic stays on screen,
     // because a card that hides every figure reads as one that failed to add up.

@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Slimmer mobile tabs, less repeated copy
+
+The bottom bar is a real tab strip (icon, label, accent hairline) instead of four boxed buttons. Privacy’s chapter tabs sit on one row. Planner drops the empty figures fold and the long citations. Tracker no longer repeats year-to-date next to the same monthly average. Calendar days keep the amount and dots and stop reprinting the merchant name.
+
 ## 2026-08-18 — Week tracks mark over-budget days, not income green
 
 A day turns red only when it spends past that day’s safe amount. The left week track stays off when the week is in budget. Two over-budget days make a half red / half gray track. Three or more make a full red track. Red and green no longer share one rail.
