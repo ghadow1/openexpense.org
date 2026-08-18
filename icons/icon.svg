@@ -1,21 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="OpenExpense">
-  <defs>
-    <linearGradient id="oe-bg" x1="4" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#3B82F6"/>
-      <stop offset="0.45" stop-color="#1170CF"/>
-      <stop offset="1" stop-color="#002244"/>
-    </linearGradient>
-    <linearGradient id="oe-card" x1="14" y1="12" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#E8F1FB"/>
-    </linearGradient>
-  </defs>
-  <rect width="48" height="48" rx="2" fill="url(#oe-bg)"/>
-  <rect x="15" y="11" width="22" height="16" rx="3.5" transform="rotate(18 26 19)" fill="#002244" fill-opacity="0.18"/>
-  <g transform="rotate(-16 24 25)">
-    <rect x="11.5" y="15" width="25" height="18.5" rx="3" fill="url(#oe-card)"/>
-    <rect x="11.5" y="19.2" width="25" height="3.4" fill="#002244"/>
-    <rect x="15" y="26.2" width="6.2" height="4.2" rx="1" fill="#1170CF"/>
-    <rect x="23.2" y="27.2" width="9.5" height="1.5" rx="0.75" fill="#0A4D9A" fill-opacity="0.45"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="OpenExpense">
+  <rect width="48" height="48" rx="4" fill="#1170CF"/>
+  <g transform="translate(7.2 12) scale(1.2)">
+    <path fill="#FFFFFF" fill-rule="evenodd" d="M3.5 0H24.5A3.5 3.5 0 0 1 28 3.5V16.5A3.5 3.5 0 0 1 24.5 20H3.5A3.5 3.5 0 0 1 0 16.5V3.5A3.5 3.5 0 0 1 3.5 0ZM0 5H28V9H0V5ZM5.5 13H11.5A1.5 1.5 0 0 1 11.5 16H5.5A1.5 1.5 0 0 1 5.5 13Z"/>
   </g>
 </svg>
