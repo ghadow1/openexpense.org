@@ -405,3 +405,31 @@ test('backfill survives a malformed ledger', async () => {
     assert.doesNotThrow(() => backfillCategories({ '2026-08-01': null }));
     assert.doesNotThrow(() => backfillCategories({ '2026-08-01': [null, 5, 'x'] }));
 });
+
+test('the suggestion shown on the form respects a past correction', async () => {
+    // The picker used to suggest from the keyword rules alone and then hand
+    // that down as an explicit choice, so resolveCategory short-circuited and
+    // the user's own past filing was never applied.
+    const { cachedCategoryHistory } = await import('../src/core/categories.js');
+    const events = { '2026-07-01': [{ title: 'Starbucks', price: 5, category: 'Dining' }] };
+
+    const shown = resolveCategory({
+        title: 'Starbucks',
+        kind: 'expense',
+        history: cachedCategoryHistory(events)
+    });
+    assert.equal(shown, 'Dining', 'the form should offer what this user actually does');
+});
+
+test('cached history refreshes when the ledger changes', async () => {
+    const { cachedCategoryHistory } = await import('../src/core/categories.js');
+    const first = { '2026-07-01': [{ title: 'Starbucks', category: 'Dining' }] };
+    assert.equal(cachedCategoryHistory(first).get('starbucks'), 'Dining');
+
+    // A patch always replaces the events object, which is what invalidates it.
+    const second = { '2026-07-01': [{ title: 'Starbucks', category: 'Travel' }] };
+    assert.equal(cachedCategoryHistory(second).get('starbucks'), 'Travel');
+
+    // The same object twice must not be rescanned into a different answer.
+    assert.equal(cachedCategoryHistory(second), cachedCategoryHistory(second));
+});

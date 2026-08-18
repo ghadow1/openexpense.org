@@ -133,6 +133,24 @@ export function resolveCategory({ category, title, note, kind = 'expense', histo
     return suggestCategory({ title, note, kind }) || '';
 }
 
+let historySource = null;
+let historyCache = null;
+
+/**
+ * Cached view of categoryHistory, keyed on the events object itself.
+ *
+ * The entry form re-reads this on every keystroke, and a full ledger scan per
+ * character would be wasteful. Store patches always replace the events object,
+ * so an identity check is enough to know the cache is stale.
+ */
+export function cachedCategoryHistory(events) {
+    if (events !== historySource) {
+        historySource = events;
+        historyCache = categoryHistory(events);
+    }
+    return historyCache;
+}
+
 /**
  * Categories the user has already applied to a given title. Their own past
  * choice should outrank a keyword rule, which is how "learns from corrections"

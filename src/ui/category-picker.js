@@ -11,7 +11,7 @@
  * it stops moving, because silently overriding a deliberate choice is worse
  * than guessing wrong. Tapping the chosen chip again hands control back.
  */
-import { categoriesFor, categoryInfo, suggestCategory, UNCATEGORIZED } from '../core/categories.js';
+import { categoriesFor, categoryInfo, resolveCategory, UNCATEGORIZED } from '../core/categories.js';
 
 function chip(label, tone) {
     const btn = document.createElement('button');
@@ -35,9 +35,10 @@ function chip(label, tone) {
  * @param {string} options.id            unique per form, so add and edit can coexist
  * @param {string} [options.kind]        'expense' | 'income'
  * @param {string} [options.value]       an already-chosen category
+ * @param {Function} [options.history]   returns past title-to-category choices
  * @returns {{element: HTMLElement, getValue: Function, setKind: Function, refreshSuggestion: Function}}
  */
-export function createCategoryPicker({ id, kind = 'expense', value = '' } = {}) {
+export function createCategoryPicker({ id, kind = 'expense', value = '', history = null } = {}) {
     let currentKind = kind === 'income' ? 'income' : 'expense';
     let chosen = String(value ?? '').trim();
     // An existing entry's category is a decision the user already made.
@@ -118,10 +119,22 @@ export function createCategoryPicker({ id, kind = 'expense', value = '' } = {}) 
         element.dataset.value = active || '';
     }
 
-    /** Re-guess from the current title and note, unless the user has decided. */
+    /**
+     * Re-guess from the current title and note, unless the user has decided.
+     *
+     * This goes through resolveCategory rather than the keyword rules alone so
+     * a past correction outranks a rule here too. Suggesting from the rules and
+     * then handing that down as an explicit choice would bypass the history
+     * entirely, which is the opposite of the intended order.
+     */
     function refreshSuggestion({ title = '', note: entryNote = '' } = {}) {
         if (explicit) return;
-        suggested = suggestCategory({ title, note: entryNote, kind: currentKind }) || '';
+        suggested = resolveCategory({
+            title,
+            note: entryNote,
+            kind: currentKind,
+            history: history?.()
+        }) || '';
         paint();
     }
 

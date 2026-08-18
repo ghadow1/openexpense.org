@@ -40,7 +40,7 @@ import {
 } from '../core/day-entries.js';
 import { clearDropMarks, makeGhost, placeGhost } from '../ui/pointer-drag.js';
 import { categoryBadge, createCategoryPicker } from '../ui/category-picker.js';
-import { categoryHistory, resolveCategory } from '../core/categories.js';
+import { cachedCategoryHistory, resolveCategory } from '../core/categories.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -355,7 +355,11 @@ function ensureAddForm(formContainer) {
     form.appendChild(repeatPrompt);
     bindRepeatToggle(optWrap.querySelector('#er'), repeatPrompt);
 
-    addCategoryPicker = createCategoryPicker({ id: 'ec', kind: readKind('ek') });
+    addCategoryPicker = createCategoryPicker({
+        id: 'ec',
+        kind: readKind('ek'),
+        history: () => cachedCategoryHistory(getState().events)
+    });
     form.appendChild(addCategoryPicker.element);
     if (titleInput) titleInput.addEventListener('input', refreshAddCategory);
 
@@ -427,7 +431,7 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
         title: t,
         note: newEv.note,
         kind: entryKind,
-        history: categoryHistory(getState().events)
+        history: cachedCategoryHistory(getState().events)
     });
     if (filed) newEv.category = filed;
 
@@ -648,7 +652,8 @@ function buildEditRow(e, i) {
     const editPicker = createCategoryPicker({
         id: `edit-cat-${i}`,
         kind: Utils.entryKind(e),
-        value: e.category || ''
+        value: e.category || '',
+        history: () => cachedCategoryHistory(getState().events)
     });
     editPickers.set(i, editPicker);
     form.querySelectorAll(`input[name="edit-kind-${i}"]`).forEach((input) => {
