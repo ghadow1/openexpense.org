@@ -2018,26 +2018,43 @@ html.is-action-busy [data-lockable] {
 /* ==========================================================================
    Modal: two-column day editor
    ========================================================================== */
+/* The two panels scroll independently rather than the grid scrolling as one.
+   Sharing a scroller meant reading the day's entries dragged the half-filled
+   form off screen, and the taller side dictated the height of both. */
 .modal-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: stretch;
     min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
 }
 
 .modal-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* Room for the scrollbar so it never sits on top of the field it scrolls. */
+    padding-right: 4px;
 }
 
 .modal-panel:first-child {
     border-right: 1px solid var(--border);
-    padding-right: 32px;
+    padding-right: 28px;
+}
+
+/* The panel headings stay put while their own column scrolls under them. */
+.modal-panel > .panel-title,
+.modal-panel > .panel-title-row {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    flex-shrink: 0;
 }
 
 .panel-title-row {
@@ -2849,15 +2866,18 @@ body:has(.backdrop.open) #global-tooltip {
     color: var(--text);
 }
 
+/* Wider and taller than it was: the form now runs entry type, title, amount,
+   repeat, category, group and notes, and at 850x85vh the last of those sat
+   below the fold on a laptop. */
 #mbox,
 .modal-editor {
     width: 100%;
-    max-width: 850px;
-    max-height: 85vh;
+    max-width: 1000px;
+    max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 24px;
+    padding: 24px 24px 20px;
 }
 
 .welcome-card {
@@ -2945,9 +2965,9 @@ body:has(.backdrop.open) #global-tooltip {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding: 12px;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: color-mix(in srgb, var(--surface2) 72%, transparent);
@@ -3407,6 +3427,127 @@ body.is-entry-dragging .cal-day {
     font-weight: 600;
     color: var(--text2);
     white-space: nowrap;
+}
+
+/* ==========================================================================
+   Group field — one input that finds an existing group or starts a new one
+   ========================================================================== */
+.group-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.group-field-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Says which of find-or-add is about to happen, so neither is a surprise. */
+.group-note {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.group-note.is-new {
+    color: var(--accent);
+}
+
+.group-note[hidden] {
+    display: none;
+}
+
+.group-input-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.group-input {
+    width: 100%;
+    padding-right: 36px;
+}
+
+.group-clear {
+    position: absolute;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.group-clear:hover,
+.group-clear:focus-visible {
+    color: var(--text);
+    background: var(--surface2);
+}
+
+.group-clear[hidden] {
+    display: none;
+}
+
+.group-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.group-chips[hidden] {
+    display: none;
+}
+
+.group-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+.group-chip:hover,
+.group-chip:focus-visible {
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.group-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 140px;
+    padding: 1px 7px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-untracked {
+    padding-top: 2px;
 }
 
 .cat-badge.is-empty {
@@ -3896,10 +4037,11 @@ body.is-entry-dragging .cal-day {
    Forms
    ========================================================================== */
 .record-form {
-    margin-top: 20px;
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+    padding-bottom: 4px;
 }
 
 .form-grid {

@@ -41,6 +41,8 @@ import {
 import { clearDropMarks, makeGhost, placeGhost } from '../ui/pointer-drag.js';
 import { categoryBadge, createCategoryPicker } from '../ui/category-picker.js';
 import { cachedCategoryHistory, resolveCategory } from '../core/categories.js';
+import { createGroupField, groupBadge } from '../ui/group-field.js';
+import { cachedGroupHistory, canonicalGroup, suggestGroupFor, suggestGroups } from '../core/groups.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -199,9 +201,20 @@ function renderDayInsights(dateKey) {
 
 let addFormReady = false;
 let addCategoryPicker = null;
+let addGroupField = null;
 // Edit rows are rebuilt on every refresh, so pickers are keyed by row index and
 // cleared with the list rather than held for the lifetime of the modal.
 const editPickers = new Map();
+const editGroupFields = new Map();
+
+/** The wiring a group field needs to read the ledger's existing vocabulary. */
+function groupFieldHooks() {
+    return {
+        lookup: (query) => suggestGroups(getState().events, { query }),
+        resolve: (raw) => canonicalGroup(getState().events, raw),
+        historyFor: (title) => suggestGroupFor(title, cachedGroupHistory(getState().events))
+    };
+}
 
 function refreshEventList() {
     const { selectedKey, events } = getState();
@@ -212,6 +225,7 @@ function refreshEventList() {
     eventsContainer.classList.add('day-entry-list');
     eventsContainer.replaceChildren();
     editPickers.clear();
+    editGroupFields.clear();
     const list = events[selectedKey] || [];
     if (!list.length) {
         const p = document.createElement('p');
@@ -363,6 +377,9 @@ function ensureAddForm(formContainer) {
     form.appendChild(addCategoryPicker.element);
     if (titleInput) titleInput.addEventListener('input', refreshAddCategory);
 
+    addGroupField = createGroupField({ id: 'eg', ...groupFieldHooks() });
+    form.appendChild(addGroupField.element);
+
     const noteField = UI.createFieldGroup('en', 'Notes', '', 'Optional context...', 'textarea');
     noteField.querySelector('textarea')?.addEventListener('input', refreshAddCategory);
     form.appendChild(noteField);
@@ -381,10 +398,12 @@ function ensureAddForm(formContainer) {
 }
 
 function refreshAddCategory() {
+    const title = document.getElementById('et')?.value || '';
     addCategoryPicker?.refreshSuggestion({
-        title: document.getElementById('et')?.value || '',
+        title,
         note: document.getElementById('en')?.value || ''
     });
+    addGroupField?.refreshSuggestion(title);
 }
 
 function resetAddForm() {
@@ -403,10 +422,11 @@ function resetAddForm() {
     const prompt = document.getElementById('er-repeat-prompt');
     if (prompt) prompt.hidden = true;
     addCategoryPicker?.reset();
+    addGroupField?.reset();
     syncAddFormKind();
 }
 
-export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind, category } = {}) {
+export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind, category, group } = {}) {
     const t = String(title ?? '').trim();
     if (!t || !dateKey) return false;
 
@@ -434,6 +454,11 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
         history: cachedCategoryHistory(getState().events)
     });
     if (filed) newEv.category = filed;
+
+    // Snapped to the spelling already in the ledger, so callers that pass a
+    // group as free text cannot fork "Bella" into a second group.
+    const filedGroup = canonicalGroup(getState().events, group);
+    if (filedGroup) newEv.group = filedGroup;
 
     if (newEv.kind === 'expense') delete newEv.kind;
     if (newEv.recurring) newEv.repeat = normalizeRepeat(repeat);
@@ -531,6 +556,7 @@ function buildRow(e, i) {
         titleRow.appendChild(kindBadge);
     }
     if (e.category) titleRow.appendChild(categoryBadge(e.category, Utils.entryKind(e)));
+    if (e.group) titleRow.appendChild(groupBadge(e.group));
     if (e.recurring) {
         const rec = document.createElement('span');
         rec.className = 'event-badge-icon';
@@ -661,6 +687,14 @@ function buildEditRow(e, i) {
     });
     form.appendChild(editPicker.element);
 
+    const editGroup = createGroupField({
+        id: `edit-group-${i}`,
+        value: e.group || '',
+        ...groupFieldHooks()
+    });
+    editGroupFields.set(i, editGroup);
+    form.appendChild(editGroup.element);
+
     form.appendChild(UI.createFieldGroup(`edit-note-${i}`, 'Notes', e.note || '', '', 'textarea'));
     wrap.appendChild(form);
 
@@ -717,6 +751,12 @@ function saveEdit(i) {
 
     const picked = editPickers.get(i)?.getValue();
     if (picked) updatedEv.category = picked;
+
+    // Read even when empty: clearing the field has to be able to remove a group,
+    // which an if-truthy guard would silently ignore.
+    const pickedGroup = editGroupFields.get(i)?.getValue() ?? '';
+    if (pickedGroup) updatedEv.group = pickedGroup;
+    else delete updatedEv.group;
 
     const { selectedKey, events } = getState();
     const original = events[selectedKey]?.[i];
@@ -988,7 +1028,8 @@ function addEvent() {
         paid: document.getElementById('epad')?.checked,
         repeat: readRepeat('er-repeat'),
         kind: readKind('ek'),
-        category: addCategoryPicker?.getValue()
+        category: addCategoryPicker?.getValue(),
+        group: addGroupField?.getValue()
     });
     if (!ok) return;
 

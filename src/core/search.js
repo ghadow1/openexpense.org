@@ -44,6 +44,7 @@ export function parseQuery(raw) {
     const query = {
         text: [],
         categories: [],
+        groups: [],
         dates: [],
         min: null,
         max: null,
@@ -62,6 +63,13 @@ export function parseQuery(raw) {
         if (field) {
             const name = field[2].replace(/^"|"$/g, '').trim();
             if (name) query.categories.push(name.toLowerCase());
+            continue;
+        }
+
+        const groupField = value.match(/^(group|grp):(.*)$/i);
+        if (groupField) {
+            const name = groupField[2].replace(/^"|"$/g, '').trim();
+            if (name) query.groups.push(name.toLowerCase());
             continue;
         }
 
@@ -101,6 +109,7 @@ export function parseQuery(raw) {
 export function isEmptyQuery(query) {
     return !query.text.length
         && !query.categories.length
+        && !query.groups.length
         && !query.dates.length
         && query.min == null
         && query.max == null
@@ -121,12 +130,17 @@ function matches(entry, date, query) {
         if (!query.categories.some((want) => label.includes(want))) return false;
     }
 
+    if (query.groups.length) {
+        const label = String(entry.group || '').toLowerCase();
+        if (!label || !query.groups.some((want) => label.includes(want))) return false;
+    }
+
     const amount = Utils.getPrice(entry);
     if (query.min != null && !(amount > query.min)) return false;
     if (query.max != null && !(amount < query.max)) return false;
 
     if (query.text.length) {
-        const haystack = `${entry.title || ''} ${entry.note || ''} ${entry.category || ''}`.toLowerCase();
+        const haystack = `${entry.title || ''} ${entry.note || ''} ${entry.category || ''} ${entry.group || ''}`.toLowerCase();
         // Every word must appear: added words should narrow, never widen.
         if (!query.text.every((word) => haystack.includes(word))) return false;
     }
@@ -172,6 +186,7 @@ export function searchEntries(events, raw, { limit = 50 } = {}) {
                 title: entry.title || 'Untitled',
                 amount,
                 category: entry.category || '',
+                group: entry.group || '',
                 kind: Utils.entryKind(entry),
                 paid: !!entry.paid,
                 recurring: !!entry.recurring,

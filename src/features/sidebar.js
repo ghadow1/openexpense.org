@@ -14,6 +14,7 @@ import { Toast } from '../ui/toast.js';
 import { closeModal, openModal } from './modal.js';
 import { backfillCategories, budgetProgress, categoriesFor, rollUpCategories } from '../core/categories.js';
 import { sanitizeBudgets } from '../core/ledger-file.js';
+import { rollUpGroups } from '../core/groups.js';
 import { confirmDialog } from '../ui/confirm.js';
 
 const FACE_COPY = {
@@ -245,6 +246,60 @@ function renderCategoryBreakdown(summary, copy) {
 
     section.appendChild(list);
     return section;
+}
+
+/**
+ * Groups are the user's own buckets, so this section only appears once they
+ * have made some. An empty "Groups" heading would just be a reminder of a
+ * feature they have not asked for.
+ */
+function renderGroupBreakdown(summary) {
+    const { rows, ungrouped } = rollUpGroups(summary.allItems || []);
+    if (!rows.length) return null;
+
+    const section = el('section', 'summary-section');
+    section.appendChild(el('div', 'summary-section-title', 'By group'));
+    section.appendChild(el('p', 'summary-section-description', 'Your own buckets for the month on screen.'));
+
+    const list = el('div', 'cat-breakdown');
+    const top = rows.slice(0, 6);
+    const rest = rows.slice(6);
+
+    for (const row of top) list.appendChild(groupRow(row));
+
+    if (rest.length) {
+        const other = rest.reduce((acc, row) => ({
+            amount: acc.amount + row.amount,
+            share: acc.share + row.share,
+            count: acc.count + row.count
+        }), { amount: 0, share: 0, count: 0 });
+        list.appendChild(groupRow({ label: `${rest.length} more`, ...other }, true));
+    }
+
+    if (ungrouped) {
+        list.appendChild(el(
+            'div',
+            'cat-row-meta group-untracked',
+            `${ungrouped} entr${ungrouped === 1 ? 'y is' : 'ies are'} not in a group.`
+        ));
+    }
+
+    section.appendChild(list);
+    return section;
+}
+
+function groupRow(row, muted = false) {
+    const el_ = el('div', `cat-row${muted ? ' is-muted' : ''}`);
+    const pct = Math.max(2, Math.min(100, row.share));
+    el_.innerHTML = `
+        <div class="cat-row-head">
+            <span class="group-badge">${Utils.escapeHtml(row.label)}</span>
+            <span class="cat-row-amt">${Utils.formatMoney(row.amount)}</span>
+        </div>
+        <div class="cat-track"><span style="width:${pct}%" data-tone="slate"></span></div>
+        <div class="cat-row-meta">${Math.round(row.share)}% · ${row.count} entr${row.count === 1 ? 'y' : 'ies'}</div>
+    `;
+    return el_;
 }
 
 function backfillPrompt() {
@@ -519,6 +574,9 @@ function paintFace(faceEl, kind) {
 
     const categories = renderCategoryBreakdown(summary, copy);
     if (categories) faceEl.appendChild(categories);
+
+    const groups = renderGroupBreakdown(summary);
+    if (groups) faceEl.appendChild(groups);
 
     const budgets = renderBudgets(summary, copy);
     if (budgets) faceEl.appendChild(budgets);

@@ -20,6 +20,17 @@ const events = {
     ]
 };
 
+// Kept separate from the ledger above so that adding grouped entries does not
+// quietly shift the counts every other test in this file asserts on.
+const grouped = {
+    '2026-08-20': [
+        { title: 'Dog food', price: 42, category: 'Pets', group: 'Bella' },
+        { title: 'Vet', price: 180, group: 'Bella' },
+        { title: 'Hotel', price: 300, group: 'Rome trip' },
+        { title: 'Desk', price: 210 }
+    ]
+};
+
 const titles = (result) => result.rows.map((row) => row.title).sort();
 
 test('free text searches titles and notes', () => {
@@ -51,6 +62,43 @@ test('cat: filters by category', () => {
 test('a category with a space can be quoted', () => {
     const parsed = parseQuery('cat:"eating out"');
     assert.deepEqual(parsed.categories, ['eating out']);
+});
+
+test('group: filters by the user\'s own buckets', () => {
+    assert.deepEqual(titles(searchEntries(grouped, 'group:bella')), ['Dog food', 'Vet']);
+    assert.equal(searchEntries(grouped, 'grp:bella').total, 2, 'grp: is the short form');
+    // Case and partials work the same way categories do.
+    assert.equal(searchEntries(grouped, 'group:BELLA').total, 2);
+    assert.equal(searchEntries(grouped, 'group:bel').total, 2);
+});
+
+test('a group with a space can be quoted', () => {
+    assert.deepEqual(parseQuery('group:"rome trip"').groups, ['rome trip']);
+    assert.equal(searchEntries(grouped, 'group:"rome trip"').total, 1);
+});
+
+test('an entry with no group never matches a group filter', () => {
+    assert.equal(searchEntries(grouped, 'group:desk').total, 0);
+});
+
+test('free text also reaches the group name', () => {
+    assert.deepEqual(titles(searchEntries(grouped, 'bella')), ['Dog food', 'Vet']);
+});
+
+test('a group filter combines with the other filters', () => {
+    assert.deepEqual(titles(searchEntries(grouped, 'group:bella >100')), ['Vet']);
+    assert.equal(searchEntries(grouped, 'cat:pets group:bella').total, 1);
+    assert.equal(searchEntries(grouped, 'cat:housing group:bella').total, 0);
+});
+
+test('an empty group filter is not a filter', () => {
+    assert.equal(isEmptyQuery(parseQuery('group:')), true);
+    assert.deepEqual(parseQuery('group:').groups, []);
+});
+
+test('a search row carries the group through to the caller', () => {
+    const row = searchEntries(grouped, 'group:bella').rows.find((r) => r.title === 'Vet');
+    assert.equal(row.group, 'Bella');
 });
 
 test('amount bounds filter by price', () => {

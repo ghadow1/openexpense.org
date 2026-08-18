@@ -14,7 +14,7 @@ import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { Ledger } from './ledger.js';
 
-const COLUMNS = ['Date', 'Title', 'Amount', 'Type', 'Category', 'Status', 'Recurring', 'Note'];
+const COLUMNS = ['Date', 'Title', 'Amount', 'Type', 'Category', 'Group', 'Status', 'Recurring', 'Note'];
 
 /**
  * Escape one CSV field.
@@ -38,6 +38,7 @@ export function toCsv(rows) {
             row.amount.toFixed(2),
             row.kind === 'income' ? 'Income' : 'Expense',
             categoryInfo(row.category, row.kind).label,
+            row.group || '',
             row.paid ? (row.kind === 'income' ? 'Received' : 'Paid') : 'Unpaid',
             row.recurring ? 'Yes' : 'No',
             row.note
@@ -61,6 +62,7 @@ export function allRows(events) {
                 title: entry.title || 'Untitled',
                 amount: Utils.getPrice(entry),
                 category: entry.category || '',
+                group: entry.group || '',
                 kind: Utils.entryKind(entry),
                 paid: !!entry.paid,
                 recurring: !!entry.recurring,

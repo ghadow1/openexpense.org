@@ -41,18 +41,18 @@ test('a negative amount is still written as a number, not as text', () => {
 
 test('the header row names every column', () => {
     const csv = toCsv([]);
-    assert.match(csv, /Date,Title,Amount,Type,Category,Status,Recurring,Note/);
+    assert.match(csv, /Date,Title,Amount,Type,Category,Group,Status,Recurring,Note/);
 });
 
 test('the file starts with a BOM so Excel reads UTF-8 names', () => {
     assert.equal(toCsv([]).charCodeAt(0), 0xFEFF);
 });
 
-test('rows render with resolved category and readable status', () => {
+test('rows render with resolved category, group and readable status', () => {
     const csv = toCsv([
         {
             date: '2026-08-03', title: 'Starbucks', amount: 6.5, kind: 'expense',
-            category: 'Coffee', paid: true, recurring: false, note: 'morning'
+            category: 'Coffee', group: 'Work', paid: true, recurring: false, note: 'morning'
         },
         {
             date: '2026-08-04', title: 'Mystery', amount: 3, kind: 'expense',
@@ -60,16 +60,23 @@ test('rows render with resolved category and readable status', () => {
         }
     ]);
     const lines = csv.trim().split('\r\n');
-    assert.equal(lines[1], '2026-08-03,Starbucks,6.50,Expense,Coffee,Paid,No,morning');
-    assert.equal(lines[2], '2026-08-04,Mystery,3.00,Expense,Uncategorized,Unpaid,Yes,');
+    assert.equal(lines[1], '2026-08-03,Starbucks,6.50,Expense,Coffee,Work,Paid,No,morning');
+    // An entry with no group leaves the column empty rather than inventing one.
+    assert.equal(lines[2], '2026-08-04,Mystery,3.00,Expense,Uncategorized,,Unpaid,Yes,');
 });
 
 test('income rows say Received rather than Paid', () => {
     const csv = toCsv([{
         date: '2026-08-01', title: 'Paycheck', amount: 3200, kind: 'income',
-        category: 'Paycheck', paid: true, recurring: true, note: ''
+        category: 'Paycheck', group: '', paid: true, recurring: true, note: ''
     }]);
-    assert.match(csv, /Income,Paycheck,Received,Yes/);
+    assert.match(csv, /Income,Paycheck,,Received,Yes/);
+});
+
+test('a group set on an entry reaches the export', () => {
+    const out = rows({ '2026-08-01': [{ title: 'Vet', price: 90, group: 'Bella' }] });
+    assert.equal(out[0].group, 'Bella');
+    assert.match(toCsv(out), /,Bella,/);
 });
 
 test('every entry in the ledger is exported, oldest first', () => {

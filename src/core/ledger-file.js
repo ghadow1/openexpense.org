@@ -28,6 +28,7 @@ export const FILE_LIMITS = {
     maxNote: 2000,
     maxPrice: 1e9,
     maxCategory: 40,
+    maxGroup: 40,
     maxSource: 24,
     maxSourceId: 80,
     maxBudgets: 60
@@ -302,6 +303,10 @@ export function sanitizeEntry(raw) {
     if (raw.recurring) entry.repeat = normalizeRepeat(raw.repeat);
     const category = String(raw.category ?? '').trim().slice(0, FILE_LIMITS.maxCategory);
     if (category) entry.category = category;
+    // Collapsed here as well as in the field, so a group that arrives by import
+    // lands on the same key as one that was typed.
+    const group = String(raw.group ?? '').replace(/\s+/g, ' ').trim().slice(0, FILE_LIMITS.maxGroup);
+    if (group) entry.group = group;
     const source = String(raw.source ?? '').trim().slice(0, FILE_LIMITS.maxSource);
     if (source) entry.source = source;
     const sourceId = String(raw.sourceId ?? raw.source_id ?? '').trim().slice(0, FILE_LIMITS.maxSourceId);
