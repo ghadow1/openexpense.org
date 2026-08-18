@@ -6,9 +6,9 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
-## 2026-08-18 — Over-budget calendar weeks
+## 2026-08-18 — Calendar week hints
 
-Sunday–Saturday rows on the viewed month turn red when that week’s counted spending is over its share of leftover money. The check runs when the calendar loads and when an expense, income, or planner rule changes.
+Sunday–Saturday squares get a light wash only — red when the week spends past its leftover share, green when gross income beats the weekly income goal. Pills, amounts, and text stay as they are. The check runs when the calendar loads and when an expense, income, or planner rule changes.
 
 ## 2026-08-18 — Planner math
 

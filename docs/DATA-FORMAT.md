@@ -26,6 +26,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
   },
   "plan": {
     "weeklySavings": 50,
+    "weeklyIncome": 0,
     "reserveSavings": true,
     "spendBasis": "logged",
     "incomeBasis": "deposited",
@@ -62,6 +63,7 @@ The 50/30/20 (or custom) ratios score after-tax income. They do not withhold a s
 | Field | Default | Notes |
 | --- | --- | --- |
 | `weeklySavings` | `0` | Dollars per week. `0` turns the target off. The month’s reserve is `weeklySavings × (days in the viewed month / 7)`, rounded to cents. |
+| `weeklyIncome` | `0` | Weekly gross-income goal. `0` uses this month’s own income pace. A Sunday–Saturday row washes green when that week’s gross income beats its share. |
 | `reserveSavings` | `true` | When a weekly target is set, include that month reserve in the savings hold. The Sun–Sat leftover still subtracts the weekly target either way. |
 | `spendBasis` | `"logged"` | `"logged"` counts paid plus unpaid bills (the original month spending). `"paid"` counts only bills marked paid. |
 | `incomeBasis` | `"deposited"` | `"deposited"` is income ticked as landed (the original cash line). `"scheduled"` counts every income entry already on the month. |
@@ -81,7 +83,7 @@ Derived figures (not stored):
 | Daily burn | counted spend ÷ days elapsed in the viewed month |
 | Days of cash (runway) | `(savings funds + max(0, left to spend)) ÷ daily burn`, one decimal. Investopedia / CFI cash runway = cash ÷ burn rate. |
 | Week buckets | Calendar days 1–7, 8–14, 15–21, 22–28, 29–end. Each target is spendable × (days in the week ÷ days in the month); leftover cents sit on the last week. |
-| Over-budget calendar row | Sunday–Saturday row of the viewed month. Over when counted spend in that row exceeds spendable × (in-month days in the row ÷ days in the month). Those day cells paint red. |
+| Calendar week hints | Sunday–Saturday row of the viewed month. A light red wash when counted spend exceeds that row’s share of leftover money. A light green wash when gross income exceeds the weekly income goal (or that row’s share of this month’s income if no goal is set). Pills and amounts are unchanged. |
 
 ## Expense
 

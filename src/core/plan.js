@@ -19,6 +19,7 @@ import { Utils } from './utils.js';
 
 export const PLAN_DEFAULTS = Object.freeze({
     weeklySavings: 0,
+    weeklyIncome: 0,
     reserveSavings: true,
     spendBasis: 'logged',
     incomeBasis: 'deposited',
@@ -95,9 +96,11 @@ function sanitizeRatios(src) {
 export function sanitizePlan(raw) {
     const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const weekly = Number(src.weeklySavings);
+    const weeklyIn = Number(src.weeklyIncome);
     const fixed = Number(src.savingsFixed);
     return {
         weeklySavings: Number.isFinite(weekly) && weekly > 0 ? Utils.fromCents(Utils.toCents(weekly)) : 0,
+        weeklyIncome: Number.isFinite(weeklyIn) && weeklyIn > 0 ? Utils.fromCents(Utils.toCents(weeklyIn)) : 0,
         reserveSavings: src.reserveSavings !== false,
         spendBasis: src.spendBasis === 'paid' ? 'paid' : 'logged',
         incomeBasis: src.incomeBasis === 'scheduled' ? 'scheduled' : 'deposited',
@@ -111,6 +114,7 @@ export function sanitizePlan(raw) {
 export function planIsDefault(plan) {
     const p = sanitizePlan(plan);
     return p.weeklySavings === PLAN_DEFAULTS.weeklySavings
+        && p.weeklyIncome === PLAN_DEFAULTS.weeklyIncome
         && p.reserveSavings === PLAN_DEFAULTS.reserveSavings
         && p.spendBasis === PLAN_DEFAULTS.spendBasis
         && p.incomeBasis === PLAN_DEFAULTS.incomeBasis
@@ -256,13 +260,11 @@ export function classifyRatioSpend(items = [], plan) {
  * Each week's spend target is spendable × (days in the week / days in the month),
  * with leftover cents parked on the last week so the targets sum.
  */
-/** Counted expense totals for each day of the viewed month (1-indexed via array). */
-export function monthDaySpend(events, currentDate, plan) {
+function monthDayAmounts(events, currentDate, { kind, paidOnly = false } = {}) {
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
     const days = new Date(y, m + 1, 0).getDate();
     const prefix = `${y}-${Utils.pad(m + 1)}-`;
-    const paidOnly = sanitizePlan(plan).spendBasis === 'paid';
     const cents = new Array(days).fill(0);
 
     Object.keys(events || {}).forEach((date) => {
@@ -270,7 +272,7 @@ export function monthDaySpend(events, currentDate, plan) {
         const day = Number(date.slice(8));
         if (day < 1 || day > days) return;
         (events[date] || []).forEach((entry) => {
-            if (Utils.entryKind(entry) === 'income') return;
+            if (Utils.entryKind(entry) !== kind) return;
             if (paidOnly && !entry.paid) return;
             const amount = Utils.toCents(Utils.getPrice(entry));
             if (amount > 0) cents[day - 1] += amount;
@@ -280,18 +282,40 @@ export function monthDaySpend(events, currentDate, plan) {
     return cents.map((value) => Utils.fromCents(value));
 }
 
+/** Counted expense totals for each day of the viewed month. */
+export function monthDaySpend(events, currentDate, plan) {
+    return monthDayAmounts(events, currentDate, {
+        kind: 'expense',
+        paidOnly: sanitizePlan(plan).spendBasis === 'paid'
+    });
+}
+
+/** Gross income for each day — deposited and still expected. */
+export function monthDayIncome(events, currentDate) {
+    return monthDayAmounts(events, currentDate, { kind: 'income', paidOnly: false });
+}
+
 /**
- * Sunday–Saturday rows of the viewed month. Each row's spend target is
- * spendable × (in-month days in the row / days in the month), leftover
- * cents on the last row. A row is over budget when counted spend exceeds
- * that target.
+ * Sunday–Saturday rows of the viewed month.
+ * Spend target = spendable × (in-month days / days in the month).
+ * Income goal = weeklyIncome × (days / 7), or the month’s gross income
+ * split the same way when no weekly income goal is set.
  */
-export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spendableIncome) {
+export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spendableIncome, extras = {}) {
     const length = Number(daysInMonth) || 0;
     const lead = Math.max(0, Math.min(6, Number(firstWeekday) || 0));
     const spendableCents = Utils.toCents(spendableIncome);
+    const dailyIncome = extras.dailyIncome || [];
+    const weeklyIncome = Number(extras.weeklyIncome) || 0;
+    const monthIncomeCents = extras.monthIncome != null
+        ? Utils.toCents(extras.monthIncome)
+        : dailyIncome.reduce((sum, value) => sum + Utils.toCents(value), 0);
+    const incomePool = weeklyIncome > 0
+        ? Utils.toCents(weeklyIncome * (length / 7))
+        : monthIncomeCents;
     const rows = [];
-    let assigned = 0;
+    let spendAssigned = 0;
+    let incomeAssigned = 0;
     const rowCount = length ? Math.ceil((lead + length) / 7) : 0;
 
     for (let row = 0; row < rowCount; row += 1) {
@@ -300,14 +324,20 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
         if (start > end) continue;
         const days = end - start + 1;
         let spent = 0;
+        let incoming = 0;
         for (let day = start; day <= end; day += 1) {
             spent += Utils.toCents(dailySpend[day - 1] || 0);
+            incoming += Utils.toCents(dailyIncome[day - 1] || 0);
         }
         const last = end === length;
         const target = last
-            ? Math.max(0, spendableCents - assigned)
+            ? Math.max(0, spendableCents - spendAssigned)
             : Math.round(spendableCents * days / length);
-        assigned += target;
+        const incomeGoal = last
+            ? Math.max(0, incomePool - incomeAssigned)
+            : Math.round(incomePool * days / length);
+        spendAssigned += target;
+        incomeAssigned += incomeGoal;
         rows.push({
             row,
             start,
@@ -315,21 +345,35 @@ export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spe
             days,
             amount: Utils.fromCents(spent),
             target: Utils.fromCents(target),
-            over: spent > target
+            over: spent > target,
+            overSpend: spent > target,
+            income: Utils.fromCents(incoming),
+            incomeGoal: Utils.fromCents(incomeGoal),
+            overIncome: incoming > incomeGoal
         });
     }
     return rows;
 }
 
-export function overBudgetRows(events, currentDate, plan, spendableIncome) {
+export function trackCalendarWeeks(events, currentDate, plan, spendableIncome) {
+    const rules = sanitizePlan(plan);
     const firstWeekday = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const dailyIncome = monthDayIncome(events, currentDate);
     return calendarRowWeeks(
-        monthDaySpend(events, currentDate, plan),
+        monthDaySpend(events, currentDate, rules),
         daysInMonth,
         firstWeekday,
-        spendableIncome
+        spendableIncome,
+        {
+            dailyIncome,
+            weeklyIncome: rules.weeklyIncome
+        }
     );
+}
+
+export function overBudgetRows(events, currentDate, plan, spendableIncome) {
+    return trackCalendarWeeks(events, currentDate, plan, spendableIncome);
 }
 
 export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome) {

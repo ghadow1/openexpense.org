@@ -3,14 +3,15 @@
  *
  * Renders the day grid, collapses same-title pills, opens the day editor,
  * and lets a chip drag onto another day to move those copies. Sunday–Saturday
- * rows that spend past their share of the month’s leftover paint red.
+ * rows wash red or green as a hint when spend or gross income misses
+ * its weekly goal. Pills and amounts stay as they are.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
 import { computeNetSnapshot, dayNetBadge } from '../core/summary.js';
-import { overBudgetRows } from '../core/plan.js';
+import { trackCalendarWeeks } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -289,13 +290,13 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
     }
 }
 
-function overWeekRows(events, currentDate, plan) {
+function weekHintRows(events, currentDate, plan) {
     const snap = computeNetSnapshot(events, currentDate, new Date(), plan);
-    return new Set(
-        overBudgetRows(events, currentDate, plan, snap.spendableIncome)
-            .filter((week) => week.over)
-            .map((week) => week.row)
-    );
+    const weeks = trackCalendarWeeks(events, currentDate, plan, snap.spendableIncome);
+    return {
+        over: new Set(weeks.filter((week) => week.overSpend).map((week) => week.row)),
+        ahead: new Set(weeks.filter((week) => week.overIncome).map((week) => week.row))
+    };
 }
 
 function renderGrid(y, m, events, plan) {
@@ -305,7 +306,7 @@ function renderGrid(y, m, events, plan) {
     const firstDay = new Date(y, m, 1).getDay();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const totalCells = firstDay + daysInMonth;
-    const overRows = overWeekRows(events, new Date(y, m, 1), plan);
+    const hints = weekHintRows(events, new Date(y, m, 1), plan);
 
     while (gridEl.children.length < totalCells) {
         gridEl.appendChild(document.createElement('div'));
@@ -324,7 +325,9 @@ function renderGrid(y, m, events, plan) {
         cell.removeAttribute('tabindex');
         cell.removeAttribute('aria-label');
         delete cell.dataset.date;
-        if (overRows.has(Math.floor(i / 7))) cell.classList.add('is-over-week');
+        const row = Math.floor(i / 7);
+        if (hints.over.has(row)) cell.classList.add('is-over-week');
+        if (hints.ahead.has(row)) cell.classList.add('is-ahead-week');
 
         if (i >= firstDay) {
             const d = i - firstDay + 1;
@@ -363,7 +366,11 @@ function renderGrid(y, m, events, plan) {
                     : (badge.direction === 'down'
                         ? `, net down ${Utils.formatMoney(badge.amount)}`
                         : ', net even'));
-            const weekHint = overRows.has(Math.floor(i / 7)) ? ', over this week’s budget' : '';
+            const weekHints = [
+                hints.over.has(Math.floor(i / 7)) ? 'over this week’s spend plan' : '',
+                hints.ahead.has(Math.floor(i / 7)) ? 'ahead of this week’s income goal' : ''
+            ].filter(Boolean);
+            const weekHint = weekHints.length ? `, ${weekHints.join(', ')}` : '';
             cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}${weekHint}`);
 
             const body = document.createElement('div');

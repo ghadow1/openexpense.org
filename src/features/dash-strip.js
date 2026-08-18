@@ -535,6 +535,7 @@ function choiceButton(name, value, label, checked) {
 function readPlanForm(form) {
     return sanitizePlan({
         weeklySavings: Number(form.querySelector('#dash-plan-weekly')?.value),
+        weeklyIncome: Number(form.querySelector('#dash-plan-weekly-income')?.value),
         reserveSavings: !!form.querySelector('#dash-plan-reserve')?.checked,
         spendBasis: form.querySelector('input[name="dash-plan-spend"]:checked')?.value,
         incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value,
@@ -571,6 +572,8 @@ function planPanel(snap, plan) {
 
     const weekly = moneyField('dash-plan-weekly', 'Weekly savings', plan.weeklySavings);
     weekly.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-hint');
+    const weeklyIn = moneyField('dash-plan-weekly-income', 'Weekly income goal', plan.weeklyIncome);
+    weeklyIn.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-income-hint');
 
     const reserve = document.createElement('label');
     reserve.className = 'dash-plan-check';
@@ -652,6 +655,10 @@ function planPanel(snap, plan) {
         hint('dash-plan-weekly-hint', plan.weeklySavings > 0
             ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
             : 'Month share is weekly × days in this month ÷ 7.'),
+        weeklyIn,
+        hint('dash-plan-weekly-income-hint', plan.weeklyIncome > 0
+            ? `A Sunday–Saturday row turns green when gross income beats ${formatMoney(plan.weeklyIncome)} × days in that row ÷ 7.`
+            : 'Leave blank to use this month’s own income pace. A week turns green when its gross income beats that share.'),
         reserve,
         tax,
         taxPresets,

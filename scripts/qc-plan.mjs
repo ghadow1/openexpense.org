@@ -15,10 +15,12 @@ import {
     dailySafeSpend,
     describePlan,
     incomeUsed,
+    monthDayIncome,
     monthDaySpend,
     monthReserve,
     monthWeekBuckets,
     overBudgetRows,
+    trackCalendarWeeks,
     percentOf,
     planIsDefault,
     ratioBucket,
@@ -209,6 +211,48 @@ test('Sunday–Saturday calendar rows mark weeks that spend past their share', (
     assert.equal(rows[3].over, false);
     const targetCents = rows.reduce((sum, week) => sum + Utils.toCents(week.target), 0);
     assert.equal(targetCents, Utils.toCents(2000));
+});
+
+test('a week with gross income over its goal is marked ahead', () => {
+    const dailySpend = new Array(31).fill(0);
+    const dailyIncome = new Array(31).fill(0);
+    dailyIncome[6] = 961;
+    const rows = calendarRowWeeks(dailySpend, 31, 6, 2000, {
+        dailyIncome,
+        monthIncome: 1922
+    });
+    // Aug 1 is Saturday (row 0). Aug 7 paycheck sits in row 1 (Aug 2–8).
+    assert.equal(rows[1].income, 961);
+    assert.equal(rows[1].incomeGoal, 434);
+    assert.equal(rows[1].overIncome, true);
+    assert.equal(rows[0].overIncome, false);
+    const goalCents = rows.reduce((sum, week) => sum + Utils.toCents(week.incomeGoal), 0);
+    assert.equal(goalCents, Utils.toCents(1922));
+});
+
+test('an explicit weekly income goal beats the month’s own pace', () => {
+    const dailySpend = new Array(31).fill(0);
+    const dailyIncome = new Array(31).fill(0);
+    dailyIncome[6] = 400;
+    const rows = calendarRowWeeks(dailySpend, 31, 6, 0, {
+        dailyIncome,
+        weeklyIncome: 350
+    });
+    // Month pool is 350 × 31 / 7; a 7-day row is 350.
+    assert.equal(rows[1].incomeGoal, 350);
+    assert.equal(rows[1].overIncome, true);
+});
+
+test('trackCalendarWeeks reads gross paychecks and counted bills together', () => {
+    const events = {
+        '2026-08-05': [{ title: 'Groceries', price: 500, paid: true }],
+        '2026-08-07': [{ title: 'Paycheck', price: 961, kind: 'income', paid: true }]
+    };
+    const date = new Date(2026, 7, 1);
+    assert.equal(monthDayIncome(events, date)[6], 961);
+    const weeks = trackCalendarWeeks(events, date, {}, 2000);
+    assert.equal(weeks[1].overSpend, true);
+    assert.equal(weeks[1].overIncome, true);
 });
 
 test('over-budget rows follow counted spend and planner spendable', () => {

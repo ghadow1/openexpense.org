@@ -2063,6 +2063,7 @@ html.is-action-busy [data-lockable] {
 }
 
 .cal-day {
+    position: relative;
     height: 100%;
     min-height: 0;
     padding: 8px;
@@ -2105,22 +2106,42 @@ html.is-action-busy [data-lockable] {
     );
 }
 
-.cal-day.is-over-week {
-    background: var(--danger-bg);
-    border-color: var(--danger-border);
+.cal-day.is-over-week::before,
+.cal-day.is-ahead-week::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.cal-day.is-over-week.has-items,
-.cal-day.is-over-week.has-income:not(.has-expense),
-.cal-day.is-over-week.has-expense.has-income {
-    background: color-mix(in srgb, var(--danger-bg) 72%, var(--day-bg));
-    border-color: var(--danger-border);
+.cal-day.is-over-week::before {
+    background: color-mix(in srgb, var(--danger-text) 12%, transparent);
 }
 
-.cal-day.is-empty.is-over-week {
+.cal-day.is-ahead-week::before {
+    background: color-mix(in srgb, #15803d 14%, transparent);
+}
+
+.cal-day.is-over-week.is-ahead-week::before {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--danger-text) 12%, transparent) 0 48%,
+        color-mix(in srgb, #15803d 14%, transparent) 52% 100%
+    );
+}
+
+.cal-day.is-empty.is-over-week,
+.cal-day.is-empty.is-ahead-week {
     opacity: 1;
-    background: var(--danger-bg);
-    border: 1px solid var(--danger-border);
+    background: var(--day-bg);
+    border: 1px solid var(--day-border);
+}
+
+.cal-day.is-over-week > *,
+.cal-day.is-ahead-week > * {
+    position: relative;
+    z-index: 1;
 }
 
 .cal-day-body {
@@ -5552,13 +5573,20 @@ textarea:focus-visible {
     background: #050505;
 }
 
-[data-theme="dark"] .cal-day.is-over-week,
-[data-theme="dark"] .cal-day.is-over-week.has-items,
-[data-theme="dark"] .cal-day.is-over-week.has-income:not(.has-expense),
-[data-theme="dark"] .cal-day.is-over-week.has-expense.has-income,
-[data-theme="dark"] .cal-day.is-empty.is-over-week {
-    background: #141414;
-    border-color: #8a8a8a;
+[data-theme="dark"] .cal-day.is-over-week::before {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .cal-day.is-ahead-week::before {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .cal-day.is-over-week.is-ahead-week::before {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.08) 0 48%,
+        rgba(255, 255, 255, 0.16) 52% 100%
+    );
 }
 
 [data-theme="dark"] .cal-day-num.is-today {
@@ -6485,12 +6513,6 @@ html.oe-scroll-lock body {
 
     .cal-day.has-items {
         background: color-mix(in srgb, var(--pill-bg) 45%, var(--day-bg));
-    }
-
-    .cal-day.is-over-week,
-    .cal-day.is-over-week.has-items {
-        background: var(--danger-bg);
-        border-color: var(--danger-border);
     }
 
     .cal-day-head {

@@ -191,6 +191,7 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
     });
     assert.deepEqual(withPlan.plan, {
         weeklySavings: 50,
+        weeklyIncome: 0,
         reserveSavings: false,
         spendBasis: 'paid',
         incomeBasis: 'scheduled',
@@ -212,6 +213,7 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
     const junk = sanitizePlan({ weeklySavings: -12, spendBasis: 'maybe', incomeBasis: null, reserveSavings: 'no' });
     assert.deepEqual(junk, {
         weeklySavings: 0,
+        weeklyIncome: 0,
         reserveSavings: true,
         spendBasis: 'logged',
         incomeBasis: 'deposited',
