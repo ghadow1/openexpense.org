@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Shorter full-width status chips
+
+On a phone the **You own your data** and **File loaded** chips sit on one full-width row. Ownership is the wider chip. Both are 28px tall instead of matching the 40px action squares.
+
 ## 2026-08-18 — Four-tab shell
 
 The app is now Overview, Tracker, Planner, and Privacy on a bottom bar. The calendar and month register stay on the main view — they sit under Overview’s snapshot, Tracker’s filter, and Planner’s rules. They never move to a second page. All / Expenses / Income filters that same board. Privacy keeps help plus backup, import, and clear. Sunday–Saturday weeks use a thin red or green rail instead of washing the squares.

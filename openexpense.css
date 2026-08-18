@@ -735,16 +735,24 @@ textarea,
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 }
 
 .header-status .status-chip,
 .header-status .privacy-chip,
 .header-status .undo-delete-btn {
-    height: var(--header-control);
-    min-height: var(--header-control);
-    max-height: var(--header-control);
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+}
+
+.header-status .privacy-chip {
+    flex: 1.65 1 0;
+}
+
+.header-status .status-chip:not(.privacy-chip) {
+    flex: 1 1 0;
 }
 
 .app-dock {
@@ -6561,8 +6569,17 @@ html.oe-scroll-lock body {
     .header-actions { grid-area: actions; }
     .header-status {
         grid-area: status;
-        justify-content: flex-start;
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) auto;
+        justify-content: stretch;
         width: 100%;
+    }
+
+    .header-status .privacy-chip,
+    .header-status .status-chip:not(.privacy-chip) {
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-start;
     }
 }
 
@@ -6713,9 +6730,9 @@ html.oe-scroll-lock body {
 
     .status-chip,
     .privacy-chip {
-        height: var(--control);
-        min-height: var(--control);
-        max-height: var(--control);
+        height: 28px;
+        min-height: 28px;
+        max-height: 28px;
         padding: 0 8px;
         white-space: nowrap;
         line-height: 1;
@@ -6726,13 +6743,13 @@ html.oe-scroll-lock body {
     .file-status-text {
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 11em;
+        max-width: none;
     }
 
     .undo-delete-btn {
-        height: var(--control);
-        min-height: var(--control);
-        max-height: var(--control);
+        height: 28px;
+        min-height: 28px;
+        max-height: 28px;
         padding: 0 8px;
         font-size: 10px;
     }
