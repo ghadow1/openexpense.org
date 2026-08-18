@@ -8,6 +8,7 @@
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { searchEntries } from '../core/search.js';
+import { countEntries } from '../core/ledger-file.js';
 import { categoryBadge } from '../ui/category-picker.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { openModal } from './modal.js';
@@ -98,7 +99,7 @@ export function openSearch() {
     run();
 }
 
-export function closeSearch() {
+function closeSearch() {
     if (!panel) return;
     if (keyHandler) {
         document.removeEventListener('keydown', keyHandler, true);
@@ -139,31 +140,31 @@ function run() {
     const hints = panel.querySelector('#search-hints');
 
     hints.hidden = !!lastQuery.trim();
+    summary.hidden = false;
+    summary.replaceChildren();
     list.replaceChildren();
 
+    const count = document.createElement('span');
     if (!lastQuery.trim()) {
-        summary.hidden = true;
+        // With no query there is nothing to list, but this is also the only
+        // place a whole-ledger CSV is offered, so the bar has to stay.
+        const total = countEntries(getState().events);
+        if (!total) {
+            summary.hidden = true;
+            return;
+        }
+        count.innerHTML = `<strong>${total}</strong> entr${total === 1 ? 'y' : 'ies'} in this ledger`;
+        summary.append(count, csvButton('Download the whole ledger as CSV', 'Export all'));
         return;
     }
 
-    summary.hidden = false;
-    summary.replaceChildren();
     if (!result.total) {
         summary.textContent = 'No matches.';
         return;
     }
 
-    const count = document.createElement('span');
     count.innerHTML = `<strong>${result.total}</strong> match${result.total === 1 ? '' : 'es'} · <strong>${Utils.formatMoney(result.sum)}</strong>`;
-    summary.appendChild(count);
-
-    const csv = document.createElement('button');
-    csv.type = 'button';
-    csv.className = 'search-csv';
-    csv.innerHTML = '<i class="ti ti-table-export" aria-hidden="true"></i><span>CSV</span>';
-    csv.title = 'Download these matches as CSV';
-    csv.addEventListener('click', () => exportSearchCsv(lastQuery));
-    summary.appendChild(csv);
+    summary.append(count, csvButton('Download these matches as CSV', 'CSV'));
 
     for (const row of result.rows) list.appendChild(resultRow(row));
 
@@ -173,6 +174,16 @@ function run() {
         more.textContent = `Showing the first ${result.rows.length}. Narrow the search to see the rest.`;
         list.appendChild(more);
     }
+}
+
+function csvButton(title, label) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'search-csv';
+    btn.innerHTML = `<i class="ti ti-table-export" aria-hidden="true"></i><span>${label}</span>`;
+    btn.title = title;
+    btn.addEventListener('click', () => exportSearchCsv(lastQuery));
+    return btn;
 }
 
 function resultRow(row) {

@@ -102,7 +102,3 @@ export function exportSearchCsv(query) {
     const result = searchEntries(getState().events, parsed, { limit: Infinity });
     download(result.rows, 'search-');
 }
-
-export function exportAllCsv() {
-    download(allRows(getState().events), '');
-}
