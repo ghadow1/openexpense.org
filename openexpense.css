@@ -935,17 +935,21 @@ textarea,
     gap: 6px;
     flex-shrink: 1;
     min-width: 0;
-    height: 28px;
+    height: var(--control);
+    min-height: var(--control);
+    max-height: var(--control);
     padding: 0 10px;
-    border-radius: 0;
+    border-radius: var(--control-radius);
     border: 1px solid color-mix(in srgb, var(--success) 22%, var(--border));
     background: color-mix(in srgb, var(--success) 10%, var(--surface));
     color: color-mix(in srgb, var(--success) 72%, var(--text-strong));
     font-size: var(--fs-2xs);
     font-weight: 600;
     letter-spacing: 0.01em;
+    line-height: 1;
     white-space: nowrap;
     overflow: hidden;
+    box-sizing: border-box;
     cursor: default;
     user-select: none;
     transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
@@ -987,10 +991,13 @@ textarea,
     justify-content: center;
     gap: 5px;
     flex: 0 0 auto;
-    height: 28px;
-    min-height: 28px;
+    height: var(--control);
+    min-height: var(--control);
+    max-height: var(--control);
     padding: 0 10px;
-    border-radius: 0;
+    border-radius: var(--control-radius);
+    box-sizing: border-box;
+    line-height: 1;
     border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
     background: color-mix(in srgb, var(--accent) 10%, var(--surface));
     color: var(--accent);
@@ -6442,8 +6449,9 @@ html.oe-scroll-lock body {
 
     .status-chip,
     .privacy-chip {
-        height: 28px;
-        min-height: 28px;
+        height: var(--control);
+        min-height: var(--control);
+        max-height: var(--control);
         padding: 0 8px;
         white-space: nowrap;
         line-height: 1;
@@ -6458,8 +6466,9 @@ html.oe-scroll-lock body {
     }
 
     .undo-delete-btn {
-        height: 28px;
-        min-height: 28px;
+        height: var(--control);
+        min-height: var(--control);
+        max-height: var(--control);
         padding: 0 8px;
         font-size: 10px;
     }
