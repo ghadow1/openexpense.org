@@ -9,13 +9,16 @@ import {
     PLAN_DEFAULTS,
     RATIO_NEEDS,
     RATIO_WANTS,
+    calendarRowWeeks,
     classifyRatioSpend,
     computePlanner,
     dailySafeSpend,
     describePlan,
     incomeUsed,
+    monthDaySpend,
     monthReserve,
     monthWeekBuckets,
+    overBudgetRows,
     percentOf,
     planIsDefault,
     ratioBucket,
@@ -182,6 +185,49 @@ test('week bucket targets sum to spendable income', () => {
     assert.equal(targetCents, Utils.toCents(2000));
     const spentCents = weeks.reduce((sum, week) => sum + Utils.toCents(week.amount), 0);
     assert.equal(spentCents, Utils.toCents(1400));
+});
+
+test('Sunday–Saturday calendar rows mark weeks that spend past their share', () => {
+    const august = new Date(2026, 7, 1);
+    assert.equal(august.getDay(), 6, 'August 2026 starts on Saturday');
+
+    const daily = new Array(31).fill(0);
+    daily[4] = 500;
+    daily[11] = 900;
+    const rows = calendarRowWeeks(daily, 31, 6, 2000);
+    assert.equal(rows.length, 6);
+    assert.equal(rows[0].start, 1);
+    assert.equal(rows[0].end, 1);
+    assert.equal(rows[1].start, 2);
+    assert.equal(rows[1].end, 8);
+    assert.equal(rows[1].amount, 500);
+    assert.equal(rows[1].target, 451.61);
+    assert.equal(rows[1].over, true);
+    assert.equal(rows[2].amount, 900);
+    assert.equal(rows[2].over, true);
+    assert.equal(rows[0].over, false);
+    assert.equal(rows[3].over, false);
+    const targetCents = rows.reduce((sum, week) => sum + Utils.toCents(week.target), 0);
+    assert.equal(targetCents, Utils.toCents(2000));
+});
+
+test('over-budget rows follow counted spend and planner spendable', () => {
+    const events = {
+        '2026-08-05': [{ title: 'Groceries', price: 500, paid: true }],
+        '2026-08-12': [{ title: 'Rent', price: 900, paid: false }]
+    };
+    const date = new Date(2026, 7, 1);
+    const daily = monthDaySpend(events, date, {});
+    assert.equal(daily[4], 500);
+    assert.equal(daily[11], 900);
+
+    const logged = overBudgetRows(events, date, {}, 2000);
+    assert.deepEqual(logged.filter((week) => week.over).map((week) => week.row), [1, 2]);
+
+    const paidOnly = overBudgetRows(events, date, { spendBasis: 'paid' }, 2000);
+    assert.deepEqual(paidOnly.filter((week) => week.over).map((week) => week.row), [1]);
+    assert.equal(paidOnly[2].amount, 0);
+    assert.equal(paidOnly[2].over, false);
 });
 
 test('the default planner waterfall matches deposited minus logged bills', () => {

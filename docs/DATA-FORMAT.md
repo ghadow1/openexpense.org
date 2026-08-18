@@ -81,6 +81,7 @@ Derived figures (not stored):
 | Daily burn | counted spend ÷ days elapsed in the viewed month |
 | Days of cash (runway) | `(savings funds + max(0, left to spend)) ÷ daily burn`, one decimal. Investopedia / CFI cash runway = cash ÷ burn rate. |
 | Week buckets | Calendar days 1–7, 8–14, 15–21, 22–28, 29–end. Each target is spendable × (days in the week ÷ days in the month); leftover cents sit on the last week. |
+| Over-budget calendar row | Sunday–Saturday row of the viewed month. Over when counted spend in that row exceeds spendable × (in-month days in the row ÷ days in the month). Those day cells paint red. |
 
 ## Expense
 

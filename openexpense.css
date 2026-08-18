@@ -2105,6 +2105,24 @@ html.is-action-busy [data-lockable] {
     );
 }
 
+.cal-day.is-over-week {
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+}
+
+.cal-day.is-over-week.has-items,
+.cal-day.is-over-week.has-income:not(.has-expense),
+.cal-day.is-over-week.has-expense.has-income {
+    background: color-mix(in srgb, var(--danger-bg) 72%, var(--day-bg));
+    border-color: var(--danger-border);
+}
+
+.cal-day.is-empty.is-over-week {
+    opacity: 1;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+}
+
 .cal-day-body {
     flex: 1;
     min-height: 0;
@@ -5534,6 +5552,15 @@ textarea:focus-visible {
     background: #050505;
 }
 
+[data-theme="dark"] .cal-day.is-over-week,
+[data-theme="dark"] .cal-day.is-over-week.has-items,
+[data-theme="dark"] .cal-day.is-over-week.has-income:not(.has-expense),
+[data-theme="dark"] .cal-day.is-over-week.has-expense.has-income,
+[data-theme="dark"] .cal-day.is-empty.is-over-week {
+    background: #141414;
+    border-color: #8a8a8a;
+}
+
 [data-theme="dark"] .cal-day-num.is-today {
     background: var(--accent);
     color: #000;
@@ -6458,6 +6485,12 @@ html.oe-scroll-lock body {
 
     .cal-day.has-items {
         background: color-mix(in srgb, var(--pill-bg) 45%, var(--day-bg));
+    }
+
+    .cal-day.is-over-week,
+    .cal-day.is-over-week.has-items {
+        background: var(--danger-bg);
+        border-color: var(--danger-border);
     }
 
     .cal-day-head {

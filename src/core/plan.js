@@ -256,6 +256,82 @@ export function classifyRatioSpend(items = [], plan) {
  * Each week's spend target is spendable × (days in the week / days in the month),
  * with leftover cents parked on the last week so the targets sum.
  */
+/** Counted expense totals for each day of the viewed month (1-indexed via array). */
+export function monthDaySpend(events, currentDate, plan) {
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    const days = new Date(y, m + 1, 0).getDate();
+    const prefix = `${y}-${Utils.pad(m + 1)}-`;
+    const paidOnly = sanitizePlan(plan).spendBasis === 'paid';
+    const cents = new Array(days).fill(0);
+
+    Object.keys(events || {}).forEach((date) => {
+        if (!date.startsWith(prefix)) return;
+        const day = Number(date.slice(8));
+        if (day < 1 || day > days) return;
+        (events[date] || []).forEach((entry) => {
+            if (Utils.entryKind(entry) === 'income') return;
+            if (paidOnly && !entry.paid) return;
+            const amount = Utils.toCents(Utils.getPrice(entry));
+            if (amount > 0) cents[day - 1] += amount;
+        });
+    });
+
+    return cents.map((value) => Utils.fromCents(value));
+}
+
+/**
+ * Sunday–Saturday rows of the viewed month. Each row's spend target is
+ * spendable × (in-month days in the row / days in the month), leftover
+ * cents on the last row. A row is over budget when counted spend exceeds
+ * that target.
+ */
+export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spendableIncome) {
+    const length = Number(daysInMonth) || 0;
+    const lead = Math.max(0, Math.min(6, Number(firstWeekday) || 0));
+    const spendableCents = Utils.toCents(spendableIncome);
+    const rows = [];
+    let assigned = 0;
+    const rowCount = length ? Math.ceil((lead + length) / 7) : 0;
+
+    for (let row = 0; row < rowCount; row += 1) {
+        const start = Math.max(1, row * 7 - lead + 1);
+        const end = Math.min(length, (row + 1) * 7 - lead);
+        if (start > end) continue;
+        const days = end - start + 1;
+        let spent = 0;
+        for (let day = start; day <= end; day += 1) {
+            spent += Utils.toCents(dailySpend[day - 1] || 0);
+        }
+        const last = end === length;
+        const target = last
+            ? Math.max(0, spendableCents - assigned)
+            : Math.round(spendableCents * days / length);
+        assigned += target;
+        rows.push({
+            row,
+            start,
+            end,
+            days,
+            amount: Utils.fromCents(spent),
+            target: Utils.fromCents(target),
+            over: spent > target
+        });
+    }
+    return rows;
+}
+
+export function overBudgetRows(events, currentDate, plan, spendableIncome) {
+    const firstWeekday = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    return calendarRowWeeks(
+        monthDaySpend(events, currentDate, plan),
+        daysInMonth,
+        firstWeekday,
+        spendableIncome
+    );
+}
+
 export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome) {
     const length = Number(daysInMonth) || 0;
     const spendableCents = Utils.toCents(spendableIncome);

@@ -34,7 +34,7 @@ export const RENDER_DEPS = {
     privacyStatus: ['storageEncrypted', 'autosaveEnabled'],
     fileStatus: ['ledgerName', 'events'],
     ledgerNameInput: ['ledgerName'],
-    calendar: ['isDark', 'currentDate', 'events'],
+    calendar: ['isDark', 'currentDate', 'events', 'plan'],
     dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan'],
     sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan']
 };

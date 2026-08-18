@@ -2,13 +2,15 @@
  * OpenExpense — month calendar
  *
  * Renders the day grid, collapses same-title pills, opens the day editor,
- * and lets a chip drag onto another day to move those copies.
+ * and lets a chip drag onto another day to move those copies. Sunday–Saturday
+ * rows that spend past their share of the month’s leftover paint red.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
-import { dayNetBadge } from '../core/summary.js';
+import { computeNetSnapshot, dayNetBadge } from '../core/summary.js';
+import { overBudgetRows } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { Ledger } from './ledger.js';
 import { Receipt } from './receipt.js';
@@ -287,13 +289,23 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
     }
 }
 
-function renderGrid(y, m, events) {
+function overWeekRows(events, currentDate, plan) {
+    const snap = computeNetSnapshot(events, currentDate, new Date(), plan);
+    return new Set(
+        overBudgetRows(events, currentDate, plan, snap.spendableIncome)
+            .filter((week) => week.over)
+            .map((week) => week.row)
+    );
+}
+
+function renderGrid(y, m, events, plan) {
     if (!gridEl) return;
 
     const today = new Date();
     const firstDay = new Date(y, m, 1).getDay();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const totalCells = firstDay + daysInMonth;
+    const overRows = overWeekRows(events, new Date(y, m, 1), plan);
 
     while (gridEl.children.length < totalCells) {
         gridEl.appendChild(document.createElement('div'));
@@ -312,6 +324,7 @@ function renderGrid(y, m, events) {
         cell.removeAttribute('tabindex');
         cell.removeAttribute('aria-label');
         delete cell.dataset.date;
+        if (overRows.has(Math.floor(i / 7))) cell.classList.add('is-over-week');
 
         if (i >= firstDay) {
             const d = i - firstDay + 1;
@@ -350,7 +363,8 @@ function renderGrid(y, m, events) {
                     : (badge.direction === 'down'
                         ? `, net down ${Utils.formatMoney(badge.amount)}`
                         : ', net even'));
-            cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}`);
+            const weekHint = overRows.has(Math.floor(i / 7)) ? ', over this week’s budget' : '';
+            cell.setAttribute('aria-label', `Log expense for ${dateKey}${moneyHint}${weekHint}`);
 
             const body = document.createElement('div');
             body.className = 'cal-day-body';
@@ -375,7 +389,7 @@ export function renderCalendar(changedKeys) {
     const calCol = document.getElementById('cal-col');
     if (!calCol) return;
 
-    const { currentDate, events } = getState();
+    const { currentDate, events, plan } = getState();
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
     const monthKey = `${y}-${m}`;
@@ -393,8 +407,8 @@ export function renderCalendar(changedKeys) {
         lastMonthKey = monthKey;
     }
 
-    if (!changedKeys || monthChanged || keys.includes('events')) {
-        renderGrid(y, m, events);
+    if (!changedKeys || monthChanged || keys.includes('events') || keys.includes('plan')) {
+        renderGrid(y, m, events, plan);
     }
 }
 
@@ -407,8 +421,8 @@ function refreshCalendarDensity() {
     syncDensityClass(density);
     if (density === lastDensity) return;
     lastDensity = density;
-    const { currentDate, events } = getState();
-    renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events);
+    const { currentDate, events, plan } = getState();
+    renderGrid(currentDate.getFullYear(), currentDate.getMonth(), events, plan);
 }
 
 export function bindResponsiveCalendar() {

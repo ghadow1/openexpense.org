@@ -13,10 +13,10 @@ test('a saved budget repaints the sidebar', () => {
     assert.equal(shouldRender('sidebar', ['budgets']), true);
 });
 
-test('a saved plan repaints the dash and sidebar', () => {
+test('a saved plan repaints the dash, sidebar, and calendar weeks', () => {
     assert.equal(shouldRender('dash', ['plan']), true);
     assert.equal(shouldRender('sidebar', ['plan']), true);
-    assert.equal(shouldRender('calendar', ['plan']), false);
+    assert.equal(shouldRender('calendar', ['plan']), true);
 });
 
 test('every surface redraws on a full render', () => {

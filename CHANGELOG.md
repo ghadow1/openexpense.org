@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Over-budget calendar weeks
+
+Sunday–Saturday rows on the viewed month turn red when that week’s counted spending is over its share of leftover money. The check runs when the calendar loads and when an expense, income, or planner rule changes.
+
 ## 2026-08-18 — Planner math
 
 A fourth snapshot tab, **Planner**, sits after Expenses. Left-to-spend is a documented waterfall: counted income, minus a tax withhold, minus a savings hold (weekly month-equivalent + monthly dollars + percent of after-tax), minus counted spend. Defaults stay the original cash line. The tab also scores the CFPB 50/30/20 split, daily safe spend (leftover ÷ remaining days), days of cash (cash ÷ daily burn), unpaid recurring bills, and this month’s week-by-week pace. Category caps are unchanged. The plan is saved with the ledger.
