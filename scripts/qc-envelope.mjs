@@ -11,7 +11,7 @@ import {
 import {
     BUNDLE, encryptBundle, decryptBundle, needsPassphrase, isEncFile, isKeyFile
 } from '../src/core/bundle.js';
-import { validateEncFile, validateKeyFile, kidsMatch, classifyJson } from '../src/core/ledger-file.js';
+import { validateEncFile, validateKeyFile, kidsMatch, classifyJson, FILE_LIMITS } from '../src/core/ledger-file.js';
 import { sealRecord, openRecord } from '../src/core/crypto.js';
 
 const payload = {
@@ -305,6 +305,35 @@ test('a large ledger seals and opens intact', async () => {
     const { enc, keyFile } = await encryptBundle(big);
     assert.equal(validateEncFile(enc).ok, true);
     assert.deepEqual(await decryptBundle(enc, keyFile), big);
+});
+
+test('a ledger the app accepts can always be exported and reopened', async () => {
+    // The sanitizer caps a ledger at maxEntries/maxNote, so anything inside
+    // those caps has to survive a round trip. It used to export a file that
+    // readJsonFile then refused as "too large to open".
+    const events = {};
+    let made = 0;
+    let day = 0;
+    const perDay = 100;
+    const note = 'n'.repeat(500);
+    while (made < FILE_LIMITS.maxEntries) {
+        const date = new Date(Date.UTC(2015, 0, 1) + day * 86400000).toISOString().slice(0, 10);
+        const count = Math.min(perDay, FILE_LIMITS.maxEntries - made);
+        events[date] = Array.from({ length: count }, () => ({
+            title: 'T'.repeat(40), price: 42.5, paid: true, note
+        }));
+        made += count;
+        day++;
+    }
+
+    const { enc } = await encryptBundle({ name: 'Max', events });
+    assert.equal(validateEncFile(enc).ok, true, 'the export must satisfy the import validator');
+
+    const fileBytes = JSON.stringify(enc, null, 2).length;
+    assert.ok(
+        fileBytes <= FILE_LIMITS.maxBytes,
+        `a ${(fileBytes / 1048576).toFixed(1)}MB export cannot be reopened under a ${(FILE_LIMITS.maxBytes / 1048576).toFixed(0)}MB limit`
+    );
 });
 
 test('the same secret and salt never reuse an iv', async () => {

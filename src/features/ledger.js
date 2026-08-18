@@ -113,8 +113,16 @@ export const Ledger = {
                     types: [{ description, accept }]
                 });
                 const writable = await handle.createWritable();
-                await writable.write(blob);
-                await writable.close();
+                try {
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (err) {
+                    // Leaving the writable open strands its swap file on disk,
+                    // and only close() commits, so the target keeps its old
+                    // contents rather than a half-written export.
+                    try { await writable.abort?.(); } catch (_) { }
+                    throw err;
+                }
                 return 'saved';
             } catch (err) {
                 if (err?.name === 'AbortError') return 'abort';
@@ -314,6 +322,20 @@ export const Ledger = {
                 Ledger.exportPayload(),
                 { passphrase: choice.passphrase }
             );
+
+            // Check the export against the same rules import enforces. Without
+            // this a very large ledger writes a file that reads back as "too
+            // large to open", so the save looks fine and the backup is dead.
+            const usable = validateEncFile(enc);
+            if (!usable.ok) {
+                Toast.show(
+                    `This ledger is too large to export as one file (${usable.error}) Archive an older year first, then export again.`,
+                    'error',
+                    7600
+                );
+                return;
+            }
+
             const encBlob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
             const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
 

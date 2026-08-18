@@ -16,7 +16,11 @@ const KID_KEY = /^[a-f0-9]{16,64}$/i;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export const FILE_LIMITS = {
-    maxBytes: 8 * 1024 * 1024,
+    // A cheap pre-filter so a hostile file cannot force a huge parse; the real
+    // bound on what gets kept is maxEntries/maxDays below. It has to stay above
+    // anything this app can itself export, or a user's own backup would be
+    // refused on the way back in: 25k entries with 500-char notes is ~19 MB.
+    maxBytes: 32 * 1024 * 1024,
     maxDays: 4000,
     maxPerDay: 250,
     maxEntries: 25000,
