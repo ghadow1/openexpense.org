@@ -158,7 +158,20 @@ function foldExtras(title, items, open) {
     return details;
 }
 
-function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras }) {
+function savingsRateChip(snap) {
+    const saved = snap.savingsRate == null
+        ? '—'
+        : `${snap.savingsRate > 0 ? '+' : ''}${snap.savingsRate.toFixed(0)}%`;
+    return textChip({
+        label: 'Income left',
+        value: saved,
+        hint: 'After this month’s spending',
+        tone: snap.savingsRate > 0 ? 'up' : 'flat',
+        track: true
+    });
+}
+
+function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras, extrasOpen }) {
     const wide = isWideDash();
     const section = document.createElement('section');
     section.className = 'dash-hero-card';
@@ -181,7 +194,8 @@ function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras 
         row.appendChild(bars);
     }
 
-    section.append(header, row, foldExtras(extrasTitle, extras, wide));
+    const open = extrasOpen == null ? wide : !!extrasOpen;
+    section.append(header, row, foldExtras(extrasTitle, extras, open));
     return [section];
 }
 
@@ -526,6 +540,7 @@ function overviewCompact(snap, events, currentDate) {
             ]
         }),
         extrasTitle: 'More figures',
+        extrasOpen: false,
         extras: [
             chip({
                 label: 'Deposited',

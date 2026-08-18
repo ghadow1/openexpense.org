@@ -34,3 +34,10 @@ test('overview still splits so a phone can lift the calendar', async () => {
     assert.match(html, /id="overview-hero-root"/);
     assert.match(html, /id="overview-more-root"/);
 });
+
+test('tablet and desktop overview can paint the compact strip', async () => {
+    const src = await readFile(join(ROOT, 'src/features/dash-strip.js'), 'utf8');
+    assert.match(src, /function savingsRateChip/, 'compact extras need the income-left chip');
+    assert.match(src, /function overviewCompact/, 'tablet/desktop paint the morning strip');
+    assert.match(src, /readFrame\(\) !== 'phone'/, 'phone keeps the stacked cards');
+});

@@ -705,75 +705,91 @@ html[data-frame="phone"] .tracker-board {
     grid-template-columns: 1fr;
 }
 
-/* Desktop: compact strip + calendar in the left column, register on the right. */
-html[data-frame="desktop"] #view-app {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-    gap: clamp(16px, 2vw, 24px);
-    align-items: start;
-}
-
 html[data-frame="desktop"] #view-app > #ledger-name-input,
 html[data-frame="tablet"] #view-app > #ledger-name-input {
     display: none;
 }
 
+/* Desktop: compact strip + calendar in the left column, register on the right. */
+html[data-frame="desktop"] #view-app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-areas:
+        "hero side"
+        "planner side"
+        "tools side"
+        "cal side";
+    gap: clamp(16px, 2vw, 24px);
+    align-items: start;
+}
+
+html[data-frame="desktop"][data-shell="tracker"] #view-app {
+    grid-template-areas:
+        "tools side"
+        "cal side";
+}
+
+html[data-frame="desktop"][data-shell="planner"] #view-app {
+    grid-template-areas:
+        "planner side"
+        "tools side"
+        "cal side";
+}
+
 html[data-frame="desktop"] .ledger-stage,
-html[data-frame="desktop"] .tracker-board {
+html[data-frame="desktop"] .tracker-board,
+html[data-frame="tablet"] .ledger-stage,
+html[data-frame="tablet"] .tracker-board {
     display: contents;
 }
 
-html[data-frame="desktop"] #sidebar {
-    grid-column: 2;
-    grid-row: 1 / -1;
-}
+html[data-frame="desktop"] #pane-overview-hero { grid-area: hero; }
+html[data-frame="desktop"] #pane-planner { grid-area: planner; }
+html[data-frame="desktop"] .tracker-toolbar { grid-area: tools; }
+html[data-frame="desktop"] #cal-col { grid-area: cal; }
+html[data-frame="desktop"] #sidebar { grid-area: side; }
 
-html[data-frame="desktop"] #pane-overview-hero,
-html[data-frame="desktop"] #pane-overview-more,
-html[data-frame="desktop"] #pane-planner,
-html[data-frame="desktop"] .tracker-toolbar,
-html[data-frame="desktop"] #cal-col {
-    grid-column: 1;
-}
-
-html[data-frame="desktop"] .ledger-stage {
-    margin-top: 0;
-}
-
-/* Tablet portrait stays one column. Landscape (980+) borrows the desktop grid. */
-html[data-frame="tablet"] .tracker-board {
-    grid-template-columns: 1fr;
-}
-
+html[data-frame="desktop"] .ledger-stage,
 html[data-frame="tablet"] .ledger-stage {
     margin-top: 0;
+}
+
+/* Tablet portrait stays one column. Landscape (980+) borrows the desktop areas. */
+html[data-frame="tablet"] .tracker-board {
+    grid-template-columns: 1fr;
 }
 
 @media (min-width: 980px) {
     html[data-frame="tablet"] #view-app {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+        grid-template-areas:
+            "hero side"
+            "planner side"
+            "tools side"
+            "cal side";
         gap: 16px;
         align-items: start;
     }
 
-    html[data-frame="tablet"] .ledger-stage,
-    html[data-frame="tablet"] .tracker-board {
-        display: contents;
+    html[data-frame="tablet"][data-shell="tracker"] #view-app {
+        grid-template-areas:
+            "tools side"
+            "cal side";
     }
 
-    html[data-frame="tablet"] #sidebar {
-        grid-column: 2;
-        grid-row: 1 / -1;
+    html[data-frame="tablet"][data-shell="planner"] #view-app {
+        grid-template-areas:
+            "planner side"
+            "tools side"
+            "cal side";
     }
 
-    html[data-frame="tablet"] #pane-overview-hero,
-    html[data-frame="tablet"] #pane-overview-more,
-    html[data-frame="tablet"] #pane-planner,
-    html[data-frame="tablet"] .tracker-toolbar,
-    html[data-frame="tablet"] #cal-col {
-        grid-column: 1;
-    }
+    html[data-frame="tablet"] #pane-overview-hero { grid-area: hero; }
+    html[data-frame="tablet"] #pane-planner { grid-area: planner; }
+    html[data-frame="tablet"] .tracker-toolbar { grid-area: tools; }
+    html[data-frame="tablet"] #cal-col { grid-area: cal; }
+    html[data-frame="tablet"] #sidebar { grid-area: side; }
 }
 
 .tracker-toolbar {
