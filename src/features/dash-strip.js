@@ -17,10 +17,28 @@ import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
 import { closeModal } from './modal.js';
 
 /** Wide enough to read a dial, a year line, and the split side by side. */
+const WIDE_DASH = '(min-width: 1100px)';
+
+function wideQuery() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null;
+    return window.matchMedia(WIDE_DASH);
+}
+
 function isWideDash() {
-    return typeof window !== 'undefined'
-        && typeof window.matchMedia === 'function'
-        && window.matchMedia('(min-width: 1100px)').matches;
+    return !!wideQuery()?.matches;
+}
+
+/**
+ * The slide is built for one width, so crossing the breakpoint has to repaint
+ * it. Without this the bars stay on a window that has been dragged narrow.
+ */
+let widthBound = false;
+function bindWidth() {
+    if (widthBound) return;
+    const query = wideQuery();
+    if (!query?.addEventListener) return;
+    widthBound = true;
+    query.addEventListener('change', () => renderDashStrip());
 }
 
 const VIEWS = ['overview', 'income', 'expense'];
@@ -533,5 +551,6 @@ export function renderDashStrip() {
     root.classList.add('is-ready');
     root.classList.toggle('is-fresh', firstPaint);
     bindDeck(root);
+    bindWidth();
     setDeckView(root, activeView);
 }
