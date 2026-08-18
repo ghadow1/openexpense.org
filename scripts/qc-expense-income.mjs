@@ -12,7 +12,7 @@ import {
     removeSeriesOccurrences, removeSeriesWeekday, groupExpenses,
     weekdayFromKey, weekdayName, countSeriesWeekday,
     addDaysToKey, daysBetweenKeys, updateSeriesOccurrences, rebuildSeriesFrom,
-    countSeriesOccurrences
+    countSeriesOccurrences, isSameSeries
 } from '../src/core/series.js';
 
 function entry({ title, price, kind, recurring = false, repeat, paid = true }) {
@@ -391,7 +391,7 @@ test('removing a weekly expense series does not touch income', () => {
     assert.equal(next['2026-08-24'].every((e) => e.kind === 'income'), true);
 });
 
-test('editing one recurring copy updates price on every copy', () => {
+test('editing one recurring copy does not rewrite price on other copies', () => {
     const original = ledger.events['2026-08-17'][0];
     const next = updateSeriesOccurrences(
         ledger.events,
@@ -402,7 +402,7 @@ test('editing one recurring copy updates price on every copy', () => {
         '2026-08-17'
     );
     assert.equal(next['2026-08-17'].find((e) => e.title === 'Coffee').price, 6);
-    assert.equal(next['2026-08-24'].find((e) => e.title === 'Coffee').price, 6);
+    assert.equal(next['2026-08-24'].find((e) => e.title === 'Coffee').price, 5);
     assert.equal(next['2026-08-17'].find((e) => e.title === 'Paycheck').price, 800);
     assert.equal(next['2026-08-17'].find((e) => e.title === 'Rent').price, 1450);
 });
@@ -442,7 +442,7 @@ test('series update keeps paid on each day except the edited copy', () => {
     );
     assert.equal(next['2026-08-17'][0].price, 1500);
     assert.equal(next['2026-08-17'][0].paid, true);
-    assert.equal(next['2026-09-17'][0].price, 1500);
+    assert.equal(next['2026-09-17'][0].price, 1450);
     assert.equal(next['2026-09-17'][0].paid, false);
 });
 
@@ -526,4 +526,53 @@ test('same-title expense and income stay separate groups', () => {
     ]);
     assert.equal(groups.length, 2);
     assert.deepEqual(groups.map((g) => g.kind).sort(), ['expense', 'income']);
+});
+
+test('blank and untitled titles are not one recurring series', () => {
+    const blank = { title: '', recurring: true, repeat: 'monthly' };
+    const other = { title: '', recurring: true, repeat: 'monthly' };
+    const named = { title: 'Untitled', recurring: true, repeat: 'monthly' };
+    assert.equal(isSameSeries(blank, other), false);
+    assert.equal(isSameSeries(named, { ...named }), false);
+    assert.equal(isSameSeries(
+        { title: 'Coffee', recurring: true, repeat: 'weekly' },
+        { title: 'Coffee', recurring: true, repeat: 'weekly' }
+    ), true);
+});
+
+test('a series update keeps category and group on the other copies', () => {
+    const events = {
+        '2026-08-17': [{
+            title: 'Rent', price: 1450, recurring: true, repeat: 'monthly',
+            category: 'Housing', group: 'Bella', note: 'August'
+        }],
+        '2026-09-17': [{
+            title: 'Rent', price: 1450, recurring: true, repeat: 'monthly',
+            category: 'Housing', group: 'Bella', note: 'September'
+        }]
+    };
+    const original = events['2026-08-17'][0];
+    const next = updateSeriesOccurrences(
+        events,
+        original,
+        '2026-08-17',
+        0,
+        { ...original, title: 'Lease', price: 1500, category: 'Other', group: 'Rome', note: 'changed' },
+        '2026-08-17'
+    );
+    assert.equal(next['2026-08-17'][0].title, 'Lease');
+    assert.equal(next['2026-08-17'][0].price, 1500);
+    assert.equal(next['2026-09-17'][0].title, 'Rent');
+    assert.equal(next['2026-09-17'][0].price, 1450);
+    assert.equal(next['2026-09-17'][0].category, 'Housing');
+    assert.equal(next['2026-09-17'][0].group, 'Bella');
+    assert.equal(next['2026-09-17'][0].note, 'September');
+});
+
+test('blank titles do not collapse into one calendar pill', () => {
+    const groups = groupExpenses([
+        { title: '', price: 5 },
+        { title: '', price: 8 }
+    ]);
+    assert.equal(groups.length, 2);
 });

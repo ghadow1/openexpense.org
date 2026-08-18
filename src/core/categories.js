@@ -11,6 +11,7 @@
  * CSV export should read as. Unknown labels stay intact and render as custom
  * categories, so a ledger from elsewhere never loses information.
  */
+import { FILE_LIMITS } from './ledger-file.js';
 import { Utils } from './utils.js';
 
 /**
@@ -71,9 +72,22 @@ const RULES = [
 
 const BY_LABEL = new Map(CATEGORIES.map((cat) => [cat.label.toLowerCase(), cat]));
 
+/** Trim, collapse space, and cap to the stored length. */
+export function normalizeCategory(raw) {
+    return String(raw ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, FILE_LIMITS.maxCategory);
+}
+
+/** The key two spellings of the same category have in common. */
+export function categoryKey(raw) {
+    return normalizeCategory(raw).toLowerCase();
+}
+
 /** Resolve a stored label to a known category, or describe it as a custom one. */
 export function categoryInfo(label, kind = 'expense') {
-    const name = String(label ?? '').trim();
+    const name = normalizeCategory(label);
     if (!name) {
         return { label: UNCATEGORIZED, tone: 'slate', group: '', known: false, uncategorized: true, kind };
     }
@@ -128,8 +142,8 @@ export function suggestCategory({ title = '', note = '', kind = 'expense' } = {}
  * keyword guess, then whatever the user last used for that exact title.
  */
 export function resolveCategory({ category, title, note, kind = 'expense', history } = {}) {
-    const chosen = String(category ?? '').trim();
-    if (chosen) return chosen.slice(0, 40);
+    const chosen = normalizeCategory(category);
+    if (chosen) return chosen;
 
     const remembered = history?.get?.(String(title ?? '').trim().toLowerCase());
     if (remembered) return remembered;
@@ -156,6 +170,94 @@ export function cachedCategoryHistory(events) {
 }
 
 /**
+ * Built-in labels plus every category already in the ledger, most recently
+ * used first. A typed field needs both: the vocabulary the app ships and the
+ * tags the user has already invented.
+ */
+export function collectCategories(events, { kind } = {}) {
+    const want = kind === 'income' || kind === 'expense' ? kind : '';
+    const byKey = new Map();
+
+    CATEGORIES.forEach((cat) => {
+        if (want && cat.kind !== want) return;
+        byKey.set(cat.label.toLowerCase(), {
+            key: cat.label.toLowerCase(),
+            label: cat.label,
+            count: 0,
+            lastKey: '',
+            builtIn: true,
+            tone: cat.tone
+        });
+    });
+
+    Object.keys(events || {}).sort().forEach((dateKey) => {
+        const day = Array.isArray(events[dateKey]) ? events[dateKey] : [];
+        day.forEach((entry) => {
+            const label = normalizeCategory(entry?.category);
+            if (!label) return;
+            if (want && Utils.entryKind(entry) !== want) return;
+            const key = label.toLowerCase();
+            const prev = byKey.get(key) || {
+                key,
+                label,
+                count: 0,
+                lastKey: '',
+                builtIn: false,
+                tone: categoryInfo(label).tone
+            };
+            prev.count += 1;
+            if (dateKey >= prev.lastKey) {
+                prev.lastKey = dateKey;
+                if (!prev.builtIn) prev.label = label;
+            }
+            byKey.set(key, prev);
+        });
+    });
+
+    return [...byKey.values()].sort((a, b) => {
+        if (a.count && !b.count) return -1;
+        if (!a.count && b.count) return 1;
+        if (a.lastKey !== b.lastKey) return a.lastKey < b.lastKey ? 1 : -1;
+        return b.count - a.count || a.label.localeCompare(b.label);
+    });
+}
+
+/**
+ * Categories matching what has been typed so far. A prefix match is what the
+ * typist usually means, so those sort first.
+ */
+export function suggestCategories(events, { query = '', kind, limit = 8 } = {}) {
+    const q = categoryKey(query);
+    const rows = collectCategories(events, { kind });
+    if (!q) return rows.slice(0, limit);
+
+    const hits = rows.filter((row) => row.key.includes(q));
+    hits.sort((a, b) => {
+        const aStarts = a.key.startsWith(q) ? 0 : 1;
+        const bStarts = b.key.startsWith(q) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        if (a.count && !b.count) return -1;
+        if (!a.count && b.count) return 1;
+        return b.count - a.count || a.label.localeCompare(b.label);
+    });
+    return hits.slice(0, limit);
+}
+
+/**
+ * The spelling already in the ledger or the built-in list, so "groceries"
+ * joins "Groceries". Unknown tags are returned as typed, which is how Enter
+ * creates a new category.
+ */
+export function canonicalCategory(events, raw) {
+    const label = normalizeCategory(raw);
+    if (!label) return '';
+    const known = BY_LABEL.get(label.toLowerCase());
+    if (known) return known.label;
+    const match = collectCategories(events).find((row) => row.key === label.toLowerCase());
+    return match ? match.label : label;
+}
+
+/**
  * Categories the user has already applied to a given title. Their own past
  * choice should outrank a keyword rule, which is how "learns from corrections"
  * works without any model.
@@ -168,7 +270,7 @@ export function categoryHistory(events) {
         if (!Array.isArray(list)) continue;
         for (const entry of list) {
             const title = String(entry?.title ?? '').trim().toLowerCase();
-            const category = String(entry?.category ?? '').trim();
+            const category = normalizeCategory(entry?.category);
             if (title && category) history.set(title, category);
         }
     }

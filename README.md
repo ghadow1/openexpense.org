@@ -39,7 +39,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
 - **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
-- **Recurring series** — same-title payments group in the day editor; you can remove every copy at once.
+- **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
 - **Monthly summary PDF** — generated locally with jsPDF.
 
 ## Repository map

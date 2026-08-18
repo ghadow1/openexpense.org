@@ -301,7 +301,7 @@ export function sanitizeEntry(raw) {
     if (raw.paid) entry.paid = true;
     if (raw.kind === 'income') entry.kind = 'income';
     if (raw.recurring) entry.repeat = normalizeRepeat(raw.repeat);
-    const category = String(raw.category ?? '').trim().slice(0, FILE_LIMITS.maxCategory);
+    const category = String(raw.category ?? '').replace(/\s+/g, ' ').trim().slice(0, FILE_LIMITS.maxCategory);
     if (category) entry.category = category;
     // Collapsed here as well as in the field, so a group that arrives by import
     // lands on the same key as one that was typed.

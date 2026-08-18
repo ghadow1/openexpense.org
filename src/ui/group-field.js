@@ -133,13 +133,15 @@ export function createGroupField({
         paint();
     });
 
-    // Typing a group and pressing Enter should not submit a half-filled entry.
+    // Enter keeps what was typed: a known name joins that group, a new name
+    // creates one. Stealing the first chip here used to overwrite a custom
+    // placeholder the user was in the middle of naming.
     input.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
-        const first = chips.querySelector('.group-chip');
-        if (!typed() || !first) return;
         e.preventDefault();
-        commit(first.dataset.group);
+        const raw = typed();
+        if (!raw) return;
+        commit(resolve(raw));
     });
 
     chips.addEventListener('click', (e) => {
@@ -171,6 +173,11 @@ export function createGroupField({
         /** Offers the group this title was filed under last, until the user decides. */
         refreshSuggestion(title) {
             if (explicit) return;
+            if (!String(title || '').trim()) {
+                input.value = '';
+                paint();
+                return;
+            }
             const remembered = historyFor(title);
             input.value = remembered ? normalizeGroup(remembered) : '';
             paint();

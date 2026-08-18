@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
     CATEGORIES, QUICK_PICKS, UNCATEGORIZED,
     categoryInfo, categoriesFor, suggestCategory, resolveCategory,
-    categoryHistory, rollUpCategories, budgetProgress
+    categoryHistory, rollUpCategories, budgetProgress,
+    canonicalCategory, categoryKey, collectCategories, normalizeCategory,
+    suggestCategories
 } from '../src/core/categories.js';
-import { sanitizeBudgets, FILE_LIMITS } from '../src/core/ledger-file.js';
+import { sanitizeBudgets, sanitizeEntry, FILE_LIMITS } from '../src/core/ledger-file.js';
 
 test('every quick pick is a real category of its kind', () => {
     for (const [kind, labels] of Object.entries(QUICK_PICKS)) {
@@ -440,4 +442,46 @@ test('every known category belongs to a group', () => {
     for (const cat of CATEGORIES.filter((c) => c.kind === 'income')) {
         assert.equal(cat.group, 'Income', `${cat.label} should sit under Income`);
     }
+});
+
+test('normalizing folds whitespace and caps a typed category', () => {
+    assert.equal(normalizeCategory('  Boat   repair  '), 'Boat repair');
+    assert.equal(categoryKey('Groceries'), categoryKey(' groceries '));
+    assert.equal(normalizeCategory('x'.repeat(80)).length, FILE_LIMITS.maxCategory);
+});
+
+test('collecting mixes used tags with the built-in list', () => {
+    const rows = collectCategories({
+        '2026-08-01': [{ title: 'Paint', category: 'Boat repair' }],
+        '2026-08-09': [{ title: 'Milk', category: 'Groceries' }]
+    }, { kind: 'expense' });
+    assert.ok(rows.some((row) => row.label === 'Boat repair' && row.count === 1));
+    assert.ok(rows.some((row) => row.label === 'Groceries' && row.count === 1));
+    assert.ok(rows.some((row) => row.label === 'Dining' && row.count === 0));
+    assert.equal(rows.some((row) => row.label === 'Paycheck'), false);
+});
+
+test('typing filters category suggestions and a prefix match wins', () => {
+    const events = {
+        '2026-08-01': [{ title: 'a', category: 'Groceries' }],
+        '2026-08-20': [{ title: 'b', category: 'Grow lights' }]
+    };
+    assert.deepEqual(
+        suggestCategories(events, { query: 'gro', kind: 'expense' }).map((row) => row.label),
+        ['Groceries', 'Grow lights']
+    );
+    assert.deepEqual(suggestCategories(events, { query: 'Sailing' }), []);
+});
+
+test('typed casing snaps to the spelling already in the ledger', () => {
+    const events = { '2026-08-01': [{ title: 'x', category: 'Boat repair' }] };
+    assert.equal(canonicalCategory(events, 'groceries'), 'Groceries');
+    assert.equal(canonicalCategory(events, 'boat repair'), 'Boat repair');
+    assert.equal(canonicalCategory(events, 'Sailing'), 'Sailing');
+    assert.equal(canonicalCategory(events, '   '), '');
+});
+
+test('a category survives the sanitizer that entries are saved through', () => {
+    assert.equal(sanitizeEntry({ title: 'x', category: '  Boat   repair  ' }).category, 'Boat repair');
+    assert.equal(sanitizeEntry({ title: 'x', category: '   ' }).category, undefined);
 });

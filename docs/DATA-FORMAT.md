@@ -37,7 +37,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `title` | string | — | Required to save. Compared case-insensitively when grouping a series. |
+| `title` | string | — | Required to save. Compared case-insensitively when grouping a series. Blank and leftover placeholder titles never match as a series or as Change All twins. |
 | `price` | number or string | `0` | Parsed with `parseFloat`. Legacy notes may still contain `$12.00`; `Utils.getPrice` reads that fallback. |
 | `recurring` | boolean | `false` | Marks a re-accruing payment. Series delete matches title + this flag + `repeat`. |
 | `repeat` | string | `"monthly"` | How often a recurring payment or income copies forward: `weekly`, `monthly`, `bimonthly` (every 2 months), or `quarterly`. Omitted on one-time entries. Missing on older ledgers means monthly. |

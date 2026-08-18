@@ -5,6 +5,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    assignGroupToIndexes,
+    clearGroupAt,
+    clearGroupAtIndexes,
     collectTitleMemory,
     duplicateAt,
     matchRememberedTitle,
@@ -88,4 +91,41 @@ test('title memory ranks recent titles and can prefill an amount', () => {
     const chips = suggestTitles(events, { kind: 'expense', limit: 4 });
     assert.equal(chips.some((row) => row.title === 'Coffee'), true);
     assert.equal(chips.some((row) => row.kind === 'income'), false);
+});
+
+test('assigning a group writes only the group field', () => {
+    const events = {
+        '2026-08-17': [
+            { title: 'Coffee', price: 5, paid: true, category: 'Dining' },
+            { title: 'Rent', price: 1450, recurring: true, repeat: 'monthly' }
+        ]
+    };
+    const next = assignGroupToIndexes(events, '2026-08-17', [0, 1], 'Bella');
+    assert.equal(next['2026-08-17'][0].group, 'Bella');
+    assert.equal(next['2026-08-17'][1].group, 'Bella');
+    assert.equal(next['2026-08-17'][0].price, 5);
+    assert.equal(next['2026-08-17'][0].paid, true);
+    assert.equal(next['2026-08-17'][0].category, 'Dining');
+    assert.equal(next['2026-08-17'][1].recurring, true);
+    assert.equal(next['2026-08-17'][1].title, 'Rent');
+});
+
+test('ungrouping clears only the group', () => {
+    const events = {
+        '2026-08-17': [
+            { title: 'Coffee', price: 5, group: 'Bella', category: 'Dining', paid: true },
+            { title: 'Vet', price: 90, group: 'Bella' }
+        ]
+    };
+    const one = clearGroupAt(events, '2026-08-17', 0);
+    assert.equal(one['2026-08-17'][0].group, undefined);
+    assert.equal(one['2026-08-17'][0].title, 'Coffee');
+    assert.equal(one['2026-08-17'][0].price, 5);
+    assert.equal(one['2026-08-17'][0].category, 'Dining');
+    assert.equal(one['2026-08-17'][0].paid, true);
+    assert.equal(one['2026-08-17'][1].group, 'Bella');
+
+    const both = clearGroupAtIndexes(one, '2026-08-17', [1]);
+    assert.equal(both['2026-08-17'][1].group, undefined);
+    assert.equal(both['2026-08-17'][1].price, 90);
 });

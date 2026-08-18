@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — Change All, category tags, and ungroup
+
+Editing a name or amount no longer rewrites every look-alike on its own. A **Change all** dialog appears only when another entry shares both the same text and the same dollar amount; otherwise the edit stays on that row. Blank titles and leftover form placeholders never match as a pack. Category is a type-to-tag field: suggestions come from what you have used, and Enter creates a new tag. On the day sheet, select several rows or drop one onto another to group them, and **Ungroup** removes a row from a group without touching its price, date, or label.
+
 ## 2026-08-17 — Product brochure
 
 A six-page A4 landscape marketing brochure lives in `docs/brochure/`. Print `openexpense-brochure.html` or open `openexpense-brochure.pdf`. Navy tokens, Inter, and live product copy. No change to the app UI.

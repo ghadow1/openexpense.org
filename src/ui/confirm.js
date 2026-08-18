@@ -114,7 +114,8 @@ export function confirmDialog({
                 <label class="confirm-field-label" for="confirm-field">${Utils.escapeHtml(field.label || '')}</label>
                 <input class="text-input" type="${inputType}" id="confirm-field"
                        autocomplete="${autofill}" spellcheck="false"
-                       placeholder="${Utils.escapeHtml(field.placeholder || '')}">
+                       placeholder="${Utils.escapeHtml(field.placeholder || '')}"
+                       value="${Utils.escapeHtml(field.value || '')}">
                 ${field.repeatLabel
                     ? `<label class="confirm-field-label" for="confirm-field-repeat">${Utils.escapeHtml(field.repeatLabel)}</label>
                        <input class="text-input" type="${inputType}" id="confirm-field-repeat"

@@ -32,6 +32,8 @@ import {
 import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 import { countEntries } from '../core/ledger-file.js';
 import {
+    assignGroupToIndexes,
+    clearGroupAt,
     duplicateAt,
     matchRememberedTitle,
     reorderDay,
@@ -40,9 +42,20 @@ import {
 } from '../core/day-entries.js';
 import { clearDropMarks, makeGhost, placeGhost } from '../ui/pointer-drag.js';
 import { categoryBadge, createCategoryPicker } from '../ui/category-picker.js';
-import { cachedCategoryHistory, resolveCategory } from '../core/categories.js';
+import {
+    cachedCategoryHistory,
+    canonicalCategory,
+    resolveCategory,
+    suggestCategories
+} from '../core/categories.js';
 import { createGroupField, groupBadge } from '../ui/group-field.js';
-import { cachedGroupHistory, canonicalGroup, suggestGroupFor, suggestGroups } from '../core/groups.js';
+import { cachedGroupHistory, canonicalGroup, normalizeGroup, suggestGroupFor, suggestGroups } from '../core/groups.js';
+import {
+    applyTitlePrice,
+    findTwinRefs,
+    isPlaceholderTitle,
+    labelOrPriceChanged
+} from '../core/labeling.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -55,6 +68,7 @@ function focusField(id) {
 }
 
 export function openModal(key) {
+    selectedDayIndexes.clear();
     patch({ selectedKey: key, editingIndex: null });
     Utils.hideTooltip();
     const modal = document.getElementById('modal');
@@ -67,6 +81,7 @@ export function openModal(key) {
 }
 
 export function closeModal() {
+    selectedDayIndexes.clear();
     patch({ selectedKey: null, editingIndex: null });
     const sheet = document.getElementById('mbox');
     if (sheet) sheet.style.transform = '';
@@ -206,6 +221,7 @@ let addGroupField = null;
 // cleared with the list rather than held for the lifetime of the modal.
 const editPickers = new Map();
 const editGroupFields = new Map();
+const selectedDayIndexes = new Set();
 
 /** The wiring a group field needs to read the ledger's existing vocabulary. */
 function groupFieldHooks() {
@@ -213,6 +229,14 @@ function groupFieldHooks() {
         lookup: (query) => suggestGroups(getState().events, { query }),
         resolve: (raw) => canonicalGroup(getState().events, raw),
         historyFor: (title) => suggestGroupFor(title, cachedGroupHistory(getState().events))
+    };
+}
+
+function categoryFieldHooks() {
+    return {
+        lookup: (query, kind) => suggestCategories(getState().events, { query, kind }),
+        resolve: (raw) => canonicalCategory(getState().events, raw),
+        history: () => cachedCategoryHistory(getState().events)
     };
 }
 
@@ -227,19 +251,67 @@ function refreshEventList() {
     editPickers.clear();
     editGroupFields.clear();
     const list = events[selectedKey] || [];
+    [...selectedDayIndexes].forEach((index) => {
+        if (index < 0 || index >= list.length) selectedDayIndexes.delete(index);
+    });
     if (!list.length) {
+        selectedDayIndexes.clear();
         const p = document.createElement('p');
         p.className = 'modal-empty';
         p.textContent = 'Nothing on this day yet. Add an entry, or drag a calendar chip onto this date.';
         eventsContainer.appendChild(p);
         bindDayListDrag(eventsContainer);
+        bindDayListGroup(eventsContainer);
         return;
     }
 
+    paintDaySelectBar(eventsContainer);
     list.forEach((entry, index) => {
         eventsContainer.appendChild(buildRow(entry, index));
     });
     bindDayListDrag(eventsContainer);
+    bindDayListGroup(eventsContainer);
+}
+
+function paintDaySelectBar(container) {
+    if (!container) return;
+    let bar = container.querySelector('.day-select-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'day-select-bar';
+        container.prepend(bar);
+    }
+    const count = selectedDayIndexes.size;
+    if (!count) {
+        bar.hidden = true;
+        bar.replaceChildren();
+        return;
+    }
+    bar.hidden = false;
+    bar.replaceChildren();
+    const label = document.createElement('span');
+    label.className = 'day-select-count';
+    label.textContent = `${count} selected`;
+    const groupBtn = UI.createButton('Group', () => groupSelected());
+    groupBtn.disabled = count < 2;
+    const ungroupBtn = UI.createButton('Ungroup', () => ungroupSelected());
+    const clearBtn = UI.createButton('Clear', () => {
+        selectedDayIndexes.clear();
+        syncRowSelection();
+    });
+    bar.append(label, groupBtn, ungroupBtn, clearBtn);
+}
+
+function syncRowSelection() {
+    const container = document.getElementById('events-container');
+    container?.querySelectorAll('.event-row[data-index]').forEach((row) => {
+        const index = Number(row.dataset.index);
+        const on = selectedDayIndexes.has(index);
+        row.classList.toggle('is-selected', on);
+        const box = row.querySelector('.row-pick');
+        if (box) box.checked = on;
+    });
+    paintDaySelectBar(container);
 }
 
 function bindDayListDrag(container) {
@@ -297,6 +369,65 @@ function bindDayListDrag(container) {
             applyLedgerEvents(reorderDay(events, selectedKey, from, insertAt));
             refreshEventList();
             renderDayInsights(selectedKey);
+        };
+
+        window.addEventListener('pointermove', move, true);
+        window.addEventListener('pointerup', end, true);
+        window.addEventListener('pointercancel', end, true);
+    });
+}
+
+function bindDayListGroup(container) {
+    if (!container || container.dataset.groupBound === '1') return;
+    container.dataset.groupBound = '1';
+
+    container.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('.drag-handle, .row-actions, .row-pick-wrap, button, input, a, label')) return;
+        const row = event.target.closest('.event-row[data-index]');
+        if (!row || !container.contains(row) || (event.button != null && event.button !== 0)) return;
+        if (getState().editingIndex != null) return;
+
+        const from = Number(row.dataset.index);
+        const originY = event.clientY;
+        const originX = event.clientX;
+        let dragging = false;
+        let overIndex = from;
+        let ghost = null;
+
+        const rows = () => [...container.querySelectorAll('.event-row[data-index]')];
+
+        const move = (ev) => {
+            if (!dragging && (Math.abs(ev.clientY - originY) > 6 || Math.abs(ev.clientX - originX) > 6)) {
+                dragging = true;
+                row.classList.add('is-dragging');
+                ghost = makeGhost(row.querySelector('.event-title')?.textContent || 'Entry');
+                try { row.setPointerCapture(event.pointerId); } catch (_) { /* ignore */ }
+            }
+            if (!dragging) return;
+            placeGhost(ghost, ev.clientX, ev.clientY);
+            overIndex = from;
+            rows().forEach((el) => {
+                el.classList.remove('is-group-drop');
+                const rect = el.getBoundingClientRect();
+                if (ev.clientX >= rect.left && ev.clientX <= rect.right
+                    && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+                    overIndex = Number(el.dataset.index);
+                    if (overIndex !== from) el.classList.add('is-group-drop');
+                }
+            });
+            row.classList.add('is-dragging');
+        };
+
+        const end = () => {
+            window.removeEventListener('pointermove', move, true);
+            window.removeEventListener('pointerup', end, true);
+            window.removeEventListener('pointercancel', end, true);
+            ghost?.remove();
+            clearDropMarks(container, '.event-row');
+            container.querySelectorAll('.is-group-drop').forEach((el) => el.classList.remove('is-group-drop'));
+            row.classList.remove('is-dragging');
+            if (!dragging || overIndex === from) return;
+            groupEntries([from, overIndex]);
         };
 
         window.addEventListener('pointermove', move, true);
@@ -372,7 +503,7 @@ function ensureAddForm(formContainer) {
     addCategoryPicker = createCategoryPicker({
         id: 'ec',
         kind: readKind('ek'),
-        history: () => cachedCategoryHistory(getState().events)
+        ...categoryFieldHooks()
     });
     form.appendChild(addCategoryPicker.element);
     if (titleInput) titleInput.addEventListener('input', refreshAddCategory);
@@ -399,6 +530,11 @@ function ensureAddForm(formContainer) {
 
 function refreshAddCategory() {
     const title = document.getElementById('et')?.value || '';
+    if (isPlaceholderTitle(title)) {
+        addCategoryPicker?.refreshSuggestion({ title: '', note: '' });
+        addGroupField?.refreshSuggestion('');
+        return;
+    }
     addCategoryPicker?.refreshSuggestion({
         title,
         note: document.getElementById('en')?.value || ''
@@ -516,6 +652,24 @@ function buildRow(e, i) {
     row.className = `event-row${e.paid ? ' is-paid' : ''}${Utils.entryKind(e) === 'income' ? ' is-income' : ''}`;
     row.dataset.index = String(i);
 
+    row.classList.toggle('is-selected', selectedDayIndexes.has(i));
+
+    const pickWrap = document.createElement('label');
+    pickWrap.className = 'row-pick-wrap';
+    const pick = document.createElement('input');
+    pick.type = 'checkbox';
+    pick.className = 'row-pick';
+    pick.checked = selectedDayIndexes.has(i);
+    pick.setAttribute('aria-label', `Select ${e.title || 'this entry'}`);
+    pick.addEventListener('click', (ev) => ev.stopPropagation());
+    pick.addEventListener('change', () => {
+        if (pick.checked) selectedDayIndexes.add(i);
+        else selectedDayIndexes.delete(i);
+        syncRowSelection();
+    });
+    pickWrap.appendChild(pick);
+    row.appendChild(pickWrap);
+
     const handle = iconAction('drag-handle', 'grip-vertical', 'Reorder this entry', null);
     handle.onclick = null;
     handle.addEventListener('keydown', (ev) => {
@@ -591,8 +745,16 @@ function buildRow(e, i) {
         () => quickTogglePaid(i)
     );
     paidBtn.setAttribute('aria-pressed', e.paid ? 'true' : 'false');
+    act.append(paidBtn);
+    if (e.group) {
+        act.append(iconAction(
+            'btn-icon-ungroup',
+            'unlink',
+            `Ungroup from ${e.group}`,
+            () => ungroupEntry(i)
+        ));
+    }
     act.append(
-        paidBtn,
         iconAction('btn-icon-copy', 'copy', 'Duplicate on this day', () => quickDuplicate(i)),
         iconAction('btn-icon-edit', 'edit', 'Edit entry', () => startEdit(i)),
         iconAction('btn-icon-delete', 'trash', 'Remove entry', () => deleteEv(i))
@@ -632,7 +794,7 @@ function buildEditRow(e, i) {
     if (e.recurring) {
         const hint = document.createElement('p');
         hint.className = 'event-edit-series-hint';
-        hint.textContent = 'Title, date, amount, and how often update every copy. Paid stays on each day.';
+        hint.textContent = 'Date and how often can shift the series. Name and amount stay on this entry unless other rows share both.';
         form.appendChild(hint);
     }
 
@@ -679,7 +841,7 @@ function buildEditRow(e, i) {
         id: `edit-cat-${i}`,
         kind: Utils.entryKind(e),
         value: e.category || '',
-        history: () => cachedCategoryHistory(getState().events)
+        ...categoryFieldHooks()
     });
     editPickers.set(i, editPicker);
     form.querySelectorAll(`input[name="edit-kind-${i}"]`).forEach((input) => {
@@ -733,8 +895,10 @@ function replaceOccurrence(events, fromKey, index, updated, toKey) {
     return next;
 }
 
-function saveEdit(i) {
-    const title = document.getElementById(`edit-title-${i}`).value.trim(); if (!title) return;
+async function saveEdit(i) {
+    const rawTitle = document.getElementById(`edit-title-${i}`).value.trim();
+    if (!rawTitle || isPlaceholderTitle(rawTitle)) return;
+    const title = rawTitle;
     const isRecurring = document.getElementById(`edit-rec-${i}`).checked;
     const price = document.getElementById(`edit-price-${i}`).value;
     const dateInput = document.getElementById(`edit-date-${i}`)?.value;
@@ -749,8 +913,9 @@ function saveEdit(i) {
     if (isRecurring) updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
     else delete updatedEv.repeat;
 
-    const picked = editPickers.get(i)?.getValue();
+    const picked = editPickers.get(i)?.getValue() ?? '';
     if (picked) updatedEv.category = picked;
+    else delete updatedEv.category;
 
     // Read even when empty: clearing the field has to be able to remove a group,
     // which an if-truthy guard would silently ignore.
@@ -762,23 +927,130 @@ function saveEdit(i) {
     const original = events[selectedKey]?.[i];
     if (!original) return;
     const destKey = isValidDateKey(dateInput) ? dateInput : selectedKey;
+    const dateChanged = destKey !== selectedKey;
+    const cadenceChanged = original.recurring && isRecurring
+        && normalizeRepeat(original.repeat) !== normalizeRepeat(updatedEv.repeat);
+
+    let applyToTwins = false;
+    const twins = labelOrPriceChanged(original, updatedEv)
+        ? findTwinRefs(events, original, { skip: { date: selectedKey, index: i } })
+        : [];
+    if (twins.length) {
+        const result = await confirmDialog({
+            title: 'Change all matching entries?',
+            message: `“${original.title}” at ${Utils.formatMoney(Utils.getPrice(original))} appears ${twins.length + 1} times. Change the name and amount on every match, or only this entry?`,
+            confirmText: 'Apply',
+            cancelText: 'Cancel',
+            choices: [
+                { value: 'all', label: `Change all ${twins.length + 1} matching entries` },
+                { value: 'one', label: 'Only this entry' }
+            ],
+            choice: 'all'
+        });
+        if (!result?.confirmed) return;
+        applyToTwins = result.choice === 'all';
+    }
 
     let nextEvents;
     if (original.recurring && isRecurring) {
-        const cadenceChanged = normalizeRepeat(original.repeat) !== normalizeRepeat(updatedEv.repeat);
         nextEvents = cadenceChanged
             ? rebuildSeriesFrom(events, original, destKey, updatedEv)
             : updateSeriesOccurrences(events, original, selectedKey, i, updatedEv, destKey);
-        const count = countSeriesOccurrences(nextEvents, updatedEv);
-        if (count > 1) Toast.show(`Updated ${count} copies of ${title}.`, 'success');
+        if (cadenceChanged || dateChanged) {
+            const count = countSeriesOccurrences(nextEvents, updatedEv);
+            if (count > 1) Toast.show(`Updated ${count} copies of ${title}.`, 'success');
+        }
     } else {
         nextEvents = replaceOccurrence(events, selectedKey, i, updatedEv, destKey);
         if (isRecurring) nextEvents = seedRecurringCopies(nextEvents, updatedEv, destKey);
     }
 
+    if (applyToTwins) {
+        // Re-scan after the row/series write: the edited row already has the
+        // new name and amount, so it drops out, and date-shifted copies still
+        // match the original pair.
+        const remaining = findTwinRefs(nextEvents, original);
+        nextEvents = applyTitlePrice(nextEvents, remaining, {
+            title: updatedEv.title,
+            price: updatedEv.price
+        });
+        Toast.show(`Updated ${twins.length + 1} matching entries.`, 'success');
+    }
+
     dismissUndo();
+    selectedDayIndexes.clear();
     patch({ events: nextEvents, editingIndex: null, selectedKey: destKey });
     renderModal();
+}
+
+async function groupEntries(indexes) {
+    const { events, selectedKey } = getState();
+    const list = events[selectedKey] || [];
+    const unique = [...new Set((indexes || []).map(Number))]
+        .filter((index) => list[index]);
+    if (unique.length < 2) return;
+
+    const existing = unique
+        .map((index) => normalizeGroup(list[index].group))
+        .filter(Boolean);
+    const uniqueNames = [...new Set(existing.map((label) => label.toLowerCase()))];
+    // One known group among the selection is enough to join it. Two different
+    // groups, or none, need a name so the user is never silently re-filed.
+    let label = uniqueNames.length === 1 ? canonicalGroup(events, existing[0]) : '';
+    if (!label) {
+        const result = await confirmDialog({
+            title: unique.length === 2 ? 'Group these entries?' : `Group ${unique.length} entries?`,
+            message: 'Name the group. Price, date, and the label on each entry stay as they are.',
+            confirmText: 'Group',
+            cancelText: 'Cancel',
+            field: {
+                label: 'Group',
+                placeholder: 'Find or add a group',
+                value: existing[0] || ''
+            },
+            validate: (row) => normalizeGroup(row.value) ? null : 'Enter a group name'
+        });
+        if (!result?.confirmed) return;
+        label = canonicalGroup(getState().events, result.value);
+    }
+    if (!label) return;
+
+    applyLedgerEvents(assignGroupToIndexes(getState().events, selectedKey, unique, label));
+    selectedDayIndexes.clear();
+    refreshEventList();
+    renderDayInsights(selectedKey);
+    Toast.show(`Grouped ${unique.length} entries as ${label}.`, 'success');
+}
+
+function groupSelected() {
+    return groupEntries([...selectedDayIndexes]);
+}
+
+function ungroupEntry(index) {
+    const { events, selectedKey } = getState();
+    const item = events[selectedKey]?.[index];
+    if (!item?.group) return;
+    applyLedgerEvents(clearGroupAt(events, selectedKey, index));
+    selectedDayIndexes.delete(index);
+    refreshEventList();
+    renderDayInsights(selectedKey);
+    Toast.show(`Removed from ${item.group}.`, 'success');
+}
+
+function ungroupSelected() {
+    const { events, selectedKey } = getState();
+    const list = events[selectedKey] || [];
+    const indexes = [...selectedDayIndexes].filter((index) => list[index]?.group);
+    if (!indexes.length) return;
+    let next = events;
+    indexes.forEach((index) => {
+        next = clearGroupAt(next, selectedKey, index);
+    });
+    applyLedgerEvents(next);
+    selectedDayIndexes.clear();
+    refreshEventList();
+    renderDayInsights(selectedKey);
+    Toast.show(indexes.length === 1 ? 'Removed from group.' : `Ungrouped ${indexes.length} entries.`, 'success');
 }
 
 function applyDelete(nextEvents) {

@@ -7,6 +7,7 @@
  */
 import { Utils } from './utils.js';
 import { isValidDateKey } from './ledger-file.js';
+import { normalizeGroup } from './groups.js';
 
 function cloneEntry(entry) {
     return JSON.parse(JSON.stringify(entry || {}));
@@ -108,6 +109,45 @@ export function suggestTitles(events, { kind, query = '', limit = 6 } = {}) {
         .filter((row) => !kind || row.kind === kind)
         .filter((row) => !q || row.title.toLowerCase().includes(q))
         .slice(0, limit);
+}
+
+/**
+ * File the listed rows under one group. Price, date, title, category, paid,
+ * and recurring stay as they are — only `group` is written.
+ */
+export function assignGroupToIndexes(events, dateKey, indexes, group) {
+    const label = normalizeGroup(group);
+    const list = [...dayList(events, dateKey)];
+    const wanted = [...new Set((indexes || []).map(Number))]
+        .filter((i) => i >= 0 && i < list.length);
+    if (!label || !wanted.length || !isValidDateKey(dateKey)) return events;
+
+    let changed = false;
+    wanted.forEach((i) => {
+        if (normalizeGroup(list[i]?.group) === label) return;
+        list[i] = { ...list[i], group: label };
+        changed = true;
+    });
+    return changed ? { ...events, [dateKey]: list } : events;
+}
+
+/** Remove a row from its group. Every other field is left alone. */
+export function clearGroupAt(events, dateKey, index) {
+    return clearGroupAtIndexes(events, dateKey, [index]);
+}
+
+export function clearGroupAtIndexes(events, dateKey, indexes) {
+    const list = [...dayList(events, dateKey)];
+    const wanted = [...new Set((indexes || []).map(Number))]
+        .filter((i) => i >= 0 && i < list.length && normalizeGroup(list[i]?.group));
+    if (!wanted.length || !isValidDateKey(dateKey)) return events;
+
+    wanted.forEach((i) => {
+        const row = { ...list[i] };
+        delete row.group;
+        list[i] = row;
+    });
+    return { ...events, [dateKey]: list };
 }
 
 export function matchRememberedTitle(events, title, kind) {

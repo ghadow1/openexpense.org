@@ -15,7 +15,7 @@ export const REPEAT = {
 };
 
 export function normalizeTitle(title) {
-    return String(title || '').trim().toLowerCase() || 'untitled';
+    return String(title || '').trim().toLowerCase();
 }
 
 /** Legacy expenses with no `repeat` field are treated as monthly. */
@@ -78,9 +78,13 @@ export function weekdayName(weekday) {
 }
 
 export function isSameSeries(a, b) {
+    const title = normalizeTitle(a?.title);
+    // Blank or leftover placeholder titles used to collapse into one series
+    // because normalizeTitle mapped them all to "untitled".
+    if (!title || title === 'untitled') return false;
     return !!a?.recurring && !!b?.recurring
         && Utils.entryKind(a) === Utils.entryKind(b)
-        && normalizeTitle(a.title) === normalizeTitle(b.title)
+        && title === normalizeTitle(b.title)
         && normalizeRepeat(a.repeat) === normalizeRepeat(b.repeat);
 }
 
@@ -97,15 +101,29 @@ export function daysBetweenKeys(fromKey, toKey) {
     return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
 }
 
-function seriesEntry(updated, paid) {
+function copyField(row, key, value) {
+    const clean = typeof value === 'string' ? value.trim() : value;
+    if (clean) row[key] = clean;
+    else delete row[key];
+}
+
+/**
+ * Build one series copy. Cadence always follows the edit. Title, amount,
+ * category, group, and note stay on the copy unless this is the edited row
+ * or a newly seeded occurrence.
+ */
+function seriesEntry(updated, paid, previous = null) {
+    const source = previous || updated;
     const row = {
-        title: String(updated.title || '').trim(),
-        note: String(updated.note || '').trim(),
-        price: updated.price,
+        title: String(source.title || '').trim(),
+        price: source.price,
         recurring: true,
         paid: !!paid,
-        kind: Utils.entryKind(updated)
+        kind: Utils.entryKind(previous ? previous : updated)
     };
+    copyField(row, 'note', source.note);
+    copyField(row, 'category', source.category);
+    copyField(row, 'group', source.group);
     if (row.kind === 'expense') delete row.kind;
     row.repeat = normalizeRepeat(updated.repeat);
     return row;
@@ -137,9 +155,10 @@ export function seedRecurringCopies(events, baseEvent, startKey) {
 }
 
 /**
- * Patch every copy of a series. Title, amount, note, and kind stay in sync.
- * A date change shifts every copy by the same number of days. Paid stays
- * on each day, except the edited copy which uses the form value.
+ * Shift or retune every copy of a series. Date and cadence follow the edit.
+ * Title, amount, category, group, and note stay on each copy — Change All
+ * is what rewrites those, and only when name and amount both match.
+ * Paid stays on each day, except the edited copy which uses the form value.
  */
 export function updateSeriesOccurrences(events, original, fromKey, editIndex, updated, toKey) {
     const destKey = toKey || fromKey;
@@ -161,7 +180,11 @@ export function updateSeriesOccurrences(events, original, fromKey, editIndex, up
         const newKey = delta ? addDaysToKey(key, delta) : key;
         if (!next[newKey]) next[newKey] = [];
         else next[newKey] = [...next[newKey]];
-        next[newKey].push(seriesEntry(updated, edited ? updated.paid : entry.paid));
+        next[newKey].push(seriesEntry(
+            updated,
+            edited ? updated.paid : entry.paid,
+            edited ? updated : entry
+        ));
     });
 
     return next;
@@ -226,7 +249,9 @@ export function groupExpenses(list) {
     const map = new Map();
     (list || []).forEach((e, i) => {
         const kind = Utils.entryKind(e);
-        const key = `${kind}:${normalizeTitle(e.title)}`;
+        const title = normalizeTitle(e.title);
+        // Blank rows used to share one "untitled" pill and rename as a pack.
+        const key = title ? `${kind}:${title}` : `${kind}:#${i}`;
         if (!map.has(key)) {
             map.set(key, { key, title: e.title?.trim() || 'Untitled', kind, items: [] });
         }
