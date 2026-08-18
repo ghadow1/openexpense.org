@@ -9,13 +9,18 @@
 import { Utils } from './utils.js';
 import { normalizeRepeat } from './series.js';
 import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
+import { ENVELOPE } from './envelope.js';
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const KID_KEY = /^[a-f0-9]{16,64}$/i;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export const FILE_LIMITS = {
-    maxBytes: 8 * 1024 * 1024,
+    // A cheap pre-filter so a hostile file cannot force a huge parse; the real
+    // bound on what gets kept is maxEntries/maxDays below. It has to stay above
+    // anything this app can itself export, or a user's own backup would be
+    // refused on the way back in: 25k entries with 500-char notes is ~19 MB.
+    maxBytes: 32 * 1024 * 1024,
     maxDays: 4000,
     maxPerDay: 250,
     maxEntries: 25000,
@@ -85,12 +90,17 @@ function formatOk(value, expected) {
     return value == null || value === expected;
 }
 
+/** v1 files stay readable, so both versions validate. */
 function versionOk(value) {
-    return value == null || value === BUNDLE.VERSION;
+    return value == null || value === BUNDLE.LEGACY_VERSION || value === ENVELOPE.VERSION;
 }
 
 function algOk(value) {
-    return value == null || value === 'AES-GCM';
+    return value == null || value === 'AES-GCM' || value === ENVELOPE.ALG;
+}
+
+function isV2(obj) {
+    return Number(obj?.version) === ENVELOPE.VERSION;
 }
 
 function kidOk(value) {
@@ -135,8 +145,37 @@ export function validateEncFile(obj) {
     if (typeof obj.iv !== 'string' || !obj.iv || typeof obj.ct !== 'string' || !obj.ct) {
         return { ok: false, error: 'Encrypted ledger is missing ciphertext.' };
     }
-    if (base64ByteLength(obj.iv) !== 12 || base64ByteLength(obj.ct) < 16 || obj.ct.length > FILE_LIMITS.maxBytes) {
+    if (base64ByteLength(obj.iv) !== ENVELOPE.IV_BYTES
+        || base64ByteLength(obj.ct) < 16
+        || obj.ct.length > FILE_LIMITS.maxBytes) {
         return { ok: false, error: 'Encrypted ledger ciphertext is not usable.' };
+    }
+    if (isV2(obj)) {
+        if (obj.kdf !== ENVELOPE.KDF) {
+            return { ok: false, error: 'Encrypted ledger uses an unsupported key derivation.' };
+        }
+        if (base64ByteLength(obj.salt) !== ENVELOPE.SALT_BYTES) {
+            return { ok: false, error: 'Encrypted ledger has an invalid salt.' };
+        }
+        if (base64ByteLength(obj.commit) !== ENVELOPE.COMMIT_BYTES) {
+            return { ok: false, error: 'Encrypted ledger is missing its key commitment.' };
+        }
+    }
+    return { ok: true };
+}
+
+function validateWrap(wrap) {
+    if (wrap.kdf !== ENVELOPE.WRAP_KDF) {
+        return { ok: false, error: 'key.json uses an unsupported passphrase derivation.' };
+    }
+    const iterations = Number(wrap.iterations);
+    if (!Number.isInteger(iterations) || iterations < ENVELOPE.MIN_WRAP_ITERATIONS) {
+        return { ok: false, error: 'key.json asks for too little passphrase work to be safe.' };
+    }
+    if (base64ByteLength(wrap.salt) !== ENVELOPE.WRAP_SALT_BYTES
+        || base64ByteLength(wrap.iv) !== ENVELOPE.IV_BYTES
+        || base64ByteLength(wrap.ct) !== ENVELOPE.SECRET_BYTES + 16) {
+        return { ok: false, error: 'key.json passphrase material is not usable.' };
     }
     return { ok: true };
 }
@@ -157,6 +196,18 @@ export function validateKeyFile(obj) {
     if (!kidOk(obj.kid)) {
         return { ok: false, error: 'key.json has an invalid key id.' };
     }
+
+    if (isV2(obj)) {
+        if (obj.kdf !== ENVELOPE.KDF) {
+            return { ok: false, error: 'key.json uses an unsupported key derivation.' };
+        }
+        if (obj.wrap && typeof obj.wrap === 'object') return validateWrap(obj.wrap);
+        if (base64ByteLength(obj.secret) !== ENVELOPE.SECRET_BYTES) {
+            return { ok: false, error: 'key.json does not contain a 256-bit master secret.' };
+        }
+        return { ok: true };
+    }
+
     const jwk = obj.key && obj.key.kty ? obj.key : obj;
     if (jwk.kty !== 'oct' || base64ByteLength(jwk.k, { urlSafe: true }) !== 32) {
         return { ok: false, error: 'key.json does not contain a 256-bit AES key.' };
@@ -184,6 +235,14 @@ export function wipeKeyFile(keyFile) {
     if (typeof keyFile.k === 'string') {
         keyFile.k = '';
         delete keyFile.k;
+    }
+    if (typeof keyFile.secret === 'string') {
+        keyFile.secret = '';
+        delete keyFile.secret;
+    }
+    if (keyFile.wrap && typeof keyFile.wrap === 'object') {
+        if (typeof keyFile.wrap.ct === 'string') keyFile.wrap.ct = '';
+        delete keyFile.wrap.ct;
     }
 }
 

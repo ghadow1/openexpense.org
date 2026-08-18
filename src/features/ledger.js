@@ -10,7 +10,7 @@ import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
 import {
     encryptBundle, decryptBundle, unzipBundle, entryToJson,
-    isEncFile, isKeyFile, BUNDLE, ZIP_LIMITS
+    isEncFile, isKeyFile, needsPassphrase, BUNDLE, ZIP_LIMITS
 } from '../core/bundle.js';
 import {
     validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
@@ -29,6 +29,15 @@ import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 
 const PENDING_MS = 5 * 60 * 1000;
 const JSON_ACCEPT = { 'application/json': ['.json'] };
+const MIN_PASSPHRASE = 8;
+
+function readPassphrasePref() {
+    try { return localStorage.getItem(STORAGE_KEYS.exportPassphrase); } catch (_) { return null; }
+}
+
+function writePassphrasePref(value) {
+    try { localStorage.setItem(STORAGE_KEYS.exportPassphrase, value); } catch (_) { }
+}
 
 export const Ledger = {
     _pendingEnc: null,
@@ -104,8 +113,16 @@ export const Ledger = {
                     types: [{ description, accept }]
                 });
                 const writable = await handle.createWritable();
-                await writable.write(blob);
-                await writable.close();
+                try {
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (err) {
+                    // Leaving the writable open strands its swap file on disk,
+                    // and only close() commits, so the target keeps its old
+                    // contents rather than a half-written export.
+                    try { await writable.abort?.(); } catch (_) { }
+                    throw err;
+                }
                 return 'saved';
             } catch (err) {
                 if (err?.name === 'AbortError') return 'abort';
@@ -226,9 +243,99 @@ export const Ledger = {
         return runLocked('export', () => Ledger.writeExport({ pickFolder }));
     },
 
+    /**
+     * A passphrase is opt-in and asked about once. Saying no is remembered, so
+     * export stays a single click for anyone who does not want one. A long-press
+     * export reopens the question, which is the way back after saying no.
+     */
+    async resolveExportPassphrase({ reconsider = false } = {}) {
+        const choice = reconsider ? null : readPassphrasePref();
+
+        if (choice !== 'on' && choice !== 'off') {
+            const offer = await confirmDialog({
+                title: 'Add a passphrase?',
+                message: 'Without one, anyone holding both exported files can read this ledger. '
+                    + 'With one, key.json is useless on its own. It cannot be recovered — if you '
+                    + 'forget it, the export cannot be opened.',
+                confirmText: 'Use a passphrase',
+                cancelText: 'Not now',
+                field: {
+                    type: 'password',
+                    label: 'Passphrase',
+                    placeholder: 'At least 8 characters',
+                    repeatLabel: 'Repeat passphrase'
+                },
+                validate: ({ value, repeat }) => {
+                    if (value.length < MIN_PASSPHRASE) return `Use at least ${MIN_PASSPHRASE} characters.`;
+                    if (value !== repeat) return 'Those two do not match.';
+                    return null;
+                }
+            });
+            if (!offer?.confirmed) {
+                // Only a deliberate "Not now" is remembered. Escaping out is
+                // not an answer, so the offer comes back next time.
+                if (!offer?.dismissed) writePassphrasePref('off');
+                return { ok: true, passphrase: '' };
+            }
+            writePassphrasePref('on');
+            return { ok: true, passphrase: offer.value };
+        }
+
+        if (choice === 'off') return { ok: true, passphrase: '' };
+
+        const asked = await confirmDialog({
+            title: 'Passphrase',
+            message: 'Enter the passphrase to protect this export.',
+            confirmText: 'Export',
+            cancelText: 'Cancel',
+            field: {
+                type: 'password',
+                label: 'Passphrase',
+                placeholder: `At least ${MIN_PASSPHRASE} characters`,
+                repeatLabel: 'Repeat passphrase'
+            },
+            checkbox: { label: 'Stop asking — export without a passphrase', checked: false },
+            validate: ({ value, repeat, checked }) => {
+                if (checked) return null;
+                if (value.length < MIN_PASSPHRASE) return `Use at least ${MIN_PASSPHRASE} characters.`;
+                if (value !== repeat) return 'Those two do not match.';
+                return null;
+            }
+        });
+        if (!asked?.confirmed) return { ok: false, passphrase: '' };
+        if (asked.checked) {
+            writePassphrasePref('off');
+            return { ok: true, passphrase: '' };
+        }
+        return { ok: true, passphrase: asked.value };
+    },
+
     async writeExport({ pickFolder = false } = {}) {
         try {
-            const { enc, keyFile } = await encryptBundle(Ledger.exportPayload());
+            const choice = await Ledger.resolveExportPassphrase({ reconsider: pickFolder });
+            if (!choice.ok) return;
+            // A forgotten passphrase cannot be recovered, so say so on the way out.
+            const keyNote = choice.passphrase
+                ? 'You will need your passphrase to open it again.'
+                : 'not stored in this browser.';
+            const { enc, keyFile } = await encryptBundle(
+                Ledger.exportPayload(),
+                { passphrase: choice.passphrase }
+            );
+
+            // Check the export against the same rules import enforces. Without
+            // this a very large ledger writes a file that reads back as "too
+            // large to open", so the save looks fine and the backup is dead.
+            const usable = validateEncFile(enc);
+            if (!usable.ok) {
+                Toast.show(
+                    `This ledger is too large to export as one file (${usable.error}) Archive an older year first, then export again.`,
+                    'error',
+                    7600
+                );
+                return;
+            }
+
             const encBlob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
             const keyBlob = new Blob([JSON.stringify(keyFile, null, 2)], { type: 'application/json' });
 
@@ -245,7 +352,7 @@ export const Ledger = {
                 await writeBlobsToFolder(folder, pair);
                 await refreshExportButtons();
                 Toast.show(
-                    `Updated ${names.ledger} in your ${EXPORT_FOLDER_NAME} folder. The matching key is ${names.key} — not stored in this browser.`,
+                    `Updated ${names.ledger} in your ${EXPORT_FOLDER_NAME} folder. The matching key is ${names.key} — ${keyNote}`,
                     'success',
                     5200
                 );
@@ -285,7 +392,7 @@ export const Ledger = {
                 return;
             }
 
-            Toast.show('Saved encrypted ledger.json and key.json. The key is only in that download — not in this browser.', 'success', 5200);
+            Toast.show(`Saved encrypted ledger.json and key.json. The key is only in that download — ${keyNote}`, 'success', 5200);
         } catch (err) {
             if (err?.code === 'FOLDER_PERMISSION' || err?.message === 'FOLDER_PERMISSION') {
                 await refreshExportButtons();
@@ -558,6 +665,36 @@ export const Ledger = {
         return true;
     },
 
+    /**
+     * Ask for the passphrase, letting the user retry. A wrong one is only ever
+     * reported as wrong — nothing about the ledger leaks before it is right.
+     */
+    async unlockWithPassphrase(enc, keyFile) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const asked = await confirmDialog({
+                title: 'Passphrase needed',
+                message: attempt === 0
+                    ? 'This ledger was exported with a passphrase. Enter it to open the file.'
+                    : 'That passphrase did not open this ledger. Try again.',
+                confirmText: 'Unlock',
+                cancelText: 'Cancel',
+                field: { type: 'password', label: 'Passphrase', placeholder: '' }
+            });
+            if (!asked?.confirmed || !asked.value) return null;
+
+            try {
+                return await decryptBundle(enc, keyFile, { passphrase: asked.value });
+            } catch (err) {
+                if (attempt === 2) {
+                    console.error('[OpenExpense] passphrase unlock failed:', err);
+                    Toast.show('That passphrase does not unlock this ledger.', 'error');
+                    return null;
+                }
+            }
+        }
+        return null;
+    },
+
     async decryptAndApply(enc, keyFile, srcName) {
         try {
             const encQc = validateEncFile(enc);
@@ -576,12 +713,17 @@ export const Ledger = {
             }
 
             let payload;
-            try {
-                payload = await decryptBundle(enc, keyFile);
-            } catch (err) {
-                console.error('[OpenExpense] decrypt failed:', err);
-                Toast.show('That key does not unlock this ledger.', 'error');
-                return;
+            if (needsPassphrase(keyFile)) {
+                payload = await Ledger.unlockWithPassphrase(enc, keyFile);
+                if (!payload) return;
+            } else {
+                try {
+                    payload = await decryptBundle(enc, keyFile);
+                } catch (err) {
+                    console.error('[OpenExpense] decrypt failed:', err);
+                    Toast.show('That key does not unlock this ledger.', 'error');
+                    return;
+                }
             }
 
             const cleaned = sanitizeLedger(payload);

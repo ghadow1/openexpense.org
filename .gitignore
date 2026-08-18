@@ -17,7 +17,11 @@ Icon
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
-# Personal ledgers and export keys — never commit a real backup
+# Personal ledgers and export keys — never commit a real backup.
+# Export writes "{name}.json" plus "{name}.key.json" into an OpenExpense
+# folder, so the folder itself is ignored: the ledger half is not named
+# distinctly enough to catch with a suffix alone.
+OpenExpense/
 *.enc.json
 ledger.key.json
 *.key.json

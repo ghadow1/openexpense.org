@@ -36,10 +36,24 @@ function teardown(result) {
     }
 }
 
-function readResult(confirmed) {
+/**
+ * `dismissed` separates walking away (Escape, backdrop) from deliberately
+ * choosing the cancel button, so callers can avoid recording a preference the
+ * user never actually expressed.
+ */
+function readResult(confirmed, dismissed = false) {
     const box = backdropEl?.querySelector('#confirm-extra');
     const picked = backdropEl?.querySelector('input[name="confirm-scope"]:checked');
-    return { confirmed, checked: !!box?.checked, choice: picked?.value || null };
+    const value = backdropEl?.querySelector('#confirm-field')?.value ?? '';
+    const repeat = backdropEl?.querySelector('#confirm-field-repeat')?.value ?? '';
+    return {
+        confirmed,
+        dismissed,
+        checked: !!box?.checked,
+        choice: picked?.value || null,
+        value: confirmed ? value : '',
+        repeat: confirmed ? repeat : ''
+    };
 }
 
 // Promise-based confirm dialog. Enter confirms, Escape / backdrop click cancels.
@@ -52,9 +66,11 @@ export function confirmDialog({
     danger = false,
     checkbox = null,
     choices = null,
-    choice = null
+    choice = null,
+    field = null,
+    validate = null
 } = {}) {
-    teardown({ confirmed: false, checked: false, choice: null });
+    teardown({ confirmed: false, checked: false, choice: null, value: '', repeat: '' });
 
     return new Promise((resolve) => {
         resolveActive = resolve;
@@ -77,6 +93,23 @@ export function confirmDialog({
               </label>`
             : '';
 
+        const inputType = field?.type === 'password' ? 'password' : 'text';
+        const autofill = inputType === 'password' ? 'new-password' : 'off';
+        const fieldHtml = field
+            ? `<div class="confirm-field">
+                <label class="confirm-field-label" for="confirm-field">${Utils.escapeHtml(field.label || '')}</label>
+                <input class="text-input" type="${inputType}" id="confirm-field"
+                       autocomplete="${autofill}" spellcheck="false"
+                       placeholder="${Utils.escapeHtml(field.placeholder || '')}">
+                ${field.repeatLabel
+                    ? `<label class="confirm-field-label" for="confirm-field-repeat">${Utils.escapeHtml(field.repeatLabel)}</label>
+                       <input class="text-input" type="${inputType}" id="confirm-field-repeat"
+                              autocomplete="${autofill}" spellcheck="false">`
+                    : ''}
+                <p class="confirm-field-error" id="confirm-field-error" role="alert" hidden></p>
+              </div>`
+            : '';
+
         backdropEl = document.createElement('div');
         backdropEl.className = 'backdrop open';
         backdropEl.innerHTML = `
@@ -87,6 +120,7 @@ export function confirmDialog({
               </div>
               <p class="confirm-copy" id="confirm-desc"></p>
               ${choiceHtml}
+              ${fieldHtml}
               ${checkHtml}
               <div class="confirm-actions">
                 <button type="button" class="btn-ghost" data-confirm="cancel"></button>
@@ -101,21 +135,38 @@ export function confirmDialog({
         okBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
 
-        okBtn.addEventListener('click', () => teardown(readResult(true)));
+        // Hold the dialog open when the caller rejects what was typed, so the
+        // user can correct it instead of starting over.
+        const submit = () => {
+            const result = readResult(true);
+            const problem = typeof validate === 'function' ? validate(result) : null;
+            if (problem) {
+                const slot = backdropEl?.querySelector('#confirm-field-error');
+                if (slot) {
+                    slot.textContent = problem;
+                    slot.hidden = false;
+                }
+                backdropEl?.querySelector('#confirm-field')?.focus();
+                return;
+            }
+            teardown(result);
+        };
+
+        okBtn.addEventListener('click', submit);
         cancelBtn.addEventListener('click', () => teardown(readResult(false)));
         backdropEl.addEventListener('mousedown', (e) => {
-            if (e.target === backdropEl) teardown(readResult(false));
+            if (e.target === backdropEl) teardown(readResult(false, true));
         });
 
         keyHandler = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
-                teardown(readResult(true));
+                submit();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
-                teardown(readResult(false));
+                teardown(readResult(false, true));
             }
         };
         document.addEventListener('keydown', keyHandler, true);
@@ -125,6 +176,7 @@ export function confirmDialog({
         lockBodyScroll();
         confirmLocked = true;
         document.body.appendChild(backdropEl);
-        requestAnimationFrame(() => okBtn.focus());
+        const firstField = backdropEl.querySelector('#confirm-field');
+        requestAnimationFrame(() => (firstField || okBtn).focus());
     });
 }

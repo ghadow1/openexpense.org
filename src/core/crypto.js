@@ -6,9 +6,11 @@
  * Portable export keys live only in a downloaded key.json (see bundle.js).
  */
 import { metaGetOrCreate } from './persist.js';
+import { ENVELOPE, canonicalJson } from './envelope.js';
 
 const KEY_ID = 'ledger-key-v1';
-const ENC_VERSION = 1;
+const ENC_VERSION = 2;
+const LEGACY_ENC_VERSION = 1;
 
 let keyPromise = null;
 
@@ -58,31 +60,47 @@ export function isEncrypted(value) {
         && value.iv != null;
 }
 
-export async function encryptJSON(obj) {
+/**
+ * Bind the record's own header to its ciphertext, so anything with write access
+ * to IndexedDB cannot restamp or relabel a record and have it still open.
+ */
+function recordAad({ v, alg, savedAt }) {
+    return encoder.encode(canonicalJson({ __enc: true, v, alg, savedAt }));
+}
+
+/** Seal a record under an already-resolved key. Exported so it can be tested. */
+export async function sealRecord(obj, key, now = Date.now()) {
     const c = subtleCrypto();
     if (!c) throw new Error('Web Crypto API unavailable');
 
-    const key = await getCryptoKey();
-    const iv = c.getRandomValues(new Uint8Array(12));
-    const plaintext = encoder.encode(JSON.stringify(obj));
-    const ct = await c.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+    const iv = c.getRandomValues(new Uint8Array(ENVELOPE.IV_BYTES));
+    const header = { v: ENC_VERSION, alg: ENVELOPE.ALG, savedAt: now };
+    const ct = await c.subtle.encrypt(
+        { name: 'AES-GCM', iv, tagLength: ENVELOPE.TAG_BITS, additionalData: recordAad(header) },
+        key,
+        encoder.encode(JSON.stringify(obj))
+    );
+    return { __enc: true, ...header, iv: iv.buffer, ct };
+}
 
-    return {
-        __enc: true,
-        v: ENC_VERSION,
-        alg: 'AES-GCM',
-        iv: iv.buffer,
-        ct,
-        savedAt: Date.now()
-    };
+export async function openRecord(envelope, key) {
+    const c = subtleCrypto();
+    if (!c) throw new Error('Web Crypto API unavailable');
+
+    const iv = new Uint8Array(envelope.iv);
+    const version = Number(envelope.v) || LEGACY_ENC_VERSION;
+    // v1 records predate the AAD; they are re-encrypted on the next autosave.
+    const params = version >= ENC_VERSION
+        ? { name: 'AES-GCM', iv, tagLength: ENVELOPE.TAG_BITS, additionalData: recordAad(envelope) }
+        : { name: 'AES-GCM', iv };
+    const buf = await c.subtle.decrypt(params, key, envelope.ct);
+    return JSON.parse(decoder.decode(buf));
+}
+
+export async function encryptJSON(obj) {
+    return sealRecord(obj, await getCryptoKey());
 }
 
 export async function decryptJSON(envelope) {
-    const c = subtleCrypto();
-    if (!c) throw new Error('Web Crypto API unavailable');
-
-    const key = await getCryptoKey();
-    const iv = new Uint8Array(envelope.iv);
-    const buf = await c.subtle.decrypt({ name: 'AES-GCM', iv }, key, envelope.ct);
-    return JSON.parse(decoder.decode(buf));
+    return openRecord(envelope, await getCryptoKey());
 }

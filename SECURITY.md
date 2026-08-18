@@ -35,9 +35,11 @@ Please include:
 
 ## Design notes
 
-- Autosave ciphertext uses a **non-extractable** Web Crypto key in IndexedDB (`src/core/crypto.js`). That key is never written as `key.json`.
-- Export creates a **new** AES-256-GCM key per save and downloads it only as `key.json` beside the encrypted ledger (`src/core/bundle.js`). The JWK is not stored in the browser. Treat the two files as one secret, or keep them apart.
-- `localStorage` holds only theme, autosave on/off, first-visit, and sidebar face.
+- Autosave ciphertext uses a **non-extractable** Web Crypto key in IndexedDB (`src/core/crypto.js`). That key is never written as `key.json`. The record's own header is bound in as additional authenticated data, so a record cannot be restamped or relabelled and still open.
+- Export creates a **new** 32-byte master secret per save and downloads it only as `key.json` beside the encrypted ledger (`src/core/bundle.js`, `src/core/envelope.js`). HKDF-SHA-256 splits that secret into the AES-256-GCM key and a published key commitment, which is checked before decryption — AES-GCM alone is not key-committing. The whole envelope header is authenticated, so no field can be edited without breaking decryption.
+- The secret is not stored in the browser. Without a passphrase, treat the two files as one secret, or keep them apart.
+- **Optional passphrase**: the master secret is wrapped under PBKDF2-HMAC-SHA-256 at 600,000 iterations (OWASP 2023), so `key.json` alone is useless. The iteration count is authenticated and floored on read so it cannot be downgraded. PBKDF2 is the strongest passphrase KDF available natively in Web Crypto; it is not memory-hard like Argon2id, a deliberate trade to keep the crypto free of third-party and WASM code. A forgotten passphrase cannot be recovered.
+- `localStorage` holds only theme, autosave on/off, first-visit, sidebar face, dashboard view, and whether exports should ask for a passphrase. The passphrase itself is never stored.
 - Receipt images are drawn to a canvas and parsed in-page. Executable OCR/PDF code, models, fonts, and icons are served from the OpenExpense origin; receipt contents are not uploaded by the application.
 
 See [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md), [`docs/SECURITY-AUDIT-2026-08-17.md`](docs/SECURITY-AUDIT-2026-08-17.md), and [`docs/SOC2-READINESS.md`](docs/SOC2-READINESS.md).

@@ -126,9 +126,19 @@ test('wrong key or mismatched kid is refused', async () => {
 
 test('wipeKeyFile removes portable key material', async () => {
     const { keyFile } = await encryptBundle({ name: 'A', events: {} });
-    assert.ok(keyFile.key.k.length > 10);
+    assert.ok(keyFile.secret.length > 10);
     wipeKeyFile(keyFile);
-    assert.equal(keyFile.key.k, undefined);
+    assert.equal(keyFile.secret, undefined);
+
+    const wrapped = await encryptBundle({ name: 'A', events: {} }, { passphrase: 'open sesame please' });
+    assert.ok(wrapped.keyFile.wrap.ct.length > 10);
+    wipeKeyFile(wrapped.keyFile);
+    assert.equal(wrapped.keyFile.wrap.ct, undefined);
+
+    // v1 key files are JWK-shaped and must still be scrubbed.
+    const legacy = { key: { kty: 'oct', k: 'AAAAAAAAAAAAAAAAAAAAAA' } };
+    wipeKeyFile(legacy);
+    assert.equal(legacy.key.k, undefined);
 });
 
 test('export filenames are a sibling pair', () => {
