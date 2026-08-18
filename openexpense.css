@@ -395,6 +395,18 @@ textarea:focus:not(:focus-visible) {
     margin-top: 6px;
 }
 
+/* The form is now long enough that Save can fall below the fold on a laptop.
+   Pinning it to the foot of its own column keeps the primary action reachable
+   without having to scroll past the field you just filled in. */
+#expense-add-form .form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: 2px;
+    padding: 8px 0 2px;
+    background: var(--surface);
+}
+
 .form-grid--flush {
     margin: 0;
 }
@@ -2082,8 +2094,27 @@ html.is-action-busy [data-lockable] {
 }
 
 @media (max-width: 768px) {
+    /* Stacked, the two panels are one column, so they share one scroller.
+       Keeping a scroller per panel here would split a phone screen into two
+       short windows that each have to be scrolled separately. */
     .modal-columns {
         grid-template-columns: 1fr;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-panel {
+        overflow: visible;
+        min-height: auto;
+        padding-right: 0;
+    }
+
+    /* With one scroller, a pinned heading stops labelling its own column and
+       just covers whatever scrolls under it. */
+    .modal-panel > .panel-title,
+    .modal-panel > .panel-title-row {
+        position: static;
     }
 
     .modal-panel:first-child {
@@ -3470,6 +3501,12 @@ body.is-entry-dragging .cal-day {
 .group-input {
     width: 100%;
     padding-right: 36px;
+}
+
+/* The chips below already show what is on offer, and Chrome's datalist arrow
+   would sit under the clear button. Typing still opens the native list. */
+.group-input::-webkit-calendar-picker-indicator {
+    display: none !important;
 }
 
 .group-clear {

@@ -22,6 +22,7 @@ let lastQuery = '';
 
 const HINTS = [
     ['cat:groceries', 'one category'],
+    ['group:bella', 'one group'],
     ['>50', 'over an amount'],
     ['is:unpaid', 'still owed'],
     ['2026-08', 'one month']
