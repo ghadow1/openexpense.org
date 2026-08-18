@@ -1784,6 +1784,14 @@ html.is-action-busy [data-lockable] {
         margin-inline: 0;
         padding: 18px;
     }
+
+    /* Stacked under the calendar: grow with the month and let the page
+       scroll. overflow:auto + 72vh here steals the swipe once the grid
+       is half off-screen (two nested scrollers on a phone). */
+    .sidebar.has-flip {
+        overflow: visible;
+        max-height: none;
+    }
 }
 
 @media (max-width: 1100px) and (min-width: 901px) {
@@ -1829,6 +1837,8 @@ html.is-action-busy [data-lockable] {
 .sidebar.has-flip {
     content-visibility: visible;
     contain: none;
+    /* Desktop: sticky column with its own scroller. Stacked layouts
+       drop max-height in the 1200px query so the page is the only swipe. */
     overflow: auto;
     max-height: min(72vh, 720px);
     display: flex;
@@ -6786,6 +6796,11 @@ html.oe-scroll-lock body {
 @media (max-height: 700px) and (min-width: 901px) {
     .sidebar {
         position: static;
+    }
+
+    .sidebar.has-flip {
+        overflow: visible;
+        max-height: none;
     }
 }
 

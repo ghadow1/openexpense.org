@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-18 — One scroll on the phone
+
+On a phone or tablet the monthly spending card sits under the calendar and no longer has its own 72vh scroller. Swiping the page moves the calendar and the statement together.
+
 ## 2026-08-18 — Invoice-style statement PDF
 
 The sidebar PDF is a one-column spending or income statement: letterhead, period and reference, paid vs unpaid (or deposited vs expected), a line-item register, and a totals box. Thin settlement bars and empty months no longer crash the export. The file is still built on this device.
