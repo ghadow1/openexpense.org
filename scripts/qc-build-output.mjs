@@ -54,21 +54,40 @@ test('the entry points the page loads are present', async () => {
     assert.match(html, /src="app\.js"/, 'index.html should load app.js');
 });
 
-test('phone and tablet overview hide the shared tracker stage', async () => {
+test('phone and tablet split calendar onto Overview and spending onto Tracker', async () => {
     const html = await readFile(join(ROOT, 'index.html'), 'utf8');
     assert.match(html, /id="overview-hero-root"/, 'Left to spend needs its own root');
-    assert.match(html, /id="overview-more-root"/, 'Deposited / spending need a second root');
     assert.match(html, /id="tracker-head-root"/, 'Tracker needs its own page head on mobile');
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
-        /html\[data-frame="phone"\]\[data-shell="overview"\] \.ledger-stage/,
-        'phone Overview must hide the calendar board'
+        /html\[data-frame="phone"\]\[data-shell="overview"\] #sidebar/,
+        'phone Overview must hide monthly spending'
     );
     assert.match(
         css,
-        /html\[data-frame="tablet"\]\[data-shell="overview"\] \.ledger-stage/,
-        'tablet Overview must hide the calendar board'
+        /html\[data-frame="tablet"\]\[data-shell="overview"\] #sidebar/,
+        'tablet Overview must hide monthly spending'
+    );
+    assert.match(
+        css,
+        /html\[data-frame="phone"\]\[data-shell="tracker"\] #cal-col/,
+        'phone Tracker must hide the calendar'
+    );
+    assert.match(
+        css,
+        /html\[data-frame="tablet"\]\[data-shell="tracker"\] #cal-col/,
+        'tablet Tracker must hide the calendar'
+    );
+    assert.doesNotMatch(
+        css,
+        /html\[data-frame="desktop"\]\[data-shell="overview"\] #sidebar/,
+        'desktop Overview must keep the register'
+    );
+    assert.doesNotMatch(
+        css,
+        /html\[data-frame="desktop"\]\[data-shell="tracker"\] #cal-col/,
+        'desktop Tracker must keep the calendar'
     );
     assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the two-column board');
     assert.match(css, /html\[data-frame="tablet"\]/, 'tablet must have its own frame');

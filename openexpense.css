@@ -689,14 +689,6 @@ html[data-shell="planner"] .ledger-stage {
     display: none !important;
 }
 
-/* Phone and tablet Overview are snapshot-only so they do not lean into
-   the same calendar page as Tracker. Desktop Overview still sits the
-   compact strip beside the month grid. */
-html[data-frame="phone"][data-shell="overview"] .ledger-stage,
-html[data-frame="tablet"][data-shell="overview"] .ledger-stage {
-    display: none !important;
-}
-
 #pane-overview-more:has(#overview-more-root:empty),
 #pane-tracker-head:has(#tracker-head-root:empty) {
     display: none;
@@ -706,13 +698,36 @@ html[data-frame="desktop"] #pane-tracker-head {
     display: none !important;
 }
 
+/* Phone and tablet only. Desktop Overview still sits the compact strip
+   beside the calendar and the monthly spending register. */
+html[data-frame="phone"][data-shell="overview"] #pane-overview-hero,
+html[data-frame="tablet"][data-shell="overview"] #pane-overview-hero {
+    order: 1;
+}
+
+html[data-frame="phone"][data-shell="overview"] .ledger-stage {
+    order: 2;
+}
+
+html[data-frame="tablet"][data-shell="overview"] #cal-col {
+    order: 2;
+}
+
+html[data-frame="phone"][data-shell="overview"] .tracker-toolbar,
+html[data-frame="tablet"][data-shell="overview"] .tracker-toolbar,
+html[data-frame="phone"][data-shell="overview"] #sidebar,
+html[data-frame="tablet"][data-shell="overview"] #sidebar {
+    display: none !important;
+}
+
+html[data-frame="phone"][data-shell="tracker"] #cal-col,
+html[data-frame="tablet"][data-shell="tracker"] #cal-col {
+    display: none !important;
+}
+
 html[data-frame="phone"][data-shell="overview"] #view-app,
 html[data-frame="tablet"][data-shell="overview"] #view-app {
     gap: 16px;
-}
-
-html[data-frame="phone"] .ov-pair {
-    grid-template-columns: 1fr;
 }
 
 html[data-frame="phone"] .tracker-board {
@@ -834,18 +849,12 @@ html[data-frame="tablet"] .tracker-board {
         align-items: start;
     }
 
-    html[data-frame="tablet"][data-shell="overview"] #view-app {
+    html[data-frame="tablet"][data-shell="overview"] #view-app,
+    html[data-frame="tablet"][data-shell="tracker"] #view-app {
         display: flex;
         flex-direction: column;
         grid-template-columns: none;
         grid-template-areas: none;
-    }
-
-    html[data-frame="tablet"][data-shell="tracker"] #view-app {
-        grid-template-areas:
-            "head head"
-            "tools side"
-            "cal side";
     }
 
     html[data-frame="tablet"][data-shell="planner"] #view-app {

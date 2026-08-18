@@ -1,11 +1,11 @@
 /**
  * OpenExpense — Overview and Planner panes
  *
- * Overview is the cash snapshot. Planner is daily safe spend plus the
+ * Overview is Left to spend. Planner is daily safe spend plus the
  * withholding, savings-hold, and 50/30/20 form. Phone and tablet Overview
- * are snapshot-only (Left to spend, deposits, spending, year). Desktop
- * keeps the compact dial strip beside the calendar. Tracker owns the
- * month grid on every frame; Planner stays its own workspace.
+ * keep Left to spend and the calendar. Tracker on those frames keeps
+ * Expenses, Income, and Monthly spending — no calendar. Desktop Overview
+ * still sits the compact dial strip beside the calendar and register.
  */
 import { getState, patch } from '../core/store.js';
 import {
@@ -696,38 +696,6 @@ function budgetSlide(snap, events, currentDate, plan) {
     ];
 }
 
-function settleBar(paid, total, paidLabel, openLabel) {
-    const wrap = document.createElement('div');
-    wrap.className = 'ov-settle';
-    const ratio = total > 0 ? Math.max(0, Math.min(1, paid / total)) : 0;
-    const track = document.createElement('div');
-    track.className = 'ov-settle-track';
-    const fill = document.createElement('span');
-    fill.style.width = `${Math.round(ratio * 100)}%`;
-    track.appendChild(fill);
-    const meta = document.createElement('p');
-    meta.className = 'ov-settle-meta';
-    meta.textContent = `${paidLabel} ${formatMoney(paid)}  ·  ${openLabel} ${formatMoney(Math.max(0, total - paid))}`;
-    wrap.append(track, meta);
-    return wrap;
-}
-
-function overviewCard(kicker, title, hint, bar) {
-    const card = document.createElement('article');
-    card.className = 'oe-card ov-flow-card';
-    const label = document.createElement('p');
-    label.className = 'ov-kicker';
-    label.textContent = kicker;
-    const value = document.createElement('p');
-    value.className = 'ov-flow-value';
-    value.textContent = title;
-    const sub = document.createElement('p');
-    sub.className = 'ov-sub';
-    sub.textContent = hint;
-    card.append(label, value, sub, bar);
-    return card;
-}
-
 function overviewCompact(snap, events, currentDate) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
@@ -837,40 +805,6 @@ function renderOverview(snap, events, currentDate) {
     }));
     hero.append(kicker, row);
 
-    const pair = document.createElement('div');
-    pair.className = 'ov-pair';
-    pair.append(
-        overviewCard(
-            'Deposited this month',
-            formatMoney(snap.deposited),
-            `${formatMoney(snap.monthIn)} scheduled · ${formatMoney(snap.incomeDue)} expected`,
-            settleBar(snap.deposited, snap.monthIn, 'Deposited', 'Expected')
-        ),
-        overviewCard(
-            'Logged spending',
-            formatMoney(snap.monthOut),
-            `${formatMoney(snap.spendPaid)} paid · ${formatMoney(snap.leftToPay)} pending`,
-            settleBar(snap.spendPaid, snap.monthOut, 'Paid', 'Pending')
-        )
-    );
-
-    const year = document.createElement('section');
-    year.className = 'oe-card ov-year';
-    const yearTitle = document.createElement('p');
-    yearTitle.className = 'ov-kicker';
-    yearTitle.textContent = `${currentDate.getFullYear()} cash flow`;
-    const spend = computeMonthlySummary(events, currentDate, 'expense');
-    const charts = document.createElement('div');
-    charts.className = 'ov-year-charts';
-    charts.append(
-        yearSpark(events, currentDate, 'income', `${currentDate.getFullYear()} income`),
-        yearSpark(events, currentDate, 'expense', `${currentDate.getFullYear()} spending`)
-    );
-    const foot = document.createElement('p');
-    foot.className = 'ov-year-foot';
-    foot.textContent = `Daily average ${formatMoney(spend.avgPerDay)}  ·  Average entry ${formatMoney(spend.avgPerEntry)}`;
-    year.append(yearTitle, charts, foot);
-
     heroRoot.replaceChildren(pageHead({
         kicker: 'This month',
         title: 'What’s left',
@@ -878,7 +812,7 @@ function renderOverview(snap, events, currentDate) {
         monthLabel: snap.monthLabel
     }), hero);
     heroRoot.classList.add('is-ready');
-    moreRoot.replaceChildren(pair, year);
+    moreRoot.replaceChildren();
     moreRoot.classList.add('is-ready');
 }
 
@@ -892,7 +826,7 @@ function renderTrackerHead(snap) {
     root.replaceChildren(pageHead({
         kicker: 'This month',
         title: 'Month tracker',
-        description: 'Filter, add, and tap a day.',
+        description: 'Expenses, income, and monthly spending.',
         monthLabel: snap.monthLabel
     }));
 }

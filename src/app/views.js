@@ -2,9 +2,10 @@
  * OpenExpense — shell switching
  *
  * Four primary tabs: Overview, Tracker, Planner, and Privacy.
- * Privacy is the existing docs pane. The calendar stays in `#view-app`
- * on Tracker, and on desktop Overview beside the compact strip. Phone
- * and tablet Overview are snapshot-only. Planner is its own workspace.
+ * Privacy is the existing docs pane. On a phone or tablet, Overview
+ * keeps Left to spend and the calendar; Tracker keeps the spending
+ * register. Desktop Overview still sits the compact strip beside the
+ * calendar and register. Planner is its own workspace.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
