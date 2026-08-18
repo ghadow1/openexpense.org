@@ -645,3 +645,80 @@ test('blank titles do not collapse into one calendar pill', () => {
     ]);
     assert.equal(groups.length, 2);
 });
+
+test('the default plan leaves the cash figures unchanged', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, {
+        weeklySavings: 0,
+        reserveSavings: true,
+        spendBasis: 'logged',
+        incomeBasis: 'deposited'
+    });
+    assert.equal(snap.leftToSpend, 600);
+    assert.equal(snap.incomeUsed, snap.deposited);
+    assert.equal(snap.spendUsed, snap.monthOut);
+    assert.equal(snap.weeklyReserve, 0);
+    assert.equal(snap.reserveOn, false);
+});
+
+test('a weekly reserve comes out of left-to-spend', () => {
+    // August 2026 has 31 days, so $70/week is exactly $310 for the month.
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, {
+        weeklySavings: 70,
+        reserveSavings: true,
+        spendBasis: 'logged',
+        incomeBasis: 'deposited'
+    });
+    assert.equal(snap.weeklyReserve, 310);
+    assert.equal(snap.leftToSpend, 290);
+    assert.equal(snap.reserveOn, true);
+});
+
+test('turning reserve off keeps the weekly target without changing left-to-spend', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, {
+        weeklySavings: 70,
+        reserveSavings: false,
+        spendBasis: 'logged',
+        incomeBasis: 'deposited'
+    });
+    assert.equal(snap.weeklySavings, 70);
+    assert.equal(snap.weeklyReserve, 310);
+    assert.equal(snap.reserveOn, false);
+    assert.equal(snap.leftToSpend, 600);
+});
+
+test('paid-only spend ignores unpaid bills in left-to-spend', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, {
+        weeklySavings: 0,
+        spendBasis: 'paid',
+        incomeBasis: 'deposited'
+    });
+    assert.equal(snap.spendUsed, 500);
+    assert.equal(snap.leftToSpend, 1500);
+});
+
+test('scheduled income counts undeposited pay in left-to-spend', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, {
+        weeklySavings: 0,
+        spendBasis: 'logged',
+        incomeBasis: 'scheduled'
+    });
+    assert.equal(snap.incomeUsed, 3000);
+    assert.equal(snap.leftToSpend, 1600);
+});
+
+test('this week is Sunday through Saturday of asOf', () => {
+    const events = {
+        '2026-08-16': [entry({ title: 'Pay', price: 400, kind: 'income', paid: true })],
+        '2026-08-18': [entry({ title: 'Food', price: 80, paid: true })],
+        '2026-08-23': [entry({ title: 'Next week', price: 50, paid: true })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, new Date(2026, 7, 18), {
+        weeklySavings: 100
+    });
+    assert.equal(snap.weekStart, '2026-08-16');
+    assert.equal(snap.weekEnd, '2026-08-22');
+    assert.equal(snap.weekIncome, 400);
+    assert.equal(snap.weekSpend, 80);
+    assert.equal(snap.weekNet, 320);
+    assert.equal(snap.weeklyLeft, 220);
+});

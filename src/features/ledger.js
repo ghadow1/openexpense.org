@@ -16,6 +16,7 @@ import {
     validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
     sanitizeLedger, countEntries, exportFilenames, readJsonFile, classifyJson
 } from '../core/ledger-file.js';
+import { planIsDefault, sanitizePlan } from '../core/plan.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { purgeStoredLedger, saveLedger } from '../core/persist.js';
 import { clearCachedDeviceKey } from '../core/crypto.js';
@@ -56,13 +57,14 @@ export const Ledger = {
     },
 
     exportPayload() {
-        const { ledgerName, events, budgets } = getState();
+        const { ledgerName, events, budgets, plan } = getState();
         const payload = {
             name: ledgerName || '',
             events,
             savedAt: Date.now()
         };
         if (budgets && Object.keys(budgets).length) payload.budgets = budgets;
+        if (plan && !planIsDefault(plan)) payload.plan = sanitizePlan(plan);
         return payload;
     },
 
@@ -464,7 +466,7 @@ export const Ledger = {
                 return;
             }
             offerDeleteUndo(getState(), { count: countEntries(events) });
-            patch({ events: {}, budgets: {}, ledgerName: '', selectedKey: null, editingIndex: null });
+            patch({ events: {}, budgets: {}, plan: {}, ledgerName: '', selectedKey: null, editingIndex: null });
             Toast.show('Calendar and device encryption key cleared.', 'success');
         });
     },
@@ -635,7 +637,9 @@ export const Ledger = {
 
         const cleaned = sanitizeLedger({
             name: Ledger.nameFromImport(file.name, obj),
-            events: (obj && typeof obj === 'object') ? (obj.events || obj) : null
+            events: (obj && typeof obj === 'object') ? (obj.events || obj) : null,
+            budgets: obj && typeof obj === 'object' ? obj.budgets : undefined,
+            plan: obj && typeof obj === 'object' ? obj.plan : undefined
         });
         if (!cleaned) {
             Toast.show('Unrecognized file format.', 'error');
@@ -756,7 +760,8 @@ export const Ledger = {
         patch({
             ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
             events: cleaned.events,
-            budgets: cleaned.budgets || {}
+            budgets: cleaned.budgets || {},
+            plan: cleaned.plan || {}
         });
         const count = countEntries(cleaned.events);
         Toast.show(`Imported ${count} item${count === 1 ? '' : 's'} (expenses and income).`, 'success');

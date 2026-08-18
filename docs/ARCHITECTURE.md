@@ -19,7 +19,7 @@ src/main.js         boot, event delegation, render subscription
 
 1. `index.html` loads design CSS, icon/font CDNs, and the bundled `app.js`.
 2. `main.js` reads theme and autosave prefs from `localStorage`.
-3. `loadLedger()` decrypts the IndexedDB record (if any) into `{ name, events }`.
+3. `loadLedger()` decrypts the IndexedDB record (if any) into `{ name, events, budgets, plan }`.
 4. `patch()` fills the store; `initPersist()` starts watching for later writes.
 5. Clicks on `[data-action]`, `[data-view]`, and `[data-tab]` are delegated from `document`.
 
@@ -30,6 +30,8 @@ src/main.js         boot, event delegation, render subscription
 | Field | Role |
 | --- | --- |
 | `events` | `{ "YYYY-MM-DD": Expense[] }` |
+| `budgets` | Monthly category caps |
+| `plan` | Weekly savings and left-to-spend rules |
 | `ledgerName` | Display / export name |
 | `currentDate` | Visible month |
 | `isDark` | Theme |
@@ -42,7 +44,7 @@ src/main.js         boot, event delegation, render subscription
 
 ## Persistence
 
-- **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
+- **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events, budgets, plan }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
 - **Export** (`bundle.js` + `ledger.js` + `ledger-file.js` + `folder.js`): new portable key per save. A linked-folder save verifies the existing pair, stages and verifies a complete recovery pair, updates both destinations, then removes recovery files. Otherwise one share sheet (iPhone / Android) or dated downloads. The folder handle may be remembered in IndexedDB `meta` — that is not `key.json`. The JWK is not cached. Mutating actions share one in-flight lock (`action-lock.js`). Unknown URLs serve `404.html`.
 - **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy zip, or confirmed plaintext. `ledger-file.js` validates, decrypts, sanitizes, and is reused on boot.
 
@@ -68,7 +70,7 @@ The right-hand card flips between an expense face and an income face. The calend
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The dash card fills its column. At 1100px and up it also draws the split as bars beside the dial and opens the figure cards; crossing that width repaints the slide. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
+The dash card has four slides: Overview, Income, Expenses, and Budget. Budget is the weekly savings target and the rules that change **Left to spend** (`src/core/plan.js`). Defaults keep the original cash line: deposited income minus every logged bill, with no reserve. The dash card fills its column. At 1100px and up it also draws the split as bars beside the dial and opens the figure cards; crossing that width repaints the slide. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
 
 ## Labels, groups, and Change All
 

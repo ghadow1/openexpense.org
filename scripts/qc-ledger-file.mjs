@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    sanitizeLedger, sanitizeEntry, validateEncFile, validateKeyFile,
+    sanitizeLedger, sanitizeEntry, sanitizePlan, validateEncFile, validateKeyFile,
     kidsMatch, wipeKeyFile, classifyJson, countEntries, exportFilenames,
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
@@ -181,6 +181,35 @@ test('weekly cadence copies the same weekday', () => {
     assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 1), '2026-08-24');
     assert.equal(nextOccurrenceKey('2026-08-17', 'weekly', 2), '2026-08-31');
     assert.equal(sanitizeEntry({ title: 'Paycheck', kind: 'income', recurring: true, repeat: 'weekly' }).repeat, 'weekly');
+});
+
+test('sanitizeLedger keeps a non-default plan and drops the default', () => {
+    const withPlan = sanitizeLedger({
+        name: 'Home ledger',
+        events: sample.events,
+        plan: { weeklySavings: 50, spendBasis: 'paid', incomeBasis: 'scheduled', reserveSavings: false }
+    });
+    assert.deepEqual(withPlan.plan, {
+        weeklySavings: 50,
+        reserveSavings: false,
+        spendBasis: 'paid',
+        incomeBasis: 'scheduled'
+    });
+
+    const defaultPlan = sanitizeLedger({
+        name: 'Home ledger',
+        events: sample.events,
+        plan: { weeklySavings: 0, spendBasis: 'logged', incomeBasis: 'deposited' }
+    });
+    assert.equal(defaultPlan.plan, undefined);
+
+    const junk = sanitizePlan({ weeklySavings: -12, spendBasis: 'maybe', incomeBasis: null, reserveSavings: 'no' });
+    assert.deepEqual(junk, {
+        weeklySavings: 0,
+        reserveSavings: true,
+        spendBasis: 'logged',
+        incomeBasis: 'deposited'
+    });
 });
 
 test('readJsonFile rejects oversized and invalid files', async () => {

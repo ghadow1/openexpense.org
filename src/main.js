@@ -75,6 +75,7 @@ async function initApplication() {
             bootPatch.ledgerName = cleaned.name;
             bootPatch.events = cleaned.events;
             bootPatch.budgets = cleaned.budgets || {};
+            bootPatch.plan = cleaned.plan || {};
         }
     }
 

@@ -7,6 +7,15 @@
  * month, including future scheduled copies. Axis labels use formatAxisMoney.
  */
 import { Utils } from './utils.js';
+import {
+    describePlan,
+    incomeUsed,
+    monthReserve,
+    sanitizePlan,
+    spendUsed,
+    weekBounds,
+    windowTotals
+} from './plan.js';
 
 function monthKey(y, m) {
     return `${y}-${Utils.pad(m + 1)}`;
@@ -473,9 +482,12 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
  * Projected income is the viewed month’s scheduled income (recurring copies
  * already on the calendar). Year totals and monthly averages stop at the
  * viewed month so later recurring copies do not inflate “expense months.”
- * Does not persist.
+ * A ledger `plan` can change which income and spend count, and can hold a
+ * weekly savings reserve out of left-to-spend. The default plan leaves every
+ * existing figure identical. Does not persist.
  */
-export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
+export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan) {
+    const rules = sanitizePlan(plan);
     const spend = computeMonthlySummary(events, currentDate, 'expense', asOf);
     const income = computeMonthlySummary(events, currentDate, 'income', asOf);
     const funds = settledFundsThrough(events, asOf);
@@ -490,12 +502,23 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
 
     // Only income actually marked deposited counts as cash in hand; a paycheck
     // still on the calendar is a plan, not money, and spending it would be the
-    // easiest way for this figure to lie.
+    // easiest way for this figure to lie. A scheduled-income rule can widen
+    // that on purpose from Budgeting settings.
     const monthStartKey = Utils.dateKey(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const savings = savingsCarriedInto(events, monthStartKey, asOf);
-    const leftToSpend = subMoney(income.paid, spend.total);
+    const usedSpend = spendUsed(spend, rules);
+    const usedIncome = incomeUsed(income, rules);
+    const weeklyReserve = monthReserve(rules.weeklySavings, currentDate);
+    const reserveOn = rules.reserveSavings && weeklyReserve > 0;
+    const leftToSpend = reserveOn
+        ? subMoney(subMoney(usedIncome, usedSpend), weeklyReserve)
+        : subMoney(usedIncome, usedSpend);
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
+
+    const week = weekBounds(asOf);
+    const weekWindow = windowTotals(events, week.start, week.end, rules);
+    const weeklyLeft = subMoney(weekWindow.net, rules.weeklySavings);
 
     return {
         monthIn: income.total,
@@ -524,7 +547,20 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date()) {
         dueSoonCount: dueSoon.count,
         leftToPay: spend.pending,
         leftToPayCount: spend.pendingCount,
-        savingsRate
+        savingsRate,
+        plan: rules,
+        planCaption: describePlan(rules),
+        spendUsed: usedSpend,
+        incomeUsed: usedIncome,
+        weeklySavings: rules.weeklySavings,
+        weeklyReserve,
+        reserveOn,
+        weekStart: week.start,
+        weekEnd: week.end,
+        weekIncome: weekWindow.incomeUsed,
+        weekSpend: weekWindow.spendUsed,
+        weekNet: weekWindow.net,
+        weeklyLeft
     };
 }
 

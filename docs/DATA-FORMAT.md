@@ -24,6 +24,12 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
   "budgets": {
     "Groceries": 400
   },
+  "plan": {
+    "weeklySavings": 50,
+    "reserveSavings": true,
+    "spendBasis": "logged",
+    "incomeBasis": "deposited"
+  },
   "savedAt": 1780000000000
 }
 ```
@@ -33,7 +39,17 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `name` | no | Sanitized file-safe string, max 80 characters. Shown in the header and used as the export filename. |
 | `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. The array order on a date is the order shown on that day after a drag-reorder. |
 | `budgets` | no | Monthly cap per category label, e.g. `{ "Groceries": 400 }`. Positive numbers only, max 60 entries. Omitted entirely when no caps are set. Kept in the ledger rather than in browser storage so restoring a backup on another device brings the caps back with the history. |
+| `plan` | no | Weekly savings and the rules Overview uses for left-to-spend. Omitted when every field is the default (no weekly target, reserve on, all logged bills, deposited income only). Same travel rule as `budgets`: a restored backup brings the rules back. |
 | `savedAt` | export only | Unix ms, written by `Ledger.exportPayload()`. Ignored on import. |
+
+### Plan object
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| `weeklySavings` | `0` | Dollars per week. `0` turns the target off. The month’s reserve is `weeklySavings × (days in the viewed month / 7)`, rounded to cents. |
+| `reserveSavings` | `true` | When a weekly target is set, subtract that month reserve from **Left to spend**. The weekly leftover figure still subtracts the weekly target either way. |
+| `spendBasis` | `"logged"` | `"logged"` counts paid plus unpaid bills (the original month spending). `"paid"` counts only bills marked paid. |
+| `incomeBasis` | `"deposited"` | `"deposited"` is income ticked as landed (the original cash line). `"scheduled"` counts every income entry already on the month. |
 
 ## Expense
 
@@ -115,6 +131,7 @@ The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext
 - Key commitment match, then a successful AES-GCM decrypt over the authenticated header
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
 - Sanitized `budgets` map: non-empty labels, positive finite amounts, prototype keys refused, count capped
+- Sanitized `plan`: weekly savings rounded to cents, `spendBasis` `logged` or `paid`, `incomeBasis` `deposited` or `scheduled`; omitted when it matches the default cash line
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 
 OpenExpense drops its portable-key references after unlock, on timeout, and when the page unloads. JavaScript cannot guarantee physical memory erasure. The portable key is never intentionally written to IndexedDB or `localStorage`. Exporting again creates a **new** key pair; the previous `key.json` still unlocks the earlier file.
@@ -123,7 +140,7 @@ OpenExpense drops its portable-key references after unlock, on timeout, and when
 
 | Database | Store | Key | Value |
 | --- | --- | --- | --- |
-| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events }`, with its own header bound in as AAD |
+| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events, budgets, plan }`, with its own header bound in as AAD |
 | `openexpense` (v2) | `meta` | `ledger-key-v1` | Non-extractable `CryptoKey` for **autosave only** — not the portable `key.json` |
 
 Do not check a real database dump or `*.key.json` into git. The sample under `examples/` is fictional plaintext for humans to read; it is not a user export.

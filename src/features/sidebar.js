@@ -7,7 +7,8 @@
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { computeMonthlySummary, formatAxisMoney, formatDelta, yearSeriesPoints } from '../core/summary.js';
+import { computeMonthlySummary, computeNetSnapshot, formatAxisMoney, formatDelta, yearSeriesPoints } from '../core/summary.js';
+import { sanitizePlan } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { createDial, createSpark } from '../ui/dial-chart.js';
 import { Ledger } from './ledger.js';
@@ -378,10 +379,35 @@ function categoryRow(row, muted = false) {
     return el_;
 }
 
+function renderWeeklyTrack(summary) {
+    const { events, currentDate, plan } = getState();
+    const rules = sanitizePlan(plan);
+    if (!(rules.weeklySavings > 0)) return null;
+
+    const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
+    const used = Math.max(0, Math.min(100, snap.weeklySavings > 0
+        ? (Math.max(0, snap.weekNet) / snap.weeklySavings) * 100
+        : 0));
+    const left = snap.weeklyLeft >= 0
+        ? `${Utils.formatMoney(snap.weeklyLeft)} left this week`
+        : `${Utils.formatMoney(Math.abs(snap.weeklyLeft))} over this week`;
+    const item = el('div', `budget-item is-${snap.weeklyLeft >= 0 ? 'on-track' : 'over'}`);
+    item.innerHTML = `
+        <div class="cat-row-head">
+            <span class="cat-badge"><span class="cat-dot" data-tone="sky"></span><span>Weekly savings</span></span>
+            <span class="cat-row-amt">${left}</span>
+        </div>
+        <div class="cat-track"><span style="width:${Math.max(2, used)}%" data-tone="sky"></span></div>
+        <div class="cat-row-meta">${Utils.formatMoney(snap.weekNet)} of ${Utils.formatMoney(snap.weeklySavings)} this week${snap.reserveOn ? ` · ${Utils.formatMoney(snap.weeklyReserve)} reserved in ${summary.shortMonth}` : ''}</div>
+    `;
+    return item;
+}
+
 function renderBudgets(summary, copy) {
     if (summary.kind === 'income') return null;
 
     const { budgets } = getState();
+    const weekly = renderWeeklyTrack(summary);
     const rows = budgetProgress(
         rollUpCategories(summary.allItems || []),
         budgets,
@@ -398,16 +424,17 @@ function renderBudgets(summary, copy) {
     head.appendChild(editBtn);
     section.appendChild(head);
 
-    if (!rows.length) {
+    if (!rows.length && !weekly) {
         section.appendChild(el(
             'p',
             'summary-section-description',
-            'No caps set yet. Add one to see what is left in a category as the month runs.'
+            'No caps set yet. Add one to see what is left in a category as the month runs, or set a weekly savings target on Budget.'
         ));
         return section;
     }
 
     const list = el('div', 'budget-list');
+    if (weekly) list.appendChild(weekly);
     for (const row of rows) {
         const item = el('div', `budget-item is-${row.state}`);
         const pct = Math.max(2, Math.min(100, row.used));
@@ -435,7 +462,7 @@ const BUDGET_NOTE = {
     'on-track': 'on track'
 };
 
-async function openBudgetEditor() {
+export async function openBudgetEditor() {
     const { budgets } = getState();
     const summary = computeMonthlySummary(getState().events, getState().currentDate, 'expense');
     const spent = rollUpCategories(summary.allItems || []);
@@ -645,7 +672,12 @@ export function renderSidebar(changedKeys) {
 
     const keys = changedKeys || [];
     const all = !changedKeys || keys.length === 0;
-    const dataChanged = all || keys.includes('events') || keys.includes('currentDate') || keys.includes('isDark');
+    const dataChanged = all
+        || keys.includes('events')
+        || keys.includes('currentDate')
+        || keys.includes('isDark')
+        || keys.includes('budgets')
+        || keys.includes('plan');
     if (dataChanged) {
         paintFace(expenseFace, 'expense');
         paintFace(incomeFace, 'income');

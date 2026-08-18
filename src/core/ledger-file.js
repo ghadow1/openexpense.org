@@ -10,6 +10,9 @@ import { Utils } from './utils.js';
 import { normalizeRepeat } from './series.js';
 import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
 import { ENVELOPE } from './envelope.js';
+import { planIsDefault, sanitizePlan } from './plan.js';
+
+export { sanitizePlan };
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const KID_KEY = /^[a-f0-9]{16,64}$/i;
@@ -351,10 +354,14 @@ export function sanitizeLedger(payload) {
         savedAt: Number(payload.savedAt) || Date.now()
     };
 
-    // Budgets are part of the ledger, not of this browser: someone restoring a
-    // backup on a new device should get their limits back with their history.
+    // Budgets and the weekly plan are part of the ledger, not of this browser:
+    // someone restoring a backup on a new device should get their limits and
+    // calculation rules back with their history.
     const budgets = sanitizeBudgets(payload.budgets);
     if (Object.keys(budgets).length) ledger.budgets = budgets;
+
+    const plan = sanitizePlan(payload.plan);
+    if (!planIsDefault(plan)) ledger.plan = plan;
 
     return ledger;
 }

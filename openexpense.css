@@ -1191,11 +1191,12 @@ html.is-action-busy [data-lockable] {
 
 .dash-deck-tabs {
     display: flex;
-    width: fit-content;
+    flex-wrap: wrap;
+    width: 100%;
     max-width: 100%;
     padding: 3px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     background: var(--surface2);
     gap: 2px;
 }
@@ -1210,9 +1211,12 @@ html.is-action-busy [data-lockable] {
     font-weight: 750;
     letter-spacing: 0.01em;
     line-height: 1;
-    padding: 8px 14px;
+    padding: 8px 12px;
     border-radius: 999px;
     cursor: pointer;
+    flex: 1 1 auto;
+    text-align: center;
+    min-width: 0;
 }
 
 .dash-deck-tab.is-active {
@@ -1297,6 +1301,95 @@ html.is-action-busy [data-lockable] {
 
 .dash-block-group.is-planning .dash-block-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dash-plan {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dash-plan .input-group {
+    margin: 0;
+}
+
+.dash-plan-hint {
+    margin: 0;
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.4;
+}
+
+.dash-plan-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.dash-plan-check input {
+    margin-top: 2px;
+    accent-color: var(--accent);
+}
+
+.dash-plan-row {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.dash-plan-legend {
+    padding: 0;
+    margin: 0 0 6px;
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.dash-plan-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.dash-plan-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.dash-plan-choice.is-on {
+    background: var(--surface);
+    color: var(--text-strong);
+    box-shadow: 0 0 0 1px var(--border);
+}
+
+.dash-plan-choice input {
+    accent-color: var(--accent);
+}
+
+.dash-plan-caps {
+    align-self: flex-start;
 }
 
 .dash-hero-card {
@@ -5373,6 +5466,7 @@ textarea:focus-visible {
 [data-theme="dark"] .dash-chip,
 [data-theme="dark"] .oe-bar-track,
 [data-theme="dark"] .dash-hero,
+[data-theme="dark"] .dash-plan,
 [data-theme="dark"] .dash-fold,
 [data-theme="dark"] .summary-fold,
 [data-theme="dark"] .form-fold,
@@ -5391,6 +5485,17 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .dash-deck-tab.is-active {
+    background: #111;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="dark"] .dash-plan-choice {
+    background: #111;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .dash-plan-choice.is-on {
     background: #111;
     color: #fff;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
