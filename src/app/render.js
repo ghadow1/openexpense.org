@@ -23,32 +23,40 @@ function createHeaderIconBtn(icon, onClick) {
     return btn;
 }
 
+/**
+ * Which state keys each surface reads. A surface left off its own list simply
+ * stops repainting, with no error to notice — that is how a saved budget went
+ * on showing "no caps set yet" until something unrelated forced a redraw.
+ */
+export const RENDER_DEPS = {
+    theme: ['isDark'],
+    headerToggles: ['isDark', 'autosaveEnabled', 'ledgerName'],
+    privacyStatus: ['storageEncrypted', 'autosaveEnabled'],
+    fileStatus: ['ledgerName', 'events'],
+    ledgerNameInput: ['ledgerName'],
+    calendar: ['isDark', 'currentDate', 'events'],
+    sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets']
+};
+
+/** A null or empty patch means "redraw everything". */
+export function shouldRender(surface, keys) {
+    if (!keys || keys.length === 0) return true;
+    return RENDER_DEPS[surface].some((key) => keys.includes(key));
+}
+
 export function render(changedKeys) {
     const keys = changedKeys ? Object.keys(changedKeys) : null;
-    const all = !keys || keys.length === 0;
 
-    if (all || keys.includes('isDark')) {
-        applyTheme();
-    }
-    if (all || keys.includes('isDark') || keys.includes('autosaveEnabled') || keys.includes('ledgerName')) {
-        updateHeaderToggles();
-    }
-    if (all || keys.includes('storageEncrypted') || keys.includes('autosaveEnabled')) {
-        updatePrivacyStatus();
-    }
-    if (all || keys.includes('ledgerName') || keys.includes('events')) {
-        updateFileStatus();
-    }
-    if (all || keys.includes('ledgerName')) {
-        syncLedgerNameInput();
-    }
-    if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events')) {
+    if (shouldRender('theme', keys)) applyTheme();
+    if (shouldRender('headerToggles', keys)) updateHeaderToggles();
+    if (shouldRender('privacyStatus', keys)) updatePrivacyStatus();
+    if (shouldRender('fileStatus', keys)) updateFileStatus();
+    if (shouldRender('ledgerNameInput', keys)) syncLedgerNameInput();
+    if (shouldRender('calendar', keys)) {
         renderCalendar(keys);
         renderDashStrip();
     }
-    if (all || keys.includes('isDark') || keys.includes('currentDate') || keys.includes('events') || keys.includes('ledgerFace')) {
-        renderSidebar(keys);
-    }
+    if (shouldRender('sidebar', keys)) renderSidebar(keys);
 }
 
 function updatePrivacyStatus() {
