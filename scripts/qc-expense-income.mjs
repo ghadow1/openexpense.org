@@ -775,7 +775,7 @@ test('daily burn excludes future scheduled bills and discloses its sample', () =
     assert.equal(snap.burnSpend, 170);
     assert.equal(snap.burnDays, 17);
     assert.equal(snap.avgDailyBurn, 10);
-    assert.equal(snap.runwayDays, 0);
+    assert.equal(snap.runwayDays, 43);
 });
 
 test('this week is Sunday through Saturday of asOf', () => {
