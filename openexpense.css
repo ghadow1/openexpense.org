@@ -6941,31 +6941,35 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .planner-goal-card.is-no-amount {
-    background: #16181b;
-    color: #9aa2aa;
+    background: #181818;
+    color: #9a9a9a;
 }
 
 [data-theme="dark"] .planner-goal-card.is-achievable {
-    border-color: #34495e;
-    background: color-mix(in srgb, #34495e 34%, #050505);
+    border-color: #555;
+    background: #151515;
 }
 
 [data-theme="dark"] .planner-goal-card.is-unachievable {
-    border-color: #673030;
-    background: color-mix(in srgb, rgba(128, 0, 0, 0.35) 62%, #050505);
+    border-color: #777;
+    background: #101010;
 }
 
 [data-theme="dark"] .is-achievable .goal-state {
-    color: #a9bbca;
+    color: #bbb;
 }
 
 [data-theme="dark"] .is-unachievable .goal-state {
-    color: #d9a1a1;
+    color: #ddd;
 }
 
 [data-theme="dark"] .planner-goal-empty > .ti {
     background: #000;
-    color: #8db4dc;
+    color: #aaa;
+}
+
+[data-theme="dark"] .oe-spark-milestone {
+    stroke: #777;
 }
 
 [data-theme="dark"] .dash-plan-choice.is-on,
