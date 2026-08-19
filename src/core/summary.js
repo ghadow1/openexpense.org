@@ -313,9 +313,12 @@ export function formatChipMoney(value) {
  */
 export function formatAxisMoney(value) {
     const n = Utils.fromCents(Utils.toCents(value));
+    if (!Number.isFinite(n)) return '$0';
     const abs = Math.abs(n);
     const sign = n < 0 ? '-' : '';
-    if (abs >= 1000000) {
+    // Switch units at the point where rounding would otherwise display
+    // "$1000k" (999,500 and above).
+    if (abs >= 999500) {
         const m = abs / 1000000;
         const body = m >= 10 || Number.isInteger(m) ? String(Math.round(m)) : m.toFixed(1).replace(/\.0$/, '');
         return `${sign}$${body}m`;
@@ -331,7 +334,8 @@ export function formatAxisMoney(value) {
 
 /** Two or three ticks from 0 to a rounded ceiling. */
 export function axisTicks(max) {
-    const n = Math.max(0, Number(max) || 0);
+    const input = Number(max);
+    const n = Number.isFinite(input) ? Math.max(0, input) : 0;
     if (n <= 0) return [0, 0, 0];
     const raw = n / 2;
     const mag = 10 ** Math.floor(Math.log10(raw));
@@ -506,8 +510,10 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
     const income = computeMonthlySummary(events, currentDate, 'income', asOf);
     const funds = settledFundsThrough(events, asOf);
     const asOfKey = dateKeyOf(asOf);
-    const dueSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'expense');
-    const incomeSoon = pendingInWindow(events, asOfKey, addDaysKey(asOfKey, 7), 'income');
+    // The window is inclusive, so today through +6 is exactly seven dates.
+    const sevenDayEndKey = addDaysKey(asOfKey, 6);
+    const dueSoon = pendingInWindow(events, asOfKey, sevenDayEndKey, 'expense');
+    const incomeSoon = pendingInWindow(events, asOfKey, sevenDayEndKey, 'income');
     const monthNet = subMoney(income.total, spend.total);
     const yearNet = subMoney(income.yearTotal, spend.yearTotal);
     const savingsRate = income.total > 0

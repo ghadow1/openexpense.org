@@ -311,6 +311,12 @@ UTC arithmetic avoids daylight-saving shifts. Destination-day clamping gives
 February 28/29 for a January 31 series. Seed counts are 52 weekly copies or
 \(\max(1,\lfloor12/s\rfloor)\) monthly-step copies.
 
+Schedule identity is not a mathematical similarity test. New occurrences share
+a random 128-bit `seriesId`; update and delete compare that stable identity.
+Legacy rows without an ID temporarily use normalized title, kind, and cadence
+until an edit migrates the whole schedule. This prevents two equal-looking
+weekly payments from becoming one destructive equivalence class.
+
 ### 2.9 Visualization geometry
 
 Dial circumference and fill:
@@ -538,6 +544,20 @@ UTC candidate and verifies that year, month, and day round-trip unchanged.
 Monetary averages now divide integer cents and round once. Year aggregation
 also rejects month indexes outside 0–11 even when called outside the sanitized
 browser import path.
+
+#### Decimal half-cents and schedule identity
+
+Decimal-to-cent conversion parses digits rather than multiplying a binary
+float, so `1.005` becomes 101 cents deterministically. Recurring schedules now
+use `seriesId`, preventing unrelated equal-title schedules from being merged,
+updated, or deleted together.
+
+#### Planner and interval boundaries
+
+Negative spendable income allocates a zero weekly budget rather than negative
+row targets. “Next 7 days” is the inclusive seven-date interval from today
+through day six. Negative imported prices are rejected because transaction
+direction belongs to `kind`.
 
 ### 5.2 Existing defenses verified
 

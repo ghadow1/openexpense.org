@@ -22,7 +22,13 @@ import {
 } from '../src/core/day-entries.js';
 
 const coffee = { title: 'Coffee', price: 5, paid: true };
-const rent = { title: 'Rent', price: 1450, recurring: true, repeat: 'monthly' };
+const rent = {
+    title: 'Rent',
+    price: 1450,
+    recurring: true,
+    repeat: 'monthly',
+    seriesId: '11111111111111111111111111111111'
+};
 const pay = { title: 'Paycheck', price: 800, kind: 'income' };
 
 function ledger() {
@@ -78,6 +84,7 @@ test('duplicateAt inserts a one-off clone after the original', () => {
     assert.equal(next['2026-08-17'][2].title, 'Rent');
     assert.equal(next['2026-08-17'][2].recurring, false);
     assert.equal(next['2026-08-17'][2].repeat, undefined);
+    assert.equal(next['2026-08-17'][2].seriesId, undefined);
     assert.equal(next['2026-08-17'][1].recurring, true);
 });
 

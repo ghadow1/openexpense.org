@@ -93,9 +93,10 @@ Derived figures (not stored):
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `title` | string | — | Required to save. Compared case-insensitively when grouping a series. Blank and leftover placeholder titles never match as a series or as Change All twins. |
-| `price` | number or string | `0` | Parsed with `parseFloat`. Legacy notes may still contain `$12.00`; `Utils.getPrice` reads that fallback. |
-| `recurring` | boolean | `false` | Marks a re-accruing payment. Series delete matches title + this flag + `repeat`. |
+| `price` | number or string | `0` | Non-negative amount rounded to whole cents. Direction is represented by `kind`, not a negative sign. Legacy notes may still contain `$12.00`; `Utils.getPrice` reads that fallback. |
+| `recurring` | boolean | `false` | Marks a re-accruing payment. New schedules use `seriesId`; legacy schedules without one fall back to title + kind + `repeat` until edited. |
 | `repeat` | string | `"monthly"` | How often a recurring payment or income copies forward: `weekly`, `monthly`, `bimonthly` (every 2 months), or `quarterly`. Omitted on one-time entries. Missing on older ledgers means monthly. |
+| `seriesId` | string | omitted | Random 128-bit hexadecimal identity shared by one recurring schedule. Prevents unrelated equal-title schedules from being merged, changed, or deleted together. |
 | `kind` | string | `"expense"` | `expense` (default, omitted) or `income`. Calendar colors and the sidebar face use this. |
 | `paid` | boolean | `false` | Used by the summary paid / pending split. Receipts save as paid. On income the UI label is Deposited, and only income with this flag counts as cash in the account overview — one flag rather than two, because "received but not deposited" is a state with no answer. |
 | `note` | string | `""` | Free text. HTML is escaped before render. |
@@ -138,7 +139,7 @@ If the user sets one, `key.json` carries `wrap` instead of `secret`:
 { "kdf": "PBKDF2-HMAC-SHA-256", "iterations": 600000, "salt": "…", "iv": "…", "ct": "…" }
 ```
 
-The master secret is encrypted under a key derived from the passphrase, so a copied pair of files is no longer enough to read the ledger. The iteration count is itself authenticated in the wrap's AAD and floored at 210,000 on read, so it cannot be edited down to make guessing cheap. Passphrases are NFKC-normalized before use so the same typed word matches regardless of how the platform composes it.
+The master secret is encrypted under a key derived from the passphrase, so a copied pair of files is no longer enough to read the ledger. The iteration count is itself authenticated in the wrap's AAD and accepted only from 210,000 through 1,200,000 on read: the floor prevents cheap guessing and the ceiling prevents an imported key from monopolizing the browser CPU. Passphrases are NFKC-normalized before use so the same typed word matches regardless of how the platform composes it.
 
 PBKDF2 is used because it is the strongest passphrase KDF the Web Crypto API offers natively. It is not memory-hard the way Argon2id is; choosing it keeps the crypto free of third-party code and WASM, which matters for an offline-first app served as static files. 600,000 iterations follows OWASP's 2023 guidance for PBKDF2-HMAC-SHA-256.
 
@@ -159,10 +160,10 @@ v1 envelopes — a raw AES-256-GCM JWK in `key.json`, no salt, no commitment, no
 
 The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext import, IndexedDB boot, and autosave:
 
-- File size cap (8 MB) before parse
+- JSON file size cap (32 MiB) before parse; legacy ZIP input is capped at 8 MiB compressed
 - Format / version / algorithm / `kid` checks
 - v2: `kdf` is HKDF-SHA-256, `salt` is 32 bytes, `commit` is 32 bytes, `iv` is 12 bytes
-- v2 key file: a 32-byte `secret`, or a `wrap` whose iteration count clears the floor
+- v2 key file: a 32-byte `secret`, or a `wrap` whose iteration count is within the accepted range
 - v1 key file: key type `oct` (AES-256-GCM JWK)
 - Matching `kid` between ledger and key.json
 - Key commitment match, then a successful AES-GCM decrypt over the authenticated header

@@ -73,6 +73,7 @@ export function duplicateAt(events, dateKey, index) {
     const copy = cloneEntry(list[i]);
     copy.recurring = false;
     delete copy.repeat;
+    delete copy.seriesId;
     copy.paid = false;
     delete copy.paid;
     list.splice(i + 1, 0, copy);

@@ -70,7 +70,7 @@ src/main.js         boot, event delegation, render subscription
 
 ## Recurring series
 
-`src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly). Blank or leftover placeholder titles never join a series. The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger. Date and cadence can still shift the series; name and amount stay on the edited row unless **Change all** confirms other rows that share both.
+`src/core/series.js` gives each new schedule a random 128-bit `seriesId`; that stable identity controls update and deletion, so two equal-looking payments remain independent. Older exports without an ID temporarily fall back to recurring + kind + folded title + cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly) until the next series edit assigns an ID to every occurrence. Blank or leftover placeholder titles never join a legacy series. The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger. Date and cadence can still shift the series; name and amount stay on the edited row unless **Change all** confirms other rows that share both.
 
 The right-hand card flips between an expense face and an income face when the Tracker filter is Expenses or Income. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
 

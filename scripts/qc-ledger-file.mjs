@@ -64,6 +64,17 @@ test('sanitizeEntry drops unknown fields and empty titles', () => {
     assert.equal(row.kind, 'income');
     assert.equal(row.note.length, FILE_LIMITS.maxNote);
     assert.equal(row.evil, undefined);
+    assert.equal(sanitizeEntry({ title: 'Refund', price: -5 }), null);
+    assert.equal(sanitizeEntry({ title: 'Half cent', price: 1.005 }).price, 1.01);
+    assert.equal(
+        sanitizeEntry({
+            title: 'Rent',
+            recurring: true,
+            repeat: 'monthly',
+            seriesId: 'ABCDEF0123456789ABCDEF0123456789'
+        }).seriesId,
+        'abcdef0123456789abcdef0123456789'
+    );
 });
 
 test('portable key validation requires exactly 256 bits', () => {

@@ -320,7 +320,10 @@ export function monthDayIncome(events, currentDate) {
 export function calendarRowWeeks(dailySpend = [], daysInMonth, firstWeekday, spendableIncome, extras = {}) {
     const length = Number(daysInMonth) || 0;
     const lead = Math.max(0, Math.min(6, Number(firstWeekday) || 0));
-    const spendableCents = Utils.toCents(spendableIncome);
+    // A negative waterfall result means there is no budget to allocate.
+    // Clamping once keeps every row target non-negative and preserves the
+    // documented sum invariant at zero.
+    const spendableCents = Math.max(0, Utils.toCents(spendableIncome));
     const dailyIncome = extras.dailyIncome || [];
     const weeklyIncome = Number(extras.weeklyIncome) || 0;
     const monthIncomeCents = extras.monthIncome != null
@@ -400,7 +403,7 @@ export function overBudgetRows(events, currentDate, plan, spendableIncome) {
 
 export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome) {
     const length = Number(daysInMonth) || 0;
-    const spendableCents = Utils.toCents(spendableIncome);
+    const spendableCents = Math.max(0, Utils.toCents(spendableIncome));
     const weeks = [];
     let assigned = 0;
 

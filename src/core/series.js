@@ -14,6 +14,20 @@ export const REPEAT = {
     quarterly: { id: 'quarterly', months: 3, label: 'Quarterly', short: 'Quarterly' }
 };
 
+const SERIES_ID_PATTERN = /^[a-f0-9]{32}$/i;
+
+/** A stable random identity prevents equal-looking schedules from merging. */
+export function createSeriesId() {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export function normalizeSeriesId(value) {
+    const candidate = String(value || '').trim();
+    return SERIES_ID_PATTERN.test(candidate) ? candidate.toLowerCase() : '';
+}
+
 export function normalizeTitle(title) {
     return String(title || '').trim().toLowerCase();
 }
@@ -82,6 +96,15 @@ export function isSameSeries(a, b) {
     // Blank or leftover placeholder titles used to collapse into one series
     // because normalizeTitle mapped them all to "untitled".
     if (!title || title === 'untitled') return false;
+    const firstSeriesId = normalizeSeriesId(a?.seriesId);
+    const secondSeriesId = normalizeSeriesId(b?.seriesId);
+    // Once either entry has a stable identity, never fall back to a title
+    // heuristic: doing so could merge two unrelated schedules named "Rent".
+    if (firstSeriesId || secondSeriesId) {
+        return !!firstSeriesId && firstSeriesId === secondSeriesId;
+    }
+    // Legacy exports have no seriesId, so retain their historical matching
+    // behavior until the next series edit assigns one to every occurrence.
     return !!a?.recurring && !!b?.recurring
         && Utils.entryKind(a) === Utils.entryKind(b)
         && title === normalizeTitle(b.title)
@@ -124,6 +147,7 @@ function seriesEntry(updated, paid, previous = null) {
     copyField(row, 'note', source.note);
     copyField(row, 'category', source.category);
     copyField(row, 'group', source.group);
+    copyField(row, 'seriesId', updated.seriesId);
     if (row.kind === 'expense') delete row.kind;
     row.repeat = normalizeRepeat(updated.repeat);
     return row;
@@ -134,17 +158,11 @@ export function seedRecurringCopies(events, baseEvent, startKey) {
     const nextEvents = { ...events };
     const cadence = normalizeRepeat(baseEvent.repeat);
     const copies = seriesCopyCount(cadence);
-    const kind = Utils.entryKind(baseEvent);
 
     for (let i = 1; i <= copies; i++) {
         const nextKey = nextOccurrenceKey(startKey, cadence, i);
         const list = nextEvents[nextKey] ? [...nextEvents[nextKey]] : [];
-        const exists = list.some((e) => (
-            normalizeTitle(e.title) === normalizeTitle(baseEvent.title)
-            && e.recurring === true
-            && Utils.entryKind(e) === kind
-            && normalizeRepeat(e.repeat) === cadence
-        ));
+        const exists = list.some((entry) => isSameSeries(baseEvent, entry));
         if (!exists) {
             list.push({ ...baseEvent, paid: false, repeat: cadence });
             nextEvents[nextKey] = list;

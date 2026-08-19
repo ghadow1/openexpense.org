@@ -81,8 +81,10 @@ test('axis labels use k and m', () => {
     assert.equal(formatAxisMoney(42), '$42');
     assert.equal(formatAxisMoney(5000), '$5k');
     assert.equal(formatAxisMoney(10000), '$10k');
+    assert.equal(formatAxisMoney(999999), '$1m');
     assert.equal(formatAxisMoney(1200000), '$1.2m');
     assert.equal(formatAxisMoney(-5000), '-$5k');
+    assert.deepEqual(axisTicks(Infinity), [0, 0, 0]);
 });
 
 test('a year series keeps start, one extreme, and end', () => {
@@ -219,6 +221,7 @@ test('money totals stay on whole cents', () => {
     };
     const spend = computeMonthlySummary(events, new Date(2026, 7, 1), 'expense');
     assert.equal(spend.total, 0.3);
+    assert.equal(Utils.toCents(1.005), 101);
     assert.equal(Utils.getPrice({ price: 10.005 }), 10.01);
 });
 
@@ -637,6 +640,22 @@ test('blank and untitled titles are not one recurring series', () => {
     ), true);
 });
 
+test('stable series ids keep equal-looking schedules independent', () => {
+    const first = {
+        title: 'Payment',
+        recurring: true,
+        repeat: 'weekly',
+        seriesId: '11111111111111111111111111111111'
+    };
+    const second = {
+        ...first,
+        seriesId: '22222222222222222222222222222222'
+    };
+    assert.equal(isSameSeries(first, { ...first }), true);
+    assert.equal(isSameSeries(first, second), false);
+    assert.equal(isSameSeries(first, { ...first, seriesId: undefined }), false);
+});
+
 test('a series update keeps category and group on the other copies', () => {
     const events = {
         '2026-08-17': [{
@@ -766,4 +785,15 @@ test('this week is Sunday through Saturday of asOf', () => {
     assert.equal(snap.weekSpend, 80);
     assert.equal(snap.weekNet, 320);
     assert.equal(snap.weeklyLeft, 220);
+});
+
+test('next seven days includes today through day six only', () => {
+    const events = {
+        '2026-08-18': [entry({ title: 'Today', price: 10, paid: false })],
+        '2026-08-24': [entry({ title: 'Day six', price: 20, paid: false })],
+        '2026-08-25': [entry({ title: 'Day seven', price: 40, paid: false })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, new Date(2026, 7, 18));
+    assert.equal(snap.dueSoon, 30);
+    assert.equal(snap.dueSoonCount, 2);
 });

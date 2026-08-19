@@ -414,7 +414,8 @@ export async function exportMonthlySummaryPdf({ summary, ledgerName, isDark, com
     }
 
     /* —— Totals —— */
-    const totalsH = 92;
+    // 16pt top gap + 78pt box; reserve the exact geometry before paging.
+    const totalsH = 94;
     if (y + totalsH > PDF_BOTTOM) {
         doc.addPage();
         y = startRegisterPage();

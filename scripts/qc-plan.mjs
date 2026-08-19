@@ -201,6 +201,18 @@ test('week bucket targets sum to spendable income', () => {
     assert.equal(spentCents, Utils.toCents(1400));
 });
 
+test('negative spendable income produces zero weekly targets', () => {
+    const buckets = monthWeekBuckets([], 31, -100);
+    assert.ok(buckets.every((week) => week.target === 0));
+
+    const calendarRows = calendarRowWeeks(new Array(31).fill(0), 31, 6, -100);
+    assert.ok(calendarRows.every((week) => week.target === 0));
+    assert.equal(
+        calendarRows.reduce((sum, week) => sum + Utils.toCents(week.target), 0),
+        0
+    );
+});
+
 test('Sunday–Saturday calendar rows mark weeks that spend past their share', () => {
     const august = new Date(2026, 7, 1);
     assert.equal(august.getDay(), 6, 'August 2026 starts on Saturday');

@@ -16,7 +16,7 @@ substantially stronger than a typical static finance demo: imported values are
 allowlisted and bounded, financial totals are accumulated as integer cents,
 autosaves are serialized, and AES-GCM headers are authenticated.
 
-This review found and corrected four concrete boundary defects:
+This review found and corrected the following concrete boundary defects:
 
 | Finding | Before | Correction |
 | --- | --- | --- |
@@ -24,8 +24,13 @@ This review found and corrected four concrete boundary defects:
 | Direct envelope APIs trusted binary dimensions | Internal/public callers could pass malformed salts, IVs, commitments, wraps, or oversized ciphertext directly to Web Crypto | Check every decoded byte length before derivation or decryption |
 | Receipt dates allowed calendar rollover | OCR text such as `2026-02-31` passed a simple day ≤ 31 check and could be suggested as a nonexistent date | UTC round-trip validation now rejects impossible dates while accepting leap day |
 | Averages left the integer-cent domain | Division could produce repeating binary fractions such as `333.333…` | Round average money once to the nearest cent; malformed year-month indexes are also ignored |
+| Half-cent conversion used binary multiplication | Values such as `1.005` could round to 100 cents | Parse decimal digits and exponents, then round discarded digits in integer arithmetic |
+| Recurring identity was descriptive | Independent schedules with the same title, kind, and cadence could merge or delete together | New schedules carry a random 128-bit `seriesId`; legacy matching remains only for old rows until edit |
+| Negative planner pools produced negative row targets | Final-row-only clamping broke the target-sum invariant | Clamp the allocatable pool once before weekly distribution |
+| “Next 7 days” included eight dates | Both endpoints of today through +7 were counted | Use the inclusive interval today through +6 |
+| Negative imported prices survived but vanished from summaries | Direction and amount semantics contradicted one another | Reject negative prices; `kind` exclusively represents direction |
 
-All four corrections have regression tests.
+Each correction has regression coverage.
 
 ## Security inspection
 
@@ -237,6 +242,9 @@ with positive spend above daily safe; three or more produces the full alert.
 
 The clamping policy means a January 31 monthly series becomes February 28/29;
 later occurrences are calculated from the original start day when seeded.
+New schedules share a random 128-bit `seriesId`, which is the authoritative
+identity for update and deletion. Legacy schedules without an ID retain the
+title/kind/cadence heuristic until their next edit migrates all occurrences.
 
 ### Charts and classifiers
 

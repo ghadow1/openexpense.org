@@ -9,10 +9,35 @@ export const Utils = {
     dateKey: (year, zeroBasedMonth, dayOfMonth) => (
         `${year}-${Utils.pad(zeroBasedMonth + 1)}-${Utils.pad(dayOfMonth)}`
     ),
+    /**
+     * Convert decimal input to integer cents without binary half-cent drift.
+     * Decimal ties round away from zero (1.005 → 101, -1.005 → -101).
+     */
     toCents(value) {
         const numericAmount = Number(value);
         if (!Number.isFinite(numericAmount)) return 0;
-        return Math.round(numericAmount * 100);
+        const decimalMatch = String(value).trim().match(
+            /^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i
+        );
+        if (!decimalMatch) return 0;
+
+        const sign = decimalMatch[1] === '-' ? -1n : 1n;
+        const integerDigits = decimalMatch[2] || '0';
+        const fractionalDigits = decimalMatch[3] || '';
+        const exponent = Number(decimalMatch[4] || 0);
+        const allDigits = BigInt((integerDigits + fractionalDigits).replace(/^0+(?=\d)/, '') || '0');
+        const centsScale = exponent - fractionalDigits.length + 2;
+        let absoluteCents;
+
+        if (centsScale >= 0) {
+            absoluteCents = allDigits * (10n ** BigInt(centsScale));
+        } else {
+            const divisor = 10n ** BigInt(-centsScale);
+            const wholeCents = allDigits / divisor;
+            const discardedDigits = allDigits % divisor;
+            absoluteCents = wholeCents + (discardedDigits * 2n >= divisor ? 1n : 0n);
+        }
+        return Number(sign * absoluteCents);
     },
     fromCents(cents) {
         return (Number(cents) || 0) / 100;

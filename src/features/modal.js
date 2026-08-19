@@ -15,10 +15,11 @@ import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
-import { isValidDateKey } from '../core/ledger-file.js';
+import { isValidDateKey, sanitizeEntry } from '../core/ledger-file.js';
 import {
     REPEAT,
     countSeriesOccurrences,
+    createSeriesId,
     normalizeRepeat,
     rebuildSeriesFrom,
     removeSeriesOccurrences,
@@ -561,14 +562,14 @@ function resetAddForm() {
 
 export function saveExpense({ dateKey, title, price, note, recurring = false, paid = false, repeat, kind, category, group } = {}) {
     const t = String(title ?? '').trim();
-    if (!t || !dateKey) return false;
+    if (!t || !isValidDateKey(dateKey)) return false;
 
     const parsedPrice = price != null && String(price).trim() !== ''
         ? parseFloat(String(price).replace(/[^0-9.]/g, ''))
         : null;
 
     const entryKind = Utils.entryKind({ kind });
-    const newEv = {
+    const entryCandidate = {
         title: t,
         note: String(note ?? '').trim(),
         price: parsedPrice != null && !Number.isNaN(parsedPrice) ? parsedPrice : null,
@@ -582,19 +583,26 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
     const filed = resolveCategory({
         category,
         title: t,
-        note: newEv.note,
+        note: entryCandidate.note,
         kind: entryKind,
         history: cachedCategoryHistory(getState().events)
     });
-    if (filed) newEv.category = filed;
+    if (filed) entryCandidate.category = filed;
 
     // Snapped to the spelling already in the ledger, so callers that pass a
     // group as free text cannot fork "Bella" into a second group.
     const filedGroup = canonicalGroup(getState().events, group);
-    if (filedGroup) newEv.group = filedGroup;
+    if (filedGroup) entryCandidate.group = filedGroup;
 
-    if (newEv.kind === 'expense') delete newEv.kind;
-    if (newEv.recurring) newEv.repeat = normalizeRepeat(repeat);
+    if (entryCandidate.kind === 'expense') delete entryCandidate.kind;
+    if (entryCandidate.recurring) {
+        entryCandidate.repeat = normalizeRepeat(repeat);
+        entryCandidate.seriesId = createSeriesId();
+    }
+    // Keep live state under the same limits as imports and encrypted autosave;
+    // otherwise the screen could disagree with the canonical persisted ledger.
+    const newEv = sanitizeEntry(entryCandidate);
+    if (!newEv) return false;
 
     dismissUndo();
     const { events } = getState();
@@ -910,6 +918,9 @@ async function saveEdit(i) {
     const isRecurring = document.getElementById(`edit-rec-${i}`).checked;
     const price = document.getElementById(`edit-price-${i}`).value;
     const dateInput = document.getElementById(`edit-date-${i}`)?.value;
+    const { selectedKey, events } = getState();
+    const original = events[selectedKey]?.[i];
+    if (!original) return;
 
     const updatedEv = {
         title, note: document.getElementById(`edit-note-${i}`).value.trim(),
@@ -918,7 +929,10 @@ async function saveEdit(i) {
         kind: readKind(`edit-kind-${i}`)
     };
     if (updatedEv.kind === 'expense') delete updatedEv.kind;
-    if (isRecurring) updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
+    if (isRecurring) {
+        updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
+        updatedEv.seriesId = original.seriesId || createSeriesId();
+    }
     else delete updatedEv.repeat;
 
     const picked = editPickers.get(i)?.getValue() ?? '';
@@ -931,9 +945,6 @@ async function saveEdit(i) {
     if (pickedGroup) updatedEv.group = pickedGroup;
     else delete updatedEv.group;
 
-    const { selectedKey, events } = getState();
-    const original = events[selectedKey]?.[i];
-    if (!original) return;
     const destKey = isValidDateKey(dateInput) ? dateInput : selectedKey;
     const dateChanged = destKey !== selectedKey;
     const cadenceChanged = original.recurring && isRecurring

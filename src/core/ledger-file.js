@@ -7,7 +7,7 @@
  * The same sanitize path is reused for import, IndexedDB load, and autosave.
  */
 import { Utils } from './utils.js';
-import { normalizeRepeat } from './series.js';
+import { normalizeRepeat, normalizeSeriesId } from './series.js';
 import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
 import { ENVELOPE } from './envelope.js';
 import { planIsDefault, sanitizePlan } from './plan.js';
@@ -298,15 +298,23 @@ export function sanitizeEntry(raw) {
 
     const entry = { title };
     const price = parseFloat(raw.price);
-    if (Number.isFinite(price) && Math.abs(price) <= FILE_LIMITS.maxPrice) {
-        entry.price = price;
+    // Entry kind represents direction, so a negative price would exist in the
+    // file but disappear from every positive-only summary. Reject it instead
+    // of preserving contradictory live and calculated states.
+    if (Number.isFinite(price) && price < 0) return null;
+    if (Number.isFinite(price) && price <= FILE_LIMITS.maxPrice) {
+        entry.price = Utils.fromCents(Utils.toCents(price));
     }
     const note = String(raw.note ?? '').trim();
     if (note) entry.note = note.slice(0, FILE_LIMITS.maxNote);
     if (raw.recurring) entry.recurring = true;
     if (raw.paid) entry.paid = true;
     if (raw.kind === 'income') entry.kind = 'income';
-    if (raw.recurring) entry.repeat = normalizeRepeat(raw.repeat);
+    if (raw.recurring) {
+        entry.repeat = normalizeRepeat(raw.repeat);
+        const seriesId = normalizeSeriesId(raw.seriesId);
+        if (seriesId) entry.seriesId = seriesId;
+    }
     const category = String(raw.category ?? '').replace(/\s+/g, ' ').trim().slice(0, FILE_LIMITS.maxCategory);
     if (category) entry.category = category;
     // Collapsed here as well as in the field, so a group that arrives by import

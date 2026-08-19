@@ -228,7 +228,9 @@ export function createBars({ rows = [], ariaLabel = 'Breakdown' } = {}) {
         track.className = 'oe-bar-track';
         const fill = document.createElement('span');
         fill.className = 'oe-bar-fill';
-        fill.style.width = `${Math.max(2, (Math.abs(value) / max) * 100)}%`;
+        fill.style.width = value === 0
+            ? '0%'
+            : `${Math.max(2, (Math.abs(value) / max) * 100)}%`;
         track.appendChild(fill);
 
         const amount = document.createElement('span');
