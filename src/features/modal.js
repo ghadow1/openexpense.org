@@ -683,52 +683,60 @@ function buildRow(e, i) {
     });
     row.appendChild(handle);
 
-    const info = document.createElement('div');
-    info.className = 'event-info';
-    const titleRow = document.createElement('div');
-    titleRow.className = 'event-header';
+    const body = document.createElement('div');
+    body.className = 'event-row-body';
+
+    const main = document.createElement('div');
+    main.className = 'event-row-main';
+
+    const identity = document.createElement('div');
+    identity.className = 'event-identity';
 
     const t = document.createElement('span');
     t.className = `event-title ${e.paid ? 'paid' : ''}`;
     t.textContent = e.title;
-    titleRow.appendChild(t);
+    identity.appendChild(t);
 
-    const amt = Utils.getPrice(e);
-    if (amt > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'event-badge';
-        badge.textContent = `$${amt.toFixed(2)}`;
-        titleRow.appendChild(badge);
-    }
+    const meta = document.createElement('div');
+    meta.className = 'event-meta';
     if (Utils.entryKind(e) === 'income') {
         const kindBadge = document.createElement('span');
         kindBadge.className = 'event-kind is-income';
         kindBadge.textContent = 'Income';
-        titleRow.appendChild(kindBadge);
+        meta.appendChild(kindBadge);
     }
-    if (e.category) titleRow.appendChild(categoryBadge(e.category, Utils.entryKind(e)));
-    if (e.group) titleRow.appendChild(groupBadge(e.group));
+    if (e.category) meta.appendChild(categoryBadge(e.category, Utils.entryKind(e)));
+    if (e.group) meta.appendChild(groupBadge(e.group));
     if (e.recurring) {
         const rec = document.createElement('span');
         rec.className = 'event-badge-icon';
         rec.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i>';
         rec.title = repeatLabel(e.repeat);
         rec.setAttribute('aria-label', repeatLabel(e.repeat));
-        titleRow.appendChild(rec);
+        meta.appendChild(rec);
         const cadence = document.createElement('span');
         cadence.className = 'event-repeat';
         cadence.textContent = repeatLabel(e.repeat, true);
-        titleRow.appendChild(cadence);
+        meta.appendChild(cadence);
     }
-    info.appendChild(titleRow);
+    if (meta.childNodes.length) identity.appendChild(meta);
+    main.appendChild(identity);
+
+    const amt = Utils.getPrice(e);
+    if (amt > 0) {
+        const amount = document.createElement('span');
+        amount.className = 'event-amount';
+        amount.textContent = `$${amt.toFixed(2)}`;
+        main.appendChild(amount);
+    }
+    body.appendChild(main);
 
     if (e.note) {
         const n = document.createElement('p');
         n.className = 'event-note';
         n.textContent = e.note;
-        info.appendChild(n);
+        body.appendChild(n);
     }
-    row.appendChild(info);
 
     const act = document.createElement('div');
     act.className = 'row-actions';
@@ -756,7 +764,8 @@ function buildRow(e, i) {
         iconAction('btn-icon-edit', 'edit', 'Edit entry', () => startEdit(i)),
         iconAction('btn-icon-delete', 'trash', 'Remove entry', () => deleteEv(i))
     );
-    row.appendChild(act);
+    body.appendChild(act);
+    row.appendChild(body);
 
     return row;
 }
@@ -1233,11 +1242,11 @@ function createKindPrompt(name, selected = 'expense') {
         <div class="repeat-prompt-options" role="radiogroup" aria-labelledby="${name}-label">
             <label class="repeat-choice">
                 <input type="radio" name="${name}" value="expense"${current === 'expense' ? ' checked' : ''}>
-                <span>Expense</span>
+                <span><i class="ti ti-receipt" aria-hidden="true"></i>Expense</span>
             </label>
             <label class="repeat-choice">
                 <input type="radio" name="${name}" value="income"${current === 'income' ? ' checked' : ''}>
-                <span>Income</span>
+                <span><i class="ti ti-coin" aria-hidden="true"></i>Income</span>
             </label>
         </div>
     `;

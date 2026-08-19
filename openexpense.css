@@ -4051,7 +4051,7 @@ body:has(.backdrop.open) #global-tooltip {
 #mbox,
 .modal-editor {
     width: 100%;
-    max-width: 520px;
+    max-width: min(920px, calc(100vw - 32px));
     max-height: 76vh;
     overflow: hidden;
     display: flex;
@@ -4315,24 +4315,22 @@ body:has(.backdrop.open) #global-tooltip {
     border-color: var(--text-muted);
 }
 
-/* Event rows */
+/* Event rows — identity and amount on one line, actions on the next.
+   A side toolbar next to the amount is what overlapped $961 on a two-column sheet. */
 .event-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 12px 0;
+    display: grid;
+    grid-template-columns: 28px 28px minmax(0, 1fr);
+    align-items: start;
+    padding: 12px 4px;
     border-bottom: 1px solid var(--border);
-    gap: 16px;
+    column-gap: 8px;
+    row-gap: 0;
     transition: opacity var(--dur-fast) var(--ease-out), max-height var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
     border-radius: var(--radius-xs);
 }
 
 .event-row:hover {
     background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
-    padding-left: 8px;
-    padding-right: 8px;
-    margin-left: -8px;
-    margin-right: -8px;
 }
 
 .event-row.is-dragging {
@@ -4376,9 +4374,15 @@ body:has(.backdrop.open) #global-tooltip {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 8px 0 10px;
+    gap: 6px;
+    padding: 8px 4px 10px;
     border-bottom: 1px solid var(--border);
+}
+
+.day-select-bar .ui-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
 }
 
 .day-select-bar[hidden] {
@@ -5155,6 +5159,55 @@ body.is-entry-dragging .cal-day {
     text-align: center;
 }
 
+.event-row-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.event-row-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.event-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.event-amount {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    padding: 2px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text-strong);
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.event-row.is-income .event-amount {
+    color: var(--income-text);
+    border-color: var(--income-border);
+    background: var(--income-soft);
+}
+
 .event-info {
     flex: 1;
     min-width: 0;
@@ -5238,7 +5291,7 @@ body.is-entry-dragging .cal-day {
 .row-actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 6px;
 }
 
@@ -5665,6 +5718,18 @@ body.is-entry-dragging .cal-day {
     gap: 6px;
 }
 
+.kind-prompt .repeat-prompt-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.kind-prompt .repeat-choice,
+.kind-prompt .repeat-choice span {
+    min-width: 0;
+    width: 100%;
+    justify-content: center;
+}
+
 .repeat-choice {
     display: flex;
     cursor: pointer;
@@ -5680,6 +5745,7 @@ body.is-entry-dragging .cal-day {
 .repeat-choice span {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     min-height: 32px;
     padding: 0 10px;
     border: 1px solid var(--border-strong);
@@ -5691,6 +5757,11 @@ body.is-entry-dragging .cal-day {
     transition: background var(--dur-fast) var(--ease-out),
         color var(--dur-fast) var(--ease-out),
         border-color var(--dur-fast) var(--ease-out);
+}
+
+.repeat-choice span i {
+    font-size: 14px;
+    line-height: 1;
 }
 
 .repeat-choice input:checked + span {

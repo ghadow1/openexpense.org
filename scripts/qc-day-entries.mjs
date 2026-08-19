@@ -4,6 +4,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
     assignGroupToIndexes,
     clearGroupAt,
@@ -128,4 +131,19 @@ test('ungrouping clears only the group', () => {
     const both = clearGroupAtIndexes(one, '2026-08-17', [1]);
     assert.equal(both['2026-08-17'][1].group, undefined);
     assert.equal(both['2026-08-17'][1].price, 90);
+});
+
+test('day rows keep the amount off the action toolbar', async () => {
+    const source = await readFile(
+        join(dirname(fileURLToPath(import.meta.url)), '../src/features/modal.js'),
+        'utf8'
+    );
+    assert.match(source, /event-row-body/, 'identity and actions need a stacked body');
+    assert.match(source, /event-amount/, 'the dollar amount is its own node');
+    assert.match(source, /row-actions/, 'paid / copy / edit / delete stay in a toolbar');
+    assert.doesNotMatch(
+        source,
+        /titleRow\.appendChild\(badge\)/,
+        'amount must not sit in the same wrap as the title pills'
+    );
 });
