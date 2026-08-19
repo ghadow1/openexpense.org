@@ -120,14 +120,10 @@ function ensureShell(calCol) {
     actions.className = 'nav-group toolbar-actions';
 
     const todayBtn = UI.createButton('Today', () => patch({ currentDate: new Date() }), { icon: 'calendar-event', iconOnly: true });
-    const searchBtn = UI.createButton('Search', () => {}, { icon: 'search', iconOnly: true });
-    searchBtn.setAttribute('data-action', 'search-ledger');
-    [[todayBtn, 'Jump to today'], [searchBtn, 'Search entries']].forEach(([btn, label]) => {
-        btn.setAttribute('aria-label', label);
-        btn.title = label;
-    });
+    todayBtn.setAttribute('aria-label', 'Jump to today');
+    todayBtn.title = 'Jump to today';
 
-    actions.append(todayBtn, searchBtn);
+    actions.append(todayBtn);
     hdr.append(nav, actions);
     shellEl.appendChild(hdr);
 
