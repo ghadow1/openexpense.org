@@ -170,7 +170,9 @@ enabled. Default rules reduce exactly to deposited income minus logged spend.
 
 Tax percentage is clamped to 0–50%; savings percentage to 0–100%. The
 50/30/20 ratios are normalized to total 100 and are display caps, not duplicate
-deductions.
+deductions. Percentage products convert the amount to cents and the rate to
+basis points before one half-away-from-zero integer division; binary dollar
+multiplication is never reintroduced.
 
 ### Time and runway
 
@@ -205,7 +207,9 @@ Including today in remaining days is deliberate. \(S_{\le t}\) includes only
 counted spend dated through the observation day, so future scheduled bills
 reduce leftover without being misrepresented as historical burn. A future
 viewed month has zero observed days. Division-by-zero paths return zero or
-`null` according to whether zero is meaningful.
+`null` according to whether zero is meaningful. Runway cash is savings carried
+in plus the full current-month leftover, clamped at zero; a monthly deficit
+therefore reduces runway instead of disappearing from the numerator.
 
 ### Snapshot and summary
 

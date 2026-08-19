@@ -585,7 +585,7 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan,
     });
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
-    const runwayCash = addMoney(savings.net, Math.max(0, leftToSpend));
+    const runwayCash = Math.max(0, savingsAfterMonth);
 
     const week = weekBounds(asOf);
     const weekWindow = windowTotals(events, week.start, week.end, rules);

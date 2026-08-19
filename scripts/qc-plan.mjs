@@ -14,6 +14,7 @@ import {
     computePlanner,
     dailySafeSpend,
     describePlan,
+    fixedHoldForTarget,
     growthPotentialPct,
     incomeUsed,
     monthDayIncome,
@@ -126,6 +127,7 @@ test('percentOf and leftover stay on whole cents', () => {
     assert.equal(percentOf(2000, 20), 400);
     assert.equal(percentOf(0, 15.3), 0);
     assert.equal(percentOf(1999.99, 10), 200);
+    assert.equal(percentOf(0.35, 90), 0.32, 'percentage multiplication rounds from integer cents');
 });
 
 test('remaining days include today on the viewed month', () => {
@@ -149,11 +151,19 @@ test('daily safe spend is leftover divided by remaining days', () => {
     assert.equal(dailySafeSpend(294, 15), 19.6);
     assert.equal(dailySafeSpend(100, 0), 0);
     assert.equal(dailySafeSpend(-150, 15), -10);
+    assert.equal(dailySafeSpend(-0.01, 2), -0.01, 'negative half cents round away from zero');
 });
 
 test('runway is cash divided by daily burn to one decimal', () => {
     assert.equal(runwayDays(3000, 82.35), 36.4);
     assert.equal(runwayDays(1000, 0), null);
+    assert.equal(runwayDays(-100, 10), 0);
+});
+
+test('fixed goal hold subtracts active weekly and percentage holds', () => {
+    assert.equal(fixedHoldForTarget(500, 200, 100), 200);
+    assert.equal(fixedHoldForTarget(250, 200, 100), 0);
+    assert.equal(fixedHoldForTarget(500.01, 200, 100), 200.01);
 });
 
 test('future scheduled spend does not become an observed burn rate', () => {

@@ -164,7 +164,7 @@ export function assessGoals(rawGoals, {
             daysRemaining,
             currentAllocation: money(currentAllocationCents),
             requiredDaily: money(requiredDailyCents),
-            requiredMonthly: money(requiredMonthlyCents),
+            requiredMonthly: money(Math.ceil(requiredMonthlyCents)),
             monthlyAllocation: money(monthlyAllocationCents),
             projectedAmount: money(projectedCents),
             shortfall: money(shortfallCents),

@@ -349,6 +349,7 @@ test('a month that outruns its deposits draws on savings', () => {
     assert.equal(snap.savingsFunds, 1000);
     // The overdraft comes out of the reserve rather than vanishing.
     assert.equal(snap.savingsAfterMonth, 700);
+    assert.equal(snap.runwayDays, 14.9, 'runway uses cash after the current-month deficit');
 });
 
 test('savings funds ignore future dates and undeposited income', () => {

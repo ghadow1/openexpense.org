@@ -13,7 +13,7 @@ import {
     sanitizeGoal,
     sanitizeGoals
 } from '../core/goals.js';
-import { sanitizePlan } from '../core/plan.js';
+import { fixedHoldForTarget, sanitizePlan } from '../core/plan.js';
 import { Utils } from '../core/utils.js';
 import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
@@ -449,16 +449,21 @@ export function renderGoalsPanel({ snap, goals, plan }) {
             ? `Hold ${Utils.formatMoney(assessment.totalRequiredMonthly)} monthly`
             : 'No monthly hold needed';
         allocate.addEventListener('click', async () => {
+            const fixedHold = fixedHoldForTarget(
+                assessment.totalRequiredMonthly,
+                snap.reserveOn ? snap.weeklyReserve : 0,
+                snap.pctHold
+            );
             const result = await confirmDialog({
                 title: 'Use this goal hold?',
-                message: `Set monthly savings to ${Utils.formatMoney(assessment.totalRequiredMonthly)}? This updates the planner waterfall; it does not move bank funds.`,
+                message: `Set fixed monthly savings to ${Utils.formatMoney(fixedHold)} so all active holds cover at least ${Utils.formatMoney(assessment.totalRequiredMonthly)}? This updates the planner waterfall; it does not move bank funds.`,
                 confirmText: 'Use goal hold'
             });
             if (!result.confirmed) return;
             patch({
                 plan: sanitizePlan({
                     ...getState().plan,
-                    savingsFixed: assessment.totalRequiredMonthly
+                    savingsFixed: fixedHold
                 })
             });
             Toast.show('Monthly goal hold applied.', 'success');

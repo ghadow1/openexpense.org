@@ -82,6 +82,18 @@ test('amount-free goals stay neutral and do not consume allocation', () => {
     assert.equal(result.goals[1].state, GOAL_STATES.ACHIEVABLE);
 });
 
+test('displayed and aggregate required monthly pace use the same cent ceiling', () => {
+    const result = assessGoals([
+        { id: GOAL_A, title: 'Small target', targetDate: '2026-08-25', targetAmount: 1, createdAt: 1 }
+    ], {
+        currentSavings: 0,
+        monthlySurplus: 0,
+        asOf: new Date(2026, 7, 19)
+    });
+    assert.equal(result.goals[0].requiredMonthly, 5.08);
+    assert.equal(result.totalRequiredMonthly, 5.08);
+});
+
 test('milestones retain only target months in the selected year', () => {
     const milestones = goalMilestones([
         { id: GOAL_A, title: 'December', targetDate: '2026-12-01', createdAt: 1 },

@@ -35,7 +35,9 @@ cent-exact ledger math as the rest of OpenExpense, and avoid implying certainty.
    exact values elsewhere in the interface.
 5. **Observed runway.** Daily burn now divides only spend dated through the
    observation day. Scheduled future bills still reduce available-to-spend,
-   but no longer inflate historical burn or shorten the displayed runway.
+   but no longer inflate historical burn. Current-month deficits reduce runway
+   cash, and nonpositive available cash reports zero days rather than a
+   negative or overstated result.
 
 ## Local-first roadmap
 

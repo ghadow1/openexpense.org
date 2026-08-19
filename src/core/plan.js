@@ -61,6 +61,18 @@ function subMoney(left, right) {
     return Utils.fromCents(Utils.toCents(left) - Utils.toCents(right));
 }
 
+/** Integer division rounded half away from zero. */
+function divideRounded(numerator, denominator) {
+    const den = BigInt(Math.abs(Math.trunc(Number(denominator) || 0)));
+    if (den === 0n) return 0;
+    const source = typeof numerator === 'bigint'
+        ? numerator
+        : BigInt(Math.trunc(Number(numerator) || 0));
+    const sign = source < 0n ? -1n : 1n;
+    const abs = source < 0n ? -source : source;
+    return Number(sign * ((abs + den / 2n) / den));
+}
+
 function clampPct(value, max = 100) {
     const n = Number(value);
     if (!Number.isFinite(n) || n <= 0) return 0;
@@ -74,10 +86,13 @@ function clampInt(value, fallback, min, max) {
 }
 
 export function percentOf(amount, pct) {
-    const p = Number(pct) || 0;
-    const base = Number(amount) || 0;
-    if (p <= 0 || base === 0) return 0;
-    return Utils.fromCents(Utils.toCents(base * p / 100));
+    const amountCents = Utils.toCents(amount);
+    const basisPoints = Utils.toCents(pct);
+    if (basisPoints <= 0 || amountCents === 0) return 0;
+    return Utils.fromCents(divideRounded(
+        BigInt(amountCents) * BigInt(basisPoints),
+        10000
+    ));
 }
 
 function sanitizeRatios(src) {
@@ -233,14 +248,25 @@ export function growthPotentialPct(potentialSavings, currentSavings) {
 export function dailySafeSpend(leftToSpend, daysLeft) {
     const days = Number(daysLeft) || 0;
     if (days <= 0) return 0;
-    return Utils.fromCents(Math.round(Utils.toCents(leftToSpend) / days));
+    return Utils.fromCents(divideRounded(Utils.toCents(leftToSpend), days));
 }
 
 /** Cash ÷ daily burn, one decimal. Null when there is no burn. */
 export function runwayDays(cash, dailyBurn) {
     const burn = Utils.toCents(dailyBurn);
     if (burn <= 0) return null;
-    return Math.round((Utils.toCents(cash) / burn) * 10) / 10;
+    const available = Math.max(0, Utils.toCents(cash));
+    return Math.round((available / burn) * 10) / 10;
+}
+
+/**
+ * Fixed hold needed to reach a total monthly savings target after other holds.
+ */
+export function fixedHoldForTarget(totalTarget, weeklyReserve = 0, pctHold = 0) {
+    return Utils.fromCents(Math.max(
+        0,
+        Utils.toCents(totalTarget) - Utils.toCents(weeklyReserve) - Utils.toCents(pctHold)
+    ));
 }
 
 export function ratioBucket(category) {
