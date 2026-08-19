@@ -50,10 +50,11 @@ test('modal surfaces have focus containment and accessible names', async () => {
 });
 
 test('visual state and accessibility state stay synchronized', async () => {
-    const [html, views, dashboard] = await Promise.all([
+    const [html, views, dashboard, sidebar] = await Promise.all([
         read('index.html'),
         read('src/app/views.js'),
-        read('src/features/dash-strip.js')
+        read('src/features/dash-strip.js'),
+        read('src/features/sidebar.js')
     ]);
 
     assert.doesNotMatch(html, /role="tablist" aria-label="Transaction filter"/);
@@ -61,4 +62,25 @@ test('visual state and accessibility state stay synchronized', async () => {
     assert.match(dashboard, /setAttribute\('aria-pressed'/);
     assert.match(views, /appView\.hidden = privacy/);
     assert.match(views, /docsView\.hidden = !privacy/);
+    assert.match(views, /skipLink\.href = privacy/);
+    assert.match(sidebar, /expenseFace\.inert = !expenseActive/);
+    assert.match(sidebar, /incomeFace\.setAttribute\('aria-hidden'/);
+});
+
+test('generated controls expose names and compatible roles', async () => {
+    const [calendar, charts, toasts, focus] = await Promise.all([
+        read('src/features/calendar.js'),
+        read('src/ui/dial-chart.js'),
+        read('src/ui/toast.js'),
+        read('src/ui/dialog-focus.js')
+    ]);
+
+    assert.match(calendar, /UI\.createButton\('Previous month'/);
+    assert.match(calendar, /UI\.createButton\('Next month'/);
+    assert.match(calendar, /monthTitle\.setAttribute\('aria-live', 'polite'\)/);
+    assert.match(charts, /typeof onSelect === 'function' \? 'group' : 'img'/);
+    assert.match(toasts, /type === 'error' \? 'alert' : 'status'/);
+    assert.match(toasts, /aria-hidden="true"/);
+    assert.match(focus, /element\.inert = true/);
+    assert.match(focus, /restoreIsolation/);
 });

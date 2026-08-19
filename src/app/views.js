@@ -47,6 +47,7 @@ export function applyShell(tab) {
     const next = SHELL_TABS.includes(tab) ? tab : 'overview';
     const appView = document.getElementById('view-app');
     const docsView = document.getElementById('view-docs');
+    const skipLink = document.getElementById('skip-link');
     const privacy = next === 'privacy';
 
     document.documentElement.dataset.shell = next;
@@ -59,6 +60,10 @@ export function applyShell(tab) {
         docsView.classList.toggle('hidden', !privacy);
         docsView.hidden = !privacy;
         docsView.setAttribute('aria-hidden', privacy ? 'false' : 'true');
+    }
+    if (skipLink) {
+        skipLink.href = privacy ? '#view-docs' : '#view-app';
+        skipLink.textContent = privacy ? 'Skip to privacy and documentation' : 'Skip to expense ledger';
     }
 
     document.querySelectorAll('[data-shell]').forEach((pane) => {

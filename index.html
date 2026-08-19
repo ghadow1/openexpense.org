@@ -178,7 +178,7 @@
 </head>
 
 <body>
-  <a class="skip-link" href="#view-app">Skip to expense ledger</a>
+  <a class="skip-link" id="skip-link" href="#view-app">Skip to expense ledger</a>
 
   <!--
     Welcome dialog: `.backdrop > .modal-shell` is a layout contract.
@@ -264,12 +264,14 @@
           </div>
         </div>
 
-        <div class="header-status" role="status" aria-label="Ledger status">
-          <span id="privacy-status" class="status-chip privacy-chip" hidden>
+        <div class="header-status" aria-label="Ledger status">
+          <span id="privacy-status" class="status-chip privacy-chip"
+            role="status" aria-live="polite" aria-atomic="true" hidden>
             <i class="ti ti-lock privacy-chip-icon" aria-hidden="true"></i>
             <span class="privacy-chip-text">You own your data</span>
           </span>
-          <span id="file-status" class="status-chip is-empty" hidden>
+          <span id="file-status" class="status-chip is-empty"
+            role="status" aria-live="polite" aria-atomic="true" hidden>
             <i class="status-dot" aria-hidden="true"></i>
             <span class="file-status-text">Not loaded</span>
           </span>

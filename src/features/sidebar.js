@@ -651,6 +651,14 @@ function syncFlip(sidebar) {
     const face = getState().ledgerFace === 'income' ? 'income' : 'expense';
     sidebar.classList.remove('is-both');
     sidebar.classList.toggle('is-income', face === 'income');
+
+    // Both faces remain rendered for the 3D flip. Keep the reverse face out of
+    // the accessibility tree and keyboard order without changing its geometry.
+    const expenseActive = face === 'expense';
+    expenseFace.inert = !expenseActive;
+    expenseFace.setAttribute('aria-hidden', expenseActive ? 'false' : 'true');
+    incomeFace.inert = expenseActive;
+    incomeFace.setAttribute('aria-hidden', expenseActive ? 'true' : 'false');
 }
 
 export function renderSidebar(changedKeys) {

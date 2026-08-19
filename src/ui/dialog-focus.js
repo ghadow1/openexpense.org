@@ -18,6 +18,40 @@ const FOCUSABLE_SELECTOR = [
 const dialogStack = [];
 let listening = false;
 
+function topLevelBodyChild(element) {
+    let current = element;
+    while (current?.parentElement && current.parentElement !== document.body) {
+        current = current.parentElement;
+    }
+    return current?.parentElement === document.body ? current : null;
+}
+
+function isolateDialog(dialog) {
+    const dialogLayer = topLevelBodyChild(dialog);
+    if (!dialogLayer) return [];
+    return [...document.body.children]
+        .filter((element) => element !== dialogLayer && !['SCRIPT', 'STYLE', 'LINK'].includes(element.tagName))
+        .map((element) => {
+            const previous = {
+                element,
+                inert: element.inert,
+                ariaHidden: element.getAttribute('aria-hidden')
+            };
+            element.inert = true;
+            element.setAttribute('aria-hidden', 'true');
+            return previous;
+        });
+}
+
+function restoreIsolation(entries) {
+    entries.forEach(({ element, inert, ariaHidden }) => {
+        if (!element.isConnected) return;
+        element.inert = inert;
+        if (ariaHidden == null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+    });
+}
+
 function visibleFocusableElements(dialog) {
     return [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)].filter((element) => {
         if (element.hidden || element.closest('[hidden]')) return false;
@@ -64,7 +98,7 @@ export function activateDialogFocus(dialog, initialFocus = null) {
     const returnFocus = document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    dialogStack.push({ dialog, returnFocus });
+    dialogStack.push({ dialog, returnFocus, isolated: isolateDialog(dialog) });
 
     if (!listening) {
         document.addEventListener('keydown', containTab, true);
@@ -90,7 +124,8 @@ export function activateDialogFocus(dialog, initialFocus = null) {
 export function deactivateDialogFocus(dialog) {
     const index = dialogStack.findIndex((entry) => entry.dialog === dialog);
     if (index < 0) return;
-    const [{ returnFocus }] = dialogStack.splice(index, 1);
+    const [{ returnFocus, isolated }] = dialogStack.splice(index, 1);
+    restoreIsolation(isolated);
 
     if (!dialogStack.length && listening) {
         document.removeEventListener('keydown', containTab, true);

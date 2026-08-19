@@ -17,8 +17,8 @@ export const Toast = {
         }
         const el = document.createElement('div');
         el.className = `toast toast-${type}`;
-        el.setAttribute('role', 'status');
-        el.innerHTML = `<i class="ti ti-${Toast.icons[type] || Toast.icons.info}"></i><span>${Utils.escapeHtml(message)}</span>`;
+        el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        el.innerHTML = `<i class="ti ti-${Toast.icons[type] || Toast.icons.info}" aria-hidden="true"></i><span>${Utils.escapeHtml(message)}</span>`;
         stack.appendChild(el);
         requestAnimationFrame(() => el.classList.add('show'));
         setTimeout(() => {

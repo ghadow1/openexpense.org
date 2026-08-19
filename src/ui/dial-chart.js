@@ -94,7 +94,7 @@ export function createDial({
 export function createSpark({ points = [], onSelect = null, ariaLabel = 'Period total' } = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'oe-spark';
-    wrap.setAttribute('role', 'img');
+    wrap.setAttribute('role', typeof onSelect === 'function' ? 'group' : 'img');
     wrap.setAttribute('aria-label', ariaLabel);
 
     const rows = points.slice(0, 3);
@@ -126,6 +126,7 @@ export function createSpark({ points = [], onSelect = null, ariaLabel = 'Period 
         height: String(height),
         preserveAspectRatio: 'xMidYMid meet'
     });
+    if (typeof onSelect === 'function') svg.setAttribute('aria-hidden', 'true');
 
     const yOf = (value) => padT + plotH - ((value - minV) / span) * plotH;
 

@@ -113,6 +113,7 @@ boundary, a responsive flattening point, or a delegated-event boundary.
 | `.modal-columns` | responsive two-column layout | editor/register split | Preserve panel wrappers |
 | `.cal-grid` / `.cal-day` | seven-column grid and day cells | date alignment | Keep day cells as direct grid children |
 | `.sidebar` | sticky/column register surface | monthly summary position | Preserve ID; render modules target it |
+| `.sidebar-flip-inner` | overlapping 3D faces | expense/income card flip | Keep both faces rendered; make only the active face accessible |
 
 OpenExpense uses JavaScript-owned frame states rather than relying only on
 viewport media queries:
@@ -182,6 +183,14 @@ private class query to `data-*` would add markup without reducing coupling.
   the accessible names.
 - Main-view visibility now agrees across visual CSS, DOM `hidden`, and
   `aria-hidden`, preventing duplicate main landmarks.
+- The visually reversed sidebar face is `inert` and `aria-hidden`; both faces
+  remain rendered so the 3D flip geometry is unchanged.
+- Calendar month arrows have persistent accessible names and the changing
+  month title is exposed as a polite level-two heading.
+- Selectable spark charts use a labelled group rather than an image role, so
+  their month buttons remain represented in accessibility APIs.
+- Error toasts use assertive alert semantics while informational messages
+  remain polite statuses; decorative toast icons are hidden.
 - Keyboard focus outlines are restored for search and text fields whose
   component-level mouse-focus rules previously overrode the global
   `:focus-visible` rule.

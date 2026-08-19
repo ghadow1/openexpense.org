@@ -111,10 +111,14 @@ function ensureShell(calCol) {
     nav.className = 'nav-group';
 
     nav.append(
-        UI.createButton('', () => changeMonth(-1), { icon: 'chevron-left', iconOnly: true }),
+        UI.createButton('Previous month', () => changeMonth(-1), { icon: 'chevron-left', iconOnly: true }),
         Object.assign(document.createElement('div'), { className: 'month-title' }),
-        UI.createButton('', () => changeMonth(1), { icon: 'chevron-right', iconOnly: true })
+        UI.createButton('Next month', () => changeMonth(1), { icon: 'chevron-right', iconOnly: true })
     );
+    const monthTitle = nav.querySelector('.month-title');
+    monthTitle.setAttribute('role', 'heading');
+    monthTitle.setAttribute('aria-level', '2');
+    monthTitle.setAttribute('aria-live', 'polite');
 
     const actions = document.createElement('div');
     actions.className = 'nav-group toolbar-actions';
