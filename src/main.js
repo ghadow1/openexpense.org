@@ -13,7 +13,15 @@ import { sanitizeLedger } from './core/ledger-file.js';
 import { cryptoAvailable } from './core/crypto.js';
 import { Utils } from './core/utils.js';
 import { render } from './app/render.js';
-import { switchView, switchDocTab, showWelcome, closeWelcomeModal, shouldShowNotFound, bootShell } from './app/views.js';
+import {
+    switchView,
+    switchDocTab,
+    showWelcome,
+    closeWelcomeModal,
+    shouldShowNotFound,
+    bootShell,
+    handleDocTabKeydown
+} from './app/views.js';
 import { closeModal, initModalBindings, renderModal, openModal, shiftSelectedDay } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
@@ -267,6 +275,7 @@ function handleDelegatedClick(e) {
 }
 
 document.addEventListener('click', handleDelegatedClick);
+document.addEventListener('keydown', handleDocTabKeydown);
 
 let pendingKeys = null;
 let renderFrame = 0;

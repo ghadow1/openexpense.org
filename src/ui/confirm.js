@@ -6,6 +6,7 @@
  */
 import { Utils } from '../core/utils.js';
 import { lockBodyScroll, unlockBodyScroll } from './scroll-lock.js';
+import { activateDialogFocus, deactivateDialogFocus } from './dialog-focus.js';
 
 let backdropEl = null;
 let keyHandler = null;
@@ -18,6 +19,7 @@ function teardown(result) {
         keyHandler = null;
     }
     if (backdropEl) {
+        deactivateDialogFocus(backdropEl.querySelector('[role="alertdialog"]'));
         backdropEl.remove();
         backdropEl = null;
     }
@@ -148,7 +150,7 @@ export function confirmDialog({
             <div class="modal-shell confirm-card" role="alertdialog" aria-modal="true"
                  aria-labelledby="confirm-title" aria-describedby="confirm-desc">
               <div class="modal-header">
-                <h3 class="modal-title" id="confirm-title"></h3>
+                <h2 class="modal-title" id="confirm-title"></h2>
               </div>
               <p class="confirm-copy" id="confirm-desc"></p>
               ${choiceHtml}
@@ -210,6 +212,9 @@ export function confirmDialog({
         confirmLocked = true;
         document.body.appendChild(backdropEl);
         const firstField = backdropEl.querySelector('#confirm-field');
-        requestAnimationFrame(() => (firstField || okBtn).focus());
+        activateDialogFocus(
+            backdropEl.querySelector('[role="alertdialog"]'),
+            firstField || okBtn
+        );
     });
 }

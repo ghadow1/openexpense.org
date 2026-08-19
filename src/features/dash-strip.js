@@ -1113,7 +1113,7 @@ function syncTrackerFilter() {
     document.querySelectorAll('[data-tracker-filter]').forEach((btn) => {
         const on = btn.dataset.trackerFilter === filter;
         btn.classList.toggle('is-active', on);
-        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
 }
 

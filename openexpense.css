@@ -852,6 +852,11 @@ html[data-frame="desktop"] .ledger-stage,
 html[data-frame="desktop"] .tracker-board,
 html[data-frame="tablet"] .ledger-stage,
 html[data-frame="tablet"] .tracker-board {
+    /*
+     * Layout lock: these wrappers remain in the DOM for phone grid ownership
+     * and delegated JS hooks. Desktop/tablet flatten them so #cal-col,
+     * #sidebar, and .tracker-toolbar participate in #view-app's track map.
+     */
     display: contents;
 }
 
@@ -1068,6 +1073,7 @@ html[data-frame="phone"] .tracker-filter-btn {
 }
 
 .app-dock {
+    /* Fixed mobile landmark; z-index 180 must remain below modal backdrops. */
     position: fixed;
     left: 0;
     right: 0;
@@ -3511,6 +3517,7 @@ html.is-action-busy [data-lockable] {
 }
 
 .docs-nav {
+    /* Desktop chapter rail; the 901px breakpoint changes this to a tab grid. */
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -3695,7 +3702,10 @@ html.is-action-busy [data-lockable] {
 }
 
 .docs-pane {
+    /* A semantic <section>; explicit box reset prevents future UA drift. */
     display: none;
+    margin: 0;
+    padding: 0;
     animation: docsFadeIn 0.2s ease;
     width: 100%;
 }
@@ -7977,6 +7987,17 @@ body.is-embed #vt-docs,
 body.is-embed #view-docs,
 body.is-embed #welcome-modal {
     display: none !important;
+}
+
+/*
+ * Keyboard-only focus repair. Earlier component `:focus` rules suppress the
+ * native ring to avoid a mouse-click halo; these later selectors restore a
+ * high-contrast outline specifically for `:focus-visible` navigation.
+ */
+.search-input:focus-visible,
+.text-input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
 }
 
 .cat-backfill {

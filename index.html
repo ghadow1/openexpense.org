@@ -180,9 +180,14 @@
 <body>
   <a class="skip-link" href="#view-app">Skip to expense ledger</a>
 
-  <!-- Welcome Modal -->
+  <!--
+    Welcome dialog: `.backdrop > .modal-shell` is a layout contract.
+    The backdrop owns viewport centering and the shell owns width/padding; do
+    not insert or remove an intermediate wrapper without updating both rules.
+  -->
   <div class="backdrop" id="welcome-modal">
-    <div class="modal-shell welcome-card" role="dialog" aria-labelledby="welcome-title">
+    <div class="modal-shell welcome-card" role="dialog" aria-modal="true"
+      aria-labelledby="welcome-title" aria-describedby="welcome-copy">
       <div class="welcome-brand">
         <svg class="brand-mark brand-mark--lg" viewBox="0 0 48 48" role="img" aria-label="OpenExpense" focusable="false">
           <defs>
@@ -209,9 +214,9 @@
         </svg>
       </div>
       <div class="modal-header">
-        <h3 class="modal-title" id="welcome-title">Welcome to OpenExpense</h3>
+        <h2 class="modal-title" id="welcome-title">Welcome to OpenExpense</h2>
       </div>
-      <p class="welcome-copy">
+      <p class="welcome-copy" id="welcome-copy">
         Encrypted local expense wallet. Deposits and what is left to spend stay on this phone
         or computer — nothing is uploaded, synced, or sold. Tap any day on the calendar to log an entry.
       </p>
@@ -314,18 +319,22 @@
         <div id="tracker-head-root" class="tracker-head-root" role="region" aria-label="Tracker"></div>
       </section>
 
-      <!-- Shared board: filter, calendar (#cal-col), register (#sidebar).
-           Not a data-shell pane. Frame CSS shows or hides pieces per tab. -->
+      <!--
+        Shared board: filter, calendar (#cal-col), register (#sidebar).
+        Keep `.ledger-stage` and `.tracker-board`: desktop/tablet deliberately
+        flatten them with `display: contents`, while phone layout makes the
+        latter a one-column grid. Frame CSS shows or hides pieces per tab.
+      -->
       <div class="ledger-stage">
         <div class="tracker-toolbar">
-          <div class="tracker-filter" role="tablist" aria-label="Transaction filter">
-            <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-selected="true" title="All transactions">
+          <div class="tracker-filter" role="group" aria-label="Transaction filter">
+            <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-pressed="true" title="All transactions">
               <i class="ti ti-layout-grid" aria-hidden="true"></i><span>All</span>
             </button>
-            <button type="button" class="tracker-filter-btn" data-tracker-filter="expense" aria-selected="false" title="Expenses only">
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="expense" aria-pressed="false" title="Expenses only">
               <i class="ti ti-receipt" aria-hidden="true"></i><span>Expenses</span>
             </button>
-            <button type="button" class="tracker-filter-btn" data-tracker-filter="income" aria-selected="false" title="Income only">
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="income" aria-pressed="false" title="Income only">
               <i class="ti ti-coin" aria-hidden="true"></i><span>Income</span>
             </button>
           </div>
@@ -368,7 +377,7 @@
       </div>
     </main>
 
-    <main class="docs-view hidden" id="view-docs">
+    <main class="docs-view hidden" id="view-docs" hidden aria-hidden="true">
       <section class="privacy-tools oe-card" aria-label="Data control">
         <p class="ov-kicker">Data ownership</p>
         <p class="privacy-tools-copy">Data is encrypted and stored locally on this device.</p>
@@ -388,29 +397,33 @@
         </div>
       </section>
       <div class="docs-container">
-        <nav class="docs-nav" aria-label="Documentation sections">
-          <button id="dt-manual" class="docs-nav-tab active" data-tab="manual">
+        <nav class="docs-nav" aria-label="Documentation sections" role="tablist">
+          <button type="button" id="dt-manual" class="docs-nav-tab active" data-tab="manual"
+            role="tab" aria-selected="true" aria-controls="pane-manual" tabindex="0">
             <span class="docs-nav-icon"><i class="ti ti-book" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
               <span class="docs-nav-label">Introduction</span>
               <span class="docs-nav-desc">What OpenExpense is</span>
             </span>
           </button>
-          <button id="dt-guide" class="docs-nav-tab" data-tab="guide">
+          <button type="button" id="dt-guide" class="docs-nav-tab" data-tab="guide"
+            role="tab" aria-selected="false" aria-controls="pane-guide" tabindex="-1">
             <span class="docs-nav-icon"><i class="ti ti-map" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
               <span class="docs-nav-label">Using the app</span>
               <span class="docs-nav-desc">Calendar, expenses &amp; receipts</span>
             </span>
           </button>
-          <button id="dt-schema" class="docs-nav-tab" data-tab="schema">
+          <button type="button" id="dt-schema" class="docs-nav-tab" data-tab="schema"
+            role="tab" aria-selected="false" aria-controls="pane-schema" tabindex="-1">
             <span class="docs-nav-icon"><i class="ti ti-database" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
               <span class="docs-nav-label">Your data</span>
               <span class="docs-nav-desc">Storage, backup &amp; format</span>
             </span>
           </button>
-          <button id="dt-updates" class="docs-nav-tab" data-tab="updates">
+          <button type="button" id="dt-updates" class="docs-nav-tab" data-tab="updates"
+            role="tab" aria-selected="false" aria-controls="pane-updates" tabindex="-1">
             <span class="docs-nav-icon"><i class="ti ti-news" aria-hidden="true"></i></span>
             <span class="docs-nav-copy">
               <span class="docs-nav-label">Updates</span>
@@ -422,7 +435,8 @@
         <section class="docs-content">
 
           <!-- Introduction -->
-          <div id="pane-manual" class="docs-pane active">
+          <section id="pane-manual" class="docs-pane active" role="tabpanel"
+            aria-labelledby="dt-manual" tabindex="0">
             <article class="docs-book">
               <header class="docs-hero">
                 <p class="docs-eyebrow">Chapter 1</p>
@@ -485,10 +499,11 @@
                 </p>
               </div>
             </article>
-          </div>
+          </section>
 
           <!-- Using the app -->
-          <div id="pane-guide" class="docs-pane">
+          <section id="pane-guide" class="docs-pane" role="tabpanel"
+            aria-labelledby="dt-guide" tabindex="0" hidden aria-hidden="true">
             <article class="docs-book">
               <header class="docs-hero">
                 <p class="docs-eyebrow">Chapter 2</p>
@@ -721,10 +736,11 @@
                 </section>
               </div>
             </article>
-          </div>
+          </section>
 
           <!-- Your data -->
-          <div id="pane-schema" class="docs-pane">
+          <section id="pane-schema" class="docs-pane" role="tabpanel"
+            aria-labelledby="dt-schema" tabindex="0" hidden aria-hidden="true">
             <article class="docs-book">
               <header class="docs-hero">
                 <p class="docs-eyebrow">Chapter 3</p>
@@ -809,10 +825,11 @@
                 </section>
               </div>
             </article>
-          </div>
+          </section>
 
           <!-- Updates -->
-          <div id="pane-updates" class="docs-pane">
+          <section id="pane-updates" class="docs-pane" role="tabpanel"
+            aria-labelledby="dt-updates" tabindex="0" hidden aria-hidden="true">
             <article class="docs-book">
               <header class="docs-hero">
                 <p class="docs-eyebrow">Chapter 4</p>
@@ -1190,7 +1207,7 @@
                 </section>
               </div>
             </article>
-          </div>
+          </section>
 
         </section>
       </div>
@@ -1242,14 +1259,14 @@
             <button type="button" class="modal-day-shift" data-action="day-prev" aria-label="Previous day" title="Previous day">
               <i class="ti ti-chevron-left" aria-hidden="true"></i>
             </button>
-            <h3 class="modal-title" id="modal-date-title">Date</h3>
+            <h2 class="modal-title" id="modal-date-title">Date</h2>
             <button type="button" class="modal-day-shift" data-action="day-next" aria-label="Next day" title="Next day">
               <i class="ti ti-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
         </div>
         <button class="close-modal" type="button" data-action="close-modal" aria-label="Close dialog">
-          <i class="ti ti-x"></i>
+          <i class="ti ti-x" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -1259,7 +1276,7 @@
 
         <div class="modal-panel">
           <div class="panel-title-row">
-            <h4 class="panel-title">This day</h4>
+            <h3 class="panel-title">This day</h3>
             <button type="button" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
               <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
               <span class="undo-delete-text">Undo</span>
@@ -1270,7 +1287,7 @@
         </div>
 
         <div class="modal-panel">
-          <h4 class="panel-title">Add entry</h4>
+          <h3 class="panel-title">Add entry</h3>
           <div id="form-container">
           </div>
         </div>
@@ -1283,7 +1300,7 @@
   <input type="file" id="ledger-key-input" accept=".json,application/json" hidden>
   <input type="file" id="receipt-scan-input" accept="image/*,.heic,.heif,.webp,.pdf,application/pdf" hidden>
 
-  <div id="global-tooltip"></div>
+  <div id="global-tooltip" role="tooltip"></div>
 
   <noscript>
     <article class="noscript-seo">

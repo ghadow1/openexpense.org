@@ -67,6 +67,7 @@ import {
     isPlaceholderTitle,
     labelOrPriceChanged
 } from '../core/labeling.js';
+import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 
 function prefersFieldAutofocus() {
     return !Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches;
@@ -89,6 +90,7 @@ export function openModal(key) {
     document.body.classList.add('modal-open');
     lockBodyScroll();
     renderModal();
+    activateDialogFocus(sheet, sheet?.querySelector('[data-action="close-modal"]'));
 }
 
 export function closeModal() {
@@ -96,6 +98,7 @@ export function closeModal() {
     patch({ selectedKey: null, editingIndex: null });
     const sheet = document.getElementById('mbox');
     if (sheet) sheet.style.transform = '';
+    deactivateDialogFocus(sheet);
     document.getElementById('modal').classList.remove('open');
     document.body.classList.remove('modal-open');
     unlockBodyScroll();

@@ -77,7 +77,9 @@ maps state to the DOM, and explains the security controls. Its companion
 records verified boundaries, corrected findings, and residual risks.
 The [`Architectural Manual`](docs/ARCHITECTURAL-MANUAL.md) provides the complete
 directory map, module dependency rules, build graph, and student onboarding
-workflow.
+workflow. The
+[`Frontend Architecture Manual`](docs/FRONTEND-ARCHITECTURE-MANUAL.md) maps the
+semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
 
 ## Data format
 

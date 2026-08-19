@@ -20,6 +20,7 @@ import { countEntries } from '../core/ledger-file.js';
 import { categoryBadge } from '../ui/category-picker.js';
 import { groupBadge } from '../ui/group-field.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
+import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { openModal } from './modal.js';
 import { exportSearchCsv } from './csv-export.js';
 
@@ -56,14 +57,15 @@ export function openSearch(initial) {
           <div class="search-head">
             <i class="ti ti-search search-head-icon" aria-hidden="true"></i>
             <input type="search" id="search-input" class="search-input" autocomplete="off"
+                   aria-label="Search ledger entries"
                    spellcheck="false" placeholder="Search, or try group:bella  tag:groceries">
             <button type="button" class="search-close" data-search="close" aria-label="Close search">
               <i class="ti ti-x" aria-hidden="true"></i>
             </button>
           </div>
           <div class="search-hints" id="search-hints"></div>
-          <div class="search-summary" id="search-summary" hidden></div>
-          <div class="search-results" id="search-results"></div>
+          <div class="search-summary" id="search-summary" role="status" aria-live="polite" hidden></div>
+          <div class="search-results" id="search-results" aria-label="Search results"></div>
         </div>`;
 
     document.body.appendChild(panel);
@@ -110,7 +112,7 @@ export function openSearch(initial) {
     };
     document.addEventListener('keydown', keyHandler, true);
 
-    requestAnimationFrame(() => input.focus());
+    activateDialogFocus(panel.querySelector('[role="dialog"]'), input);
     run();
 }
 
@@ -130,6 +132,7 @@ function applyToken(token, replacePending) {
 
 function closeSearch() {
     if (!panel) return;
+    deactivateDialogFocus(panel.querySelector('[role="dialog"]'));
     if (keyHandler) {
         document.removeEventListener('keydown', keyHandler, true);
         keyHandler = null;

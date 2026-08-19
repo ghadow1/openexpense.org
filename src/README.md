@@ -72,6 +72,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`ui/theme.js`](ui/theme.js) | CSS variables from `THEMES` |
 | [`ui/toast.js`](ui/toast.js) | Status toasts |
 | [`ui/confirm.js`](ui/confirm.js) | Confirm dialog + optional checkbox |
+| [`ui/dialog-focus.js`](ui/dialog-focus.js) | Modal Tab boundary and launch-point focus restoration |
 | [`ui/category-picker.js`](ui/category-picker.js) | Type-to-tag category field + row badge |
 | [`ui/group-field.js`](ui/group-field.js) | Find-or-add group field + row badge |
 | [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |

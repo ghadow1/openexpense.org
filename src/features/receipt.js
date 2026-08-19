@@ -8,6 +8,7 @@ import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
+import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
 import { actionBusy, runLocked } from '../ui/action-lock.js';
@@ -427,7 +428,7 @@ export const Receipt = {
         backdrop.id = 'ocr-progress';
         backdrop.innerHTML = `
             <div class="modal-shell ocr-progress" role="status" aria-live="polite">
-                <i class="ti ti-scan ocr-progress-icon"></i>
+                <i class="ti ti-scan ocr-progress-icon" aria-hidden="true"></i>
                 <strong>Reading document…</strong>
                 <p class="ocr-progress-note">Works with paper receipts, PDF invoices, and screenshots. First scan downloads models (~5 MB), then caches locally.</p>
                 <div class="bar"><span></span></div>
@@ -471,16 +472,16 @@ export const Receipt = {
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-label="Review scanned receipt">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-labelledby="ocr-preview-title">
                 <div class="ocr-sheet-header">
                     <div>
-                        <h3 class="modal-title">${parsed.kind === 'invoice' ? 'Review invoice' : parsed.kind === 'bill' ? 'Review bill' : 'Review receipt'}</h3>
+                        <h2 class="modal-title" id="ocr-preview-title">${parsed.kind === 'invoice' ? 'Review invoice' : parsed.kind === 'bill' ? 'Review bill' : 'Review receipt'}</h2>
                         ${confPct != null ? `<span class="ocr-conf ${confClass}">${confPct}% match</span>` : ''}
                     </div>
-                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x"></i></button>
+                    <button class="close-modal" type="button" data-act="cancel" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
                 </div>
-                ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle"></i> Low confidence — please double-check the fields below.</p>` : ''}
-                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt=""></div>` : ''}
+                ${parsed.lowConfidence ? `<p class="ocr-hint"><i class="ti ti-info-circle" aria-hidden="true"></i> Low confidence — please double-check the fields below.</p>` : ''}
+                ${previewUrl ? `<div class="ocr-thumb-wrap"><img class="ocr-thumb" src="${previewUrl}" alt="Scanned receipt preview"></div>` : ''}
                 <div class="ocr-body">
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-title">Title / Merchant</label>
@@ -511,13 +512,18 @@ export const Receipt = {
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera"></i> Save &amp; scan another</button>
+                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check" aria-hidden="true"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera" aria-hidden="true"></i> Save &amp; scan another</button>
                     <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
                 </div>
             </div>`;
 
         backdrop.addEventListener('click', (e) => { if (e.target === backdrop) Receipt.closePreview(); });
+        backdrop.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            Receipt.closePreview();
+        });
         backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
         backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
         backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
@@ -525,6 +531,12 @@ export const Receipt = {
         document.body.classList.add('modal-open');
         lockBodyScroll();
         document.body.appendChild(backdrop);
+        const prefersFieldFocus = !Utils.isPhone()
+            && !window.matchMedia('(pointer: coarse)').matches;
+        activateDialogFocus(
+            backdrop.querySelector('[role="dialog"]'),
+            backdrop.querySelector(prefersFieldFocus ? '#ocr-title' : '[data-act="cancel"]')
+        );
 
         const thumb = backdrop.querySelector('.ocr-thumb');
         const thumbWrap = thumb?.closest('.ocr-thumb-wrap');
@@ -536,14 +548,13 @@ export const Receipt = {
             if (thumb.complete && thumb.naturalWidth > 0) reveal();
         }
 
-        if (!Utils.isPhone() && !window.matchMedia('(pointer: coarse)').matches) {
-            backdrop.querySelector('#ocr-title')?.focus({ preventScroll: true });
-        }
     },
 
     closePreview() {
-        const hadPreview = !!document.getElementById('ocr-preview');
-        document.getElementById('ocr-preview')?.remove();
+        const preview = document.getElementById('ocr-preview');
+        const hadPreview = !!preview;
+        deactivateDialogFocus(preview?.querySelector('[role="dialog"]'));
+        preview?.remove();
         if (!document.getElementById('modal')?.classList.contains('open')) {
             document.body.classList.remove('modal-open');
         }

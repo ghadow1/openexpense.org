@@ -10,6 +10,7 @@
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
+import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { render } from './render.js';
 import { shouldShowNotFound } from '../core/routes.js';
 
@@ -49,8 +50,16 @@ export function applyShell(tab) {
     const privacy = next === 'privacy';
 
     document.documentElement.dataset.shell = next;
-    if (appView) appView.classList.toggle('hidden', privacy);
-    if (docsView) docsView.classList.toggle('hidden', !privacy);
+    if (appView) {
+        appView.classList.toggle('hidden', privacy);
+        appView.hidden = privacy;
+        appView.setAttribute('aria-hidden', privacy ? 'true' : 'false');
+    }
+    if (docsView) {
+        docsView.classList.toggle('hidden', !privacy);
+        docsView.hidden = !privacy;
+        docsView.setAttribute('aria-hidden', privacy ? 'false' : 'true');
+    }
 
     document.querySelectorAll('[data-shell]').forEach((pane) => {
         const on = pane.dataset.shell === next;
@@ -93,10 +102,42 @@ export function switchDocTab(tabName) {
     const pane = document.getElementById(`pane-${tabName}`);
     const tab = document.getElementById(`dt-${tabName}`);
     if (!pane || !tab) return;
-    document.querySelectorAll('.docs-pane').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.docs-nav-tab').forEach(t => t.classList.remove('active'));
-    pane.classList.add('active');
-    tab.classList.add('active');
+    document.querySelectorAll('.docs-pane').forEach((candidate) => {
+        const on = candidate === pane;
+        candidate.classList.toggle('active', on);
+        candidate.hidden = !on;
+        candidate.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+    document.querySelectorAll('.docs-nav-tab').forEach((candidate) => {
+        const on = candidate === tab;
+        candidate.classList.toggle('active', on);
+        candidate.setAttribute('aria-selected', on ? 'true' : 'false');
+        candidate.tabIndex = on ? 0 : -1;
+    });
+}
+
+/**
+ * Arrow-key behavior required by the WAI-ARIA tabs pattern.
+ * Click handling remains delegated through `[data-tab]` in main.js.
+ */
+export function handleDocTabKeydown(event) {
+    const current = event.target.closest?.('.docs-nav-tab[data-tab]');
+    if (!current) return;
+    const tabs = [...document.querySelectorAll('.docs-nav-tab[data-tab]')];
+    const index = tabs.indexOf(current);
+    if (index < 0) return;
+
+    let nextIndex = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex == null) return;
+
+    event.preventDefault();
+    const next = tabs[nextIndex];
+    switchDocTab(next.dataset.tab);
+    next.focus();
 }
 
 export function showWelcome() {
@@ -108,6 +149,10 @@ export function showWelcome() {
         modal.classList.add('open');
         document.body.classList.add('modal-open');
         lockBodyScroll();
+        activateDialogFocus(
+            modal.querySelector('[role="dialog"]'),
+            modal.querySelector('[data-action="close-welcome"]')
+        );
         try { localStorage.setItem(STORAGE_KEYS.visited, 'true'); } catch (_) { }
     }
 }
@@ -115,6 +160,7 @@ export function showWelcome() {
 export function closeWelcomeModal() {
     const modal = document.getElementById('welcome-modal');
     if (!modal?.classList.contains('open')) return;
+    deactivateDialogFocus(modal.querySelector('[role="dialog"]'));
     modal.classList.remove('open');
     if (!document.getElementById('modal')?.classList.contains('open')) {
         document.body.classList.remove('modal-open');
