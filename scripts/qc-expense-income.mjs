@@ -6,7 +6,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Utils } from '../src/core/utils.js';
 import { sanitizeLedger, sanitizeEntry } from '../src/core/ledger-file.js';
-import { computeMonthlySummary, computeNetSnapshot, sumDay, dayNetBadge, formatChipMoney, formatAxisMoney, axisTicks, reduceSeries, yearSeriesPoints } from '../src/core/summary.js';
+import {
+    computeMonthlySummary,
+    computeNetSnapshot,
+    sumDay,
+    dayNetBadge,
+    formatChipMoney,
+    formatAxisMoney,
+    axisTicks,
+    reduceSeries,
+    yearSeriesEndIndex,
+    yearSeriesPoints
+} from '../src/core/summary.js';
 import {
     normalizeRepeat, nextOccurrenceKey, seriesCopyCount,
     removeSeriesOccurrences, removeSeriesWeekday, groupExpenses,
@@ -120,6 +131,25 @@ test('the viewed month and every seasonal value stay on the year chart', () => {
     assert.equal(anchored[7].label, 'Aug');
     assert.equal(anchored[7].value, 85);
     assert.deepEqual(anchored.map((row) => row.index), [...Array(12).keys()]);
+});
+
+test('current-year charts stop before unknown future months', () => {
+    const totals = [100, 110, 120, 130, 140, 150, 160, 170, 0, 0, 0, 0];
+    const end = yearSeriesEndIndex(totals, 2026, {
+        asOf: new Date(2026, 7, 19),
+        anchorIndex: 7
+    });
+    assert.equal(end, 7);
+    assert.equal(yearSeriesPoints(totals, 2026, { throughIndex: end }).at(-1).label, 'Aug');
+
+    totals[10] = 500;
+    assert.equal(yearSeriesEndIndex(totals, 2026, {
+        asOf: new Date(2026, 7, 19),
+        anchorIndex: 7
+    }), 10, 'scheduled November activity remains visible');
+    assert.equal(yearSeriesEndIndex(totals, 2025, {
+        asOf: new Date(2026, 7, 19)
+    }), 11, 'historical years stay complete');
 });
 
 test('the sidebar month total is the sum of that month, paid or not', () => {

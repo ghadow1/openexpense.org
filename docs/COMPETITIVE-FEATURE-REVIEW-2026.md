@@ -18,10 +18,12 @@ cent-exact ledger math as the rest of OpenExpense, and avoid implying certainty.
 
 ## What shipped from this review
 
-1. **Complete yearly evidence.** Year charts retain all twelve monthly values
-   instead of reducing the year to a start, one extreme, and an end point.
-   Negative net months use a real zero baseline, selected months are marked,
-   and dated savings goals remain visible as milestones.
+1. **Complete yearly evidence.** Year charts retain every observed or scheduled
+   monthly value instead of reducing the year to a start, one extreme, and an
+   end point. Historical years show all twelve months; the current year stops
+   before unknown future months rather than implying a zero forecast. Negative
+   net months use a real zero baseline, selected months are marked, and dated
+   savings goals remain visible as milestones.
 2. **Actual versus target pacing.** Planner week bars now plot actual spend and
    the allocated weekly target on one scale. The target allocation still uses
    integer cents and parks rounding remainder in the final week.

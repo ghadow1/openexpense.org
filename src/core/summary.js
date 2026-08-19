@@ -391,13 +391,38 @@ export function reduceSeries(points = [], { anchorIndex = null } = {}) {
  * expose every month. `anchorIndex` is retained in the signature for host
  * compatibility; selection is now a rendering concern.
  */
-export function yearSeriesPoints(monthTotals = [], year = 2000, { anchorIndex: _anchorIndex = null } = {}) {
+export function yearSeriesPoints(monthTotals = [], year = 2000, {
+    anchorIndex: _anchorIndex = null,
+    throughIndex = 11
+} = {}) {
     const y = Number(year) || 2000;
-    return Array.from({ length: 12 }, (_, index) => ({
+    const end = Math.max(0, Math.min(11, Number.isInteger(throughIndex) ? throughIndex : 11));
+    return Array.from({ length: end + 1 }, (_, index) => ({
         label: new Date(y, index, 1).toLocaleString('en-US', { month: 'short' }),
         value: Number(monthTotals[index]) || 0,
         index
     }));
+}
+
+/**
+ * Last month a year chart should draw. Historical years are complete; the
+ * current year stops at today unless later scheduled activity exists. This
+ * avoids drawing missing future months as a forecast of zero.
+ */
+export function yearSeriesEndIndex(monthTotals = [], year = 2000, {
+    asOf = new Date(),
+    anchorIndex = 0
+} = {}) {
+    const viewedYear = Number(year) || 2000;
+    const today = asOf instanceof Date && !Number.isNaN(asOf.getTime()) ? asOf : new Date();
+    let calendarEnd = Math.max(0, Math.min(11, Number(anchorIndex) || 0));
+    if (viewedYear < today.getFullYear()) calendarEnd = 11;
+    else if (viewedYear === today.getFullYear()) calendarEnd = Math.max(calendarEnd, today.getMonth());
+    let dataEnd = -1;
+    for (let index = 0; index < 12; index += 1) {
+        if (Number(monthTotals[index]) !== 0) dataEnd = index;
+    }
+    return Math.max(calendarEnd, dataEnd);
 }
 
 function dateKeyOf(date) {

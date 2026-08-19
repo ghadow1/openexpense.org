@@ -14,6 +14,7 @@ import {
     formatDelta,
     formatMoney,
     formatChipMoney,
+    yearSeriesEndIndex,
     yearSeriesPoints
 } from '../core/summary.js';
 import {
@@ -166,8 +167,11 @@ function yearTotalsFor(events, currentDate, kind) {
 function yearSpark(events, currentDate, kind, ariaLabel, goals = []) {
     const year = currentDate.getFullYear();
     const totals = yearTotalsFor(events, currentDate, kind);
+    const throughIndex = yearSeriesEndIndex(totals, year, {
+        anchorIndex: currentDate.getMonth()
+    });
     return createSpark({
-        points: yearSeriesPoints(totals, year),
+        points: yearSeriesPoints(totals, year, { throughIndex }),
         ariaLabel,
         milestones: goalMilestones(goals, year),
         selectedIndex: currentDate.getMonth(),

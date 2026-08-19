@@ -139,6 +139,8 @@ export function createSpark({
     const span = Math.max(maxV - minV, 1);
     const ticks = domain.ticks;
     const stepX = rows.length === 1 ? 0 : plotW / (rows.length - 1);
+    const usesMonthScale = rows.every((row) => Number.isInteger(row.index)
+        && row.index >= 0 && row.index <= 11);
 
     const svg = svgEl('svg', {
         class: 'oe-spark-svg',
@@ -187,7 +189,7 @@ export function createSpark({
     });
 
     const coords = rows.map((row, i) => {
-        const x = padL + i * stepX;
+        const x = padL + (usesMonthScale ? (row.index / 11) * plotW : i * stepX);
         const y = yOf(row.value);
         return { ...row, x, y };
     });

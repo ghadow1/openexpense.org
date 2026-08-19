@@ -8,7 +8,14 @@
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
-import { computeMonthlySummary, computeNetSnapshot, formatAxisMoney, formatDelta, yearSeriesPoints } from '../core/summary.js';
+import {
+    computeMonthlySummary,
+    computeNetSnapshot,
+    formatAxisMoney,
+    formatDelta,
+    yearSeriesEndIndex,
+    yearSeriesPoints
+} from '../core/summary.js';
 import { sanitizePlan } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { createDial, createSpark } from '../ui/dial-chart.js';
@@ -493,9 +500,12 @@ export async function openBudgetEditor() {
 
 function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-year');
+    const throughIndex = yearSeriesEndIndex(summary.monthTotals, summary.year, {
+        anchorIndex: currentDate.getMonth()
+    });
     section.appendChild(el('div', 'summary-section-title', `${summary.year}`));
     section.appendChild(createSpark({
-        points: yearSeriesPoints(summary.monthTotals, summary.year),
+        points: yearSeriesPoints(summary.monthTotals, summary.year, { throughIndex }),
         ariaLabel: `${summary.year} ${copy.yearAria}`,
         selectedIndex: currentDate.getMonth(),
         onSelect: (pt) => {
