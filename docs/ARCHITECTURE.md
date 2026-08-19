@@ -80,7 +80,7 @@ The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. 
 
 - **Overview** — Potential Savings (desktop: compact strip; growth potential when current bank savings is set) + calendar. No filter bar, no monthly spending card.
 - **Tracker** — Filter + Monthly spending. No calendar.
-- **Planner** — planner form only; the shared board is hidden.
+- **Planner** — planner form only (Quality settings and Banking info); the shared board is hidden.
 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 

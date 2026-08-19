@@ -57,6 +57,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `#overview-hero-root` | `features/dash-strip.js` | Potential Savings / compact strip |
 | `#overview-more-root` | `features/dash-strip.js` | Extra Overview cards (often empty) |
 | `#planner-root` | `features/dash-strip.js` | Planner workspace |
+| `[data-plan-pane]` | `features/dash-strip.js` | Quality settings / Banking info |
 | `#tracker-head-root` | `features/dash-strip.js` | Tracker page title on phone/tablet |
 | `#cal-col` | `features/calendar.js` | Month grid |
 | `#sidebar` | `features/sidebar.js` | Monthly spending / income register |

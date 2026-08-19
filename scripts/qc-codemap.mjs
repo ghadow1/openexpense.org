@@ -18,7 +18,13 @@ test('CODEMAP documents the frozen shell and class prefixes', async () => {
     assert.match(map, /data-shell/);
     assert.match(map, /data-frame/);
     assert.match(map, /data-tracker-filter/);
+    assert.match(map, /data-plan-pane/);
     assert.match(map, /renderDashStrip/);
+
+    const planner = await readFile(join(ROOT, 'src/features/dash-strip.js'), 'utf8');
+    assert.match(planner, /data-plan-pane/);
+    assert.match(planner, /Quality settings/);
+    assert.match(planner, /Banking info/);
     assert.match(map, /THEMES\.dark/);
 
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');

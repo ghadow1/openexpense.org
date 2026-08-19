@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-19 — Planner Quality settings and Banking info
+
+Planner settings now sit on two tabs. **Quality settings** covers what counts, tax withhold, weekly pace, and the 50/30/20 split. **Banking info** is the optional current bank amount plus weekly, monthly, and percent holds. Save, discard, and reset stay on the form and work across both tabs.
+
 ## 2026-08-19 — Potential Savings and optional bank growth
 
 Overview now labels leftover **Potential Savings**. Planner’s Savings reserves section has an optional **Current savings** field for the amount already in the bank. It is user input only and does not change leftover math. When it is filled in, the Overview ring becomes a growth-potential percent (leftover ÷ current savings). Positive growth uses a muted sage; negative uses a muted rose. Black Card stays greyscale.

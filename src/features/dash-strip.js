@@ -3,9 +3,9 @@
  *
  * Overview is Potential Savings (or a growth-potential meter when the
  * user entered current bank savings). Planner is daily safe spend plus
- * the withholding, savings-hold, and 50/30/20 form. Overview keeps the
- * snapshot and the calendar. Tracker keeps Expenses, Income, and
- * Monthly spending — no calendar.
+ * Quality settings and Banking info. Overview keeps the snapshot and
+ * the calendar. Tracker keeps Expenses, Income, and Monthly spending —
+ * no calendar.
  */
 import { getState, patch } from '../core/store.js';
 import {
@@ -16,7 +16,13 @@ import {
     formatChipMoney,
     yearSeriesPoints
 } from '../core/summary.js';
-import { PLAN_DEFAULTS, planIsDefault, sanitizePlan } from '../core/plan.js';
+import {
+    PLAN_DEFAULTS,
+    growthPotentialPct,
+    monthReserve,
+    planIsDefault,
+    sanitizePlan
+} from '../core/plan.js';
 import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
 import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
@@ -233,18 +239,91 @@ function heroSlide({ title, description, dial, spark, bars, extrasTitle, extras,
     return [section];
 }
 
-function choiceButton(name, value, label, checked) {
+function choiceButton(name, value, label, checked, detail) {
     const wrap = document.createElement('label');
-    wrap.className = `dash-plan-choice${checked ? ' is-on' : ''}`;
+    wrap.className = `dash-plan-choice${checked ? ' is-on' : ''}${detail ? ' has-detail' : ''}`;
     const input = document.createElement('input');
     input.type = 'radio';
     input.name = name;
     input.value = value;
     input.checked = checked;
-    const text = document.createElement('span');
-    text.textContent = label;
-    wrap.append(input, text);
+    const copy = document.createElement('span');
+    copy.className = 'dash-plan-choice-copy';
+    const title = document.createElement('strong');
+    title.textContent = label;
+    copy.appendChild(title);
+    if (detail) {
+        const note = document.createElement('small');
+        note.textContent = detail;
+        copy.appendChild(note);
+    }
+    wrap.append(input, copy);
     return wrap;
+}
+
+function choiceField(legendText, ...choices) {
+    const field = document.createElement('fieldset');
+    field.className = 'dash-plan-row';
+    const legend = document.createElement('legend');
+    legend.className = 'dash-plan-legend';
+    legend.textContent = legendText;
+    const row = document.createElement('div');
+    row.className = 'dash-plan-choices';
+    row.append(...choices);
+    field.append(legend, row);
+    return field;
+}
+
+function fieldRow(...children) {
+    const row = document.createElement('div');
+    row.className = 'planner-field-row';
+    row.append(...children);
+    return row;
+}
+
+const QUALITY_KEYS = Object.freeze([
+    'spendBasis', 'incomeBasis', 'taxWithholdPct', 'weeklyIncome',
+    'ratioNeeds', 'ratioWants', 'ratioSave'
+]);
+const BANKING_KEYS = Object.freeze([
+    'weeklySavings', 'savingsFixed', 'savingsPct', 'currentSavings', 'reserveSavings'
+]);
+
+const PLAN_PANES = Object.freeze([
+    {
+        id: 'quality',
+        icon: 'adjustments',
+        title: 'Quality settings',
+        description: 'What counts, tax, weekly pace, and spending targets.'
+    },
+    {
+        id: 'banking',
+        icon: 'building-bank',
+        title: 'Banking info',
+        description: 'Current bank amount and savings you hold back.'
+    }
+]);
+
+/** Survives a re-render so Save keeps you on Banking info. */
+let plannerSettingsPane = 'quality';
+
+function paneIsDirty(draft, saved, keys) {
+    return keys.some((key) => draft[key] !== saved[key]);
+}
+
+function applyPlannerPane(form, pane) {
+    plannerSettingsPane = pane === 'banking' ? 'banking' : 'quality';
+    form.dataset.planPane = plannerSettingsPane;
+    form.querySelectorAll('[role="tab"][data-plan-pane]').forEach((tab) => {
+        const on = tab.dataset.planPane === plannerSettingsPane;
+        tab.classList.toggle('is-active', on);
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        tab.tabIndex = on ? 0 : -1;
+    });
+    form.querySelectorAll('[role="tabpanel"][data-plan-pane]').forEach((panel) => {
+        const on = panel.dataset.planPane === plannerSettingsPane;
+        panel.hidden = !on;
+    });
 }
 
 const PLAN_PRESETS = Object.freeze([
@@ -338,11 +417,21 @@ function hint(id, text) {
     return node;
 }
 
-function moneyField(id, label, value, placeholder = '0.00') {
-    const group = UI.createFieldGroup(id, label, value ? String(value) : '', placeholder, 'number');
+function moneyField(id, label, value, extras = '0.00') {
+    const opts = typeof extras === 'string' ? { placeholder: extras } : (extras || {});
+    const group = UI.createFieldGroup(id, label, value ? String(value) : '', opts.placeholder || '0.00', 'number');
     const input = group.querySelector('input');
-    input.min = '0';
+    input.min = opts.min ?? '0';
     input.inputMode = 'decimal';
+    if (opts.max != null) input.max = String(opts.max);
+    if (opts.step != null) input.step = String(opts.step);
+    if (opts.describedBy) input.setAttribute('aria-describedby', opts.describedBy);
+    if (opts.optional) {
+        const tag = document.createElement('span');
+        tag.className = 'dash-plan-optional';
+        tag.textContent = 'Optional';
+        group.querySelector('label')?.appendChild(tag);
+    }
     return group;
 }
 
@@ -388,15 +477,20 @@ function planSection(icon, title, description, ...children) {
     return section;
 }
 
-function planPanel(snap, plan) {
+function planPanel(snap, plan, currentDate) {
     const form = document.createElement('form');
     form.className = 'dash-plan planner-form';
     form.setAttribute('aria-label', 'Planner settings');
 
-    const weekly = moneyField('dash-plan-weekly', 'Weekly savings ($)', plan.weeklySavings);
-    weekly.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-hint');
-    const weeklyIn = moneyField('dash-plan-weekly-income', 'Weekly income goal', plan.weeklyIncome);
-    weeklyIn.querySelector('input').setAttribute('aria-describedby', 'dash-plan-weekly-income-hint');
+    const weekly = moneyField('dash-plan-weekly', 'Weekly savings', plan.weeklySavings, {
+        placeholder: '0.00',
+        describedBy: 'dash-plan-weekly-hint'
+    });
+    const weeklyIn = moneyField('dash-plan-weekly-income', 'Weekly income goal', plan.weeklyIncome, {
+        placeholder: '0.00',
+        describedBy: 'dash-plan-weekly-income-hint',
+        optional: true
+    });
 
     const reserve = document.createElement('label');
     reserve.className = 'dash-plan-check';
@@ -405,80 +499,93 @@ function planPanel(snap, plan) {
     reserveBox.id = 'dash-plan-reserve';
     reserveBox.checked = plan.reserveSavings;
     const reserveText = document.createElement('span');
-    reserveText.textContent = 'Hold this month’s weekly share out of potential savings';
+    reserveText.innerHTML = '<strong>Hold the weekly share out of leftover</strong><small>Turns the week target into this month’s reserve so Potential Savings does not spend it.</small>';
     reserve.append(reserveBox, reserveText);
 
-    const tax = moneyField('dash-plan-tax', 'Tax withhold %', plan.taxWithholdPct, '0');
-    tax.querySelector('input').max = '50';
-    tax.querySelector('input').step = '0.1';
+    const tax = moneyField('dash-plan-tax', 'Custom withhold %', plan.taxWithholdPct, {
+        placeholder: '0',
+        max: 50,
+        step: 0.1,
+        describedBy: 'dash-plan-tax-hint'
+    });
     const taxPresets = document.createElement('div');
     taxPresets.className = 'dash-plan-choices';
     taxPresets.append(
-        choiceButton('dash-plan-tax-preset', '0', 'Off', plan.taxWithholdPct === 0),
-        choiceButton('dash-plan-tax-preset', '15.3', '15.3% SE tax', plan.taxWithholdPct === 15.3),
-        choiceButton('dash-plan-tax-preset', '25', '25% estimate', plan.taxWithholdPct === 25),
-        choiceButton('dash-plan-tax-preset', '30', '30% estimate', plan.taxWithholdPct === 30)
+        choiceButton('dash-plan-tax-preset', '0', 'Off', plan.taxWithholdPct === 0, 'No withhold'),
+        choiceButton('dash-plan-tax-preset', '15.3', '15.3% SE tax', plan.taxWithholdPct === 15.3, 'Self-employment'),
+        choiceButton('dash-plan-tax-preset', '25', '25% estimate', plan.taxWithholdPct === 25, 'Quarterly placeholder'),
+        choiceButton('dash-plan-tax-preset', '30', '30% estimate', plan.taxWithholdPct === 30, 'Quarterly placeholder')
     );
     taxPresets.addEventListener('change', (event) => {
         const picked = event.target?.value;
         const input = form.querySelector('#dash-plan-tax');
-        if (input && picked != null) input.value = picked;
+        if (input && picked != null) {
+            input.value = picked;
+            form.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     });
 
-    const fixed = moneyField('dash-plan-fixed', 'Monthly savings ($)', plan.savingsFixed);
-    const current = moneyField('dash-plan-current', 'Current savings ($)', plan.currentSavings);
-    current.querySelector('input').setAttribute('aria-describedby', 'dash-plan-current-hint');
-    const savePct = moneyField('dash-plan-savepct', 'Savings % of after-tax', plan.savingsPct, '0');
-    savePct.querySelector('input').max = '100';
-    savePct.querySelector('input').step = '0.1';
+    const fixed = moneyField('dash-plan-fixed', 'Monthly savings', plan.savingsFixed, {
+        placeholder: '0.00',
+        describedBy: 'dash-plan-weekly-hint'
+    });
+    const current = moneyField('dash-plan-current', 'Current bank savings', plan.currentSavings, {
+        placeholder: '0.00',
+        describedBy: 'dash-plan-current-hint',
+        optional: true
+    });
+    const savePct = moneyField('dash-plan-savepct', 'Savings % of after-tax', plan.savingsPct, {
+        placeholder: '0',
+        max: 100,
+        step: 0.1
+    });
 
-    const spendField = document.createElement('fieldset');
-    spendField.className = 'dash-plan-row';
-    const spendLegend = document.createElement('legend');
-    spendLegend.className = 'dash-plan-legend';
-    spendLegend.textContent = 'Spending counted';
-    const spendChoices = document.createElement('div');
-    spendChoices.className = 'dash-plan-choices';
-    spendChoices.append(
-        choiceButton('dash-plan-spend', 'logged', 'All logged bills', plan.spendBasis !== 'paid'),
-        choiceButton('dash-plan-spend', 'paid', 'Paid only', plan.spendBasis === 'paid')
-    );
-    spendField.append(spendLegend, spendChoices);
+    const clearBank = UI.createButton('Clear bank amount', () => {
+        const input = form.querySelector('#dash-plan-current');
+        if (input) input.value = '';
+        form.dispatchEvent(new Event('input', { bubbles: true }));
+    }, { icon: 'eraser' });
+    clearBank.classList.add('dash-plan-inline-btn');
+    clearBank.dataset.planClearBank = '';
 
-    const incomeField = document.createElement('fieldset');
-    incomeField.className = 'dash-plan-row';
-    const incomeLegend = document.createElement('legend');
-    incomeLegend.className = 'dash-plan-legend';
-    incomeLegend.textContent = 'Income counted';
-    const incomeChoices = document.createElement('div');
-    incomeChoices.className = 'dash-plan-choices';
-    incomeChoices.append(
-        choiceButton('dash-plan-income', 'deposited', 'Deposited only', plan.incomeBasis !== 'scheduled'),
-        choiceButton('dash-plan-income', 'scheduled', 'All scheduled', plan.incomeBasis === 'scheduled')
+    const spendField = choiceField(
+        'Spending counted',
+        choiceButton('dash-plan-spend', 'logged', 'All logged bills', plan.spendBasis !== 'paid', 'Paid and still owed'),
+        choiceButton('dash-plan-spend', 'paid', 'Paid only', plan.spendBasis === 'paid', 'Settled bills')
     );
-    incomeField.append(incomeLegend, incomeChoices);
+    const incomeField = choiceField(
+        'Income counted',
+        choiceButton('dash-plan-income', 'deposited', 'Deposited only', plan.incomeBasis !== 'scheduled', 'Cash that has landed'),
+        choiceButton('dash-plan-income', 'scheduled', 'All scheduled', plan.incomeBasis === 'scheduled', 'Include pay still due')
+    );
 
     const ratioField = document.createElement('fieldset');
     ratioField.className = 'dash-plan-row';
     const ratioLegend = document.createElement('legend');
     ratioLegend.className = 'dash-plan-legend';
-    ratioLegend.textContent = 'After-tax split (needs / wants / save)';
+    ratioLegend.textContent = 'After-tax split';
     const ratioRow = document.createElement('div');
     ratioRow.className = 'dash-plan-split';
     const ratioGroups = [
-        moneyField('dash-plan-needs', 'Needs %', plan.ratioNeeds, '50'),
-        moneyField('dash-plan-wants', 'Wants %', plan.ratioWants, '30'),
-        moneyField('dash-plan-save', 'Save %', plan.ratioSave, '20')
+        moneyField('dash-plan-needs', 'Needs %', plan.ratioNeeds, { placeholder: '50', max: 100, step: 1 }),
+        moneyField('dash-plan-wants', 'Wants %', plan.ratioWants, { placeholder: '30', max: 100, step: 1 }),
+        moneyField('dash-plan-save', 'Save %', plan.ratioSave, { placeholder: '20', max: 100, step: 1 })
     ];
-    ratioGroups.forEach((group) => {
-        const input = group.querySelector('input');
-        input.max = '100';
-        input.step = '1';
-    });
     ratioRow.append(...ratioGroups);
     ratioField.append(ratioLegend, ratioRow);
 
-    const caps = UI.createButton('Manage category monthly caps', () => openBudgetEditor());
+    const ratioPreset = UI.createButton('Use 50 / 30 / 20', () => {
+        const needs = form.querySelector('#dash-plan-needs');
+        const wants = form.querySelector('#dash-plan-wants');
+        const save = form.querySelector('#dash-plan-save');
+        if (needs) needs.value = '50';
+        if (wants) wants.value = '30';
+        if (save) save.value = '20';
+        form.dispatchEvent(new Event('input', { bubbles: true }));
+    }, { icon: 'scale' });
+    ratioPreset.classList.add('dash-plan-inline-btn');
+
+    const caps = UI.createButton('Manage category caps', () => openBudgetEditor(), { icon: 'adjustments' });
     caps.classList.add('dash-plan-caps');
 
     const presets = document.createElement('div');
@@ -488,6 +595,7 @@ function planPanel(snap, plan) {
         button.type = 'button';
         button.className = 'planner-preset';
         button.dataset.planPreset = preset.id;
+        button.setAttribute('aria-pressed', 'false');
         button.innerHTML = `
             <i class="ti ti-${preset.icon}" aria-hidden="true"></i>
             <span><strong>${preset.title}</strong><small>${preset.description}</small></span>
@@ -505,56 +613,127 @@ function planPanel(snap, plan) {
     ratioStatus.setAttribute('role', 'status');
     ratioField.append(ratioStatus);
 
-    const formGrid = document.createElement('div');
-    formGrid.className = 'planner-form-grid';
-    formGrid.append(
+    const weeklyHint = hint('dash-plan-weekly-hint', '');
+    const weeklyIncomeHint = hint('dash-plan-weekly-income-hint', '');
+    const currentHint = hint('dash-plan-current-hint', '');
+
+    const qualityPane = document.createElement('div');
+    qualityPane.className = 'planner-settings-pane';
+    qualityPane.id = 'planner-pane-quality';
+    qualityPane.dataset.planPane = 'quality';
+    qualityPane.setAttribute('role', 'tabpanel');
+    qualityPane.setAttribute('aria-labelledby', 'planner-tab-quality');
+    qualityPane.append(
+        sectionKicker('Quick start'),
+        presets,
+        document.createElement('div')
+    );
+    const qualityGrid = qualityPane.lastChild;
+    qualityGrid.className = 'planner-form-grid';
+    qualityGrid.append(
         planSection(
             'arrows-exchange',
             'What counts',
-            'Choose whether your plan uses every scheduled item or only settled cash.',
+            'Pick settled cash or the full calendar. This is the first step in leftover.',
             incomeField,
-            spendField
+            spendField,
+            hint('', 'Defaults keep deposited income minus every logged bill.')
         ),
         planSection(
             'receipt-tax',
             'Tax withholding',
-            'Set aside an estimate before calculating what is safe to spend.',
-            tax,
+            'Set aside an estimate before leftover. This is not a filing.',
             taxPresets,
-            hint('', 'Common estimates only. Your actual tax depends on your filing and location.')
-        ),
-        planSection(
-            'pig-money',
-            'Savings reserves',
-            'Stack a weekly amount, a monthly amount, or a percentage of after-tax income.',
-            weekly,
-            hint('dash-plan-weekly-hint', plan.weeklySavings > 0
-                ? `${formatMoney(snap.weeklyReserve)} held for ${snap.monthLabel} (${formatMoney(plan.weeklySavings)} × days in the month ÷ 7).`
-                : 'Month share is weekly × days in this month ÷ 7.'),
-            fixed,
-            savePct,
-            current,
-            hint('dash-plan-current-hint', 'Optional. Your current bank amount. Overview then shows growth potential instead of leftover dollars. It does not change leftover math.'),
-            reserve
+            tax,
+            hint('dash-plan-tax-hint', '15.3 is IRS self-employment tax. 25 and 30 are common quarterly placeholders.')
         ),
         planSection(
             'calendar-stats',
             'Weekly pace',
-            'Give calendar weeks an income target so you can see when you are ahead.',
+            'Give Sunday–Saturday rows an income target so you can see when you are ahead.',
             weeklyIn,
-            hint('dash-plan-weekly-income-hint', plan.weeklyIncome > 0
-                ? `A Sunday–Saturday row is ahead when gross income beats ${formatMoney(plan.weeklyIncome)} × days in that row ÷ 7.`
-                : 'Leave blank to use this month’s own income pace.')
+            weeklyIncomeHint
         ),
         planSection(
             'chart-pie',
             'Spending targets',
-            'Split after-tax income across needs, wants, and saving. The total must equal 100%.',
+            'Score after-tax income across needs, wants, and saving. The three boxes must add to 100%. They do not withhold a second time.',
             ratioField,
-            hint('', `Current month: needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}.`),
-            caps
+            hint('', `This month: needs ${formatMoney(snap.ratioNeedsSpent)} of ${formatMoney(snap.ratioNeedsCap)}, wants ${formatMoney(snap.ratioWantsSpent)} of ${formatMoney(snap.ratioWantsCap)}.`),
+            fieldRow(ratioPreset, caps)
         )
     );
+
+    const bankingPane = document.createElement('div');
+    bankingPane.className = 'planner-settings-pane';
+    bankingPane.id = 'planner-pane-banking';
+    bankingPane.dataset.planPane = 'banking';
+    bankingPane.setAttribute('role', 'tabpanel');
+    bankingPane.setAttribute('aria-labelledby', 'planner-tab-banking');
+    const bankingGrid = document.createElement('div');
+    bankingGrid.className = 'planner-form-grid';
+    bankingGrid.append(
+        planSection(
+            'building-bank',
+            'Current bank',
+            'Optional. The amount already in the bank. Overview then shows growth potential instead of leftover dollars. It never changes leftover.',
+            current,
+            currentHint,
+            clearBank
+        ),
+        planSection(
+            'pig-money',
+            'Savings you hold back',
+            'Stack a weekly amount, a monthly amount, or a percent of after-tax income. These come out of leftover once.',
+            fieldRow(weekly, fixed),
+            savePct,
+            weeklyHint,
+            reserve
+        )
+    );
+    bankingPane.append(bankingGrid);
+
+    const tabs = document.createElement('div');
+    tabs.className = 'planner-settings-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Planner setting groups');
+    PLAN_PANES.forEach((pane) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'planner-settings-tab';
+        tab.id = `planner-tab-${pane.id}`;
+        tab.dataset.planPane = pane.id;
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-controls', `planner-pane-${pane.id}`);
+        tab.innerHTML = `
+            <span class="planner-settings-tab-icon"><i class="ti ti-${pane.icon}" aria-hidden="true"></i></span>
+            <span class="planner-settings-tab-copy">
+                <strong>${pane.title}</strong>
+                <small>${pane.description}</small>
+            </span>
+            <span class="planner-settings-tab-dot" aria-hidden="true"></span>
+        `;
+        tab.addEventListener('click', () => {
+            applyPlannerPane(form, pane.id);
+            tab.focus();
+        });
+        tabs.appendChild(tab);
+    });
+    tabs.addEventListener('keydown', (event) => {
+        const order = PLAN_PANES.map((pane) => pane.id);
+        const current = order.indexOf(plannerSettingsPane);
+        let next = current;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+            next = event.key === 'ArrowRight'
+                ? (current + 1) % order.length
+                : (current - 1 + order.length) % order.length;
+        } else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = order.length - 1;
+        else return;
+        event.preventDefault();
+        applyPlannerPane(form, order[next]);
+        form.querySelector(`[role="tab"][data-plan-pane="${order[next]}"]`)?.focus();
+    });
 
     const status = document.createElement('div');
     status.className = 'planner-save-status';
@@ -569,10 +748,12 @@ function planPanel(snap, plan) {
         setPlanForm(form, PLAN_DEFAULTS);
         form.dispatchEvent(new Event('input', { bubbles: true }));
     }, { icon: 'restore' });
-    const cancel = UI.createButton('Cancel changes', () => {
+    reset.setAttribute('aria-label', 'Reset every planner field to the Simple defaults');
+    const cancel = UI.createButton('Discard changes', () => {
         setPlanForm(form, plan);
         form.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    }, { icon: 'x' });
+    cancel.setAttribute('aria-label', 'Discard unsaved planner changes');
     const save = UI.createButton(planIsDefault(plan) ? 'Save plan' : 'Update plan', null, {
         accent: true,
         icon: 'device-floppy'
@@ -587,12 +768,8 @@ function planPanel(snap, plan) {
     secondary.append(reset, cancel);
     actions.append(status, secondary, save);
 
-    form.append(
-        sectionKicker('Quick start'),
-        presets,
-        formGrid,
-        actions
-    );
+    form.append(tabs, qualityPane, bankingPane, actions);
+    applyPlannerPane(form, plannerSettingsPane);
 
     const syncForm = () => {
         const taxValue = Number(form.querySelector('#dash-plan-tax')?.value) || 0;
@@ -613,11 +790,37 @@ function planPanel(snap, plan) {
         form.classList.toggle('is-dirty', dirty);
         save.disabled = !dirty || !validRatio;
         cancel.disabled = !dirty;
+        reset.disabled = planIsDefault(draft);
+        clearBank.disabled = !(draft.currentSavings > 0);
         statusIcon.className = `ti ti-${dirty ? 'edit' : 'circle-check'}`;
-        statusText.textContent = dirty ? 'Unsaved changes' : 'Plan is up to date';
+        statusText.textContent = dirty
+            ? (validRatio ? 'Unsaved changes' : 'Unsaved — split must equal 100%')
+            : 'Plan is up to date';
+
+        const reserveAmt = monthReserve(draft.weeklySavings, currentDate);
+        weeklyHint.textContent = draft.weeklySavings > 0
+            ? `${formatMoney(reserveAmt)} held for ${snap.monthLabel} (${formatMoney(draft.weeklySavings)} × days in the month ÷ 7).`
+            : 'Month share is weekly × days in this month ÷ 7. Leave blank if you only use a monthly dollar or a percent.';
+        weeklyIncomeHint.textContent = draft.weeklyIncome > 0
+            ? `A Sunday–Saturday row is ahead when gross income beats ${formatMoney(draft.weeklyIncome)} × days in that row ÷ 7.`
+            : 'Leave blank to use this month’s own income pace.';
+        if (draft.currentSavings > 0) {
+            const growth = growthPotentialPct(snap.leftToSpend, draft.currentSavings);
+            currentHint.textContent = `Overview will show ${formatDelta(growth)} growth on ${formatMoney(draft.currentSavings)}. Leftover stays ${formatMoney(snap.leftToSpend)}.`;
+        } else {
+            currentHint.textContent = 'Leave blank to keep the leftover dollar ring on Overview.';
+        }
+
+        form.querySelector('[role="tab"][data-plan-pane="quality"]')
+            ?.classList.toggle('is-dirty', paneIsDirty(draft, plan, QUALITY_KEYS));
+        form.querySelector('[role="tab"][data-plan-pane="banking"]')
+            ?.classList.toggle('is-dirty', paneIsDirty(draft, plan, BANKING_KEYS));
+
         PLAN_PRESETS.forEach((preset) => {
-            form.querySelector(`[data-plan-preset="${preset.id}"]`)
-                ?.classList.toggle('is-active', plansMatch(draft, preset.plan));
+            const button = form.querySelector(`[data-plan-preset="${preset.id}"]`);
+            const on = plansMatch(draft, preset.plan);
+            button?.classList.toggle('is-active', on);
+            button?.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
     };
 
@@ -626,8 +829,9 @@ function planPanel(snap, plan) {
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         if (save.disabled) return;
-        patch({ plan: readPlanForm(form) });
-        Toast.show(planIsDefault(plan) ? 'Planner saved.' : 'Planner updated.', 'success');
+        const next = readPlanForm(form);
+        patch({ plan: next });
+        Toast.show(planIsDefault(next) ? 'Planner saved.' : 'Planner updated.', 'success');
     });
     syncForm();
     return form;
@@ -727,7 +931,7 @@ function budgetSlide(snap, events, currentDate, plan) {
             extrasTitle: 'Planner figures',
             extras
         }),
-        planPanel(snap, plan)
+        planPanel(snap, plan, currentDate)
     ];
 }
 
@@ -898,7 +1102,7 @@ function renderPlannerPane(snap, events, currentDate, plan) {
     slide.append(pageHead({
         kicker: 'Monthly plan',
         title: 'Build a plan for your money',
-        description: 'Choose what counts, reserve tax and savings, then set targets you can update any time.',
+        description: 'Quality settings choose what counts and how leftover is scored. Banking info is the cash you already have and the amounts you hold back.',
         monthLabel: snap.monthLabel
     }), ...budgetSlide(snap, events, currentDate, plan), formulaCard(snap));
     root.replaceChildren(slide);
