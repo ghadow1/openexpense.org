@@ -11,31 +11,14 @@ import { normalizeRepeat, normalizeSeriesId } from './series.js';
 import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
 import { ENVELOPE } from './envelope.js';
 import { planIsDefault, sanitizePlan } from './plan.js';
+import { FILE_LIMITS } from './limits.js';
 
 export { sanitizePlan };
+export { FILE_LIMITS };
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const KID_KEY = /^[a-f0-9]{16,64}$/i;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
-export const FILE_LIMITS = {
-    // A cheap pre-filter so a hostile file cannot force a huge parse; the real
-    // bound on what gets kept is maxEntries/maxDays below. It has to stay above
-    // anything this app can itself export, or a user's own backup would be
-    // refused on the way back in: 25k entries with 500-char notes is ~19 MB.
-    maxBytes: 32 * 1024 * 1024,
-    maxDays: 4000,
-    maxPerDay: 250,
-    maxEntries: 25000,
-    maxTitle: 200,
-    maxNote: 2000,
-    maxPrice: 1e9,
-    maxCategory: 40,
-    maxGroup: 40,
-    maxSource: 24,
-    maxSourceId: 80,
-    maxBudgets: 60
-};
 
 export function ledgerFileBase(ledgerName) {
     return Utils.sanitizeFilename(ledgerName) || 'ledger';

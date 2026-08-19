@@ -111,15 +111,21 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 
 ## Receipts
 
-`receipt.js` lazy-loads PP-OCRv5 (and pdf.js for PDFs) from jsDelivr. Images are oriented and contrast-enhanced in a canvas, recognized locally, then parsed. `saveExpense()` writes the result like a manual add.
+`receipt.js` lazy-loads bundled PP-OCRv5 and PDF.js modules. Reviewed workers,
+models, and dictionaries are served from same-origin `vendor/`. Images are
+oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
+`saveExpense()` writes the confirmed result like a manual add.
 
 ## Build
 
-```
-npx esbuild src/main.js --bundle --format=esm --minify --splitting --outdir=.
+```bash
+npm run build
 ```
 
-Output names: `app.js`, `chunk-[hash].js`. Pages has no build job — commit the new files and delete stale chunks that `app.js` no longer imports.
+`scripts/build.mjs` owns the esbuild configuration for both source entry points.
+Output names are `app.js`, `chunk-[hash].js`, and `engine.js`. Pages has no
+build job, so commit generated files with their source; the build removes stale
+chunks before writing the current graph.
 
 `npm run build` also writes `sitemap.xml` (static, GitHub Pages). Crawlers read `index.html` directly: Privacy & Help copy is in the first HTML response, so no SSR is required.
 

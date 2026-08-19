@@ -26,6 +26,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | File | Role |
 | --- | --- |
 | [`core/store.js`](core/store.js) | `getState`, `patch`, `subscribe` |
+| [`core/limits.js`](core/limits.js) | Canonical ledger/file count, size, field, and price limits |
 | [`core/persist.js`](core/persist.js) | Encrypted IndexedDB autosave |
 | [`core/crypto.js`](core/crypto.js) | Device AES-256-GCM key |
 | [`core/bundle.js`](core/bundle.js) | Encrypted ledger.json + portable key.json |

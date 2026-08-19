@@ -75,6 +75,9 @@ For classroom use, the
 maps state to the DOM, and explains the security controls. Its companion
 [`security and mathematics audit`](docs/SECURITY-MATHEMATICS-AUDIT-2026-08-19.md)
 records verified boundaries, corrected findings, and residual risks.
+The [`Architectural Manual`](docs/ARCHITECTURAL-MANUAL.md) provides the complete
+directory map, module dependency rules, build graph, and student onboarding
+workflow.
 
 ## Data format
 

@@ -10,7 +10,7 @@ Please keep it that way. New features should work with the ledger already on the
 
 ## Before you start
 
-1. Read [`CHANGELOG.md`](CHANGELOG.md) (user-facing notes), [`docs/CODEMAP.md`](docs/CODEMAP.md) (editor contract), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`src/README.md`](src/README.md).
+1. Read [`CHANGELOG.md`](CHANGELOG.md) (user-facing notes), [`docs/CODEMAP.md`](docs/CODEMAP.md) (editor contract), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/ARCHITECTURAL-MANUAL.md`](docs/ARCHITECTURAL-MANUAL.md), and [`src/README.md`](src/README.md).
 2. Use a secure context (`localhost` or `https`). `file://` will fail encryption and some APIs.
 3. Do not commit a real ledger, receipts, or key files.
 
@@ -52,7 +52,8 @@ Export only what other modules import. Keep helpers file-private.
 
 ## Testing locally
 
-Run `npm test` for ledger-file quality control (one-file expense + income, encrypt/decrypt, kid mismatch, key wipe).
+Run `npm test` for architecture, financial math, import/export, encryption,
+render dependencies, responsive layout, search, and UI-helper quality control.
 
 Before you open a PR, also click through:
 

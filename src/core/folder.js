@@ -7,8 +7,8 @@
  */
 import { metaGet, metaPut } from './persist.js';
 import { Utils } from './utils.js';
+import { FILE_LIMITS } from './limits.js';
 import {
-    FILE_LIMITS,
     kidsMatch,
     matchLedgerPairNames,
     validateEncFile,

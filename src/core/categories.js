@@ -11,7 +11,7 @@
  * CSV export should read as. Unknown labels stay intact and render as custom
  * categories, so a ledger from elsewhere never loses information.
  */
-import { FILE_LIMITS } from './ledger-file.js';
+import { FILE_LIMITS } from './limits.js';
 import { Utils } from './utils.js';
 
 /**

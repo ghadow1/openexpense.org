@@ -8,7 +8,7 @@
  * groups unless something folds them back together, so matching is done on a
  * normalized key while the label the user actually typed is what gets shown.
  */
-import { FILE_LIMITS } from './ledger-file.js';
+import { FILE_LIMITS } from './limits.js';
 import { Utils } from './utils.js';
 
 /** Trims and collapses runs of whitespace, then caps to the stored length. */
