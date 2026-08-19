@@ -94,6 +94,7 @@ async function initApplication() {
             bootPatch.events = cleaned.events;
             bootPatch.budgets = cleaned.budgets || {};
             bootPatch.plan = cleaned.plan || {};
+            bootPatch.goals = cleaned.goals || [];
         }
     }
 
@@ -288,7 +289,7 @@ function queueRender(changedKeys) {
         const keys = pendingKeys;
         pendingKeys = null;
         const keyList = Object.keys(keys);
-        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace', 'trackerFilter', 'plan', 'budgets'].includes(k));
+        const needsApp = keyList.some(k => ['isDark', 'autosaveEnabled', 'ledgerName', 'currentDate', 'events', 'ledgerFace', 'trackerFilter', 'plan', 'budgets', 'goals'].includes(k));
         const needsModal = getState().selectedKey
             && keyList.some(k => ['selectedKey', 'events', 'editingIndex', 'isDark', 'ledgerFace'].includes(k));
 

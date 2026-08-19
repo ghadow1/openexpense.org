@@ -11,13 +11,25 @@ import { budgetStatus, detectRecurring, flagAnomalies, snapshot } from './insigh
 import { bindHostBridge, isEmbedMode } from './bridge.js';
 
 function currentLedger() {
-    const { ledgerName, events } = getState();
-    return { name: ledgerName || '', events: events || {} };
+    const { ledgerName, events, budgets, plan, goals } = getState();
+    return {
+        name: ledgerName || '',
+        events: events || {},
+        budgets: budgets || {},
+        plan: plan || {},
+        goals: goals || []
+    };
 }
 
 function applyLedger(payload) {
     const cleaned = sanitizeLedger(payload || {}) || { name: '', events: {} };
-    patch({ ledgerName: cleaned.name || '', events: cleaned.events || {} });
+    patch({
+        ledgerName: cleaned.name || '',
+        events: cleaned.events || {},
+        budgets: cleaned.budgets || {},
+        plan: cleaned.plan || {},
+        goals: cleaned.goals || []
+    });
     return currentLedger();
 }
 
@@ -27,11 +39,17 @@ export function createHostApi() {
         get: currentLedger,
         set: applyLedger,
         importTransactions(list) {
-            const { ledgerName, events } = getState();
-            return applyLedger({ name: ledgerName, events: mergeTransactions(events, list) });
+            const ledger = currentLedger();
+            return applyLedger({ ...ledger, events: mergeTransactions(ledger.events, list) });
         },
         getSnapshot(date) {
-            return snapshot(getState().events, date || getState().currentDate);
+            const state = getState();
+            return snapshot(
+                state.events,
+                date || state.currentDate,
+                state.plan,
+                state.goals
+            );
         },
         subscribe(fn) {
             return subscribe(() => fn(currentLedger()));

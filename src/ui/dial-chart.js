@@ -90,8 +90,14 @@ export function createDial({
  * @param {Array<{label: string, value: number, index?: number}>} options.points
  * @param {Function} [options.onSelect]
  * @param {string} [options.ariaLabel]
+ * @param {Array<{index: number, label: string, date?: string}>} [options.milestones]
  */
-export function createSpark({ points = [], onSelect = null, ariaLabel = 'Period total' } = {}) {
+export function createSpark({
+    points = [],
+    onSelect = null,
+    ariaLabel = 'Period total',
+    milestones = []
+} = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'oe-spark';
     wrap.setAttribute('role', typeof onSelect === 'function' ? 'group' : 'img');
@@ -129,6 +135,22 @@ export function createSpark({ points = [], onSelect = null, ariaLabel = 'Period 
     if (typeof onSelect === 'function') svg.setAttribute('aria-hidden', 'true');
 
     const yOf = (value) => padT + plotH - ((value - minV) / span) * plotH;
+
+    (Array.isArray(milestones) ? milestones : []).forEach((milestone) => {
+        const monthIndex = Math.max(0, Math.min(11, Number(milestone?.index) || 0));
+        const x = padL + (monthIndex / 11) * plotW;
+        const line = svgEl('line', {
+            class: 'oe-spark-milestone',
+            x1: x,
+            x2: x,
+            y1: padT,
+            y2: height - padB
+        });
+        const title = svgEl('title');
+        title.textContent = `${milestone.label || 'Goal'}${milestone.date ? ` — ${milestone.date}` : ''}`;
+        line.appendChild(title);
+        svg.appendChild(line);
+    });
 
     ticks.forEach((tick) => {
         const y = yOf(tick);

@@ -12,22 +12,26 @@ export function createSession(initial = {}) {
     const cleaned = sanitizeLedger(initial) || { name: '', events: {} };
     let name = cleaned.name || '';
     let events = cleaned.events || {};
+    let plan = cleaned.plan || {};
+    let goals = cleaned.goals || [];
     const listeners = new Set();
 
     const emit = () => {
-        const state = { name, events };
+        const state = { name, events, plan, goals };
         listeners.forEach((fn) => fn(state));
         return state;
     };
 
     return {
         get() {
-            return { name, events };
+            return { name, events, plan, goals };
         },
         set(payload) {
             const next = sanitizeLedger(payload || {}) || { name: '', events: {} };
             name = next.name || '';
             events = next.events || {};
+            plan = next.plan || {};
+            goals = next.goals || [];
             return emit();
         },
         importTransactions(list) {
@@ -35,7 +39,7 @@ export function createSession(initial = {}) {
             return emit();
         },
         getSnapshot(date) {
-            return snapshot(events, date);
+            return snapshot(events, date, plan, goals);
         },
         subscribe(fn) {
             listeners.add(fn);

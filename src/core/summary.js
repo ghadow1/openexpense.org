@@ -18,6 +18,7 @@ import {
     weekBounds,
     windowTotals
 } from './plan.js';
+import { assessGoals } from './goals.js';
 
 function monthKey(y, m) {
     return `${y}-${Utils.pad(m + 1)}`;
@@ -504,7 +505,7 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
  * withhold tax and hold savings; the default plan leaves every existing
  * figure identical. Does not persist.
  */
-export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan) {
+export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan, goals = []) {
     const rules = sanitizePlan(plan);
     const spend = computeMonthlySummary(events, currentDate, 'expense', asOf);
     const income = computeMonthlySummary(events, currentDate, 'income', asOf);
@@ -543,6 +544,13 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
     // Optional bank amount is display-only. Leftover math stays the cash line.
     const currentSavings = rules.currentSavings;
     const growthPct = growthPotentialPct(leftToSpend, currentSavings);
+    // Existing holds are still available for goals; adding a goal hold should
+    // move dollars within the waterfall, not make feasibility collapse.
+    const goalAssessment = assessGoals(goals, {
+        currentSavings,
+        monthlySurplus: Math.max(0, leftToSpend + planner.savingsHold),
+        asOf
+    });
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
     const runwayCash = addMoney(savings.net, Math.max(0, leftToSpend));
@@ -567,6 +575,7 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         leftToSpend,
         currentSavings,
         growthPct,
+        goalAssessment,
         drawsOnSavings: leftToSpend < 0,
         projectedIncome: income.total,
         incomeDue: income.pending,

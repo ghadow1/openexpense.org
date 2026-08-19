@@ -73,6 +73,26 @@ test('session set/get/import stay sanitized', () => {
     assert.equal(Object.hasOwn(session.get().events, 'constructor'), false);
 });
 
+test('headless session carries goals into planner analytics', () => {
+    const session = createSession({
+        events: {
+            '2026-08-01': [{ title: 'Pay', price: 1000, kind: 'income', paid: true }]
+        },
+        plan: { currentSavings: 100 },
+        goals: [{
+            id: '11111111111111111111111111111111',
+            title: 'Emergency fund',
+            targetDate: '2026-09-18',
+            targetAmount: 500,
+            createdAt: 1
+        }]
+    });
+    assert.equal(session.get().goals.length, 1);
+    const result = session.getSnapshot(new Date(2026, 7, 19));
+    assert.equal(result.goalAssessment.goals[0].title, 'Emergency fund');
+    assert.equal(result.goalAssessment.goals[0].currentAllocation, 100);
+});
+
 test('budget and anomaly helpers stay local', () => {
     const events = {
         '2026-08-01': [{ title: 'Rent', price: 100 }],

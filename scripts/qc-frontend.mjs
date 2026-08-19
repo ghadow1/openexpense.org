@@ -68,11 +68,12 @@ test('visual state and accessibility state stay synchronized', async () => {
 });
 
 test('generated controls expose names and compatible roles', async () => {
-    const [calendar, charts, toasts, focus] = await Promise.all([
+    const [calendar, charts, toasts, focus, goals] = await Promise.all([
         read('src/features/calendar.js'),
         read('src/ui/dial-chart.js'),
         read('src/ui/toast.js'),
-        read('src/ui/dialog-focus.js')
+        read('src/ui/dialog-focus.js'),
+        read('src/features/goals.js')
     ]);
 
     assert.match(calendar, /UI\.createButton\('Previous month'/);
@@ -83,4 +84,9 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(toasts, /aria-hidden="true"/);
     assert.match(focus, /element\.inert = true/);
     assert.match(focus, /restoreIsolation/);
+    assert.match(goals, /className = 'planner-goal-add'/);
+    assert.match(goals, /aria-label', 'Add savings goal'/);
+    assert.match(goals, /aria-modal', 'true'/);
+    assert.match(goals, /activateDialogFocus/);
+    assert.match(goals, /goal-drag-handle/);
 });

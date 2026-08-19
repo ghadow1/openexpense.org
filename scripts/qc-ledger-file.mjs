@@ -239,6 +239,31 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
     });
 });
 
+test('sanitizeLedger keeps bounded savings goals in priority order', () => {
+    const cleaned = sanitizeLedger({
+        name: 'Goal ledger',
+        events: sample.events,
+        goals: [
+            {
+                id: '11111111111111111111111111111111',
+                title: ' Emergency   fund ',
+                targetDate: '2027-01-15',
+                targetAmount: 2500.125,
+                createdAt: 1,
+                remoteId: 'drop'
+            },
+            { title: 'Impossible date', targetDate: '2027-02-31', targetAmount: 5 }
+        ]
+    });
+    assert.deepEqual(cleaned.goals, [{
+        id: '11111111111111111111111111111111',
+        title: 'Emergency fund',
+        targetDate: '2027-01-15',
+        targetAmount: 2500.13,
+        createdAt: 1
+    }]);
+});
+
 test('readJsonFile rejects oversized and invalid files', async () => {
     const huge = { size: FILE_LIMITS.maxBytes + 1, text: async () => '' };
     const tooBig = await readJsonFile(huge);

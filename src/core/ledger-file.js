@@ -11,6 +11,7 @@ import { normalizeRepeat, normalizeSeriesId } from './series.js';
 import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
 import { ENVELOPE } from './envelope.js';
 import { planIsDefault, sanitizePlan } from './plan.js';
+import { sanitizeGoals } from './goals.js';
 import { FILE_LIMITS } from './limits.js';
 
 export { sanitizePlan };
@@ -356,6 +357,9 @@ export function sanitizeLedger(payload) {
 
     const plan = sanitizePlan(payload.plan);
     if (!planIsDefault(plan)) ledger.plan = plan;
+
+    const goals = sanitizeGoals(payload.goals);
+    if (goals.length) ledger.goals = goals;
 
     return ledger;
 }

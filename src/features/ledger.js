@@ -57,7 +57,7 @@ export const Ledger = {
     },
 
     exportPayload() {
-        const { ledgerName, events, budgets, plan } = getState();
+        const { ledgerName, events, budgets, plan, goals } = getState();
         const payload = {
             name: ledgerName || '',
             events,
@@ -65,6 +65,7 @@ export const Ledger = {
         };
         if (budgets && Object.keys(budgets).length) payload.budgets = budgets;
         if (plan && !planIsDefault(plan)) payload.plan = sanitizePlan(plan);
+        if (Array.isArray(goals) && goals.length) payload.goals = goals;
         return payload;
     },
 
@@ -466,7 +467,7 @@ export const Ledger = {
                 return;
             }
             offerDeleteUndo(getState(), { count: countEntries(events) });
-            patch({ events: {}, budgets: {}, plan: {}, ledgerName: '', selectedKey: null, editingIndex: null });
+            patch({ events: {}, budgets: {}, plan: {}, goals: [], ledgerName: '', selectedKey: null, editingIndex: null });
             Toast.show('Calendar and device encryption key cleared.', 'success');
         });
     },
@@ -761,7 +762,8 @@ export const Ledger = {
             ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
             events: cleaned.events,
             budgets: cleaned.budgets || {},
-            plan: cleaned.plan || {}
+            plan: cleaned.plan || {},
+            goals: cleaned.goals || []
         });
         const count = countEntries(cleaned.events);
         Toast.show(`Imported ${count} item${count === 1 ? '' : 's'} (expenses and income).`, 'success');

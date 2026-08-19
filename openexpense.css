@@ -2379,6 +2379,22 @@ html.is-action-busy [data-lockable] {
         gap: 10px;
     }
 
+    .planner-page-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .planner-goals-head,
+    .planner-goal-advice {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .planner-goal-advice .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
     .planner-presets,
     .planner-form-grid,
     .planner-settings-tabs,
@@ -2422,6 +2438,336 @@ html.is-action-busy [data-lockable] {
     background: var(--surface);
     width: 100%;
     box-sizing: border-box;
+}
+
+.planner-page-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+.planner-goal-add {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 0;
+    border: 1px solid #153e67;
+    border-radius: var(--radius-sm);
+    background: #08294d;
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out),
+        transform var(--dur-fast) var(--ease-out);
+}
+
+.planner-goal-add:hover {
+    border-color: #2d5f91;
+    background: #0b3767;
+    transform: translateY(-1px);
+}
+
+.planner-goal-add svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.planner-goals {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: clamp(14px, 2.5vw, 20px);
+}
+
+.planner-goals-head,
+.planner-goal-advice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.planner-goals-head h3 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--fs-md);
+}
+
+.planner-goals-head p {
+    margin: 4px 0 0;
+    color: var(--text2);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+}
+
+.planner-goal-inline-add {
+    appearance: none;
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text-strong);
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.planner-goal-empty {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+    padding: 16px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.planner-goal-empty > .ti {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: #0b3767;
+    font-size: 19px;
+}
+
+.planner-goal-empty span {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.planner-goal-empty small {
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+}
+
+.planner-goal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.planner-goal-card {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface2);
+    transition: border-color var(--dur-fast) var(--ease-out),
+        background-color var(--dur-fast) var(--ease-out),
+        opacity var(--dur-fast) var(--ease-out);
+}
+
+.planner-goal-card.is-no-amount {
+    background: #f1f3f5;
+    color: #5f6872;
+}
+
+.planner-goal-card.is-achievable {
+    border-color: color-mix(in srgb, #34495e 42%, var(--border));
+    background: color-mix(in srgb, #34495e 8%, var(--surface));
+}
+
+.planner-goal-card.is-unachievable {
+    border-color: color-mix(in srgb, #800000 38%, var(--border));
+    background: color-mix(in srgb, rgba(128, 0, 0, 0.35) 28%, var(--surface));
+}
+
+.planner-goal-card.is-dragging {
+    opacity: 0.48;
+}
+
+.planner-goal-card.is-drop-target {
+    border-color: var(--accent);
+    box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.goal-drag-handle {
+    display: grid;
+    place-items: center;
+    border-right: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: grab;
+    touch-action: none;
+}
+
+.goal-drag-handle:active {
+    cursor: grabbing;
+}
+
+.goal-card-body {
+    appearance: none;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 11px 12px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.goal-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.goal-card-top strong {
+    overflow: hidden;
+    color: var(--text-strong);
+    font-size: var(--fs-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.goal-state {
+    flex: 0 0 auto;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-full);
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.is-achievable .goal-state {
+    color: #34495e;
+}
+
+.is-unachievable .goal-state {
+    color: #7b2020;
+}
+
+.goal-meta,
+.goal-figures {
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.35;
+}
+
+.goal-progress {
+    display: block;
+    height: 4px;
+    margin-top: 3px;
+    overflow: hidden;
+    border-radius: var(--radius-full);
+    background: var(--border);
+}
+
+.goal-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #34495e;
+}
+
+.is-unachievable .goal-progress > span {
+    background: #7b2020;
+}
+
+.planner-goal-advice {
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.planner-goal-advice.has-risk {
+    border-top-color: color-mix(in srgb, #800000 38%, var(--border));
+}
+
+.planner-goal-advice p {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    color: var(--text);
+    font-size: var(--fs-xs);
+}
+
+.planner-goal-advice span {
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+}
+
+.goal-dialog {
+    width: min(460px, calc(100vw - 28px));
+    padding: 0;
+    overflow: hidden;
+}
+
+.goal-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.goal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    padding: 18px;
+}
+
+.goal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.goal-form-note {
+    margin: 0;
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.45;
+}
+
+.goal-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.goal-dialog-actions .goal-delete {
+    margin-right: auto;
+    color: var(--danger-text);
+}
+
+.oe-spark-milestone {
+    stroke: #34495e;
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+    opacity: 0.8;
 }
 
 /* Wide screens get the split beside the headline, so the card earns its width
@@ -6592,6 +6938,34 @@ textarea:focus-visible {
 [data-theme="dark"] .planner-settings-tab {
     background: #111;
     border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .planner-goal-card.is-no-amount {
+    background: #16181b;
+    color: #9aa2aa;
+}
+
+[data-theme="dark"] .planner-goal-card.is-achievable {
+    border-color: #34495e;
+    background: color-mix(in srgb, #34495e 34%, #050505);
+}
+
+[data-theme="dark"] .planner-goal-card.is-unachievable {
+    border-color: #673030;
+    background: color-mix(in srgb, rgba(128, 0, 0, 0.35) 62%, #050505);
+}
+
+[data-theme="dark"] .is-achievable .goal-state {
+    color: #a9bbca;
+}
+
+[data-theme="dark"] .is-unachievable .goal-state {
+    color: #d9a1a1;
+}
+
+[data-theme="dark"] .planner-goal-empty > .ti {
+    background: #000;
+    color: #8db4dc;
 }
 
 [data-theme="dark"] .dash-plan-choice.is-on,

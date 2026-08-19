@@ -38,6 +38,15 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
     "ratioWants": 30,
     "ratioSave": 20
   },
+  "goals": [
+    {
+      "id": "11111111111111111111111111111111",
+      "title": "Emergency fund",
+      "targetDate": "2027-01-15",
+      "targetAmount": 2500,
+      "createdAt": 1780000000000
+    }
+  ],
   "savedAt": 1780000000000
 }
 ```
@@ -48,6 +57,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. The array order on a date is the order shown on that day after a drag-reorder. |
 | `budgets` | no | Monthly cap per category label, e.g. `{ "Groceries": 400 }`. Positive numbers only, max 60 entries. Omitted entirely when no caps are set. Kept in the ledger rather than in browser storage so restoring a backup on another device brings the caps back with the history. |
 | `plan` | no | Planner rules Overview uses for leftover (shown as Potential Savings). Omitted when every field is the default cash line. Same travel rule as `budgets`. |
+| `goals` | no | Ordered savings goals. Array order is allocation priority. Maximum 50; omitted when empty. Goals travel with encrypted backups and never require a server. |
 | `savedAt` | export only | Unix ms, written by `Ledger.exportPayload()`. Ignored on import. |
 
 ### Plan object
@@ -87,6 +97,34 @@ Derived figures (not stored):
 | Days of cash (runway) | `(savings funds + max(0, left to spend)) ÷ daily burn`, one decimal. Investopedia / CFI cash runway = cash ÷ burn rate. |
 | Week buckets | Calendar days 1–7, 8–14, 15–21, 22–28, 29–end. Each target is spendable × (days in the week ÷ days in the month); leftover cents sit on the last week. |
 | Calendar week hints | Sunday–Saturday row of the viewed month. A day is over budget when its counted spend is above that day’s safe amount (left to spend ÷ remaining days). No rail when fewer than two days are over. Two over days: half red / half gray. Three or more: full red. Day squares stay the surface colour. |
+
+### Goals array
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `id` | yes | Random 128-bit hexadecimal local identity. |
+| `title` | yes | Collapsed text, maximum 80 characters. |
+| `targetDate` | yes | Real `YYYY-MM-DD` calendar date. |
+| `targetAmount` | no | Positive amount rounded to cents. Missing means “No amount set” and disables feasibility scoring. |
+| `createdAt` | yes | Local Unix timestamp used for stable metadata; priority remains the array order. |
+
+Current savings and available monthly surplus flow through goals once from top
+to bottom. For each priced goal:
+
+`required daily = max(0, target − allocated current savings) ÷ max(1, days remaining)`
+
+`required monthly = required daily × (365.25 ÷ 12)`
+
+The projected amount is current allocation plus that goal’s allocated monthly
+surplus over the remaining time. This follows the CFPB savings-plan method of
+dividing the amount needed by the available weeks/months and comparing that
+pace with budget surplus. Reordering goals changes priority; it does not move
+money at a bank.
+
+Research basis:
+
+- [CFPB — Savings Plan Tool](https://files.consumerfinance.gov/f/documents/cfpb_your-money-your-goals_savings_plan_tool_2018-11_ADA.pdf)
+- [CFPB — Set a goal, make a plan, and save automatically](https://www.consumerfinance.gov/archive/blog/set-a-goal-make-a-plan-and-save-automatically/)
 
 ## Expense
 
@@ -170,6 +208,7 @@ The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
 - Sanitized `budgets` map: non-empty labels, positive finite amounts, prototype keys refused, count capped
 - Sanitized `plan`: weekly savings rounded to cents, `spendBasis` `logged` or `paid`, `incomeBasis` `deposited` or `scheduled`; omitted when it matches the default cash line
+- Sanitized `goals`: valid ids/dates, bounded titles and amounts, unique ids, count capped at 50
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 
 OpenExpense drops its portable-key references after unlock, on timeout, and when the page unloads. JavaScript cannot guarantee physical memory erasure. The portable key is never intentionally written to IndexedDB or `localStorage`. Exporting again creates a **new** key pair; the previous `key.json` still unlocks the earlier file.
@@ -178,7 +217,7 @@ OpenExpense drops its portable-key references after unlock, on timeout, and when
 
 | Database | Store | Key | Value |
 | --- | --- | --- | --- |
-| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events, budgets, plan }`, with its own header bound in as AAD |
+| `openexpense` (v2) | `ledger` | `current` | Encrypted envelope of `{ name, events, budgets, plan, goals }`, with its own header bound in as AAD |
 | `openexpense` (v2) | `meta` | `ledger-key-v1` | Non-extractable `CryptoKey` for **autosave only** — not the portable `key.json` |
 
 Do not check a real database dump or `*.key.json` into git. The sample under `examples/` is fictional plaintext for humans to read; it is not a user export.

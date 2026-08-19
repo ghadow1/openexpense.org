@@ -11,6 +11,7 @@ test('undo snapshot clones events so later edits cannot rewrite it', () => {
         events: {
             '2026-08-17': [{ title: 'Coffee', price: 5, paid: true }]
         },
+        goals: [{ id: '1', title: 'Emergency fund' }],
         ledgerName: 'QC household',
         selectedKey: '2026-08-17',
         editingIndex: 0
@@ -18,10 +19,12 @@ test('undo snapshot clones events so later edits cannot rewrite it', () => {
     const snap = captureUndoSlice(state);
     state.events['2026-08-17'][0].title = 'Changed';
     state.events['2026-08-18'] = [{ title: 'New', price: 1 }];
+    state.goals[0].title = 'Changed goal';
     state.ledgerName = 'Other';
     state.selectedKey = null;
     assert.equal(snap.events['2026-08-17'][0].title, 'Coffee');
     assert.equal(snap.events['2026-08-18'], undefined);
+    assert.equal(snap.goals[0].title, 'Emergency fund');
     assert.equal(snap.ledgerName, 'QC household');
     assert.equal(snap.selectedKey, '2026-08-17');
     assert.equal(snap.editingIndex, 0);
