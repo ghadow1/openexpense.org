@@ -10,6 +10,7 @@ import { Utils } from './utils.js';
 import {
     computePlanner,
     describePlan,
+    growthPotentialPct,
     incomeUsed,
     runwayDays,
     sanitizePlan,
@@ -521,6 +522,9 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         plan: rules
     });
     const leftToSpend = planner.leftToSpend;
+    // Optional bank amount is display-only. Leftover math stays the cash line.
+    const currentSavings = rules.currentSavings;
+    const growthPct = growthPotentialPct(leftToSpend, currentSavings);
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
     const runwayCash = addMoney(savings.net, Math.max(0, leftToSpend));
@@ -543,6 +547,8 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         savingsAfterMonth,
         deposited: income.paid,
         leftToSpend,
+        currentSavings,
+        growthPct,
         drawsOnSavings: leftToSpend < 0,
         projectedIncome: income.total,
         incomeDue: income.pending,

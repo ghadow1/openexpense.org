@@ -46,7 +46,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
-- **Four-tab shell** — Overview (Left to spend + calendar on a phone; compact strip + board on desktop), Tracker (Monthly spending; calendar only on desktop), Planner (safe spend and tax rules), Privacy (help and backups).
+- **Four-tab shell** — Overview (Potential Savings + calendar on a phone; compact strip + board on desktop), Tracker (Monthly spending; calendar only on desktop), Planner (safe spend and tax rules), Privacy (help and backups).
 
 ## Repository map
 

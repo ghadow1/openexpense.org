@@ -8,12 +8,14 @@
  *   counted income
  *   − tax withhold  = after-tax income
  *   − savings hold  = spendable income
- *   − counted spend = left to spend
+ *   − counted spend = left to spend (shown as Potential Savings)
  *
  * Savings hold is the weekly month-equivalent (when reserve is on), plus a
  * fixed monthly goal, plus a percent of after-tax income. The 50/30/20
  * (or custom) ratios are a scoreboard against after-tax income — they do
- * not withhold a second time. See docs/DATA-FORMAT.md for the citations.
+ * not withhold a second time. `currentSavings` is optional bank input for
+ * the Overview growth meter only; it does not change leftover. See
+ * docs/DATA-FORMAT.md for the citations.
  */
 import { Utils } from './utils.js';
 
@@ -26,6 +28,7 @@ export const PLAN_DEFAULTS = Object.freeze({
     taxWithholdPct: 0,
     savingsPct: 0,
     savingsFixed: 0,
+    currentSavings: 0,
     ratioNeeds: 50,
     ratioWants: 30,
     ratioSave: 20
@@ -98,6 +101,7 @@ export function sanitizePlan(raw) {
     const weekly = Number(src.weeklySavings);
     const weeklyIn = Number(src.weeklyIncome);
     const fixed = Number(src.savingsFixed);
+    const bank = Number(src.currentSavings);
     return {
         weeklySavings: Number.isFinite(weekly) && weekly > 0 ? Utils.fromCents(Utils.toCents(weekly)) : 0,
         weeklyIncome: Number.isFinite(weeklyIn) && weeklyIn > 0 ? Utils.fromCents(Utils.toCents(weeklyIn)) : 0,
@@ -107,6 +111,7 @@ export function sanitizePlan(raw) {
         taxWithholdPct: Math.min(50, clampPct(src.taxWithholdPct, 50)),
         savingsPct: Math.min(100, clampPct(src.savingsPct, 100)),
         savingsFixed: Number.isFinite(fixed) && fixed > 0 ? Utils.fromCents(Utils.toCents(fixed)) : 0,
+        currentSavings: Number.isFinite(bank) && bank > 0 ? Utils.fromCents(Utils.toCents(bank)) : 0,
         ...sanitizeRatios(src)
     };
 }
@@ -121,6 +126,7 @@ export function planIsDefault(plan) {
         && p.taxWithholdPct === PLAN_DEFAULTS.taxWithholdPct
         && p.savingsPct === PLAN_DEFAULTS.savingsPct
         && p.savingsFixed === PLAN_DEFAULTS.savingsFixed
+        && p.currentSavings === PLAN_DEFAULTS.currentSavings
         && p.ratioNeeds === PLAN_DEFAULTS.ratioNeeds
         && p.ratioWants === PLAN_DEFAULTS.ratioWants
         && p.ratioSave === PLAN_DEFAULTS.ratioSave;
@@ -211,6 +217,16 @@ export function remainingDays(currentDate, asOf = new Date()) {
     if (today.getFullYear() < y || (today.getFullYear() === y && today.getMonth() < m)) return days;
     if (today.getFullYear() > y || (today.getFullYear() === y && today.getMonth() > m)) return 0;
     return days - today.getDate() + 1;
+}
+
+/**
+ * Potential savings ÷ current bank × 100, one decimal.
+ * Null when the optional bank amount is empty so Overview keeps the money dial.
+ */
+export function growthPotentialPct(potentialSavings, currentSavings) {
+    const current = Utils.toCents(currentSavings);
+    if (current <= 0) return null;
+    return Math.round((Utils.toCents(potentialSavings) / current) * 1000) / 10;
 }
 
 /** leftover ÷ remaining days. Negative leftover is an over-pace per day. */

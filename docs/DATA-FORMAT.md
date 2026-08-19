@@ -33,6 +33,7 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
     "taxWithholdPct": 0,
     "savingsPct": 0,
     "savingsFixed": 0,
+    "currentSavings": 0,
     "ratioNeeds": 50,
     "ratioWants": 30,
     "ratioSave": 20
@@ -46,12 +47,12 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
 | `name` | no | Sanitized file-safe string, max 80 characters. Shown in the header and used as the export filename. |
 | `events` | yes | Object keyed by `YYYY-MM-DD`. Missing days are omitted, not stored as empty arrays. The array order on a date is the order shown on that day after a drag-reorder. |
 | `budgets` | no | Monthly cap per category label, e.g. `{ "Groceries": 400 }`. Positive numbers only, max 60 entries. Omitted entirely when no caps are set. Kept in the ledger rather than in browser storage so restoring a backup on another device brings the caps back with the history. |
-| `plan` | no | Planner rules Overview uses for left-to-spend. Omitted when every field is the default cash line. Same travel rule as `budgets`. |
+| `plan` | no | Planner rules Overview uses for leftover (shown as Potential Savings). Omitted when every field is the default cash line. Same travel rule as `budgets`. |
 | `savedAt` | export only | Unix ms, written by `Ledger.exportPayload()`. Ignored on import. |
 
 ### Plan object
 
-Left to spend is a waterfall on whole cents:
+Potential Savings (stored as leftover / `leftToSpend`) is a waterfall on whole cents:
 
 1. **Counted income** — deposited, or all scheduled if `incomeBasis` is `scheduled`.
 2. **− tax withhold** — `taxWithholdPct` of counted income.
@@ -70,6 +71,7 @@ The 50/30/20 (or custom) ratios score after-tax income. They do not withhold a s
 | `taxWithholdPct` | `0` | 0–50, one decimal. `15.3` is the IRS self-employment tax rate (12.4% Social Security + 2.9% Medicare; Topic 554 / Pub 334). `25` and `30` are common quarterly-estimate placeholders used with Pub 505, not a filing. |
 | `savingsPct` | `0` | 0–100 percent of **after-tax** counted income, added to the savings hold. |
 | `savingsFixed` | `0` | Extra monthly dollar goal added to the savings hold (the user’s own emergency-reserve floor; CFPB discusses a 3–6 month fund as the longer target). |
+| `currentSavings` | `0` | Optional current bank amount. User input only. `0` or omitted leaves Overview on the leftover money dial. A positive amount does **not** change leftover; Overview then shows growth potential as leftover ÷ current savings × 100, one decimal. |
 | `ratioNeeds` | `50` | Percent of after-tax income treated as needs. Default is Warren & Tyagi, *All Your Worth* (2005), as taught by the CFPB 50/30/20 rule. Needs labels: Housing, Utilities, Health, Transit, Groceries. |
 | `ratioWants` | `30` | Wants labels: Dining, Coffee, Entertainment, Shopping, Travel, Subscriptions. |
 | `ratioSave` | `20` | Save cap is the scoreboard for the savings hold, not a second deduction. Ratios that do not add to 100 are scaled; leftover points go to save. |
@@ -79,6 +81,7 @@ Derived figures (not stored):
 | Figure | Formula |
 | --- | --- |
 | Daily safe spend | `leftToSpend ÷ remaining days` (remaining days include today) |
+| Growth potential | `leftToSpend ÷ currentSavings × 100` when `currentSavings > 0`; otherwise omitted. One decimal. |
 | Weekly safe spend | daily safe × min(7, remaining days) |
 | Daily burn | counted spend ÷ days elapsed in the viewed month |
 | Days of cash (runway) | `(savings funds + max(0, left to spend)) ÷ daily burn`, one decimal. Investopedia / CFI cash runway = cash ÷ burn rate. |

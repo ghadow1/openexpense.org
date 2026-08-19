@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-19 — Potential Savings and optional bank growth
+
+Overview now labels leftover **Potential Savings**. Planner’s Savings reserves section has an optional **Current savings** field for the amount already in the bank. It is user input only and does not change leftover math. When it is filled in, the Overview ring becomes a growth-potential percent (leftover ÷ current savings). Positive growth uses a muted sage; negative uses a muted rose. Black Card stays greyscale.
+
 ## 2026-08-18 — Slimmer mobile tabs, less repeated copy
 
 The bottom bar is a real tab strip (icon, label, accent hairline) instead of four boxed buttons. Privacy’s chapter tabs sit on one row. Planner drops the empty figures fold and the long citations. Tracker no longer repeats year-to-date next to the same monthly average. Calendar days keep the amount and dots and stop reprinting the merchant name.

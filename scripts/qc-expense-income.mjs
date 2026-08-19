@@ -271,6 +271,23 @@ test('left to spend is the deposits less everything the month spends', () => {
     // 2000 deposited - (500 paid + 900 still owed).
     assert.equal(snap.leftToSpend, 600);
     assert.equal(snap.drawsOnSavings, false);
+    assert.equal(snap.currentSavings, 0);
+    assert.equal(snap.growthPct, null);
+});
+
+test('current savings is optional and does not change leftover', () => {
+    const snap = computeNetSnapshot(cashLedger, cashAsOf, cashAsOf, { currentSavings: 10000 });
+    assert.equal(snap.leftToSpend, 600);
+    assert.equal(snap.currentSavings, 10000);
+    assert.equal(snap.growthPct, 6);
+    assert.equal(snap.leftToSpend, snap.deposited - snap.monthOut);
+
+    const over = computeNetSnapshot({
+        '2026-08-01': [{ title: 'Paycheck', price: 500, kind: 'income', paid: true }],
+        '2026-08-06': [{ title: 'Repair', price: 800, paid: true }]
+    }, cashAsOf, cashAsOf, { currentSavings: 5000 });
+    assert.equal(over.leftToSpend, -300);
+    assert.equal(over.growthPct, -6);
 });
 
 test('savings funds are what earlier months settled at, not this month', () => {

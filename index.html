@@ -291,9 +291,9 @@
       <input id="ledger-name-input" class="ledger-name-field" type="text"
         spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
 
-      <!-- Overview: Left to spend (phone) or compact strip (desktop). -->
+      <!-- Overview: Potential Savings (phone) or compact strip (desktop). -->
       <section class="shell-pane" id="pane-overview-hero" data-shell="overview">
-        <div id="overview-hero-root" class="overview-root" role="region" aria-label="Left to spend">
+        <div id="overview-hero-root" class="overview-root" role="region" aria-label="Potential Savings">
           <div class="skel skel-dial" aria-hidden="true"></div>
           <div class="skel skel-chip" aria-hidden="true"></div>
         </div>
@@ -447,7 +447,7 @@
 
                 <h3 class="docs-section-title">What you get</h3>
                 <ul class="docs-list">
-                  <li><strong>Overview</strong> — left to spend, daily safe spend, deposited vs expected, and paid vs pending for the month.</li>
+                  <li><strong>Overview</strong> — potential savings, daily safe spend, deposited vs expected, and paid vs pending for the month.</li>
                   <li><strong>Tracker</strong> — calendar, month register, and add / scan / search. Filter All, Expenses, or Income.</li>
                   <li><strong>Planner</strong> — tax withhold, savings holds, 50/30/20, and daily safe spend.</li>
                   <li><strong>Privacy</strong> — local backup, import, clear, and this help.</li>
@@ -533,7 +533,7 @@
                     The bottom bar is <strong>Overview</strong>, <strong>Tracker</strong>,
                     <strong>Planner</strong>, and <strong>Privacy</strong>. The calendar and month
                     register stay on the main view under every app tab.
-                    Overview adds the cash snapshot above that board: left to spend, daily safe spend,
+                    Overview adds the cash snapshot above that board: potential savings, daily safe spend,
                     deposited vs expected, paid vs pending, and the year income and spending lines.
                     Tracker is the same board with All / Expenses / Income in focus.
                     Planner holds tax withhold, savings holds, 50/30/20, and daily safe spend above
@@ -544,11 +544,11 @@
                     Account math is unchanged:
                     <strong>Deposited</strong> is income you have ticked as deposited this month, so a
                     paycheck still sitting on the calendar does not count as cash.
-                    <strong>Left to spend</strong> is those deposits less everything the month spends,
+                    <strong>Potential Savings</strong> is those deposits less everything the month spends,
                     paid or still owed — unless Planner settings change which income and bills count,
                     withhold tax, or hold savings out of that leftover.
                     <strong>Savings funds</strong> is the reserve behind that: what every earlier month
-                    settled at, up to today. When a month spends past its deposits, Left to spend goes
+                    settled at, up to today. When a month spends past its deposits, Potential Savings goes
                     negative and the difference comes out of Savings funds.
                     <strong>Month net</strong> is income minus spending, counting income whether or not
                     it has landed.
@@ -560,7 +560,7 @@
                   <h3 class="docs-section-title">Planner settings</h3>
                   <p>
                     The <strong>Planner</strong> tab is the third item on the bottom bar.
-                    Left to spend is one waterfall on whole cents: counted income, minus a tax withhold,
+                    Potential Savings is one waterfall on whole cents: counted income, minus a tax withhold,
                     minus a savings hold, minus counted spend. Defaults keep the original cash line
                     (deposits minus every logged bill).
                   </p>
@@ -573,6 +573,9 @@
                     pace a Sunday–Saturday row has to beat for a green hint; leave it blank to use
                     this month’s own gross income split by days. A <strong>monthly dollar</strong> and a
                     <strong>percent of after-tax income</strong> stack with that weekly hold once.
+                    <strong>Current savings</strong> is optional: the amount already in the bank.
+                    It does not change leftover. When you enter it, Overview replaces the leftover
+                    ring with a growth-potential percent (leftover ÷ current savings).
                     The CFPB 50/30/20 split (Warren and Tyagi, <em>All Your Worth</em>, 2005) is a
                     scoreboard against after-tax income, not a second deduction. Needs are Housing,
                     Utilities, Health, Transit, and Groceries. Wants are Dining, Coffee, Entertainment,

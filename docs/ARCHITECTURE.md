@@ -34,7 +34,7 @@ src/main.js         boot, event delegation, render subscription
 | --- | --- |
 | `events` | `{ "YYYY-MM-DD": Expense[] }` |
 | `budgets` | Monthly category caps |
-| `plan` | Weekly savings and left-to-spend rules |
+| `plan` | Weekly savings, leftover (Potential Savings) rules, and optional current bank savings |
 | `ledgerName` | Display / export name |
 | `currentDate` | Visible month |
 | `isDark` | Theme |
@@ -78,7 +78,7 @@ Snapshot and sidebar charts plot one period total on a small ring and a year spa
 
 The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Tab** CSS (`html[data-shell]`) decides what that board shows, on every frame:
 
-- **Overview** — Left to spend (desktop: compact strip) + calendar. No filter bar, no monthly spending card.
+- **Overview** — Potential Savings (desktop: compact strip; growth potential when current bank savings is set) + calendar. No filter bar, no monthly spending card.
 - **Tracker** — Filter + Monthly spending. No calendar.
 - **Planner** — planner form only; the shared board is hidden.
 

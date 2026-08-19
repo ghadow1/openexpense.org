@@ -31,7 +31,7 @@
 
 /*
  * Class prefixes (frozen — do not invent a parallel name for the same surface):
- *   ov-        Overview snapshot (Left to spend)
+ *   ov-        Overview snapshot (Potential Savings)
  *   planner-   Planner workspace
  *   tracker-   Tracker toolbar and page head
  *   dash-      Compact desktop strip, chips, plan fields
@@ -177,6 +177,10 @@
     --income-text: #0a4d9a;
     --income-border: #b6d4f0;
 
+    /* Overview growth meter. Dusty sage / rose so they do not overtake the page. */
+    --growth-up: #64756a;
+    --growth-down: #7d6867;
+
     /* Category tones. Muted on purpose: these read as a small dot beside a
        label, so they only need to be told apart, not to carry the design. */
     --cat-leaf: #4d7c0f;
@@ -262,6 +266,8 @@
     --income-soft: rgba(255, 255, 255, 0.12);
     --income-text: #ffffff;
     --income-border: #6b6b6b;
+    --growth-up: var(--text2);
+    --growth-down: var(--text-muted);
 
     /* Category tones become a grey ramp. The steps are wide and evenly spaced
        so neighbouring categories stay tellable apart in an 8px dot; the label
@@ -652,6 +658,14 @@ textarea,
     line-height: 1.1;
 }
 
+.ov-kpi.is-growth-up {
+    color: var(--growth-up);
+}
+
+.ov-kpi.is-growth-down {
+    color: var(--growth-down);
+}
+
 .ov-sub,
 .ov-settle-meta,
 .ov-year-foot,
@@ -719,7 +733,7 @@ html[data-frame="desktop"] #pane-tracker-head {
     display: none !important;
 }
 
-/* Overview owns Left to spend + the calendar. Tracker owns the filter
+/* Overview owns Potential Savings + the calendar. Tracker owns the filter
    and monthly spending. These rules are by tab, not by frame, so a
    mis-stamped data-frame or display:contents cannot leak the two pages
    back into one board. */
@@ -2333,6 +2347,26 @@ html.is-action-busy [data-lockable] {
     stroke: var(--accent);
     stroke-width: 6;
     stroke-linecap: round;
+}
+
+.oe-dial.is-growth .oe-dial-value {
+    font-size: 10px;
+}
+
+.oe-dial.is-growth-up .oe-dial-arc {
+    stroke: var(--growth-up);
+}
+
+.oe-dial.is-growth-up .oe-dial-value {
+    color: var(--growth-up);
+}
+
+.oe-dial.is-growth-down .oe-dial-arc {
+    stroke: var(--growth-down);
+}
+
+.oe-dial.is-growth-down .oe-dial-value {
+    color: var(--growth-down);
 }
 
 .oe-dial-face {

@@ -41,7 +41,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 | Tab | Every frame |
 | --- | --- |
-| **Overview** | Left to spend (or the desktop compact strip) + month calendar. Hide `.tracker-toolbar` and `#sidebar`. |
+| **Overview** | Potential Savings (or growth potential when current bank savings is set; desktop uses the compact strip) + month calendar. Hide `.tracker-toolbar` and `#sidebar`. |
 | **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. |
 | **Planner** | Planner form only (`.ledger-stage` is `display: none`) |
 | **Privacy** | `#view-docs` (help, backup, import, clear) |
@@ -54,7 +54,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | --- | --- | --- |
 | `#view-app` | `app/views.js` | Overview, Tracker, Planner |
 | `#view-docs` | `app/views.js` | Privacy & Help |
-| `#overview-hero-root` | `features/dash-strip.js` | Left to spend / compact strip |
+| `#overview-hero-root` | `features/dash-strip.js` | Potential Savings / compact strip |
 | `#overview-more-root` | `features/dash-strip.js` | Extra Overview cards (often empty) |
 | `#planner-root` | `features/dash-strip.js` | Planner workspace |
 | `#tracker-head-root` | `features/dash-strip.js` | Tracker page title on phone/tablet |
@@ -69,7 +69,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 | Prefix | Surface | File that paints it |
 | --- | --- | --- |
-| `ov-` | Overview snapshot (Left to spend, kickers) | `dash-strip.js` |
+| `ov-` | Overview snapshot (Potential Savings, kickers) | `dash-strip.js` |
 | `planner-` | Planner workspace | `dash-strip.js` |
 | `tracker-` | Tracker toolbar and page head | `index.html`, `dash-strip.js` |
 | `dash-` | Compact desktop strip, chips, plan fields | `dash-strip.js` |
@@ -128,7 +128,7 @@ Adding a store field? Add it to every `RENDER_DEPS` surface that reads it, or th
 
 ## Math you must not invent
 
-Left to spend is `deposited − month spending`, plus planner withhold/hold **only when the user set them**. Defaults keep the original cash line. Change `src/core/plan.js` and `computeNetSnapshot` together, and add a case in `scripts/qc-plan.mjs` / `qc-expense-income.mjs`.
+Potential Savings (`leftToSpend`) is `deposited − month spending`, plus planner withhold/hold **only when the user set them**. Defaults keep the original cash line. `currentSavings` is optional bank input for the Overview growth meter and never enters leftover. Change `src/core/plan.js` and `computeNetSnapshot` together, and add a case in `scripts/qc-plan.mjs` / `qc-expense-income.mjs`.
 
 Week rails count in-month days where spend > 0 **and** spend > `dailySafe`. Two over days = half red. Three or more = full red. No green income rails.
 

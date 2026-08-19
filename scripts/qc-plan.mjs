@@ -14,6 +14,7 @@ import {
     computePlanner,
     dailySafeSpend,
     describePlan,
+    growthPotentialPct,
     incomeUsed,
     monthDayIncome,
     monthDaySpend,
@@ -39,6 +40,7 @@ test('sanitizePlan restores the original cash-line defaults', () => {
     assert.deepEqual(sanitizePlan('x'), PLAN_DEFAULTS);
     assert.equal(planIsDefault({}), true);
     assert.equal(planIsDefault({ weeklySavings: 25 }), false);
+    assert.equal(planIsDefault({ currentSavings: 10000 }), false);
     assert.equal(planIsDefault({ taxWithholdPct: 15.3 }), false);
     assert.equal(planIsDefault({ ratioNeeds: 40, ratioWants: 40, ratioSave: 20 }), false);
 });
@@ -52,6 +54,7 @@ test('sanitizePlan keeps only known rule values', () => {
         taxWithholdPct: 15.3,
         savingsPct: 20,
         savingsFixed: 200,
+        currentSavings: 10000.129,
         extra: true,
         __proto__: { weeklySavings: 9 }
     });
@@ -62,6 +65,7 @@ test('sanitizePlan keeps only known rule values', () => {
     assert.equal(clean.taxWithholdPct, 15.3);
     assert.equal(clean.savingsPct, 20);
     assert.equal(clean.savingsFixed, 200);
+    assert.equal(clean.currentSavings, 10000.13);
     assert.equal(clean.ratioNeeds, 50);
     assert.equal(clean.extra, undefined);
 });
@@ -130,6 +134,14 @@ test('remaining days include today on the viewed month', () => {
     assert.equal(remainingDays(august, new Date(2026, 7, 31)), 1);
     assert.equal(remainingDays(august, new Date(2026, 8, 1)), 0);
     assert.equal(remainingDays(august, new Date(2026, 6, 31)), 31);
+});
+
+test('growth potential is leftover over current bank, and empty bank is omitted', () => {
+    assert.equal(growthPotentialPct(888, 10000), 8.9);
+    assert.equal(growthPotentialPct(600, 10000), 6);
+    assert.equal(growthPotentialPct(-300, 5000), -6);
+    assert.equal(growthPotentialPct(100, 0), null);
+    assert.equal(growthPotentialPct(100, -20), null);
 });
 
 test('daily safe spend is leftover divided by remaining days', () => {
@@ -294,6 +306,20 @@ test('over-budget rows follow counted spend and planner spendable', () => {
     assert.deepEqual(paidOnly.filter((week) => week.over).map((week) => week.row), [1]);
     assert.equal(paidOnly[2].amount, 0);
     assert.equal(paidOnly[2].over, false);
+});
+
+test('current savings does not enter the leftover waterfall', () => {
+    const out = computePlanner({
+        incomeUsed: 2000,
+        spendUsed: 1400,
+        daysInMonth: 31,
+        daysElapsed: 17,
+        currentDate: new Date(2026, 7, 1),
+        asOf: new Date(2026, 7, 17),
+        plan: { currentSavings: 10000 }
+    });
+    assert.equal(out.leftToSpend, 600);
+    assert.equal(out.savingsHold, 0);
 });
 
 test('the default planner waterfall matches deposited minus logged bills', () => {

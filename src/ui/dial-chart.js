@@ -21,16 +21,18 @@ function svgEl(name, attrs = {}) {
  * @param {string} [options.caption]
  * @param {number} [options.ratio]  0–1 fill of the ring
  * @param {string} [options.display]
+ * @param {string} [options.className]
  */
 export function createDial({
     value = 0,
     label = '',
     caption = '',
     ratio = 0,
-    display = ''
+    display = '',
+    className = ''
 } = {}) {
     const wrap = document.createElement('figure');
-    wrap.className = 'oe-dial';
+    wrap.className = ['oe-dial', className].filter(Boolean).join(' ');
 
     const size = 72;
     const r = 26;

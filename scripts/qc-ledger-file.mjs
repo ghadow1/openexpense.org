@@ -198,6 +198,7 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         taxWithholdPct: 0,
         savingsPct: 0,
         savingsFixed: 0,
+        currentSavings: 0,
         ratioNeeds: 50,
         ratioWants: 30,
         ratioSave: 20
@@ -220,6 +221,7 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         taxWithholdPct: 0,
         savingsPct: 0,
         savingsFixed: 0,
+        currentSavings: 0,
         ratioNeeds: 50,
         ratioWants: 30,
         ratioSave: 20

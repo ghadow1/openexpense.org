@@ -2,7 +2,7 @@
  * OpenExpense — shell switching
  *
  * Four primary tabs: Overview, Tracker, Planner, and Privacy.
- * Privacy is the existing docs pane. Overview keeps Left to spend
+ * Privacy is the existing docs pane. Overview keeps Potential Savings
  * (or the desktop compact strip) and the calendar. Tracker keeps
  * the filter and monthly spending — never the calendar. Planner
  * is its own workspace. Hide rules live on `html[data-shell]`.

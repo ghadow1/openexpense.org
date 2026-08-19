@@ -1,15 +1,17 @@
 /**
  * OpenExpense — Overview and Planner panes
  *
- * Overview is Left to spend. Planner is daily safe spend plus the
- * withholding, savings-hold, and 50/30/20 form. Overview keeps Left
- * to spend (or the desktop compact strip) and the calendar. Tracker
- * keeps Expenses, Income, and Monthly spending — no calendar.
+ * Overview is Potential Savings (or a growth-potential meter when the
+ * user entered current bank savings). Planner is daily safe spend plus
+ * the withholding, savings-hold, and 50/30/20 form. Overview keeps the
+ * snapshot and the calendar. Tracker keeps Expenses, Income, and
+ * Monthly spending — no calendar.
  */
 import { getState, patch } from '../core/store.js';
 import {
     computeMonthlySummary,
     computeNetSnapshot,
+    formatDelta,
     formatMoney,
     formatChipMoney,
     yearSeriesPoints
@@ -105,6 +107,34 @@ function toneFor(n) {
 function clampRatio(part, whole) {
     if (!(whole > 0)) return part > 0 ? 1 : 0;
     return Math.max(0, Math.min(1, part / whole));
+}
+
+function hasBankSavings(snap) {
+    return Number(snap.currentSavings) > 0 && snap.growthPct != null;
+}
+
+function leftoverTitle(snap) {
+    return hasBankSavings(snap) ? 'Growth potential' : 'Potential Savings';
+}
+
+function leftoverDial(snap, { shortLabel = false } = {}) {
+    if (hasBankSavings(snap)) {
+        const tone = snap.growthPct > 0 ? 'up' : snap.growthPct < 0 ? 'down' : '';
+        return createDial({
+            value: snap.growthPct,
+            label: shortLabel ? 'Growth' : 'Growth potential',
+            caption: snap.monthLabel,
+            display: formatDelta(snap.growthPct),
+            ratio: clampRatio(Math.abs(snap.growthPct), 100),
+            className: ['is-growth', tone && `is-growth-${tone}`].filter(Boolean).join(' ')
+        });
+    }
+    return createDial({
+        value: snap.leftToSpend,
+        label: shortLabel ? 'Savings' : 'Potential Savings',
+        caption: snap.monthLabel,
+        ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
+    });
 }
 
 function countHint(count, one, many) {
@@ -263,6 +293,7 @@ function readPlanForm(form) {
         incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value,
         taxWithholdPct: Number(form.querySelector('#dash-plan-tax')?.value),
         savingsFixed: Number(form.querySelector('#dash-plan-fixed')?.value),
+        currentSavings: Number(form.querySelector('#dash-plan-current')?.value),
         savingsPct: Number(form.querySelector('#dash-plan-savepct')?.value),
         ratioNeeds: Number(form.querySelector('#dash-plan-needs')?.value),
         ratioWants: Number(form.querySelector('#dash-plan-wants')?.value),
@@ -281,6 +312,7 @@ function setPlanForm(form, plan) {
         'dash-plan-weekly-income': next.weeklyIncome,
         'dash-plan-tax': next.taxWithholdPct,
         'dash-plan-fixed': next.savingsFixed,
+        'dash-plan-current': next.currentSavings,
         'dash-plan-savepct': next.savingsPct,
         'dash-plan-needs': next.ratioNeeds,
         'dash-plan-wants': next.ratioWants,
@@ -373,7 +405,7 @@ function planPanel(snap, plan) {
     reserveBox.id = 'dash-plan-reserve';
     reserveBox.checked = plan.reserveSavings;
     const reserveText = document.createElement('span');
-    reserveText.textContent = 'Hold this month’s weekly share out of left-to-spend';
+    reserveText.textContent = 'Hold this month’s weekly share out of potential savings';
     reserve.append(reserveBox, reserveText);
 
     const tax = moneyField('dash-plan-tax', 'Tax withhold %', plan.taxWithholdPct, '0');
@@ -394,6 +426,8 @@ function planPanel(snap, plan) {
     });
 
     const fixed = moneyField('dash-plan-fixed', 'Monthly savings ($)', plan.savingsFixed);
+    const current = moneyField('dash-plan-current', 'Current savings ($)', plan.currentSavings);
+    current.querySelector('input').setAttribute('aria-describedby', 'dash-plan-current-hint');
     const savePct = moneyField('dash-plan-savepct', 'Savings % of after-tax', plan.savingsPct, '0');
     savePct.querySelector('input').max = '100';
     savePct.querySelector('input').step = '0.1';
@@ -499,6 +533,8 @@ function planPanel(snap, plan) {
                 : 'Month share is weekly × days in this month ÷ 7.'),
             fixed,
             savePct,
+            current,
+            hint('dash-plan-current-hint', 'Optional. Your current bank amount. Overview then shows growth potential instead of leftover dollars. It does not change leftover math.'),
             reserve
         ),
         planSection(
@@ -609,7 +645,7 @@ function budgetSlide(snap, events, currentDate, plan) {
     }));
     const extras = [
         chip({
-            label: 'Left to spend',
+            label: 'Potential Savings',
             value: snap.leftToSpend,
             tone: toneFor(snap.leftToSpend),
             hint: snap.savingsHold > 0 ? `After ${formatMoney(snap.savingsHold)} held` : snap.monthLabel
@@ -669,11 +705,11 @@ function budgetSlide(snap, events, currentDate, plan) {
         ...heroSlide({
             title: daysOpen ? 'Daily safe spend' : 'Planner',
             description: daysOpen
-                ? 'Left to spend divided by the days still on this month, including today.'
-                : 'Withholding, savings hold, and the leftover ÷ days that remain.',
+                ? 'Potential savings divided by the days still on this month, including today.'
+                : 'Withholding, savings hold, and leftover ÷ days that remain.',
             dial: createDial({
                 value,
-                label: daysOpen ? 'Safe / day' : 'Left to spend',
+                label: daysOpen ? 'Safe / day' : 'Potential Savings',
                 caption: daysOpen ? `${snap.daysLeft} days left` : snap.monthLabel,
                 ratio: clampRatio(Math.max(0, value), cap)
             }),
@@ -710,14 +746,11 @@ function overviewCompact(snap, events, currentDate) {
         : `Carried into ${snap.monthLabel}`;
 
     return heroSlide({
-        title: 'Left to spend',
-        description: 'Deposits minus this month’s spending.',
-        dial: createDial({
-            value: snap.leftToSpend,
-            label: 'Left to spend',
-            caption: snap.monthLabel,
-            ratio: clampRatio(Math.max(0, snap.leftToSpend), snap.deposited)
-        }),
+        title: leftoverTitle(snap),
+        description: hasBankSavings(snap)
+            ? 'This month’s leftover against the savings you entered.'
+            : 'Deposits minus this month’s spending.',
+        dial: leftoverDial(snap),
         spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
         bars: createBars({
             ariaLabel: `${snap.monthLabel} cash`,
@@ -776,38 +809,43 @@ function renderOverview(snap, events, currentDate) {
         return;
     }
 
+    const growth = hasBankSavings(snap);
     const hero = document.createElement('section');
     hero.className = 'oe-card ov-hero';
     const kicker = document.createElement('p');
     kicker.className = 'ov-kicker';
-    kicker.textContent = 'Left to spend';
+    kicker.textContent = leftoverTitle(snap);
     const row = document.createElement('div');
     row.className = 'ov-hero-row';
     const copy = document.createElement('div');
     const kpi = document.createElement('p');
     kpi.className = 'ov-kpi';
-    kpi.textContent = formatMoney(snap.leftToSpend);
+    if (growth) {
+        const tone = snap.growthPct > 0 ? 'up' : snap.growthPct < 0 ? 'down' : '';
+        if (tone) kpi.classList.add(`is-growth-${tone}`);
+        kpi.textContent = formatDelta(snap.growthPct);
+    } else {
+        kpi.textContent = formatMoney(snap.leftToSpend);
+    }
     const sub = document.createElement('p');
     sub.className = 'ov-sub';
-    sub.textContent = snap.daysLeft > 0
-        ? `${formatMoney(snap.dailySafe)} / day · ${snap.daysLeft} day${snap.daysLeft === 1 ? '' : 's'} remaining`
-        : `${snap.monthLabel} is closed`;
+    if (growth) {
+        sub.textContent = `${formatMoney(snap.leftToSpend)} leftover · ${formatMoney(snap.currentSavings)} in the bank`;
+    } else {
+        sub.textContent = snap.daysLeft > 0
+            ? `${formatMoney(snap.dailySafe)} / day · ${snap.daysLeft} day${snap.daysLeft === 1 ? '' : 's'} remaining`
+            : `${snap.monthLabel} is closed`;
+    }
     copy.append(kpi, sub);
-    const spendRatio = snap.spendableIncome > 0
-        ? clampRatio(snap.spendUsed, snap.spendableIncome)
-        : clampRatio(snap.monthOut, snap.deposited || snap.monthOut || 1);
-    row.append(copy, createDial({
-        value: snap.leftToSpend,
-        label: 'Left',
-        caption: snap.monthLabel,
-        ratio: 1 - spendRatio
-    }));
+    row.append(copy, leftoverDial(snap, { shortLabel: true }));
     hero.append(kicker, row);
 
     heroRoot.replaceChildren(pageHead({
         kicker: 'This month',
-        title: 'What’s left',
-        description: 'Deposits minus this month’s spending.',
+        title: leftoverTitle(snap),
+        description: growth
+            ? 'This month’s leftover against the savings you entered.'
+            : 'Deposits minus this month’s spending.',
         monthLabel: snap.monthLabel
     }), hero);
     heroRoot.classList.add('is-ready');
@@ -835,12 +873,19 @@ function formulaCard(snap) {
     card.className = 'oe-card ov-formula';
     const kicker = document.createElement('p');
     kicker.className = 'ov-kicker';
-    kicker.textContent = 'Left-to-spend formula';
+    kicker.textContent = 'Potential-savings formula';
     const line = document.createElement('p');
     line.className = 'ov-formula-line';
     const taxBit = snap.taxWithheld > 0 ? `  −  ${formatMoney(snap.taxWithheld)} tax` : '';
     const holdBit = snap.savingsHold > 0 ? `  −  ${formatMoney(snap.savingsHold)} reserves` : '';
     line.textContent = `${formatMoney(snap.incomeUsed || snap.deposited)} deposits${taxBit}  −  ${formatMoney(snap.spendUsed)} bills${holdBit}  =  ${formatMoney(snap.leftToSpend)}`;
+    if (snap.currentSavings > 0 && snap.growthPct != null) {
+        const growth = document.createElement('p');
+        growth.className = 'ov-formula-line';
+        growth.textContent = `${formatMoney(snap.leftToSpend)} leftover  ÷  ${formatMoney(snap.currentSavings)} current savings  =  ${formatDelta(snap.growthPct)} growth`;
+        card.append(kicker, line, growth);
+        return card;
+    }
     card.append(kicker, line);
     return card;
 }
