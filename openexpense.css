@@ -2936,9 +2936,11 @@ html.is-action-busy [data-lockable] {
 }
 
 .oe-bar-track {
+    position: relative;
     display: block;
     height: 8px;
     min-width: 0;
+    overflow: visible;
     background: var(--surface2);
     border: 1px solid var(--border);
 }
@@ -2947,6 +2949,20 @@ html.is-action-busy [data-lockable] {
     display: block;
     height: 100%;
     background: var(--accent);
+}
+
+.oe-bar-target {
+    position: absolute;
+    top: -4px;
+    width: 2px;
+    height: 16px;
+    border-radius: var(--radius-full);
+    background: var(--text-strong);
+    transform: translateX(-1px);
+}
+
+.oe-bar.is-over .oe-bar-fill {
+    background: #7b2020;
 }
 
 .oe-bar-value {
@@ -2978,10 +2994,21 @@ html.is-action-busy [data-lockable] {
 .oe-spark-line {
     stroke: var(--accent);
     stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.oe-spark-area {
+    fill: color-mix(in srgb, var(--accent) 11%, transparent);
 }
 
 .oe-spark-dot {
     fill: var(--accent);
+}
+
+.oe-spark-dot.is-current {
+    stroke: var(--surface);
+    stroke-width: 2;
 }
 
 .oe-spark-x,
@@ -2994,8 +3021,9 @@ html.is-action-busy [data-lockable] {
 .oe-spark-hit {
     position: absolute;
     top: 0;
-    width: 28px;
     height: 100%;
+    min-width: 0;
+    padding: 0;
     border: 0;
     background: transparent;
     cursor: pointer;

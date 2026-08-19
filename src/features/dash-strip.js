@@ -167,11 +167,10 @@ function yearSpark(events, currentDate, kind, ariaLabel, goals = []) {
     const year = currentDate.getFullYear();
     const totals = yearTotalsFor(events, currentDate, kind);
     return createSpark({
-        // Anchored on the month on screen so the dial figure is also a point
-        // on the line; otherwise the headline and the chart disagree.
-        points: yearSeriesPoints(totals, year, { anchorIndex: currentDate.getMonth() }),
+        points: yearSeriesPoints(totals, year),
         ariaLabel,
         milestones: goalMilestones(goals, year),
+        selectedIndex: currentDate.getMonth(),
         onSelect: (pt) => goMonth(year, pt.index)
     });
 }
@@ -852,7 +851,8 @@ function budgetSlide(snap, events, currentDate, plan, goals = []) {
         : (snap.spendableIncome || snap.incomeUsed || snap.deposited);
     const weekRows = (snap.weekBuckets || []).map((week) => ({
         label: week.label,
-        value: week.amount
+        value: week.amount,
+        target: week.target
     }));
     const extras = [
         chip({

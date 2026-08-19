@@ -76,7 +76,13 @@ src/main.js         boot, event delegation, render subscription
 
 The right-hand card flips between an expense face and an income face when the Tracker filter is Expenses or Income. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
 
-Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
+Snapshot and sidebar charts plot one period total on a small ring and a complete
+Jan–Dec trend. The selected month is marked, every month is available through
+one roving keyboard stop, mixed positive/negative series retain a zero baseline,
+and goal dates appear as milestone lines. The compact axis abbreviates money,
+but accessible names retain each plotted value. Future-dated recurring copies
+still count in month totals. Planner week bars compare actual spend with the
+cent-exact target allocated by `monthWeekBuckets()`.
 
 The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Tab** CSS (`html[data-shell]`) decides what that board shows, on every frame:
 

@@ -187,8 +187,10 @@ private class query to `data-*` would add markup without reducing coupling.
   remain rendered so the 3D flip geometry is unchanged.
 - Calendar month arrows have persistent accessible names and the changing
   month title is exposed as a polite level-two heading.
-- Selectable spark charts use a labelled group rather than an image role, so
-  their month buttons remain represented in accessibility APIs.
+- Selectable year charts use a labelled group rather than an image role. All
+  twelve month values remain in the DOM, the selected month has
+  `aria-current="date"`, and a roving tab stop supports arrow, Home, and End
+  keys without adding twelve stops to the page tab order.
 - Error toasts use assertive alert semantics while informational messages
   remain polite statuses; decorative toast icons are hidden.
 - Keyboard focus outlines are restored for search and text fields whose

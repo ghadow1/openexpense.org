@@ -382,15 +382,22 @@ export function reduceSeries(points = [], { anchorIndex = null } = {}) {
     return [start, extreme, end];
 }
 
-/** Jan–Dec labels, then start / viewed month (or peak) / end. */
-export function yearSeriesPoints(monthTotals = [], year = 2000, { anchorIndex = null } = {}) {
+/**
+ * A complete Jan–Dec series for analytical charts.
+ *
+ * Earlier versions reduced a year to three points. That made a quiet February
+ * and an expensive November look like one straight trend and hid seasonality.
+ * Keep `reduceSeries()` for deliberately tiny summaries, but year charts must
+ * expose every month. `anchorIndex` is retained in the signature for host
+ * compatibility; selection is now a rendering concern.
+ */
+export function yearSeriesPoints(monthTotals = [], year = 2000, { anchorIndex: _anchorIndex = null } = {}) {
     const y = Number(year) || 2000;
-    const points = Array.from({ length: 12 }, (_, index) => ({
+    return Array.from({ length: 12 }, (_, index) => ({
         label: new Date(y, index, 1).toLocaleString('en-US', { month: 'short' }),
         value: Number(monthTotals[index]) || 0,
         index
     }));
-    return reduceSeries(points, { anchorIndex });
 }
 
 function dateKeyOf(date) {

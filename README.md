@@ -81,6 +81,9 @@ directory map, module dependency rules, build graph, and student onboarding
 workflow. The
 [`Frontend Architecture Manual`](docs/FRONTEND-ARCHITECTURE-MANUAL.md) maps the
 semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
+The [`2026 Competitive Feature Review`](docs/COMPETITIVE-FEATURE-REVIEW-2026.md)
+compares planner and reporting patterns, records what fits the local-first
+model, and separates the next viable modules from cloud-only features.
 
 ## Data format
 

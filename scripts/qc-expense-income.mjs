@@ -87,7 +87,7 @@ test('axis labels use k and m', () => {
     assert.deepEqual(axisTicks(Infinity), [0, 0, 0]);
 });
 
-test('a year series keeps start, one extreme, and end', () => {
+test('compact reduction remains available while year charts retain all months', () => {
     const points = [
         { label: 'Jan', value: 100, index: 0 },
         { label: 'Feb', value: 110, index: 1 },
@@ -107,24 +107,19 @@ test('a year series keeps start, one extreme, and end', () => {
     assert.equal(slim.length, 3);
 
     const flat = yearSeriesPoints([10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 2026);
-    assert.equal(flat.length, 2);
+    assert.equal(flat.length, 12);
     assert.equal(flat[0].label, 'Jan');
-    assert.equal(flat[1].label, 'Dec');
+    assert.equal(flat[11].label, 'Dec');
     assert.deepEqual(axisTicks(10000), [0, 5000, 10000]);
 });
 
-test('the viewed month stays on the chart so the dial has a point to match', () => {
+test('the viewed month and every seasonal value stay on the year chart', () => {
     const totals = [100, 110, 400, 120, 90, 95, 80, 85, 88, 92, 94, 130];
-    // August is not the peak, but it is the month on screen.
     const anchored = yearSeriesPoints(totals, 2026, { anchorIndex: 7 });
-    assert.deepEqual(anchored.map((row) => row.label), ['Jan', 'Aug', 'Dec']);
-    assert.equal(anchored[1].value, 85);
-
-    // A flat year still reduces, and January or December as the anchor does
-    // not duplicate an endpoint.
-    assert.equal(yearSeriesPoints(totals, 2026, { anchorIndex: 0 })[1].label, 'Mar');
-    assert.equal(yearSeriesPoints(totals, 2026, { anchorIndex: 11 })[1].label, 'Mar');
-    assert.equal(yearSeriesPoints(totals, 2026).length, 3);
+    assert.equal(anchored.length, 12);
+    assert.equal(anchored[7].label, 'Aug');
+    assert.equal(anchored[7].value, 85);
+    assert.deepEqual(anchored.map((row) => row.index), [...Array(12).keys()]);
 });
 
 test('the sidebar month total is the sum of that month, paid or not', () => {

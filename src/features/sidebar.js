@@ -495,8 +495,9 @@ function renderYearChart(summary, currentDate, copy) {
     const section = el('section', 'summary-year');
     section.appendChild(el('div', 'summary-section-title', `${summary.year}`));
     section.appendChild(createSpark({
-        points: yearSeriesPoints(summary.monthTotals, summary.year, { anchorIndex: currentDate.getMonth() }),
+        points: yearSeriesPoints(summary.monthTotals, summary.year),
         ariaLabel: `${summary.year} ${copy.yearAria}`,
+        selectedIndex: currentDate.getMonth(),
         onSelect: (pt) => {
             patch({ currentDate: new Date(summary.year, pt.index, 1) });
             if (getState().selectedKey) closeModal();
