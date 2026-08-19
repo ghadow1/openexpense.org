@@ -891,9 +891,10 @@ html[data-frame="tablet"] .tracker-board {
 }
 
 .tracker-toolbar {
+    --tracker-act: 46px;
     display: flex;
     flex-wrap: nowrap;
-    align-items: center;
+    align-items: stretch;
     gap: 8px;
     min-width: 0;
 }
@@ -903,6 +904,8 @@ html[data-frame="tablet"] .tracker-board {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     flex: 1 1 auto;
     min-width: 0;
+    min-height: var(--tracker-act);
+    box-sizing: border-box;
     gap: 4px;
     padding: 4px;
     border-radius: var(--radius-full);
@@ -958,18 +961,21 @@ html[data-frame="tablet"] .tracker-board {
 
 .tracker-toolbar .dash-actions {
     flex: 0 0 auto;
+    align-items: stretch;
     gap: 6px;
 }
 
 .tracker-toolbar .dash-act {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    min-height: 36px;
+    box-sizing: border-box;
+    width: var(--tracker-act);
+    min-width: var(--tracker-act);
+    height: var(--tracker-act);
+    min-height: var(--tracker-act);
+    padding: 0;
     border-radius: var(--radius-sm);
     border: 1px solid color-mix(in srgb, var(--header) 40%, var(--border));
     background: var(--surface);
-    color: var(--accent);
+    color: var(--header);
     box-shadow: none;
 }
 
@@ -987,8 +993,8 @@ html[data-frame="tablet"] .tracker-board {
 
 .tracker-toolbar .dash-act:not(.dash-act--add):hover {
     background: var(--surface);
-    border-color: var(--border-strong);
-    color: var(--text-strong);
+    border-color: var(--header);
+    color: var(--header);
 }
 
 html[data-frame="phone"] .tracker-filter-btn span {
