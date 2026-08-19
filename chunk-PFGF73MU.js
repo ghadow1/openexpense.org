@@ -1,4 +1,4 @@
-import{j as r,k as n}from"./chunk-NIFEPK7Y.js";import{b as p,c as E,d,e as c}from"./chunk-ZIR6ORMP.js";import"./chunk-RRU7Q3KP.js";function f(e,o){let s={[r.ENC_NAME]:p(JSON.stringify(e,null,2)),[r.KEY_NAME]:p(JSON.stringify(o,null,2)),[r.README_NAME]:p(`OpenExpense encrypted export
+import{j as r,k as n}from"./chunk-NIFEPK7Y.js";import{b as p,c as E,d,e as c}from"./chunk-ZIR6ORMP.js";import"./chunk-AEHV6DQX.js";function f(e,o){let s={[r.ENC_NAME]:p(JSON.stringify(e,null,2)),[r.KEY_NAME]:p(JSON.stringify(o,null,2)),[r.README_NAME]:p(`OpenExpense encrypted export
 ================================
 
 ${r.ENC_NAME}  - your ledger, encrypted with AES-256-GCM.
