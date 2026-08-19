@@ -765,6 +765,19 @@ test('daily safe spend is leftover divided by remaining August days', () => {
     assert.equal(snap.runwayDays, 36.4);
 });
 
+test('daily burn excludes future scheduled bills and discloses its sample', () => {
+    const events = {
+        '2026-08-01': [entry({ title: 'Pay', price: 2000, kind: 'income', paid: true })],
+        '2026-08-05': [entry({ title: 'Food', price: 170, paid: true })],
+        '2026-08-28': [entry({ title: 'Future rent', price: 1400, paid: false })]
+    };
+    const snap = computeNetSnapshot(events, cashAsOf, cashAsOf);
+    assert.equal(snap.burnSpend, 170);
+    assert.equal(snap.burnDays, 17);
+    assert.equal(snap.avgDailyBurn, 10);
+    assert.equal(snap.runwayDays, 0);
+});
+
 test('this week is Sunday through Saturday of asOf', () => {
     const events = {
         '2026-08-16': [entry({ title: 'Pay', price: 400, kind: 'income', paid: true })],

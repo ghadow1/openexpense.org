@@ -156,6 +156,21 @@ test('runway is cash divided by daily burn to one decimal', () => {
     assert.equal(runwayDays(1000, 0), null);
 });
 
+test('future scheduled spend does not become an observed burn rate', () => {
+    const out = computePlanner({
+        incomeUsed: 2000,
+        spendUsed: 900,
+        spendItems: [{ amount: 900, date: '2026-09-12', paid: false }],
+        daysInMonth: 30,
+        daysElapsed: 30,
+        currentDate: new Date(2026, 8, 1),
+        asOf: new Date(2026, 7, 19)
+    });
+    assert.equal(out.burnSpend, 0);
+    assert.equal(out.burnDays, 0);
+    assert.equal(out.avgDailyBurn, 0);
+});
+
 test('ratio buckets follow the documented needs and wants lists', () => {
     for (const label of RATIO_NEEDS) assert.equal(ratioBucket(label), 'needs', label);
     for (const label of RATIO_WANTS) assert.equal(ratioBucket(label), 'wants', label);

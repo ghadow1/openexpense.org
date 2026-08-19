@@ -431,6 +431,48 @@ export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome)
     return weeks;
 }
 
+/**
+ * Spend that has actually occurred by `asOf` in the viewed month.
+ *
+ * The planner's full-month outgoing figure intentionally includes scheduled
+ * bills. A burn rate must not: dividing future rent by only the days elapsed
+ * overstates daily use and understates runway. Direct callers that do not
+ * provide item dates retain the older `outgoing ÷ daysElapsed` fallback.
+ */
+function observedBurn(spendItems, outgoing, currentDate, asOf, daysInMonth, daysElapsed, plan) {
+    const viewed = currentDate instanceof Date && !Number.isNaN(currentDate.getTime())
+        ? currentDate
+        : null;
+    const today = asOf instanceof Date && !Number.isNaN(asOf.getTime()) ? asOf : new Date();
+    const viewedOrdinal = viewed ? viewed.getFullYear() * 12 + viewed.getMonth() : null;
+    const todayOrdinal = today.getFullYear() * 12 + today.getMonth();
+    const observedDays = viewedOrdinal == null
+        ? Math.max(0, Number(daysElapsed) || 0)
+        : viewedOrdinal < todayOrdinal
+            ? Math.max(0, Number(daysInMonth) || 0)
+            : viewedOrdinal === todayOrdinal
+                ? Math.min(Math.max(0, Number(daysInMonth) || 0), today.getDate())
+                : 0;
+
+    if (!Array.isArray(spendItems)) {
+        return {
+            amount: observedDays > 0 ? Utils.fromCents(Utils.toCents(outgoing)) : 0,
+            days: observedDays
+        };
+    }
+
+    const paidOnly = sanitizePlan(plan).spendBasis === 'paid';
+    let cents = 0;
+    for (const item of spendItems) {
+        if (paidOnly && !item?.paid) continue;
+        const day = Number(String(item?.date || '').slice(8, 10));
+        if (!Number.isInteger(day) || day < 1 || day > observedDays) continue;
+        const amount = Utils.toCents(item?.amount);
+        if (amount > 0) cents += amount;
+    }
+    return { amount: Utils.fromCents(cents), days: observedDays };
+}
+
 export function unpaidRecurring(items = [], plan) {
     const p = sanitizePlan(plan);
     let total = 0;
@@ -453,7 +495,7 @@ export function unpaidRecurring(items = [], plan) {
 export function computePlanner({
     incomeUsed: incoming = 0,
     spendUsed: outgoing = 0,
-    spendItems = [],
+    spendItems = null,
     dailyTotals = [],
     daysInMonth = 0,
     daysElapsed = 0,
@@ -474,11 +516,14 @@ export function computePlanner({
     const daysLeft = remainingDays(currentDate, asOf);
     const dailySafe = dailySafeSpend(leftToSpend, daysLeft);
     const weeklySafe = Utils.fromCents(Utils.toCents(dailySafe) * Math.min(7, Math.max(0, daysLeft)));
-    const burnDays = Math.max(1, Number(daysElapsed) || Number(daysInMonth) || 1);
-    const avgDailyBurn = Utils.fromCents(Math.round(Utils.toCents(outgoing) / burnDays));
-    const spent = classifyRatioSpend(spendItems, rules);
+    const burn = observedBurn(spendItems, outgoing, currentDate, asOf, daysInMonth, daysElapsed, rules);
+    const avgDailyBurn = burn.days > 0
+        ? Utils.fromCents(Math.round(Utils.toCents(burn.amount) / burn.days))
+        : 0;
+    const items = Array.isArray(spendItems) ? spendItems : [];
+    const spent = classifyRatioSpend(items, rules);
     const weekBuckets = monthWeekBuckets(dailyTotals, daysInMonth, spendableIncome);
-    const recurring = unpaidRecurring(spendItems, rules);
+    const recurring = unpaidRecurring(items, rules);
 
     return {
         plan: rules,
@@ -494,6 +539,8 @@ export function computePlanner({
         dailySafe,
         weeklySafe,
         avgDailyBurn,
+        burnSpend: burn.amount,
+        burnDays: burn.days,
         ratioNeedsSpent: spent.needs,
         ratioWantsSpent: spent.wants,
         ratioOtherSpent: spent.other,

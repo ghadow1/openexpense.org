@@ -882,7 +882,9 @@ function budgetSlide(snap, events, currentDate, plan, goals = []) {
         textChip({
             label: 'Days of cash',
             value: snap.runwayDays == null ? '—' : String(snap.runwayDays),
-            hint: snap.avgDailyBurn > 0 ? `${formatMoney(snap.avgDailyBurn)} daily burn` : 'No burn',
+            hint: snap.avgDailyBurn > 0
+                ? `${formatMoney(snap.avgDailyBurn)} / day from ${snap.burnDays} observed day${snap.burnDays === 1 ? '' : 's'}`
+                : 'No observed burn',
             tone: snap.runwayDays == null ? 'flat' : 'up',
             track: true
         }),

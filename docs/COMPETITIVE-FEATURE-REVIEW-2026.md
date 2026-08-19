@@ -31,6 +31,9 @@ cent-exact ledger math as the rest of OpenExpense, and avoid implying certainty.
 4. **Visual honesty.** Domains include zero, mixed-sign data is not flattened,
    non-finite inputs become zero, and abbreviated visual labels do not replace
    exact values elsewhere in the interface.
+5. **Observed runway.** Daily burn now divides only spend dated through the
+   observation day. Scheduled future bills still reduce available-to-spend,
+   but no longer inflate historical burn or shorten the displayed runway.
 
 ## Local-first roadmap
 

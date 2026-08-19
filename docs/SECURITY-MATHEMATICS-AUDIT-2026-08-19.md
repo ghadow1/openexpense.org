@@ -187,7 +187,12 @@ D_{\text{left}} &=
   \operatorname{roundCent}(L/D_{\text{left}}) & D_{\text{left}}>0\\
   0 & \text{otherwise},
   \end{cases}\\
-\text{dailyBurn} &= \operatorname{roundCent}(S/\max(1,D_{\text{elapsed}})),\\
+\text{dailyBurn} &=
+  \begin{cases}
+  \operatorname{roundCent}(S_{\le t}/D_{\text{observed}}) &
+      D_{\text{observed}}>0\\
+  0 & \text{otherwise},
+  \end{cases}\\
 \text{runwayDays} &=
   \begin{cases}
   \operatorname{round}_{0.1}(C/B) & B>0\\
@@ -196,8 +201,11 @@ D_{\text{left}} &=
 \end{aligned}
 \]
 
-Including today in remaining days is deliberate. Division-by-zero paths return
-zero or `null` according to whether zero is meaningful.
+Including today in remaining days is deliberate. \(S_{\le t}\) includes only
+counted spend dated through the observation day, so future scheduled bills
+reduce leftover without being misrepresented as historical burn. A future
+viewed month has zero observed days. Division-by-zero paths return zero or
+`null` according to whether zero is meaningful.
 
 ### Snapshot and summary
 
