@@ -444,7 +444,10 @@ export function renderGoalsPanel({ snap, goals, plan }) {
         const allocate = document.createElement('button');
         allocate.type = 'button';
         allocate.className = 'btn-secondary';
-        allocate.textContent = `Hold ${Utils.formatMoney(assessment.totalRequiredMonthly)} monthly`;
+        allocate.disabled = !(assessment.totalRequiredMonthly > 0);
+        allocate.textContent = assessment.totalRequiredMonthly > 0
+            ? `Hold ${Utils.formatMoney(assessment.totalRequiredMonthly)} monthly`
+            : 'No monthly hold needed';
         allocate.addEventListener('click', async () => {
             const result = await confirmDialog({
                 title: 'Use this goal hold?',

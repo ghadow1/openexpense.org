@@ -128,6 +128,32 @@ test('encrypt / decrypt roundtrip reuses the same pair', async () => {
     assert.equal(opened.events['2026-06-01'][0].title, 'Rent');
 });
 
+test('encrypted roundtrip preserves goal priority and optional amounts', async () => {
+    const payload = sanitizeLedger({
+        ...sample,
+        goals: [
+            {
+                id: '11111111111111111111111111111111',
+                title: 'First',
+                targetDate: '2027-01-01',
+                targetAmount: 100,
+                createdAt: 1
+            },
+            {
+                id: '22222222222222222222222222222222',
+                title: 'Second',
+                targetDate: '2027-02-01',
+                createdAt: 2
+            }
+        ]
+    });
+    const { enc, keyFile } = await encryptBundle(payload);
+    const opened = sanitizeLedger(await decryptBundle(enc, keyFile));
+    assert.deepEqual(opened.goals.map((goal) => goal.title), ['First', 'Second']);
+    assert.equal(opened.goals[0].targetAmount, 100);
+    assert.equal(opened.goals[1].targetAmount, undefined);
+});
+
 test('wrong key or mismatched kid is refused', async () => {
     const a = await encryptBundle({ name: 'A', events: { '2026-06-01': [{ title: 'A', price: 1 }] } });
     const b = await encryptBundle({ name: 'B', events: { '2026-06-01': [{ title: 'B', price: 2 }] } });
