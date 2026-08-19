@@ -7,15 +7,13 @@
  */
 import { encryptJSON, decryptJSON, isEncrypted, cryptoAvailable } from './crypto.js';
 import { sanitizeLedger } from './ledger-file.js';
-
-const DB_NAME = 'openexpense';
-const DB_VERSION = 2;
-const STORE_NAME = 'ledger';
-const META_STORE = 'meta';
-const KEY = 'current';
+import {
+    deleteStoredLedgerAndMeta,
+    getStoredLedger,
+    putStoredLedger
+} from './database.js';
 
 let saveTimer = null;
-let dbPromise = null;
 let lastSavedSig = '';
 let saveQueue = Promise.resolve();
 let externallyPurged = false;
@@ -42,84 +40,8 @@ function ledgerSignature(name, events, budgets, plan) {
     });
 }
 
-function openDb() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onerror = () => {
-            dbPromise = null;
-            reject(req.error);
-        };
-        req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME);
-            }
-            if (!db.objectStoreNames.contains(META_STORE)) {
-                db.createObjectStore(META_STORE);
-            }
-        };
-        // Another tab holding an older version blocks this upgrade; fail fast
-        // instead of hanging the app boot.
-        req.onblocked = () => {
-            dbPromise = null;
-            reject(new Error('IndexedDB upgrade blocked by another open tab'));
-        };
-        req.onsuccess = () => resolve(req.result);
-    });
-    return dbPromise;
-}
-
-function idbGet(storeName, key) {
-    return openDb().then(db => new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readonly');
-        const req = tx.objectStore(storeName).get(key);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result ?? null);
-    }));
-}
-
-function idbPut(storeName, key, value) {
-    return openDb().then(db => new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        tx.objectStore(storeName).put(value, key);
-        tx.onerror = () => reject(tx.error);
-        tx.oncomplete = () => resolve();
-    }));
-}
-
-function idbGetOrCreate(storeName, key, candidate) {
-    return openDb().then(db => new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const req = store.get(key);
-        let selected = null;
-
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => {
-            selected = req.result ?? candidate;
-            if (req.result == null) store.put(candidate, key);
-        };
-        tx.onerror = () => reject(tx.error);
-        tx.oncomplete = () => resolve(selected);
-    }));
-}
-
-export function metaGet(key) {
-    return idbGet(META_STORE, key);
-}
-
-export function metaPut(key, value) {
-    return idbPut(META_STORE, key, value);
-}
-
-/** Atomically keep the first value written when multiple tabs initialize. */
-export function metaGetOrCreate(key, candidate) {
-    return idbGetOrCreate(META_STORE, key, candidate);
-}
-
 export async function loadLedger() {
-    const raw = await idbGet(STORE_NAME, KEY);
+    const raw = await getStoredLedger();
     if (raw == null) return null;
 
     if (isEncrypted(raw)) {
@@ -152,7 +74,7 @@ async function commitLedger(data) {
     const sig = ledgerSignature(cleaned.name, cleaned.events, cleaned.budgets, cleaned.plan);
     if (sig === lastSavedSig) return;
     const record = await encryptJSON(cleaned);
-    await idbPut(STORE_NAME, KEY, record);
+    await putStoredLedger(record);
     lastSavedSig = sig;
 }
 
@@ -165,17 +87,12 @@ export function saveLedger(data) {
 
 /** Delete ciphertext and its device key in one IndexedDB transaction. */
 export function purgeStoredLedger(deviceKeyId = 'ledger-key-v1') {
-    const operation = saveQueue.catch(() => {}).then(() => openDb().then(db => new Promise((resolve, reject) => {
-        const tx = db.transaction([STORE_NAME, META_STORE], 'readwrite');
-        tx.objectStore(STORE_NAME).delete(KEY);
-        tx.objectStore(META_STORE).delete(deviceKeyId);
-        tx.onerror = () => reject(tx.error);
-        tx.oncomplete = () => {
+    const operation = saveQueue.catch(() => {}).then(() => (
+        deleteStoredLedgerAndMeta(deviceKeyId).then(() => {
             lastSavedSig = '';
             syncChannel?.postMessage({ type: 'purged' });
-            resolve();
-        };
-    })));
+        })
+    ));
     saveQueue = operation;
     return operation;
 }

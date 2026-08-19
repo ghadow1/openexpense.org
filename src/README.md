@@ -31,8 +31,8 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`core/crypto.js`](core/crypto.js) | Device AES-256-GCM key |
 | [`core/bundle.js`](core/bundle.js) | Encrypted ledger.json + portable key.json |
 | [`core/ledger-file.js`](core/ledger-file.js) | File QC, sanitize (import + IndexedDB load/save), filename pair |
+| [`core/database.js`](core/database.js) | IndexedDB connection, stores, and primitive transactions |
 | [`core/folder.js`](core/folder.js) | OpenExpense export folder handle (not key.json); overwrite names |
-| [`core/action-lock.js`](core/action-lock.js) | One in-flight lock for export / import / clear / scan |
 | [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
 | [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, date / cadence shift, weekday or series delete |
@@ -68,6 +68,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | File | Role |
 | --- | --- |
 | [`ui/components.js`](ui/components.js) | `UI.createButton`, `UI.createInput` |
+| [`ui/action-lock.js`](ui/action-lock.js) | One in-flight UI lock for export / import / clear / scan |
 | [`ui/theme.js`](ui/theme.js) | CSS variables from `THEMES` |
 | [`ui/toast.js`](ui/toast.js) | Status toasts |
 | [`ui/confirm.js`](ui/confirm.js) | Confirm dialog + optional checkbox |

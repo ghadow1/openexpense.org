@@ -102,10 +102,10 @@ openexpense.org/
 │   │   ├── render.js
 │   │   └── views.js
 │   ├── core/
-│   │   ├── action-lock.js
 │   │   ├── bundle.js
 │   │   ├── categories.js
 │   │   ├── crypto.js
+│   │   ├── database.js
 │   │   ├── day-entries.js
 │   │   ├── envelope.js
 │   │   ├── folder.js
@@ -145,6 +145,7 @@ openexpense.org/
 │   │   ├── sidebar.js
 │   │   └── undo-delete.js
 │   ├── ui/
+│   │   ├── action-lock.js
 │   │   ├── category-picker.js
 │   │   ├── components.js
 │   │   ├── confirm.js
@@ -269,6 +270,7 @@ UI, app-shell, or engine modules.
 
 - `store.js`: in-memory source of truth; `getState`, `patch`, and `subscribe`.
 - `limits.js`: canonical ledger resource policy shared by normalization code.
+- `database.js`: IndexedDB topology and primitive transactions.
 - `utils.js`: date keys, exact cents, escaping, filenames, and browser helpers.
 - `plan.js`: planner waterfall, ratios, safe spend, runway, and week targets.
 - `summary.js`: month/year aggregation and the shared account snapshot.
@@ -279,7 +281,6 @@ UI, app-shell, or engine modules.
 - `search.js`: pure search tokenizer, parser, predicates, and result totals.
 - `day-entries.js`: immutable day-list mutations.
 - `routes.js`: static public-path classification.
-- `action-lock.js`: one in-flight guard for destructive/file operations.
 - `crypto.js`: device-bound AES-GCM record encryption.
 - `envelope.js`: portable v2 HKDF/AES-GCM envelope and passphrase wrap.
 - `bundle.js`: encrypted ledger/key pair and legacy ZIP support.
@@ -316,6 +317,7 @@ not own canonical ledger mathematics.
 Reusable presentation mechanics without financial business rules.
 
 - `components.js`: generic button and input construction.
+- `action-lock.js`: one in-flight UI guard and busy-state presentation.
 - `confirm.js`: accessible confirmation/choice dialogs.
 - `toast.js`: temporary status messages.
 - `theme.js`: design-token application.
@@ -507,6 +509,12 @@ This is an optimization for both production and education:
    - `ledger-file.js` re-exports `FILE_LIMITS` for compatibility.
 4. Retained root deployment names and frozen DOM/CSS hooks.
    - Avoids path churn, duplicate public trees, and behavior changes.
+5. Split IndexedDB primitives into `src/core/database.js`.
+   - Removes the former `persist.js` ↔ `crypto.js` circular dependency.
+   - Keeps database topology separate from encryption and autosave policy.
+6. Moved the DOM-painting operation lock from `core/` to `ui/`.
+   - Its busy classes, disabled controls, and toast are presentation concerns.
+   - The foundational core layer no longer imports a browser UI module.
 
 ### 3.3 Refactoring mistakes checked or corrected
 

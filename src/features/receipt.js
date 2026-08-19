@@ -10,7 +10,7 @@ import { Toast } from '../ui/toast.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
-import { actionBusy, runLocked } from '../core/action-lock.js';
+import { actionBusy, runLocked } from '../ui/action-lock.js';
 
 const RECEIPT_LIMITS = {
     maxFileBytes: 15 * 1024 * 1024,

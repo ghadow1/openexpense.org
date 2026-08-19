@@ -5,7 +5,7 @@
  * That handle is not key.json and cannot decrypt a ledger. iPhone and many
  * Android browsers have no directory picker; those paths use the share sheet.
  */
-import { metaGet, metaPut } from './persist.js';
+import { metaGet, metaPut } from './database.js';
 import { Utils } from './utils.js';
 import { FILE_LIMITS } from './limits.js';
 import {

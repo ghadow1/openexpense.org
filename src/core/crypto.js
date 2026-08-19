@@ -5,7 +5,7 @@
  * That key cannot be exported as JWK and is not the user's key.json.
  * Portable export keys live only in a downloaded key.json (see bundle.js).
  */
-import { metaGetOrCreate } from './persist.js';
+import { metaGetOrCreate } from './database.js';
 import { ENVELOPE, canonicalJson } from './envelope.js';
 
 const KEY_ID = 'ledger-key-v1';

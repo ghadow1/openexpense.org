@@ -24,7 +24,7 @@ import {
     canUseDirectoryPicker, getSavedFolder, pickExportFolder,
     writeBlobsToFolder, resolveOverwriteNames, EXPORT_FOLDER_NAME
 } from '../core/folder.js';
-import { runLocked } from '../core/action-lock.js';
+import { runLocked } from '../ui/action-lock.js';
 import { refreshExportButtons } from './export-buttons.js';
 import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 

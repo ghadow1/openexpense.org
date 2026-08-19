@@ -19,7 +19,7 @@ import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
 import { Receipt } from './features/receipt.js';
 import { Toast } from './ui/toast.js';
-import { actionBusy } from './core/action-lock.js';
+import { actionBusy } from './ui/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
 import { restoreDeleteUndo } from './features/undo-delete.js';
 import { setLedgerFace } from './features/sidebar.js';
