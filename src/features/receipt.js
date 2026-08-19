@@ -11,8 +11,9 @@ import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { renderModal, saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
-import { actionBusy, runLocked } from '../ui/action-lock.js';
+import { runLocked } from '../ui/action-lock.js';
 import { receiptDateContext } from '../core/receipt-date.js';
+import { pickReceiptFile } from './receipt-picker.js';
 
 const RECEIPT_LIMITS = {
     maxFileBytes: 15 * 1024 * 1024,
@@ -47,7 +48,6 @@ export const Receipt = {
     _pdfjsPromise: null,
     _previewUrl: null,
     _lastFile: null,
-    _pendingIntendedDate: null,
 
     isPdf(file) {
         if (!file) return false;
@@ -57,17 +57,7 @@ export const Receipt = {
     },
 
     pickImage({ intendedDate = null } = {}) {
-        if (actionBusy()) {
-            Toast.show('Please wait — another action is still running.', 'info', 2800);
-            return;
-        }
-        const input = document.getElementById('receipt-scan-input');
-        if (!input) return;
-        Receipt._pendingIntendedDate = intendedDate;
-        input.value = '';
-        if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
-        else input.removeAttribute('capture');
-        input.click();
+        pickReceiptFile({ dateKey: intendedDate });
     },
 
     async ensureEngine(onProgress) {
@@ -399,8 +389,7 @@ export const Receipt = {
         return { ...ocr, previewUrl };
     },
 
-    async scan(file, { intendedDate = Receipt._pendingIntendedDate } = {}) {
-        Receipt._pendingIntendedDate = null;
+    async scan(file, { intendedDate = null } = {}) {
         return runLocked('scan', async () => {
             if (!file || (typeof file.size === 'number' && file.size > RECEIPT_LIMITS.maxFileBytes)) {
                 Toast.show('That receipt file is too large. Use a file under 15 MB.', 'error', 5200);

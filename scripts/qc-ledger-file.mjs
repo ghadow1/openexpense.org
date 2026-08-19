@@ -10,7 +10,9 @@ import {
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
-import { encryptBundle, decryptBundle, unzipBundle, ZIP_LIMITS } from '../src/core/bundle.js';
+import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
+import { ZIP_LIMITS } from '../src/core/bundle-format.js';
+import { unzipBundle } from '../src/core/legacy-zip.js';
 import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
 import { zipSync } from 'fflate';
 

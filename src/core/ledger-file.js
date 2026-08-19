@@ -8,7 +8,7 @@
  */
 import { Utils } from './utils.js';
 import { normalizeRepeat, normalizeSeriesId } from './series.js';
-import { BUNDLE, isEncFile, isKeyFile } from './bundle.js';
+import { BUNDLE, isEncFile, isKeyFile } from './bundle-format.js';
 import { ENVELOPE } from './envelope.js';
 import { planIsDefault, sanitizePlan } from './plan.js';
 import { sanitizeGoals } from './goals.js';

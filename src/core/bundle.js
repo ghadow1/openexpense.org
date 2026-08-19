@@ -8,29 +8,17 @@
  * commitment, and the whole header authenticated. v1 files — a raw AES-GCM key
  * in a JWK — still open, so older backups keep working.
  */
-import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import {
     ENVELOPE, sealPayload, openPayload, randomBytes, toBase64, fromBase64,
     wrapSecret, unwrapSecret
 } from './envelope.js';
+import {
+    BUNDLE, isKeyFile, needsPassphrase
+} from './bundle-format.js';
 
-export const BUNDLE = {
-    ENC_NAME: 'ledger.enc.json',
-    KEY_NAME: 'ledger.key.json',
-    README_NAME: 'README.txt',
-    ENC_FORMAT: 'openexpense-encrypted',
-    KEY_FORMAT: 'openexpense-key',
-    /** Written by this build. v1 stays readable. */
-    VERSION: ENVELOPE.VERSION,
-    LEGACY_VERSION: 1
-};
-
-export const ZIP_LIMITS = {
-    maxCompressedBytes: 8 * 1024 * 1024,
-    maxExpandedBytes: 16 * 1024 * 1024,
-    maxEntryBytes: 8 * 1024 * 1024,
-    maxEntries: 8
-};
+export {
+    BUNDLE, ZIP_LIMITS, isEncFile, isKeyFile, needsPassphrase
+} from './bundle-format.js';
 
 export function newKid() {
     const bytes = new Uint8Array(16);
@@ -80,13 +68,6 @@ export async function encryptBundle(payload, { passphrase = '' } = {}) {
         secret.fill(0);
     }
 }
-
-/** True when this key.json cannot be used without asking the user for words. */
-export function needsPassphrase(keyFile) {
-    return !!keyFile && typeof keyFile === 'object'
-        && !!keyFile.wrap && typeof keyFile.wrap === 'object';
-}
-
 function envelopeVersion(enc) {
     return Number(enc?.version) || BUNDLE.LEGACY_VERSION;
 }
@@ -110,7 +91,7 @@ async function decryptLegacyBundle(enc, keyFile) {
         key,
         fromBase64(enc.ct)
     );
-    return JSON.parse(strFromU8(new Uint8Array(buf)));
+    return JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
 }
 
 export async function decryptBundle(enc, keyFile, { passphrase = '' } = {}) {
@@ -125,77 +106,3 @@ export async function decryptBundle(enc, keyFile, { passphrase = '' } = {}) {
     }
 }
 
-export function isEncFile(obj) {
-    return !!obj && typeof obj === 'object'
-        && (obj.format === BUNDLE.ENC_FORMAT || (typeof obj.iv === 'string' && typeof obj.ct === 'string'));
-}
-
-export function isKeyFile(obj) {
-    return !!obj && typeof obj === 'object'
-        && (obj.format === BUNDLE.KEY_FORMAT
-            || typeof obj.secret === 'string'
-            || (obj.wrap && typeof obj.wrap === 'object')
-            || (obj.kty && obj.k)
-            || (obj.key && obj.key.kty));
-}
-
-export function zipBundle(enc, keyFile) {
-    const files = {
-        [BUNDLE.ENC_NAME]: strToU8(JSON.stringify(enc, null, 2)),
-        [BUNDLE.KEY_NAME]: strToU8(JSON.stringify(keyFile, null, 2)),
-        [BUNDLE.README_NAME]: strToU8(
-            'OpenExpense encrypted export\n' +
-            '================================\n\n' +
-            `${BUNDLE.ENC_NAME}  - your ledger, encrypted with AES-256-GCM.\n` +
-            `${BUNDLE.KEY_NAME}  - the key needed to decrypt it.\n\n` +
-            'To restore: open openexpense.org and use Import. Prefer the two JSON\n' +
-            'files saved next to each other (encrypted ledger.json + key.json).\n' +
-            'This zip is a legacy bundle of the same pair.\n\n' +
-            'The portable key is only in key.json. OpenExpense does not keep it\n' +
-            'in the browser. Without a passphrase, anyone with BOTH files can\n' +
-            'read the ledger. With one, key.json is useless on its own.\n'
-        )
-    };
-    return zipSync(files, { level: 6 });
-}
-
-export function unzipBundle(u8) {
-    if (!(u8 instanceof Uint8Array) || u8.byteLength > ZIP_LIMITS.maxCompressedBytes) {
-        throw new Error('ZIP_TOO_LARGE');
-    }
-    let count = 0;
-    let expectedBytes = 0;
-    const entries = unzipSync(u8, {
-        filter(file) {
-            count += 1;
-            const size = Number(file?.originalSize ?? 0);
-            expectedBytes += size;
-            if (count > ZIP_LIMITS.maxEntries
-                || size > ZIP_LIMITS.maxEntryBytes
-                || expectedBytes > ZIP_LIMITS.maxExpandedBytes) {
-                throw new Error('ZIP_EXPANSION_LIMIT');
-            }
-            return true;
-        }
-    });
-    const out = {};
-    let expandedBytes = 0;
-    for (const name of Object.keys(entries)) {
-        expandedBytes += entries[name].byteLength;
-        if (entries[name].byteLength > ZIP_LIMITS.maxEntryBytes
-            || expandedBytes > ZIP_LIMITS.maxExpandedBytes) {
-            throw new Error('ZIP_EXPANSION_LIMIT');
-        }
-        out[name] = entries[name];
-    }
-    return out;
-}
-
-export function entryToJson(u8) {
-    if (!u8) return null;
-    try {
-        return JSON.parse(strFromU8(u8));
-    } catch {
-        return null;
-    }
-}

@@ -25,7 +25,7 @@ import {
 import { closeModal, initModalBindings, renderModal, openModal, shiftSelectedDay } from './features/modal.js';
 import { bindResponsiveCalendar } from './features/calendar.js';
 import { Ledger } from './features/ledger.js';
-import { Receipt } from './features/receipt.js';
+import { pickReceiptFile, takeReceiptDateContext } from './features/receipt-picker.js';
 import { Toast } from './ui/toast.js';
 import { actionBusy } from './ui/action-lock.js';
 import { refreshExportButtons } from './features/export-buttons.js';
@@ -161,7 +161,11 @@ async function initApplication() {
     if (scanInput && !scanInput.dataset.bound) {
         scanInput.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0];
-            if (file) Receipt.scan(file);
+            const intendedDate = takeReceiptDateContext();
+            if (file) {
+                void import('./features/receipt.js')
+                    .then(({ Receipt }) => Receipt.scan(file, { intendedDate }));
+            }
             e.target.value = '';
         });
         scanInput.dataset.bound = '1';
@@ -215,11 +219,11 @@ function handleDelegatedClick(e) {
                 break;
             case 'scan-receipt':
                 if (getState().shellTab === 'privacy') switchView('overview');
-                Receipt.pickImage();
+                pickReceiptFile();
                 break;
             case 'scan-receipt-for-day': {
                 const intendedDate = getState().selectedKey;
-                if (intendedDate) Receipt.pickImage({ intendedDate });
+                if (intendedDate) pickReceiptFile({ dateKey: intendedDate });
                 break;
             }
             case 'quick-add-today': {
