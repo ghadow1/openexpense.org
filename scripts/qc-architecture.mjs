@@ -99,3 +99,22 @@ test('pure and headless layers do not depend on browser feature layers', () => {
         }
     }
 });
+
+test('optional heavy features stay behind explicit lazy boundaries', async () => {
+    const [main, ledger, ledgerFile, bundle, legacyZip] = await Promise.all([
+        readFile(resolve(SOURCE_ROOT, 'main.js'), 'utf8'),
+        readFile(resolve(SOURCE_ROOT, 'features/ledger.js'), 'utf8'),
+        readFile(resolve(SOURCE_ROOT, 'core/ledger-file.js'), 'utf8'),
+        readFile(resolve(SOURCE_ROOT, 'core/bundle.js'), 'utf8'),
+        readFile(resolve(SOURCE_ROOT, 'core/legacy-zip.js'), 'utf8')
+    ]);
+
+    assert.doesNotMatch(main, /from ['"]\.\/features\/receipt\.js['"]/);
+    assert.match(main, /import\(['"]\.\/features\/receipt\.js['"]\)/);
+    assert.doesNotMatch(ledger, /from ['"]\.\.\/core\/bundle\.js['"]/);
+    assert.match(ledger, /import\(['"]\.\.\/core\/bundle\.js['"]\)/);
+    assert.match(ledger, /import\(['"]\.\.\/core\/legacy-zip\.js['"]\)/);
+    assert.match(ledgerFile, /from ['"]\.\/bundle-format\.js['"]/);
+    assert.doesNotMatch(bundle, /from ['"]fflate['"]/);
+    assert.match(legacyZip, /from ['"]fflate['"]/);
+});

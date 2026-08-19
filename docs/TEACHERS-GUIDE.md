@@ -7,6 +7,8 @@ Companion audit:
 [`SECURITY-MATHEMATICS-AUDIT-2026-08-19.md`](SECURITY-MATHEMATICS-AUDIT-2026-08-19.md).
 Data specification: [`DATA-FORMAT.md`](DATA-FORMAT.md). Contributor naming and
 DOM contract: [`CODEMAP.md`](CODEMAP.md).
+For a shorter, lesson-by-lesson entry route, begin with
+[`LEARNING-PATH.md`](LEARNING-PATH.md).
 
 ## SECTION 1: ARCHITECTURAL OVERVIEW
 
@@ -506,7 +508,8 @@ confirmation.
 - `sidebar.js`: month summaries, categories, groups, budgets, entries, PDF;
 - `modal.js`: day editing, recurrence, group operations;
 - `search-panel.js`: query UI and CSV handoff;
-- `receipt.js` / `receipt-parse.js`: bounded local extraction and suggestions.
+- `receipt-picker.js`: synchronous native chooser and date context;
+- `receipt.js` / `receipt-parse.js`: lazy bounded local extraction and suggestions.
 
 The calculations live in `core/summary.js` and `core/plan.js`, so UI surfaces
 cannot quietly disagree about totals.

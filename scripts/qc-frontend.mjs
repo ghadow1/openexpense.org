@@ -125,7 +125,8 @@ test('day receipt scans require a choice when OCR and selected dates differ', as
         read('openexpense.css')
     ]);
     assert.match(html, /data-action="scan-receipt-for-day"/);
-    assert.match(main, /Receipt\.pickImage\(\{ intendedDate \}\)/);
+    assert.match(main, /pickReceiptFile\(\{ dateKey: intendedDate \}\)/);
+    assert.match(main, /import\('\.\/features\/receipt\.js'\)/);
     assert.match(receipt, /Which date should this expense use\?/);
     assert.match(receipt, /name="ocr-date-choice"/);
     assert.match(receipt, /Choose the receipt date or the selected day before saving/);

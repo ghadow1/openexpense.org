@@ -27,7 +27,7 @@ npm test               # ledger file QC (encrypt, sanitize, key wipe)
 - **No new pages or routes.** The product has four tabs on two existing mains: Overview / Tracker / Planner in `#view-app`, and Privacy & Help in `#view-docs`. Wire new UI into those shells.
 - **Do not edit `app.js` or `chunk-*.js` by hand.** Change `src/`, then `npm run build`.
 - **Leave live DOM ids and CSS class prefixes alone** unless the change requires it: `#view-app`, `#view-docs`, `#cal-col`, `#sidebar`, `#modal`, `[data-action]`, `[data-view]`, `[data-shell]`, `[data-tracker-filter]`. See [`docs/CODEMAP.md`](docs/CODEMAP.md).
-- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.
+- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`; cheap format guards live in `bundle-format.js`, and legacy ZIP compatibility is isolated in `legacy-zip.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.
 - **Match the existing style.** Vanilla ES modules, short module headers, design-system CSS classes instead of one-off inline colors.
 
 ## Suggested workflow

@@ -102,6 +102,7 @@ openexpense.org/
 │   │   ├── render.js
 │   │   └── views.js
 │   ├── core/
+│   │   ├── bundle-format.js
 │   │   ├── bundle.js
 │   │   ├── categories.js
 │   │   ├── crypto.js
@@ -112,6 +113,7 @@ openexpense.org/
 │   │   ├── groups.js
 │   │   ├── labeling.js
 │   │   ├── ledger-file.js
+│   │   ├── legacy-zip.js
 │   │   ├── limits.js
 │   │   ├── pdf-frame.js
 │   │   ├── pdf-theme.js
@@ -140,6 +142,7 @@ openexpense.org/
 │   │   ├── ledger.js
 │   │   ├── modal.js
 │   │   ├── receipt-parse.js
+│   │   ├── receipt-picker.js
 │   │   ├── receipt.js
 │   │   ├── search-panel.js
 │   │   ├── sidebar.js
@@ -283,7 +286,9 @@ UI, app-shell, or engine modules.
 - `routes.js`: static public-path classification.
 - `crypto.js`: device-bound AES-GCM record encryption.
 - `envelope.js`: portable v2 HKDF/AES-GCM envelope and passphrase wrap.
-- `bundle.js`: encrypted ledger/key pair and legacy ZIP support.
+- `bundle-format.js`: portable-backup markers and dependency-free type guards.
+- `bundle.js`: current encrypted ledger/key pair operations.
+- `legacy-zip.js`: lazy compatibility codec for older ZIP backups.
 - `ledger-file.js`: file classification, validation, and allowlist sanitation.
 - `persist.js`: queued encrypted IndexedDB autosave and atomic purge.
 - `folder.js`: linked export-folder handle and safe pair replacement.
@@ -305,7 +310,8 @@ not own canonical ledger mathematics.
 - `sidebar.js`: expense/income monthly register and breakdowns.
 - `dash-strip.js`: Overview, Tracker heading/filter, and Planner panes.
 - `search-panel.js`: search sheet and result interaction.
-- `receipt.js`: bounded image/PDF loading and local OCR review.
+- `receipt-picker.js`: synchronous camera/file chooser entry point.
+- `receipt.js`: lazy bounded image/PDF loading and local OCR review.
 - `receipt-parse.js`: pure OCR text normalization and field suggestions.
 - `ledger.js`: import/export/clear/autosave file workflows.
 - `export-buttons.js`: Export versus linked-folder Save presentation.
@@ -403,9 +409,14 @@ layers. `scripts/qc-architecture.mjs` enforces these rules and rejects cycles.
 
 External packages enter at narrow adapters:
 
-- `fflate` in `core/bundle.js`;
+- `fflate` in lazy `core/legacy-zip.js`;
 - `jspdf` in `core/summary-pdf.js`;
 - OCR, ONNX, and PDF.js through lazy imports in `features/receipt.js`.
+
+The receipt picker is kept in `features/receipt-picker.js` so the native chooser
+opens synchronously from the user's click. Only after a file is selected does
+`main.js` import the OCR/review feature. Architecture QC pins these boundaries
+so optional codecs cannot drift back into startup unnoticed.
 
 ### 2.2 State lifecycle
 

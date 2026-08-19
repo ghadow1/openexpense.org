@@ -667,48 +667,11 @@ textarea,
 }
 
 .ov-sub,
-.ov-settle-meta,
-.ov-year-foot,
 .privacy-tools-copy {
     margin: 6px 0 0;
     color: var(--text2);
     font-size: var(--fs-xs);
     line-height: 1.4;
-}
-
-.ov-pair {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.ov-flow-value {
-    margin: 0;
-    color: var(--text-strong);
-    font-size: 1.125rem;
-    font-weight: 750;
-    font-variant-numeric: tabular-nums;
-}
-
-.ov-settle-track {
-    margin-top: 10px;
-    height: 8px;
-    border-radius: var(--radius-full);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    overflow: hidden;
-}
-
-.ov-settle-track > span {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-}
-
-.ov-year-charts {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .ledger-stage {
@@ -6469,11 +6432,6 @@ textarea:focus-visible {
     color: var(--income);
 }
 
-.sidebar-face--income .year-chart-col.is-current .year-chart-fill {
-    background: var(--income);
-    border-color: var(--income);
-}
-
 .summary-hero-amount {
     font-size: 24px;
     font-weight: 800;
@@ -6849,91 +6807,6 @@ textarea:focus-visible {
     background: var(--surface2);
 }
 
-.year-chart {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    align-items: stretch;
-    gap: 3px;
-    height: 108px;
-    margin-top: 8px;
-}
-
-.year-chart-col {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 5px;
-    height: 100%;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    color: inherit;
-}
-
-.year-chart-col::before {
-    content: "";
-    position: absolute;
-    top: 6px;
-    bottom: 18px;
-    left: 50%;
-    width: 1px;
-    background: color-mix(in srgb, var(--border-strong) 55%, transparent);
-    transform: translateX(-50%);
-    pointer-events: none;
-}
-
-.year-chart-fill {
-    position: relative;
-    z-index: 1;
-    width: 12px;
-    max-width: 12px;
-    height: 12px !important;
-    min-height: 12px;
-    background: color-mix(in srgb, var(--border-strong) 40%, var(--surface2));
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    transform: scale(calc(0.58 + (var(--month-pct, 0) * 0.75)));
-    transform-origin: center bottom;
-    transition:
-        transform 420ms var(--ease-out),
-        background 240ms var(--ease-out),
-        box-shadow 240ms var(--ease-out);
-}
-
-.year-chart-col.is-hot .year-chart-fill {
-    background: var(--accent);
-    border-color: transparent;
-}
-
-
-.year-chart-col.is-current .year-chart-fill {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
-}
-
-.year-chart-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    line-height: 1;
-}
-
-.year-chart-col.is-current .year-chart-label {
-    color: var(--accent);
-}
-
-.year-chart-col:focus-visible .year-chart-fill,
-.year-chart-col:hover .year-chart-fill {
-    border-color: var(--border-strong);
-}
-
 /* ==========================================================================
    Dark theme — OLED black, hairlines, single accent
    Light theme tokens and layout stay unchanged. This only paints dark.
@@ -7136,34 +7009,6 @@ textarea:focus-visible {
 
 [data-theme="dark"] .day-insight-fill.is-down {
     background: #6f6f6f;
-}
-
-[data-theme="dark"] .year-chart-col::before {
-    background: rgba(255, 255, 255, 0.16);
-}
-
-[data-theme="dark"] .year-chart-fill {
-    background: #1a1a1a;
-    border-color: rgba(255, 255, 255, 0.22);
-}
-
-[data-theme="dark"] .year-chart-col.is-hot .year-chart-fill {
-    background: var(--accent);
-    border-color: transparent;
-}
-
-[data-theme="dark"] .year-chart-col.is-current .year-chart-fill,
-[data-theme="dark"] .sidebar-face--income .year-chart-col.is-current .year-chart-fill {
-    box-shadow: 0 0 0 2px #000, 0 0 0 3px #ffffff;
-}
-
-[data-theme="dark"] .year-chart-col.is-current .year-chart-label {
-    color: #fff;
-}
-
-[data-theme="dark"] .year-chart-col:hover .year-chart-fill,
-[data-theme="dark"] .year-chart-col:focus-visible .year-chart-fill {
-    box-shadow: 0 0 0 2px #000, 0 0 0 3px var(--accent);
 }
 
 [data-theme="dark"] .summary-merchant-track {
@@ -7841,11 +7686,6 @@ html.oe-scroll-lock body {
         gap: 12px;
         width: 100%;
         min-width: 0;
-    }
-
-    .year-chart {
-        height: 92px;
-        gap: 2px;
     }
 
     .toolbar {

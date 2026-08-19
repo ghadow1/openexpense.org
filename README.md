@@ -57,8 +57,8 @@ src/                   # Application source (edit here)
   main.js              # Bootstrap
   config.js            # Version, preference keys, theme tokens
   app/                 # Render loop and the four-tab shell
-  core/                # Store, persist, crypto, export zip, summary, series, search
-  features/            # Calendar, day editor, search panel, ledger files, receipts, sidebar
+  core/                # Store, math, crypto, file formats, persistence, search
+  features/            # Calendar, editor, planner, ledger files, receipts, reports
   ui/                  # Buttons, theme, toasts, confirm dialog
 docs/                  # Architecture, data format, sample ledger
 index.html             # Shell: header, four tabs, welcome, day modal + SEO head
@@ -69,7 +69,12 @@ robots.txt sitemap.xml # Crawler files (sitemap rewritten on build)
 icons/                 # Graphic mark (header also shows a compact lockup)
 ```
 
-A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The editor contract (what not to rename, tab × frame, class prefixes) is [`docs/CODEMAP.md`](docs/CODEMAP.md).
+A guided classroom/contributor route starts at
+[`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference is
+[`src/README.md`](src/README.md), runtime data flow is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the editor contract (what
+not to rename, tab × frame, class prefixes) is
+[`docs/CODEMAP.md`](docs/CODEMAP.md).
 
 For classroom use, the
 [`Teacher's Guide`](docs/TEACHERS-GUIDE.md) derives the financial formulas,
@@ -100,7 +105,9 @@ Dates are `YYYY-MM-DD` keys. Each day is an array of expenses:
 }
 ```
 
-Full field notes and the encrypted zip layout are in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in [`docs/examples/sample-ledger.json`](docs/examples/sample-ledger.json).
+Full field notes, current encrypted file pair, and legacy ZIP compatibility are
+in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in
+[`docs/examples/sample-ledger.json`](docs/examples/sample-ledger.json).
 
 ## Encryption and storage
 
