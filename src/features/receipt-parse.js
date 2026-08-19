@@ -199,7 +199,12 @@ function parseDate(text, lines) {
         }
 
         m = norm.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-        if (m) push(validIsoDate(m[1], m[2], m[3]));
+        if (m) {
+            push(validIsoDate(m[1], m[2], m[3]));
+            // Do not let the generic MM/DD/YY branch reinterpret the tail of
+            // an invalid ISO date (2026-02-31) as the valid 2031-02-26.
+            continue;
+        }
 
         m = norm.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
         if (m) {
