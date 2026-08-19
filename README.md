@@ -46,7 +46,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
-- **Four-tab shell** — Overview (snapshot + calendar), Tracker (same board, All / Expenses / Income), Planner (safe spend and tax rules above the calendar), Privacy (help and backups).
+- **Four-tab shell** — Overview (Left to spend + calendar on a phone; compact strip + board on desktop), Tracker (Monthly spending; calendar only on desktop), Planner (safe spend and tax rules), Privacy (help and backups).
 
 ## Repository map
 
@@ -68,7 +68,7 @@ robots.txt sitemap.xml # Crawler files (sitemap rewritten on build)
 icons/                 # Graphic mark (header also shows a compact lockup)
 ```
 
-A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The editor contract (what not to rename, tab × frame, class prefixes) is [`docs/CODEMAP.md`](docs/CODEMAP.md).
 
 ## Data format
 

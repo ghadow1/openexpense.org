@@ -869,6 +869,10 @@ function syncTrackerFilter() {
     });
 }
 
+/**
+ * Paint Overview, the Tracker page head, Planner, and the filter active state.
+ * The filename `dash-strip` is historical; this is not a fifth tab.
+ */
 export function renderDashStrip() {
     const { events, currentDate, plan } = getState();
     const rules = sanitizePlan(plan);

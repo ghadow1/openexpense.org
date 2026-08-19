@@ -29,6 +29,27 @@
  * SOFTWARE.
  */
 
+/*
+ * Class prefixes (frozen — do not invent a parallel name for the same surface):
+ *   ov-        Overview snapshot (Left to spend)
+ *   planner-   Planner workspace
+ *   tracker-   Tracker toolbar and page head
+ *   dash-      Compact desktop strip, chips, plan fields
+ *   cal-       Month grid
+ *   sidebar- / summary-  Monthly spending / income register
+ *   oe-        Shared widgets (card, dial, spark)
+ *   dock-      Bottom tabs
+ *   docs-      Privacy chapters
+ *   event- / form- / smart-  Day editor
+ *   search-    Search sheet
+ *   cat- / group-  Tags and groups
+ *   is-        State only
+ *
+ * Layout switches: html[data-frame="phone|tablet|desktop"]
+ *                  html[data-shell="overview|tracker|planner|privacy"]
+ * Editor contract: docs/CODEMAP.md
+ */
+
 /* ==========================================================================
    Design Tokens — 2027 system
    First paint is fully styled (no FOUC). src/ui/theme.js mirrors these values

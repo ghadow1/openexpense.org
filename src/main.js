@@ -174,6 +174,14 @@ function bindSearchShortcut() {
     });
 }
 
+/**
+ * Document-level clicks. Frozen hooks:
+ *   [data-action]           export, import, add, scan, search, undo, day nav
+ *   [data-face]             leftover expense/income face (sidebar used to own this)
+ *   [data-tracker-filter]   All / Expenses / Income
+ *   [data-view]             bottom tabs
+ *   [data-tab]              Privacy chapter tabs
+ */
 function handleDelegatedClick(e) {
     const actionEl = e.target.closest('[data-action]');
     if (actionEl) {

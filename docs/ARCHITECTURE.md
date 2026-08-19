@@ -2,16 +2,19 @@
 
 OpenExpense is a single-page static app. The browser is the runtime. There is no API.
 
+Editor contract (what not to rename, tab × frame matrix, class prefixes): [`CODEMAP.md`](CODEMAP.md).
+
 ```
-index.html          four tabs + day modal + welcome
+index.html          two mains + four tabs + shared ledger board + day modal
         │
         ▼
 src/main.js         boot, event delegation, render subscription
-    │
+        │
         ├─► core/store.js      getState / patch / subscribe
         ├─► core/persist.js    encrypted IndexedDB (debounced)
-        ├─► app/render.js      theme, calendar, sidebar, status chips
-        ├─► app/views.js       Overview / Tracker / Planner / Privacy
+        ├─► ui/frame.js        phone / tablet / desktop snap (data-frame)
+        ├─► app/render.js      theme, calendar, overview/planner, sidebar
+        ├─► app/views.js       Overview / Tracker / Planner / Privacy (data-shell)
         └─► features/*         calendar, modal, ledger, receipt, sidebar
 ```
 
@@ -40,7 +43,7 @@ src/main.js         boot, event delegation, render subscription
 | `selectedKey` | Open day (`YYYY-MM-DD`) or `null` |
 | `editingIndex` | Row being edited in that day |
 | `ledgerFace` | Expense or income register face |
-| `trackerFilter` | Tracker filter: `all`, `expense`, or `income` |
+| `trackerFilter` | Calendar + toolbar filter: `all`, `expense`, or `income` |
 | `shellTab` | Active bottom tab: `overview`, `tracker`, `planner`, or `privacy` |
 
 `patch(partial)` merges fields and notifies subscribers. The render loop in `main.js` coalesces those notifications into one animation frame.
@@ -58,7 +61,7 @@ src/main.js         boot, event delegation, render subscription
 | Layer | Job |
 | --- | --- |
 | `ui/` | Theme tokens on `:root`, buttons/inputs, toasts, confirm dialog |
-| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); red/green week rails |
+| `features/calendar.js` | Month grid; same-title pills collapse (`Coffee ×2`); gray/red week rails from over-daily-safe days |
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
 | `features/sidebar.js` | Month math + statement PDF; click a group or category to search |
@@ -69,11 +72,19 @@ src/main.js         boot, event delegation, render subscription
 
 `src/core/series.js` treats two entries as the same series when both are `recurring`, they share `kind` (expense vs income), their titles match after trim + lower-case, and they share the same `repeat` cadence (`weekly`, `monthly`, `bimonthly`, or `quarterly`; missing means monthly). Blank or leftover placeholder titles never join a series. The day editor copies about a year of future dates at that step (52 weeks, or 12 months at the monthly step) and can remove every occurrence across the ledger. Date and cadence can still shift the series; name and amount stay on the edited row unless **Change all** confirms other rows that share both.
 
-The right-hand card flips between an expense face and an income face. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
+The right-hand card flips between an expense face and an income face when the Tracker filter is Expenses or Income. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The bottom bar has four tabs. The calendar and month register stay in `#view-app` on Overview, Tracker, and Planner. Overview adds the cash snapshot above that board. Tracker is the same board with All / Expenses / Income in focus. Planner is the withholding, savings hold, 50/30/20 scoreboard, and leftover ÷ remaining days (`src/core/plan.js` + `computePlanner`) above the same calendar. Privacy is the existing help pane plus backup, import, and clear. Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. At 1100px and up Planner also draws the split as bars beside the dial and opens the figure cards. The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold. A weekly target also appears in the expense-face Budgets list.
+The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). Frame CSS decides what that board shows:
+
+- **Phone / tablet Overview** — Left to spend + calendar. No filter bar, no monthly spending card.
+- **Phone / tablet Tracker** — Filter + Monthly spending. No calendar.
+- **Desktop Overview** — compact dial strip beside the calendar and register.
+- **Desktop Tracker** — filter + calendar + register.
+- **Planner (every frame)** — planner form only; the shared board is hidden.
+
+Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 
 ## Labels, groups, and Change All
 

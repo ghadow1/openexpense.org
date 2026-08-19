@@ -35,6 +35,7 @@ export const RENDER_DEPS = {
     fileStatus: ['ledgerName', 'events'],
     ledgerNameInput: ['ledgerName'],
     calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter'],
+    // "dash" is the Overview + Planner + Tracker-head paint in dash-strip.js.
     dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'trackerFilter'],
     sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter']
 };
@@ -54,7 +55,7 @@ export function render(changedKeys) {
     if (shouldRender('fileStatus', keys)) updateFileStatus();
     if (shouldRender('ledgerNameInput', keys)) syncLedgerNameInput();
     if (shouldRender('calendar', keys)) renderCalendar(keys);
-    if (shouldRender('dash', keys)) renderDashStrip();
+    if (shouldRender('dash', keys)) renderDashStrip(); // Overview, Tracker head, Planner
     if (shouldRender('sidebar', keys)) renderSidebar(keys);
 }
 

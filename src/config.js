@@ -21,6 +21,7 @@ export const THEME_FACES = {
 // localStorage only holds non-sensitive UI preferences. The ledger itself
 // (including its name) lives encrypted in IndexedDB (see core/persist.js +
 // core/crypto.js), never in plaintext localStorage.
+// These string values are frozen — existing browsers already store them.
 export const STORAGE_KEYS = {
     theme: 'oe-theme',
     visited: 'hasVisited',

@@ -28,10 +28,20 @@ function readStoredTab() {
     return 'overview';
 }
 
+/** Persist the bottom-tab name. Storage key is frozen (`oe-shell-tab`). */
 export function persistShellTab(tab) {
     try { localStorage.setItem(STORAGE_KEYS.shellTab, tab); } catch (_) { /* ignore */ }
 }
 
+/**
+ * Stamp `html[data-shell]`, swap `#view-app` / `#view-docs`, and hide
+ * `[data-shell]` panes that are not this tab.
+ *
+ * `.ledger-stage` is not a pane. Frame CSS shows or hides `#cal-col`,
+ * `#sidebar`, and `.tracker-toolbar` inside that shared board.
+ *
+ * @param {string} tab
+ */
 export function applyShell(tab) {
     const next = SHELL_TABS.includes(tab) ? tab : 'overview';
     const appView = document.getElementById('view-app');
@@ -56,6 +66,10 @@ export function applyShell(tab) {
     });
 }
 
+/**
+ * Activate a bottom tab. Legacy aliases: `app` → last ledger tab, `docs` → privacy.
+ * @param {string} viewName
+ */
 export function switchView(viewName) {
     let tab = viewName;
     if (viewName === 'app') tab = getState().shellTab === 'privacy' ? 'overview' : (getState().shellTab || 'overview');

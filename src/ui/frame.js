@@ -2,9 +2,9 @@
  * OpenExpense — layout frames
  *
  * Phone, tablet, and desktop are three snapped views, not a fluid in-between.
- * Phone is the stacked Overview the user asked to keep. Desktop is the compact
- * dial strip beside the calendar from this morning. Tablet is its own middle
- * snap so an iPad does not inherit a squeezed desktop or a stretched phone.
+ * Stamps `html[data-frame]`. Crossing a snap calls the boot listener so
+ * Overview / Tracker can repaint for that frame. Breakpoints and tab
+ * visibility: docs/CODEMAP.md.
  */
 export const FRAMES = ['phone', 'tablet', 'desktop'];
 

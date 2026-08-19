@@ -477,14 +477,14 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
 }
 
 /**
- * Homepage snapshot. The cash line is deposited income, what is left of it
- * after the month's spending, and the savings carried in behind that;
- * currentFunds is the lifetime settled figure, kept for embed hosts.
- * Projected income is the viewed month’s scheduled income (recurring copies
- * already on the calendar). Year totals and monthly averages stop at the
- * viewed month so later recurring copies do not inflate “expense months.”
- * A ledger `plan` can change which income and spend count, withhold tax, and
- * hold savings out of left-to-spend. The default plan leaves every existing
+ * Cash snapshot for Overview, Planner, and calendar week math.
+ * UI modules keep this object in a local named `snap`.
+ *
+ * The cash line is deposited income, what is left after the month's spending,
+ * and the savings carried in behind that. `currentFunds` is the lifetime
+ * settled figure (embed hosts). Projected income is the viewed month’s
+ * scheduled income. Year totals stop at the viewed month. A ledger `plan` can
+ * withhold tax and hold savings; the default plan leaves every existing
  * figure identical. Does not persist.
  */
 export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan) {

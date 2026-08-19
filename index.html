@@ -2,6 +2,7 @@
 <!--
   OpenExpense shell. Application code lives in src/ and is bundled to app.js.
   Four shell tabs: Overview, Tracker, Planner, and Privacy.
+  Editor contract (frozen ids, data-* hooks, class prefixes): docs/CODEMAP.md
 -->
 <html lang="en">
 
@@ -285,10 +286,12 @@
 
     <div class="app-container">
 
+    <!-- Ledger app: Overview / Tracker / Planner. Privacy is #view-docs. -->
     <main class="app-view" id="view-app">
       <input id="ledger-name-input" class="ledger-name-field" type="text"
         spellcheck="false" autocomplete="off" tabindex="-1" aria-hidden="true">
 
+      <!-- Overview: Left to spend (phone) or compact strip (desktop). -->
       <section class="shell-pane" id="pane-overview-hero" data-shell="overview">
         <div id="overview-hero-root" class="overview-root" role="region" aria-label="Left to spend">
           <div class="skel skel-dial" aria-hidden="true"></div>
@@ -296,18 +299,23 @@
         </div>
       </section>
 
+      <!-- Planner workspace. The shared board is hidden while this tab is on. -->
       <section class="shell-pane" id="pane-planner" data-shell="planner" hidden>
         <div id="planner-root" class="planner-root" role="region" aria-label="Planner"></div>
       </section>
 
+      <!-- Overview overflow. Current paints leave this root empty. -->
       <section class="shell-pane" id="pane-overview-more" data-shell="overview">
         <div id="overview-more-root" class="overview-root" role="region" aria-label="Deposits and spending"></div>
       </section>
 
+      <!-- Tracker page title on phone/tablet. Empty on desktop. -->
       <section class="shell-pane" id="pane-tracker-head" data-shell="tracker" hidden>
         <div id="tracker-head-root" class="tracker-head-root" role="region" aria-label="Tracker"></div>
       </section>
 
+      <!-- Shared board: filter, calendar (#cal-col), register (#sidebar).
+           Not a data-shell pane. Frame CSS shows or hides pieces per tab. -->
       <div class="ledger-stage">
         <div class="tracker-toolbar">
           <div class="tracker-filter" role="tablist" aria-label="Transaction filter">

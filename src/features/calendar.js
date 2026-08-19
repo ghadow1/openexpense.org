@@ -3,7 +3,7 @@
  *
  * Renders the day grid, collapses same-title pills, opens the day editor,
  * and lets a chip drag onto another day to move those copies. Sunday–Saturday
- * rows get a thin red rail when two or more days blow the daily safe amount.
+ * rows get a thin rail from over-daily-safe days (2 = half red, 3+ = full red).
  * In-budget weeks stay unmarked. Day squares stay the surface colour.
  */
 import { DAYS } from '../config.js';

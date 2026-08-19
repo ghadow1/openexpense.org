@@ -2,7 +2,7 @@
 
 Edit these files. Then run `npm run build` so GitHub Pages gets a new `app.js`.
 
-Each module starts with a short header describing what it owns.
+Each module starts with a short header describing what it owns. Before you rename anything, read [`../docs/CODEMAP.md`](../docs/CODEMAP.md) — DOM ids, `data-*` hooks, and CSS class prefixes are frozen.
 
 ## Entry and config
 
@@ -58,7 +58,8 @@ Each module starts with a short header describing what it owns.
 | [`features/receipt.js`](features/receipt.js) | Camera / file OCR |
 | [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
-| [`features/dash-strip.js`](features/dash-strip.js) | Overview snapshot and Planner form |
+| [`features/dash-strip.js`](features/dash-strip.js) | Overview, Tracker page head, and Planner (`renderDashStrip`) |
+| [`features/csv-export.js`](features/csv-export.js) | Search-result CSV |
 | [`features/undo-delete.js`](features/undo-delete.js) | Short-lived Undo after delete or clear (memory snapshot only) |
 
 ## `ui/` — chrome
@@ -74,9 +75,12 @@ Each module starts with a short header describing what it owns.
 | [`ui/scroll-lock.js`](ui/scroll-lock.js) | Body scroll lock behind sheets |
 | [`ui/pointer-drag.js`](ui/pointer-drag.js) | Thresholded pointer drag for day rows and calendar chips |
 | [`ui/dial-chart.js`](ui/dial-chart.js) | Small ring dial and a three-point spark with `$5k` labels |
+| [`ui/frame.js`](ui/frame.js) | Phone / tablet / desktop snap (`data-frame`) |
 
 ## Public exports
 
 A module should export only what another file imports. Helpers stay file-private so the tree stays easy to scan.
 
-Do not rename `data-action` values or element ids in `index.html` without updating `main.js` and the feature that owns them.
+Do not rename `data-action` values, `data-shell` / `data-view` / `data-tracker-filter`, or element ids in `index.html` without updating `main.js` and the feature that owns them. Do not rename `engine.js` exports (`snapshot`, `categorize`, `createSession`) — hosts import those names.
+
+See [`../docs/CODEMAP.md`](../docs/CODEMAP.md).

@@ -1,8 +1,9 @@
 /**
- * OpenExpense — monthly summary sidebar
+ * OpenExpense — monthly spending / income register (`#sidebar`)
  *
- * Expense and income faces share one card. A switch flips the card
- * like a coin. Calendar layout stays put; only this panel changes face.
+ * Expense and income faces share one card. `ledgerFace` chooses the face
+ * (Tracker All / Expenses / Income also writes that field). Calendar
+ * layout stays put; only this panel changes face.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';

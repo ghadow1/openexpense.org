@@ -2,7 +2,9 @@
  * OpenExpense — headless engine entry
  *
  * Bundled to /engine.js for banking hosts that map and hold ledger data
- * without loading the calendar UI.
+ * without loading the calendar UI. Public export names (`snapshot`,
+ * `categorize`, `createSession`, …) are a host contract — do not rename.
+ * See docs/EMBED.md and docs/CODEMAP.md.
  */
 export { categorize } from './categorize.js';
 export { mapTransaction, mapTransactions, mergeTransactions } from './map.js';
