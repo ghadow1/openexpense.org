@@ -2,10 +2,9 @@
  * OpenExpense — Overview and Planner panes
  *
  * Overview is Left to spend. Planner is daily safe spend plus the
- * withholding, savings-hold, and 50/30/20 form. Phone and tablet Overview
- * keep Left to spend and the calendar. Tracker on those frames keeps
- * Expenses, Income, and Monthly spending — no calendar. Desktop Overview
- * still sits the compact dial strip beside the calendar and register.
+ * withholding, savings-hold, and 50/30/20 form. Overview keeps Left
+ * to spend (or the desktop compact strip) and the calendar. Tracker
+ * keeps Expenses, Income, and Monthly spending — no calendar.
  */
 import { getState, patch } from '../core/store.js';
 import {

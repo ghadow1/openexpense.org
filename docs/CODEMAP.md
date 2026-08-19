@@ -39,14 +39,14 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 `html` carries `data-shell` (`overview` \| `tracker` \| `planner` \| `privacy`) and `data-frame` (`phone` \| `tablet` \| `desktop`).
 
-| Tab | Phone / tablet | Desktop |
-| --- | --- | --- |
-| **Overview** | Left to spend + month calendar. Hide toolbar and `#sidebar`. | Compact dial strip + calendar + monthly spending register |
-| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. | Filter + calendar + register |
-| **Planner** | Planner form only (`.ledger-stage` is `display: none`) | Same |
-| **Privacy** | `#view-docs` (help, backup, import, clear) | Same |
+| Tab | Every frame |
+| --- | --- |
+| **Overview** | Left to spend (or the desktop compact strip) + month calendar. Hide `.tracker-toolbar` and `#sidebar`. |
+| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. |
+| **Planner** | Planner form only (`.ledger-stage` is `display: none`) |
+| **Privacy** | `#view-docs` (help, backup, import, clear) |
 
-`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. Frame CSS shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar` inside the shared board.
+`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. **Tab** CSS (`html[data-shell]`) shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar`. Do not scope those hides to `data-frame` — a wrong frame stamp is how the two pages leak back together.
 
 ## DOM contract (do not invent new roots)
 

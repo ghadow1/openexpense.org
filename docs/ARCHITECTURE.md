@@ -76,13 +76,11 @@ The right-hand card flips between an expense face and an income face when the Tr
 
 Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
 
-The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). Frame CSS decides what that board shows:
+The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Tab** CSS (`html[data-shell]`) decides what that board shows, on every frame:
 
-- **Phone / tablet Overview** — Left to spend + calendar. No filter bar, no monthly spending card.
-- **Phone / tablet Tracker** — Filter + Monthly spending. No calendar.
-- **Desktop Overview** — compact dial strip beside the calendar and register.
-- **Desktop Tracker** — filter + calendar + register.
-- **Planner (every frame)** — planner form only; the shared board is hidden.
+- **Overview** — Left to spend (desktop: compact strip) + calendar. No filter bar, no monthly spending card.
+- **Tracker** — Filter + Monthly spending. No calendar.
+- **Planner** — planner form only; the shared board is hidden.
 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 

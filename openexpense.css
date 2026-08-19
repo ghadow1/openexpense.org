@@ -719,35 +719,31 @@ html[data-frame="desktop"] #pane-tracker-head {
     display: none !important;
 }
 
-/* Phone and tablet only. Desktop Overview still sits the compact strip
-   beside the calendar and the monthly spending register. */
+/* Overview owns Left to spend + the calendar. Tracker owns the filter
+   and monthly spending. These rules are by tab, not by frame, so a
+   mis-stamped data-frame or display:contents cannot leak the two pages
+   back into one board. */
+html[data-shell="overview"] .tracker-toolbar,
+html[data-shell="overview"] #sidebar {
+    display: none !important;
+}
+
+html[data-shell="tracker"] #cal-col {
+    display: none !important;
+}
+
 html[data-frame="phone"][data-shell="overview"] #pane-overview-hero,
 html[data-frame="tablet"][data-shell="overview"] #pane-overview-hero {
     order: 1;
 }
 
-html[data-frame="phone"][data-shell="overview"] .ledger-stage {
-    order: 2;
-}
-
+html[data-frame="phone"][data-shell="overview"] .ledger-stage,
 html[data-frame="tablet"][data-shell="overview"] #cal-col {
     order: 2;
 }
 
-html[data-frame="phone"][data-shell="overview"] .tracker-toolbar,
-html[data-frame="tablet"][data-shell="overview"] .tracker-toolbar,
-html[data-frame="phone"][data-shell="overview"] #sidebar,
-html[data-frame="tablet"][data-shell="overview"] #sidebar {
-    display: none !important;
-}
-
-html[data-frame="phone"][data-shell="tracker"] #cal-col,
-html[data-frame="tablet"][data-shell="tracker"] #cal-col {
-    display: none !important;
-}
-
-html[data-frame="phone"][data-shell="overview"] #view-app,
-html[data-frame="tablet"][data-shell="overview"] #view-app {
+html[data-shell="overview"] #view-app,
+html[data-shell="tracker"] #view-app {
     gap: 16px;
 }
 
@@ -819,10 +815,19 @@ html[data-frame="desktop"] #view-app {
     align-items: start;
 }
 
-html[data-frame="desktop"][data-shell="tracker"] #view-app {
+html[data-frame="desktop"][data-shell="overview"] #view-app {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-        "tools side"
-        "cal side";
+        "hero"
+        "cal";
+}
+
+html[data-frame="desktop"][data-shell="tracker"] #view-app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "head"
+        "tools"
+        "side";
 }
 
 html[data-frame="desktop"][data-shell="planner"] #view-app {
@@ -834,6 +839,21 @@ html[data-frame="desktop"] .tracker-board,
 html[data-frame="tablet"] .ledger-stage,
 html[data-frame="tablet"] .tracker-board {
     display: contents;
+}
+
+/* display:contents can swallow display:none on children in Safari.
+   Overview and Tracker hide pieces of this board, so keep a real box. */
+html[data-frame="desktop"][data-shell="overview"] .ledger-stage,
+html[data-frame="desktop"][data-shell="overview"] .tracker-board,
+html[data-frame="desktop"][data-shell="tracker"] .ledger-stage,
+html[data-frame="desktop"][data-shell="tracker"] .tracker-board,
+html[data-frame="tablet"][data-shell="overview"] .ledger-stage,
+html[data-frame="tablet"][data-shell="overview"] .tracker-board,
+html[data-frame="tablet"][data-shell="tracker"] .ledger-stage,
+html[data-frame="tablet"][data-shell="tracker"] .tracker-board {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 html[data-frame="desktop"] #pane-overview-hero { grid-area: hero; }
