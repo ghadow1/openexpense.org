@@ -508,6 +508,7 @@ function renderYearChart(summary, currentDate, copy) {
         points: yearSeriesPoints(summary.monthTotals, summary.year, { throughIndex }),
         ariaLabel: `${summary.year} ${copy.yearAria}`,
         selectedIndex: currentDate.getMonth(),
+        focusId: `sidebar-${summary.kind}-year`,
         onSelect: (pt) => {
             patch({ currentDate: new Date(summary.year, pt.index, 1) });
             if (getState().selectedKey) closeModal();

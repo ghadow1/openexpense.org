@@ -192,7 +192,8 @@ private class query to `data-*` would add markup without reducing coupling.
 - Selectable year charts use a labelled group rather than an image role. Every
   observed or scheduled month remains in the DOM, the selected month has
   `aria-current="date"`, and a roving tab stop supports arrow, Home, and End
-  keys without adding every month to the page tab order.
+  keys without adding every month to the page tab order. A stable chart identity
+  restores that tab stop after month selection rerenders the chart.
 - Error toasts use assertive alert semantics while informational messages
   remain polite statuses; decorative toast icons are hidden.
 - Keyboard focus outlines are restored for search and text fields whose

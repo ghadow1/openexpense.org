@@ -85,6 +85,9 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(charts, /typeof onSelect === 'function' \? 'group' : 'img'/);
     assert.match(charts, /aria-current', 'date'/);
     assert.match(charts, /event\.key === 'ArrowRight'/);
+    assert.match(charts, /data-chart-focus-id/);
+    assert.match(charts, /requestAnimationFrame/);
+    assert.match(charts, /focus\(\{ preventScroll: true \}\)/);
     assert.match(charts, /class: 'oe-spark-area'/);
     assert.match(charts, /row\.target/);
     assert.match(toasts, /type === 'error' \? 'alert' : 'status'/);

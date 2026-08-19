@@ -93,16 +93,19 @@ export function createDial({
  * @param {string} [options.ariaLabel]
  * @param {Array<{index: number, label: string, date?: string}>} [options.milestones]
  * @param {number} [options.selectedIndex]
+ * @param {string} [options.focusId] Stable identity used to restore focus after rerender.
  */
 export function createSpark({
     points = [],
     onSelect = null,
     ariaLabel = 'Period total',
     milestones = [],
-    selectedIndex = null
+    selectedIndex = null,
+    focusId = ''
 } = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'oe-spark';
+    if (focusId) wrap.dataset.chartFocusId = focusId;
     wrap.setAttribute('role', typeof onSelect === 'function' ? 'group' : 'img');
 
     const rows = (Array.isArray(points) ? points : [])
@@ -227,6 +230,15 @@ export function createSpark({
         wrap.classList.add('is-pickable');
         const activePosition = Math.max(0, coords.findIndex((pt) => pt.index === selectedIndex));
         const hitWidth = plotW / Math.max(1, coords.length);
+        const selectPoint = (pt, index) => {
+            onSelect(pt, index);
+            if (!focusId || typeof window === 'undefined') return;
+            window.requestAnimationFrame(() => {
+                const chart = [...document.querySelectorAll('[data-chart-focus-id]')]
+                    .find((candidate) => candidate.dataset.chartFocusId === focusId);
+                chart?.querySelector('.oe-spark-hit[aria-current="date"]')?.focus({ preventScroll: true });
+            });
+        };
         coords.forEach((pt, i) => {
             const hit = document.createElement('button');
             hit.type = 'button';
@@ -236,7 +248,7 @@ export function createSpark({
             hit.setAttribute('aria-label', `${pt.label}: ${formatMoney(pt.value)}`);
             if (pt.index === selectedIndex) hit.setAttribute('aria-current', 'date');
             hit.tabIndex = i === activePosition ? 0 : -1;
-            hit.addEventListener('click', () => onSelect(pt, i));
+            hit.addEventListener('click', () => selectPoint(pt, i));
             hit.addEventListener('keydown', (event) => {
                 let next = null;
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = Math.max(0, i - 1);
@@ -249,7 +261,7 @@ export function createSpark({
                 target.tabIndex = 0;
                 hit.tabIndex = -1;
                 target.focus();
-                onSelect(coords[next], next);
+                selectPoint(coords[next], next);
             });
             wrap.appendChild(hit);
         });

@@ -175,6 +175,7 @@ function yearSpark(events, currentDate, kind, ariaLabel, goals = []) {
         ariaLabel,
         milestones: goalMilestones(goals, year),
         selectedIndex: currentDate.getMonth(),
+        focusId: `dash-${kind}-year`,
         onSelect: (pt) => goMonth(year, pt.index)
     });
 }
