@@ -11,7 +11,7 @@ import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { groupExpenses, repeatLabel } from '../core/series.js';
 import { computeNetSnapshot, dayNetBadge } from '../core/summary.js';
-import { monthDaySpend, trackCalendarWeeks } from '../core/plan.js';
+import { monthDaySpend } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { openModal } from './modal.js';
 import { moveIndexes } from '../core/day-entries.js';
@@ -262,19 +262,32 @@ function appendPills(body, dayEvents, dateKey, maxVisible, density) {
 }
 
 function weekHintRows(events, currentDate, plan) {
-    const snap = computeNetSnapshot(events, currentDate, new Date(), plan);
-    const weeks = trackCalendarWeeks(events, currentDate, plan, snap.spendableIncome, {
-        dailySafe: snap.dailySafe
-    });
+    const today = new Date();
+    const current = currentDate.getFullYear() === today.getFullYear()
+        && currentDate.getMonth() === today.getMonth();
+    if (!current) return { over: new Set(), warn: new Set(), overDays: new Set() };
+    const snap = computeNetSnapshot(events, currentDate, today, plan);
     const daily = monthDaySpend(events, currentDate, plan);
-    const cap = Utils.toCents(snap.dailySafe);
+    const daysInMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+    ).getDate();
+    const cap = Math.max(0, Math.round(Utils.toCents(snap.spendableIncome) / daysInMonth));
+    if (cap <= 0) return { over: new Set(), warn: new Set(), overDays: new Set() };
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
     const overDays = new Set();
-    daily.forEach((amount, index) => {
+    const counts = new Map();
+    daily.slice(0, today.getDate()).forEach((amount, index) => {
         if (Utils.toCents(amount) > 0 && Utils.toCents(amount) > cap) overDays.add(index + 1);
     });
+    overDays.forEach((day) => {
+        const row = Math.floor((firstDay + day - 1) / 7);
+        counts.set(row, (counts.get(row) || 0) + 1);
+    });
     return {
-        over: new Set(weeks.filter((week) => (week.overDailyCount || 0) >= 3).map((week) => week.row)),
-        warn: new Set(weeks.filter((week) => week.overDailyCount === 2).map((week) => week.row)),
+        over: new Set([...counts].filter(([, count]) => count >= 3).map(([row]) => row)),
+        warn: new Set([...counts].filter(([, count]) => count === 2).map(([row]) => row)),
         overDays
     };
 }

@@ -240,8 +240,11 @@ receives
 \]
 
 cents. The final row receives the remainder, so row targets sum exactly to
-spendable income despite rounding. A warning rail requires exactly two days
-with positive spend above daily safe; three or more produces the full alert.
+spendable income despite rounding. Planner bars and calendar rows use these
+same Sunday–Saturday boundaries and respect the paid/logged basis. Current-month
+warning rails compare observed days only with the original average daily
+allocation \(P/D_m\): two over-allocation days warn, while three or more produce
+the full alert. Closed and future months do not receive live pace warnings.
 
 ### Recurrence and dates
 

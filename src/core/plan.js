@@ -427,14 +427,18 @@ export function overBudgetRows(events, currentDate, plan, spendableIncome) {
     return trackCalendarWeeks(events, currentDate, plan, spendableIncome);
 }
 
-export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome) {
+export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome, firstWeekday = 0) {
     const length = Number(daysInMonth) || 0;
+    const lead = Math.max(0, Math.min(6, Number(firstWeekday) || 0));
     const spendableCents = Math.max(0, Utils.toCents(spendableIncome));
     const weeks = [];
     let assigned = 0;
+    const rowCount = length ? Math.ceil((lead + length) / 7) : 0;
 
-    for (let start = 1, index = 1; start <= length; start += 7, index += 1) {
-        const end = Math.min(start + 6, length);
+    for (let row = 0; row < rowCount; row += 1) {
+        const start = Math.max(1, row * 7 - lead + 1);
+        const end = Math.min(length, (row + 1) * 7 - lead);
+        if (start > end) continue;
         const days = end - start + 1;
         let spent = 0;
         for (let day = start; day <= end; day += 1) {
@@ -446,7 +450,8 @@ export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome)
             : Math.round(spendableCents * days / length);
         assigned += target;
         weeks.push({
-            label: `W${index}`,
+            label: `W${row + 1}`,
+            row,
             start,
             end,
             days,
@@ -548,7 +553,26 @@ export function computePlanner({
         : 0;
     const items = Array.isArray(spendItems) ? spendItems : [];
     const spent = classifyRatioSpend(items, rules);
-    const weekBuckets = monthWeekBuckets(dailyTotals, daysInMonth, spendableIncome);
+    const countedDailyTotals = Array.isArray(spendItems)
+        ? Array.from({ length: Math.max(0, Number(daysInMonth) || 0) }, (_, index) => {
+            let cents = 0;
+            for (const item of items) {
+                if (rules.spendBasis === 'paid' && !item?.paid) continue;
+                if (Number(String(item?.date || '').slice(8, 10)) !== index + 1) continue;
+                cents += Math.max(0, Utils.toCents(item?.amount));
+            }
+            return { day: index + 1, amount: Utils.fromCents(cents) };
+        })
+        : dailyTotals;
+    const firstWeekday = currentDate instanceof Date && !Number.isNaN(currentDate.getTime())
+        ? new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
+        : 0;
+    const weekBuckets = monthWeekBuckets(
+        countedDailyTotals,
+        daysInMonth,
+        spendableIncome,
+        firstWeekday
+    );
     const recurring = unpaidRecurring(items, rules);
 
     return {

@@ -210,16 +210,27 @@ test('classifyRatioSpend and unpaid recurring read the month register', () => {
     assert.equal(unpaidRecurring(items, { spendBasis: 'paid' }).count, 0);
 });
 
-test('week bucket targets sum to spendable income', () => {
+test('week bucket targets share the calendar Sunday–Saturday boundaries', () => {
     const daily = Array.from({ length: 31 }, (_, i) => ({
         day: i + 1,
         amount: i === 4 ? 500 : i === 11 ? 900 : 0
     }));
-    const weeks = monthWeekBuckets(daily, 31, 2000);
-    assert.equal(weeks.length, 5);
-    assert.equal(weeks[0].amount, 500);
-    assert.equal(weeks[1].amount, 900);
-    assert.equal(weeks[0].target, 451.61);
+    const weeks = monthWeekBuckets(daily, 31, 2000, 6);
+    assert.equal(weeks.length, 6);
+    assert.deepEqual(
+        weeks.map(({ start, end }) => ({ start, end })),
+        [
+            { start: 1, end: 1 },
+            { start: 2, end: 8 },
+            { start: 9, end: 15 },
+            { start: 16, end: 22 },
+            { start: 23, end: 29 },
+            { start: 30, end: 31 }
+        ]
+    );
+    assert.equal(weeks[1].amount, 500);
+    assert.equal(weeks[2].amount, 900);
+    assert.equal(weeks[1].target, 451.61);
     const targetCents = weeks.reduce((sum, week) => sum + Utils.toCents(week.target), 0);
     assert.equal(targetCents, Utils.toCents(2000));
     const spentCents = weeks.reduce((sum, week) => sum + Utils.toCents(week.amount), 0);
@@ -236,6 +247,24 @@ test('negative spendable income produces zero weekly targets', () => {
         calendarRows.reduce((sum, week) => sum + Utils.toCents(week.target), 0),
         0
     );
+});
+
+test('planner week bars respect paid-only spend basis', () => {
+    const out = computePlanner({
+        incomeUsed: 1000,
+        spendUsed: 100,
+        spendItems: [
+            { amount: 100, date: '2026-08-05', paid: true, category: 'Groceries' },
+            { amount: 900, date: '2026-08-06', paid: false, category: 'Housing' }
+        ],
+        dailyTotals: [],
+        daysInMonth: 31,
+        daysElapsed: 19,
+        currentDate: new Date(2026, 7, 1),
+        asOf: new Date(2026, 7, 19),
+        plan: { spendBasis: 'paid' }
+    });
+    assert.equal(out.weekBuckets.reduce((sum, week) => sum + week.amount, 0), 100);
 });
 
 test('Sunday–Saturday calendar rows mark weeks that spend past their share', () => {
