@@ -10,6 +10,7 @@ import { budgetStatus, detectRecurring, flagAnomalies } from '../src/engine/insi
 import { createSession } from '../src/engine/session.js';
 import { sanitizeEntry } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
+import { parseReceipt } from '../src/features/receipt-parse.js';
 
 test('categorizer maps messy merchant strings', () => {
     assert.equal(categorize({ merchant: "SQ *TRADER JOE'S #123" }).category, 'Groceries');
@@ -102,6 +103,12 @@ test('sanitize keeps host fields and drops unknown ones', () => {
 test('embed.html is a public path', () => {
     assert.equal(shouldShowNotFound('/embed.html'), false);
     assert.equal(shouldShowNotFound('/engine.js'), false);
+});
+
+test('receipt dates reject calendar rollovers', () => {
+    assert.equal(parseReceipt('Invoice date: 2026-02-28\nTotal $10.00').date, '2026-02-28');
+    assert.equal(parseReceipt('Invoice date: 2026-02-31\nTotal $10.00').date, null);
+    assert.equal(parseReceipt('Invoice date: 2028-02-29\nTotal $10.00').date, '2028-02-29');
 });
 
 test('categorize still reports a tag group for matched merchants', () => {

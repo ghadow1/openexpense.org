@@ -193,7 +193,7 @@ test('monthly average uses each month net, not income avg minus spend avg', () =
         '2026-03-02': [entry({ title: 'Rent', price: 1000, paid: true })]
     };
     const snap = computeNetSnapshot(events, new Date(2026, 2, 2), new Date(2026, 2, 2));
-    assert.equal(snap.monthAvg, (3000 - 1000 - 1000) / 3);
+    assert.equal(snap.monthAvg, 333.33);
 });
 
 test('estimated month total does not double-count future calendar copies', () => {
@@ -220,6 +220,17 @@ test('money totals stay on whole cents', () => {
     const spend = computeMonthlySummary(events, new Date(2026, 7, 1), 'expense');
     assert.equal(spend.total, 0.3);
     assert.equal(Utils.getPrice({ price: 10.005 }), 10.01);
+});
+
+test('summary math ignores malformed month indexes', () => {
+    const events = {
+        '2026-00-10': [entry({ title: 'Before year', price: 99, paid: true })],
+        '2026-08-10': [entry({ title: 'Valid', price: 10, paid: true })],
+        '2026-13-10': [entry({ title: 'After year', price: 99, paid: true })]
+    };
+    const spend = computeMonthlySummary(events, new Date(2026, 7, 1), 'expense');
+    assert.equal(spend.yearTotal, 10);
+    assert.equal(spend.monthTotals.length, 12);
 });
 
 test('current funds ignore pending and future paid entries', () => {

@@ -5,30 +5,34 @@
  * Used across calendar, modal, ledger, and summary views.
  */
 export const Utils = {
-    pad: (n) => String(n).padStart(2, '0'),
-    dateKey: (y, m, d) => `${y}-${Utils.pad(m + 1)}-${Utils.pad(d)}`,
+    pad: (number) => String(number).padStart(2, '0'),
+    dateKey: (year, zeroBasedMonth, dayOfMonth) => (
+        `${year}-${Utils.pad(zeroBasedMonth + 1)}-${Utils.pad(dayOfMonth)}`
+    ),
     toCents(value) {
-        const n = Number(value);
-        if (!Number.isFinite(n)) return 0;
-        return Math.round(n * 100);
+        const numericAmount = Number(value);
+        if (!Number.isFinite(numericAmount)) return 0;
+        return Math.round(numericAmount * 100);
     },
     fromCents(cents) {
         return (Number(cents) || 0) / 100;
     },
-    getPrice: (e) => {
-        let raw = 0;
-        if (e.price !== undefined && e.price !== null && e.price !== "") raw = parseFloat(e.price);
-        else {
-            const match = e.note?.match(/\$(\d+\.?\d*)/);
-            raw = match ? parseFloat(match[1]) : 0;
+    getPrice: (entry) => {
+        let parsedAmount = 0;
+        if (entry.price !== undefined && entry.price !== null && entry.price !== "") {
+            parsedAmount = parseFloat(entry.price);
         }
-        return Utils.fromCents(Utils.toCents(raw));
+        else {
+            const priceInLegacyNote = entry.note?.match(/\$(\d+\.?\d*)/);
+            parsedAmount = priceInLegacyNote ? parseFloat(priceInLegacyNote[1]) : 0;
+        }
+        return Utils.fromCents(Utils.toCents(parsedAmount));
     },
     /** Legacy entries without `kind` are expenses. */
-    entryKind: (e) => (e?.kind === 'income' ? 'income' : 'expense'),
-    escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    entryKind: (entry) => (entry?.kind === 'income' ? 'income' : 'expense'),
+    escapeHtml: (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[ch])),
+    }[character])),
     hideTooltip: () => {
         const tt = document.getElementById('global-tooltip');
         if (!tt) return;
@@ -46,10 +50,10 @@ export const Utils = {
             tt.textContent = text;
             tt.style.opacity = '1';
         });
-        el.addEventListener('mousemove', (e) => {
+        el.addEventListener('mousemove', (pointerEvent) => {
             if (Utils.overlayOpen()) return;
-            tt.style.left = `${e.clientX}px`;
-            tt.style.top = `${e.clientY - 15}px`;
+            tt.style.left = `${pointerEvent.clientX}px`;
+            tt.style.top = `${pointerEvent.clientY - 15}px`;
         });
         el.addEventListener('mouseleave', () => {
             tt.style.opacity = '0';

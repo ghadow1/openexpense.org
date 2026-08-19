@@ -178,6 +178,25 @@ test('passphrase work factor cannot be downgraded', async () => {
     );
 });
 
+test('passphrase work factor is capped before expensive key derivation', async () => {
+    const secret = randomBytes(32);
+    const wrap = await wrapSecret(secret, PASSPHRASE, { kid: 'abc' });
+    const excessiveWrap = { ...wrap, iterations: ENVELOPE.MAX_WRAP_ITERATIONS + 1 };
+
+    await assert.rejects(
+        () => unwrapSecret(excessiveWrap, PASSPHRASE, { kid: 'abc' }),
+        /ENVELOPE_EXCESSIVE_WRAP/
+    );
+    assert.equal(validateKeyFile({
+        format: 'openexpense-key',
+        version: 2,
+        kid: 'abc',
+        alg: ENVELOPE.ALG,
+        kdf: ENVELOPE.KDF,
+        wrap: excessiveWrap
+    }).ok, false);
+});
+
 test('the wrap is bound to its key id', async () => {
     const secret = randomBytes(32);
     const wrap = await wrapSecret(secret, PASSPHRASE, { kid: 'aaaa' });
@@ -210,6 +229,21 @@ test('malformed v2 envelopes are rejected before decryption', async () => {
 
     assert.equal(validateKeyFile({ ...keyFile, secret: toBase64(randomBytes(16)) }).ok, false);
     assert.equal(validateKeyFile({ ...keyFile, kdf: 'nope' }).ok, false);
+});
+
+test('direct envelope APIs reject malformed binary dimensions', async () => {
+    const secret = randomBytes(32);
+    const enc = await sealPayload(payload, secret, { kid: 'abc' });
+    const wrap = await wrapSecret(secret, PASSPHRASE, { kid: 'abc' });
+
+    await assert.rejects(
+        () => openPayload({ ...enc, iv: toBase64(randomBytes(16)) }, secret),
+        /ENVELOPE_BAD_INPUT/
+    );
+    await assert.rejects(
+        () => unwrapSecret({ ...wrap, salt: toBase64(randomBytes(8)) }, PASSPHRASE, { kid: 'abc' }),
+        /ENVELOPE_BAD_WRAP/
+    );
 });
 
 test('canonical json is stable regardless of key order', () => {

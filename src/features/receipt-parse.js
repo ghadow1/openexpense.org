@@ -152,11 +152,26 @@ function fuzzyMonth(word) {
     return bestDist <= 2 ? best : null;
 }
 
-function isoDate(y, m, d) {
-    y = +y; m = +m; d = +d;
-    if (y < 100) y += y >= 70 ? 1900 : 2000;
-    if (y < 2000 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-    return `${y}-${Utils.pad(m)}-${Utils.pad(d)}`;
+function validIsoDate(yearInput, monthInput, dayInput) {
+    let year = Number(yearInput);
+    const month = Number(monthInput);
+    const day = Number(dayInput);
+    if (year < 100) year += year >= 70 ? 1900 : 2000;
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)
+        || year < 2000 || year > 2100 || month < 1 || month > 12 || day < 1) {
+        return null;
+    }
+
+    // Date constructors normalize impossible dates (February 31 → March 3).
+    // Round-tripping the UTC fields rejects that silent rollover before an OCR
+    // suggestion can place a transaction on the wrong calendar day.
+    const candidate = new Date(Date.UTC(year, month - 1, day));
+    if (candidate.getUTCFullYear() !== year
+        || candidate.getUTCMonth() !== month - 1
+        || candidate.getUTCDate() !== day) {
+        return null;
+    }
+    return `${year}-${Utils.pad(month)}-${Utils.pad(day)}`;
 }
 
 function parseDate(text, lines) {
@@ -169,29 +184,29 @@ function parseDate(text, lines) {
         const push = (value) => { if (value) found.push({ value, labeled }); };
 
         let m = norm.match(/(?:invoice|due|service|issue|order)?\s*date[:\s]+([a-z]{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/i);
-        if (m) push(isoDate(m[3], MONTHS[fuzzyMonth(m[1])] || 0, m[2]));
+        if (m) push(validIsoDate(m[3], MONTHS[fuzzyMonth(m[1])] || 0, m[2]));
 
         m = norm.match(/([a-z]{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/i);
         if (m) {
             const mon = fuzzyMonth(m[1]);
-            if (mon) push(isoDate(m[3], MONTHS[mon], m[2]));
+            if (mon) push(validIsoDate(m[3], MONTHS[mon], m[2]));
         }
 
         m = norm.match(/(\d{1,2})\s+([a-z]{3,9})\s+(\d{2,4})/i);
         if (m) {
             const mon = fuzzyMonth(m[2]);
-            if (mon) push(isoDate(m[3], MONTHS[mon], m[1]));
+            if (mon) push(validIsoDate(m[3], MONTHS[mon], m[1]));
         }
 
         m = norm.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-        if (m) push(isoDate(m[1], m[2], m[3]));
+        if (m) push(validIsoDate(m[1], m[2], m[3]));
 
         m = norm.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
         if (m) {
             let mm = +m[1];
             let dd = +m[2];
             if (mm > 12 && dd <= 12) [mm, dd] = [dd, mm];
-            push(isoDate(m[3], mm, dd));
+            push(validIsoDate(m[3], mm, dd));
         }
     }
 

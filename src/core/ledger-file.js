@@ -177,6 +177,9 @@ function validateWrap(wrap) {
     if (!Number.isInteger(iterations) || iterations < ENVELOPE.MIN_WRAP_ITERATIONS) {
         return { ok: false, error: 'key.json asks for too little passphrase work to be safe.' };
     }
+    if (iterations > ENVELOPE.MAX_WRAP_ITERATIONS) {
+        return { ok: false, error: 'key.json asks for too much passphrase work to open safely.' };
+    }
     if (base64ByteLength(wrap.salt) !== ENVELOPE.WRAP_SALT_BYTES
         || base64ByteLength(wrap.iv) !== ENVELOPE.IV_BYTES
         || base64ByteLength(wrap.ct) !== ENVELOPE.SECRET_BYTES + 16) {

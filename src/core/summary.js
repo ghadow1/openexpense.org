@@ -108,6 +108,13 @@ function subMoney(left, right) {
     return Utils.fromCents(Utils.toCents(left) - Utils.toCents(right));
 }
 
+/** Divide a monetary total and round once at the cent boundary. */
+function averageMoney(total, divisor) {
+    const count = Number(divisor);
+    if (!Number.isFinite(count) || count <= 0) return 0;
+    return Utils.fromCents(Math.round(Utils.toCents(total) / count));
+}
+
 function monthTotal(events, y, m, kind = 'expense') {
     return sumItems(collectMonthItems(events, y, m, kind)).total;
 }
@@ -117,6 +124,10 @@ function yearMonthTotals(events, y, kind = 'expense') {
     Object.keys(events).forEach(date => {
         if (!date.startsWith(`${y}-`)) return;
         const monthIdx = parseInt(date.split('-')[1], 10) - 1;
+        // The normal import path validates date keys, but this pure function is
+        // also public to the headless engine. Reject malformed month indexes
+        // here instead of writing a non-array property such as totals[-1].
+        if (!Number.isInteger(monthIdx) || monthIdx < 0 || monthIdx >= totals.length) return;
         events[date].forEach(e => {
             if (Utils.entryKind(e) !== kind) return;
             const cents = Utils.toCents(Utils.getPrice(e));
@@ -213,7 +224,7 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense', asO
     const ytdActiveMonths = ytdTotals.filter((value) => value > 0).length;
     const yearScheduled = addMoney(...monthTotals);
     const yearTotal = addMoney(...ytdTotals);
-    const yearAvg = ytdActiveMonths ? yearTotal / ytdActiveMonths : 0;
+    const yearAvg = averageMoney(yearTotal, ytdActiveMonths);
 
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const isCurrentMonth = y === today.getFullYear() && m === today.getMonth();
@@ -228,14 +239,15 @@ export function computeMonthlySummary(events, currentDate, kind = 'expense', asO
         if (item.date <= asOfKey) elapsedCents += cents;
         else futureCents += cents;
     });
-    const dailyPace = daysElapsed > 0 ? Utils.fromCents(elapsedCents) / daysElapsed : 0;
+    const dailyPace = averageMoney(Utils.fromCents(elapsedCents), daysElapsed);
     // The calendar is the source of truth. Recurring copies are already
     // seeded, so do not invent a rest-of-month pace on top of logged bills.
     const projectedTotal = stats.total;
     const dayDivisor = isCurrentMonth ? Math.max(1, daysElapsed) : daysInMonth;
-    const avgPerDay = dayDivisor
-        ? Utils.fromCents(isCurrentMonth ? elapsedCents : Utils.toCents(stats.total)) / dayDivisor
-        : 0;
+    const avgPerDay = averageMoney(
+        Utils.fromCents(isCurrentMonth ? elapsedCents : Utils.toCents(stats.total)),
+        dayDivisor
+    );
 
     const pctPaid = stats.total ? (stats.paid / stats.total) * 100 : 0;
     const pctPending = stats.total ? (stats.pending / stats.total) * 100 : 0;
@@ -474,7 +486,7 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
         sum += incoming - outgoing;
         count += 1;
     }
-    return count ? Utils.fromCents(sum) / count : 0;
+    return averageMoney(Utils.fromCents(sum), count);
 }
 
 /**
