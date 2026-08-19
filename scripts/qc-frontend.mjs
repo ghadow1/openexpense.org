@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { receiptDateContext } from '../src/core/receipt-date.js';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
@@ -95,4 +96,35 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(goals, /aria-modal', 'true'/);
     assert.match(goals, /activateDialogFocus/);
     assert.match(goals, /goal-drag-handle/);
+});
+
+test('day receipt scans require a choice when OCR and selected dates differ', async () => {
+    assert.deepEqual(receiptDateContext({
+        detectedDate: '2026-08-18',
+        intendedDate: '2026-08-19',
+        today: '2026-08-20'
+    }), {
+        detectedDate: '2026-08-18',
+        intendedDate: '2026-08-19',
+        mismatch: true,
+        initialDate: '2026-08-18'
+    });
+    assert.equal(receiptDateContext({
+        detectedDate: '',
+        intendedDate: '2026-08-19',
+        today: '2026-08-20'
+    }).initialDate, '2026-08-19');
+
+    const [html, main, receipt, css] = await Promise.all([
+        read('index.html'),
+        read('src/main.js'),
+        read('src/features/receipt.js'),
+        read('openexpense.css')
+    ]);
+    assert.match(html, /data-action="scan-receipt-for-day"/);
+    assert.match(main, /Receipt\.pickImage\(\{ intendedDate \}\)/);
+    assert.match(receipt, /Which date should this expense use\?/);
+    assert.match(receipt, /name="ocr-date-choice"/);
+    assert.match(receipt, /Choose the receipt date or the selected day before saving/);
+    assert.match(css, /#modal \.day-scan-quick \{[\s\S]*display: inline-flex/);
 });

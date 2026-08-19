@@ -178,7 +178,9 @@ private class query to `data-*` would add markup without reducing coupling.
   region, trapped focus, Escape dismissal, and launch-point restoration.
 - OCR review has a labelled heading, decorative icons hidden from screen
   readers, meaningful preview alternative text, Escape dismissal, focus
-  containment, and restoration.
+  containment, and restoration. The mobile day sheet adds a camera/file shortcut
+  scoped to that selected day; when OCR finds another date, review presents both
+  dates as explicit radio choices and blocks saving until one is confirmed.
 - Static and generated close icons are decorative; their parent buttons carry
   the accessible names.
 - Main-view visibility now agrees across visual CSS, DOM `hidden`, and

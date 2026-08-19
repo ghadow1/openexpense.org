@@ -34,7 +34,14 @@ import { setLedgerFace } from './features/sidebar.js';
 import { bootFrame } from './ui/frame.js';
 import { attachHostApi, isEmbedMode } from './engine/host.js';
 
-const LOCKED_ACTIONS = new Set(['export-ledger', 'import-ledger', 'clear-ledger', 'scan-receipt', 'quick-add-today']);
+const LOCKED_ACTIONS = new Set([
+    'export-ledger',
+    'import-ledger',
+    'clear-ledger',
+    'scan-receipt',
+    'scan-receipt-for-day',
+    'quick-add-today'
+]);
 
 function openNotFoundPage() {
     try {
@@ -210,6 +217,11 @@ function handleDelegatedClick(e) {
                 if (getState().shellTab === 'privacy') switchView('overview');
                 Receipt.pickImage();
                 break;
+            case 'scan-receipt-for-day': {
+                const intendedDate = getState().selectedKey;
+                if (intendedDate) Receipt.pickImage({ intendedDate });
+                break;
+            }
             case 'quick-add-today': {
                 const now = new Date();
                 if (getState().shellTab === 'privacy') switchView('overview');

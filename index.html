@@ -1279,10 +1279,16 @@
         <div class="modal-panel">
           <div class="panel-title-row">
             <h3 class="panel-title">This day</h3>
-            <button type="button" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
-              <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
-              <span class="undo-delete-text">Undo</span>
-            </button>
+            <div class="day-panel-actions">
+              <button type="button" class="day-scan-quick" data-action="scan-receipt-for-day" data-lockable aria-label="Take or choose a receipt photo for this day">
+                <i class="ti ti-camera" aria-hidden="true"></i>
+                <span>Receipt</span>
+              </button>
+              <button type="button" class="undo-delete-btn" data-action="undo-delete" hidden aria-label="Undo last removal">
+                <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+                <span class="undo-delete-text">Undo</span>
+              </button>
+            </div>
           </div>
           <div id="events-container">
           </div>
