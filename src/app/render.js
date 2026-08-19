@@ -36,7 +36,7 @@ export const RENDER_DEPS = {
     ledgerNameInput: ['ledgerName'],
     calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter'],
     // "dash" is the Overview + Planner + Tracker-head paint in dash-strip.js.
-    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'trackerFilter'],
+    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'goals', 'trackerFilter'],
     sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter']
 };
 

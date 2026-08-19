@@ -64,6 +64,6 @@ export function budgetStatus(events, { cap, date = new Date(), kind = 'expense' 
 }
 
 /** Host-facing alias of `computeNetSnapshot`. Name is frozen for embedders. */
-export function snapshot(events, date = new Date(), plan) {
-    return computeNetSnapshot(events || {}, date, date, plan);
+export function snapshot(events, date = new Date(), plan, goals = []) {
+    return computeNetSnapshot(events || {}, date, date, plan, goals);
 }

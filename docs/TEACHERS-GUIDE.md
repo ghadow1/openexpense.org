@@ -7,6 +7,8 @@ Companion audit:
 [`SECURITY-MATHEMATICS-AUDIT-2026-08-19.md`](SECURITY-MATHEMATICS-AUDIT-2026-08-19.md).
 Data specification: [`DATA-FORMAT.md`](DATA-FORMAT.md). Contributor naming and
 DOM contract: [`CODEMAP.md`](CODEMAP.md).
+For a shorter, lesson-by-lesson entry route, begin with
+[`LEARNING-PATH.md`](LEARNING-PATH.md).
 
 ## SECTION 1: ARCHITECTURAL OVERVIEW
 
@@ -336,7 +338,39 @@ y=p_t+h-\frac{v-v_{\min}}
 The denominator floor keeps a flat series finite. Bar and ring ratios are
 clamped before becoming CSS/SVG geometry.
 
-### 2.10 Cryptographic constants are mathematics too
+### 2.10 Priority savings-goal allocation
+
+Goals form an ordered waterfall. For target \(i\), existing savings are assigned
+first and removed from the pool:
+
+\[
+C_i=\min(S_i,T_i),\qquad S_{i+1}=S_i-C_i,\qquad
+R_i=\max(0,T_i-C_i).
+\]
+
+With \(D_i=\max(1,\text{days remaining})\), the required pace is:
+
+\[
+q_i=\frac{R_i}{D_i},\qquad
+m_i=\left\lceil q_i\cdot 30.4375\right\rceil.
+\]
+
+Monthly surplus is then assigned in priority order:
+
+\[
+A_i=\min(M_i,m_i),\qquad M_{i+1}=M_i-A_i.
+\]
+
+Because both pools shrink after each assignment, one dollar cannot fund two
+goals. Goals without a target amount remain valid planning notes but consume no
+money. Production arithmetic converts money to cents before allocation; see
+`core/goals.js` and the executable cases in `scripts/qc-goals.mjs`.
+
+Teaching prompt: reverse two goals with the same deadline but different target
+amounts. Explain why total available money is unchanged while each goal's
+feasibility state may change.
+
+### 2.11 Cryptographic constants are mathematics too
 
 | Constant | Value | Rationale |
 | --- | ---: | --- |
@@ -436,7 +470,8 @@ which it was designed.
 | --- | --- |
 | `events` | Date-keyed arrays containing expense and income entries |
 | `budgets` | Positive monthly category caps |
-| `plan` | Count basis, withholds, holds, ratios, and weekly goals |
+| `plan` | Count basis, withholds, holds, ratios, and weekly reserves |
+| `goals` | Ordered savings targets and allocation priority |
 | `ledgerName` | Display/export name |
 | `currentDate` | Viewed month |
 | `selectedKey` | Open day or `null` |
@@ -475,8 +510,9 @@ calendar while keeping the income register open" requires both.
 
 ### 4.4 Persistence lifecycle
 
-Autosave listens only to ledger-bearing fields. A 400 ms debounce batches
-rapid edits. `saveQueue` serializes encryption and commits:
+Autosave listens only to ledger-bearing fields: `{ name, events, budgets, plan,
+goals }`. A 400 ms debounce batches rapid edits. `saveQueue` serializes
+encryption and commits:
 
 ```js
 const nextSave = saveQueue
@@ -503,13 +539,15 @@ confirmation.
 
 - `calendar.js`: month geometry, day net, grouped pills, week rails, drag move;
 - `dash-strip.js`: Overview snapshot and Planner controls;
+- `goals.js`: goal editor, priority reorder, feasibility display, hold action;
 - `sidebar.js`: month summaries, categories, groups, budgets, entries, PDF;
 - `modal.js`: day editing, recurrence, group operations;
 - `search-panel.js`: query UI and CSV handoff;
-- `receipt.js` / `receipt-parse.js`: bounded local extraction and suggestions.
+- `receipt-picker.js`: synchronous native chooser and date context;
+- `receipt.js` / `receipt-parse.js`: lazy bounded local extraction and suggestions.
 
-The calculations live in `core/summary.js` and `core/plan.js`, so UI surfaces
-cannot quietly disagree about totals.
+The calculations live in `core/summary.js`, `core/plan.js`, and
+`core/goals.js`, so UI surfaces cannot quietly disagree about totals.
 
 ## SECTION 5: SECURITY POSTURE & HARDENING
 

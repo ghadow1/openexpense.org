@@ -14,13 +14,13 @@ import {
     computePlanner,
     dailySafeSpend,
     describePlan,
+    fixedHoldForTarget,
     growthPotentialPct,
     incomeUsed,
     monthDayIncome,
     monthDaySpend,
     monthReserve,
     monthWeekBuckets,
-    overBudgetRows,
     trackCalendarWeeks,
     percentOf,
     planIsDefault,
@@ -126,6 +126,7 @@ test('percentOf and leftover stay on whole cents', () => {
     assert.equal(percentOf(2000, 20), 400);
     assert.equal(percentOf(0, 15.3), 0);
     assert.equal(percentOf(1999.99, 10), 200);
+    assert.equal(percentOf(0.35, 90), 0.32, 'percentage multiplication rounds from integer cents');
 });
 
 test('remaining days include today on the viewed month', () => {
@@ -149,11 +150,34 @@ test('daily safe spend is leftover divided by remaining days', () => {
     assert.equal(dailySafeSpend(294, 15), 19.6);
     assert.equal(dailySafeSpend(100, 0), 0);
     assert.equal(dailySafeSpend(-150, 15), -10);
+    assert.equal(dailySafeSpend(-0.01, 2), -0.01, 'negative half cents round away from zero');
 });
 
 test('runway is cash divided by daily burn to one decimal', () => {
     assert.equal(runwayDays(3000, 82.35), 36.4);
     assert.equal(runwayDays(1000, 0), null);
+    assert.equal(runwayDays(-100, 10), 0);
+});
+
+test('fixed goal hold subtracts active weekly and percentage holds', () => {
+    assert.equal(fixedHoldForTarget(500, 200, 100), 200);
+    assert.equal(fixedHoldForTarget(250, 200, 100), 0);
+    assert.equal(fixedHoldForTarget(500.01, 200, 100), 200.01);
+});
+
+test('future scheduled spend does not become an observed burn rate', () => {
+    const out = computePlanner({
+        incomeUsed: 2000,
+        spendUsed: 900,
+        spendItems: [{ amount: 900, date: '2026-09-12', paid: false }],
+        daysInMonth: 30,
+        daysElapsed: 30,
+        currentDate: new Date(2026, 8, 1),
+        asOf: new Date(2026, 7, 19)
+    });
+    assert.equal(out.burnSpend, 0);
+    assert.equal(out.burnDays, 0);
+    assert.equal(out.avgDailyBurn, 0);
 });
 
 test('ratio buckets follow the documented needs and wants lists', () => {
@@ -185,16 +209,27 @@ test('classifyRatioSpend and unpaid recurring read the month register', () => {
     assert.equal(unpaidRecurring(items, { spendBasis: 'paid' }).count, 0);
 });
 
-test('week bucket targets sum to spendable income', () => {
+test('week bucket targets share the calendar Sunday–Saturday boundaries', () => {
     const daily = Array.from({ length: 31 }, (_, i) => ({
         day: i + 1,
         amount: i === 4 ? 500 : i === 11 ? 900 : 0
     }));
-    const weeks = monthWeekBuckets(daily, 31, 2000);
-    assert.equal(weeks.length, 5);
-    assert.equal(weeks[0].amount, 500);
-    assert.equal(weeks[1].amount, 900);
-    assert.equal(weeks[0].target, 451.61);
+    const weeks = monthWeekBuckets(daily, 31, 2000, 6);
+    assert.equal(weeks.length, 6);
+    assert.deepEqual(
+        weeks.map(({ start, end }) => ({ start, end })),
+        [
+            { start: 1, end: 1 },
+            { start: 2, end: 8 },
+            { start: 9, end: 15 },
+            { start: 16, end: 22 },
+            { start: 23, end: 29 },
+            { start: 30, end: 31 }
+        ]
+    );
+    assert.equal(weeks[1].amount, 500);
+    assert.equal(weeks[2].amount, 900);
+    assert.equal(weeks[1].target, 451.61);
     const targetCents = weeks.reduce((sum, week) => sum + Utils.toCents(week.target), 0);
     assert.equal(targetCents, Utils.toCents(2000));
     const spentCents = weeks.reduce((sum, week) => sum + Utils.toCents(week.amount), 0);
@@ -211,6 +246,24 @@ test('negative spendable income produces zero weekly targets', () => {
         calendarRows.reduce((sum, week) => sum + Utils.toCents(week.target), 0),
         0
     );
+});
+
+test('planner week bars respect paid-only spend basis', () => {
+    const out = computePlanner({
+        incomeUsed: 1000,
+        spendUsed: 100,
+        spendItems: [
+            { amount: 100, date: '2026-08-05', paid: true, category: 'Groceries' },
+            { amount: 900, date: '2026-08-06', paid: false, category: 'Housing' }
+        ],
+        dailyTotals: [],
+        daysInMonth: 31,
+        daysElapsed: 19,
+        currentDate: new Date(2026, 7, 1),
+        asOf: new Date(2026, 7, 19),
+        plan: { spendBasis: 'paid' }
+    });
+    assert.equal(out.weekBuckets.reduce((sum, week) => sum + week.amount, 0), 100);
 });
 
 test('Sunday–Saturday calendar rows mark weeks that spend past their share', () => {
@@ -311,10 +364,10 @@ test('over-budget rows follow counted spend and planner spendable', () => {
     assert.equal(daily[4], 500);
     assert.equal(daily[11], 900);
 
-    const logged = overBudgetRows(events, date, {}, 2000);
+    const logged = trackCalendarWeeks(events, date, {}, 2000);
     assert.deepEqual(logged.filter((week) => week.over).map((week) => week.row), [1, 2]);
 
-    const paidOnly = overBudgetRows(events, date, { spendBasis: 'paid' }, 2000);
+    const paidOnly = trackCalendarWeeks(events, date, { spendBasis: 'paid' }, 2000);
     assert.deepEqual(paidOnly.filter((week) => week.over).map((week) => week.row), [1]);
     assert.equal(paidOnly[2].amount, 0);
     assert.equal(paidOnly[2].over, false);

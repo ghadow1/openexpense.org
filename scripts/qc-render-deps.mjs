@@ -19,6 +19,10 @@ test('a saved plan repaints the dash, sidebar, and calendar weeks', () => {
     assert.equal(shouldRender('calendar', ['plan']), true);
 });
 
+test('a goal change repaints the planner and overview milestone chart', () => {
+    assert.equal(shouldRender('dash', ['goals']), true);
+});
+
 test('the tracker filter repaints the calendar, sidebar, and dash', () => {
     assert.equal(shouldRender('calendar', ['trackerFilter']), true);
     assert.equal(shouldRender('sidebar', ['trackerFilter']), true);

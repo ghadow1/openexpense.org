@@ -15,7 +15,6 @@ import {
     duplicateAt,
     matchRememberedTitle,
     moveIndexes,
-    moveOccurrence,
     reorderDay,
     suggestTitles,
     togglePaidAt
@@ -51,8 +50,8 @@ test('reorderDay ignores out-of-range indexes', () => {
     assert.equal(reorderDay(events, '2026-08-17', 0, 0), events);
 });
 
-test('moveOccurrence relocates one copy and keeps array order on the destination', () => {
-    const next = moveOccurrence(ledger(), '2026-08-17', 0, '2026-08-18');
+test('moveIndexes relocates one copy and keeps array order on the destination', () => {
+    const next = moveIndexes(ledger(), '2026-08-17', [0], '2026-08-18');
     assert.equal(next['2026-08-17'].length, 1);
     assert.equal(next['2026-08-17'][0].title, 'Rent');
     assert.equal(next['2026-08-18'].map((e) => e.title).join(','), 'Paycheck,Coffee');

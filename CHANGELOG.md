@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-19 — Priority savings goals and modern charts
+
+Planner now keeps an ordered list of savings goals in the encrypted ledger. Set a target date and optional amount, drag cards into priority, and compare the required monthly pace with leftover surplus. Apply the result as a planner hold. Monthly and weekly charts show exact values to assistive tech, and year charts no longer invent a zero forecast after the last real month. Receipt review, OCR, and backup code load only when you use them, so the first page of JavaScript is smaller.
+
 ## 2026-08-19 — Planner Quality settings and Banking info
 
 Planner settings now sit on two tabs. **Quality settings** covers what counts, tax withhold, weekly pace, and the 50/30/20 split. **Banking info** is the optional current bank amount plus weekly, monthly, and percent holds. Save, discard, and reset stay on the form and work across both tabs.

@@ -1,17 +1,19 @@
 /**
  * OpenExpense — on-device receipt scan
  *
- * Lazy-loads PP-OCRv5 and pdf.js from jsDelivr, enhances the image, then
- * hands text to receipt-parse.js. Nothing is uploaded.
+ * Lazy-loads bundled PP-OCRv6 Tiny and PDF.js, then uses same-origin models
+ * and workers to process the image. Nothing is uploaded.
  */
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
 import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
-import { saveExpense } from './modal.js';
+import { renderModal, saveExpense } from './modal.js';
 import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './receipt-parse.js';
-import { actionBusy, runLocked } from '../ui/action-lock.js';
+import { runLocked } from '../ui/action-lock.js';
+import { receiptDateContext } from '../core/receipt-date.js';
+import { pickReceiptFile } from './receipt-picker.js';
 
 const RECEIPT_LIMITS = {
     maxFileBytes: 15 * 1024 * 1024,
@@ -19,6 +21,17 @@ const RECEIPT_LIMITS = {
     maxExtractedLines: 5000,
     maxExtractedChars: 250000
 };
+
+function displayDate(key) {
+    const [year, month, day] = String(key || '').split('-').map(Number);
+    if (!year || !month || !day) return String(key || '');
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
 
 export const Receipt = {
     // Executable OCR/PDF code and models are bundled or served from this origin.
@@ -43,17 +56,8 @@ export const Receipt = {
         return type === 'application/pdf' || name.endsWith('.pdf');
     },
 
-    pickImage() {
-        if (actionBusy()) {
-            Toast.show('Please wait — another action is still running.', 'info', 2800);
-            return;
-        }
-        const input = document.getElementById('receipt-scan-input');
-        if (!input) return;
-        input.value = '';
-        if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
-        else input.removeAttribute('capture');
-        input.click();
+    pickImage({ intendedDate = null } = {}) {
+        pickReceiptFile({ dateKey: intendedDate });
     },
 
     async ensureEngine(onProgress) {
@@ -385,7 +389,7 @@ export const Receipt = {
         return { ...ocr, previewUrl };
     },
 
-    async scan(file) {
+    async scan(file, { intendedDate = null } = {}) {
         return runLocked('scan', async () => {
             if (!file || (typeof file.size === 'number' && file.size > RECEIPT_LIMITS.maxFileBytes)) {
                 Toast.show('That receipt file is too large. Use a file under 15 MB.', 'error', 5200);
@@ -404,7 +408,7 @@ export const Receipt = {
                         : 'No text detected — fill in the fields manually or try a clearer photo.';
                     Toast.show(hint, 'error');
                 }
-                Receipt.showPreview(parsed, ocr.previewUrl);
+                Receipt.showPreview(parsed, ocr.previewUrl, intendedDate);
             } catch (err) {
                 console.error('OCR error:', err);
                 progress.close();
@@ -460,9 +464,14 @@ export const Receipt = {
         return parseReceipt(text, lines, confidence);
     },
 
-    showPreview(parsed, previewUrl) {
+    showPreview(parsed, previewUrl, intendedDate = null) {
         Receipt.closePreview();
         const today = Utils.dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        const dateContext = receiptDateContext({
+            detectedDate: parsed.date,
+            intendedDate,
+            today
+        });
         const noteParts = [...parsed.items];
         if (parsed.tax != null) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
         const confPct = parsed.confidence ? Math.round(parsed.confidence * 100) : null;
@@ -472,7 +481,8 @@ export const Receipt = {
         backdrop.className = 'backdrop open';
         backdrop.id = 'ocr-preview';
         backdrop.innerHTML = `
-            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-labelledby="ocr-preview-title">
+            <div class="modal-shell ocr-sheet" role="dialog" aria-modal="true" aria-labelledby="ocr-preview-title"
+                ${dateContext.intendedDate ? `data-source-day="${dateContext.intendedDate}"` : ''}>
                 <div class="ocr-sheet-header">
                     <div>
                         <h2 class="modal-title" id="ocr-preview-title">${parsed.kind === 'invoice' ? 'Review invoice' : parsed.kind === 'bill' ? 'Review bill' : 'Review receipt'}</h2>
@@ -499,9 +509,23 @@ export const Receipt = {
                         </div>
                         <div class="ocr-field">
                             <label class="field-label" for="ocr-date">Date</label>
-                            <input class="text-input" type="date" id="ocr-date" value="${parsed.date || today}">
+                            <input class="text-input" type="date" id="ocr-date" value="${dateContext.initialDate}"
+                                ${dateContext.mismatch ? 'aria-describedby="ocr-date-question"' : ''}>
                         </div>
                     </div>
+                    ${dateContext.mismatch ? `
+                    <fieldset class="ocr-date-check" id="ocr-date-question">
+                        <legend><i class="ti ti-calendar-question" aria-hidden="true"></i> Which date should this expense use?</legend>
+                        <p>The receipt date does not match the day you opened. Confirm one before saving.</p>
+                        <label>
+                            <input type="radio" name="ocr-date-choice" value="${dateContext.detectedDate}">
+                            <span><strong>Receipt date</strong><small>${displayDate(dateContext.detectedDate)}</small></span>
+                        </label>
+                        <label>
+                            <input type="radio" name="ocr-date-choice" value="${dateContext.intendedDate}">
+                            <span><strong>Selected day</strong><small>${displayDate(dateContext.intendedDate)}</small></span>
+                        </label>
+                    </fieldset>` : ''}
                     <div class="ocr-field">
                         <label class="field-label" for="ocr-note">Notes</label>
                         <textarea class="text-input" id="ocr-note" rows="3" placeholder="Line items and details">${Utils.escapeHtml(noteParts.join('\n'))}</textarea>
@@ -512,8 +536,8 @@ export const Receipt = {
                     </details>
                 </div>
                 <div class="modal-actions ocr-actions ocr-actions-stack">
-                    <button class="btn-primary" type="button" data-act="save"><i class="ti ti-check" aria-hidden="true"></i> Save expense</button>
-                    <button class="btn-secondary" type="button" data-act="save-scan"><i class="ti ti-camera" aria-hidden="true"></i> Save &amp; scan another</button>
+                    <button class="btn-primary" type="button" data-act="save" ${dateContext.mismatch ? 'disabled' : ''}><i class="ti ti-check" aria-hidden="true"></i> Save expense</button>
+                    <button class="btn-secondary" type="button" data-act="save-scan" ${dateContext.mismatch ? 'disabled' : ''}><i class="ti ti-camera" aria-hidden="true"></i> Save &amp; scan another</button>
                     <button class="btn-ghost" type="button" data-act="cancel">Cancel</button>
                 </div>
             </div>`;
@@ -527,6 +551,14 @@ export const Receipt = {
         backdrop.querySelectorAll('[data-act="cancel"]').forEach(b => b.onclick = Receipt.closePreview);
         backdrop.querySelector('[data-act="save"]').onclick = () => Receipt.saveFromPreview(false);
         backdrop.querySelector('[data-act="save-scan"]').onclick = () => Receipt.saveFromPreview(true);
+        backdrop.querySelectorAll('input[name="ocr-date-choice"]').forEach((choice) => {
+            choice.addEventListener('change', () => {
+                const input = backdrop.querySelector('#ocr-date');
+                if (input) input.value = choice.value;
+                backdrop.querySelectorAll('[data-act="save"], [data-act="save-scan"]')
+                    .forEach((button) => { button.disabled = false; });
+            });
+        });
         Utils.hideTooltip();
         document.body.classList.add('modal-open');
         lockBodyScroll();
@@ -566,6 +598,13 @@ export const Receipt = {
     },
 
     saveFromPreview(scanAnother = false) {
+        const preview = document.getElementById('ocr-preview');
+        const sourceDay = preview?.querySelector('[role="dialog"]')?.dataset.sourceDay || '';
+        if (preview?.querySelector('.ocr-date-check')
+            && !preview.querySelector('input[name="ocr-date-choice"]:checked')) {
+            Toast.show('Choose the receipt date or the selected day before saving.', 'error');
+            return;
+        }
         const dateStr = document.getElementById('ocr-date')?.value;
         const title = document.getElementById('ocr-title')?.value.trim();
         const amountRaw = document.getElementById('ocr-amount')?.value.replace(/[^0-9.]/g, '');
@@ -584,13 +623,20 @@ export const Receipt = {
         if (!ok) return;
 
         const [y, m, d] = dateStr.split('-').map(Number);
-        patch({ currentDate: new Date(y, m - 1, d), selectedKey: null, editingIndex: null });
+        patch({
+            currentDate: new Date(y, m - 1, d),
+            selectedKey: sourceDay ? dateStr : null,
+            editingIndex: null
+        });
 
         Receipt.closePreview();
+        if (sourceDay) renderModal();
         Toast.show(scanAnother ? 'Saved — ready for next receipt.' : 'Expense saved to your calendar.', 'success');
 
         if (scanAnother) {
-            window.setTimeout(() => Receipt.pickImage(), 350);
+            window.setTimeout(() => Receipt.pickImage({
+                intendedDate: sourceDay ? dateStr : null
+            }), 350);
         }
     }
 };

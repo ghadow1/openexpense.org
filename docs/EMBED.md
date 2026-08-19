@@ -23,7 +23,7 @@ session.importTransactions([
   { amount: -961, merchant: 'Payroll', date: '2026-08-21', transaction_id: 'tx_2' }
 ]);
 
-session.get();          // { name, events }
+session.get();          // { name, events, plan, goals }
 session.getSnapshot();  // same math as the dashboard
 ```
 
@@ -35,7 +35,7 @@ After the page boots:
 
 ```js
 OpenExpense.get()
-OpenExpense.set({ name, events })
+OpenExpense.set({ name, events, budgets, plan, goals })
 OpenExpense.importTransactions(rawRows)
 OpenExpense.getSnapshot()
 OpenExpense.subscribe((ledger) => { /* host copy */ })
@@ -44,6 +44,7 @@ OpenExpense.allowOrigin('https://bank.example')
 ```
 
 Every write is sanitized with the same allowlist as import/autosave.
+`getSnapshot()` returns `goalAssessment` when ordered goals are present.
 
 ## 3. iframe
 

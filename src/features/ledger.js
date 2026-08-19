@@ -9,9 +9,8 @@ import { getState, patch } from '../core/store.js';
 import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
 import {
-    encryptBundle, decryptBundle, unzipBundle, entryToJson,
     isEncFile, isKeyFile, needsPassphrase, BUNDLE, ZIP_LIMITS
-} from '../core/bundle.js';
+} from '../core/bundle-format.js';
 import {
     validateEncFile, validateKeyFile, kidsMatch, wipeKeyFile,
     sanitizeLedger, countEntries, exportFilenames, readJsonFile, classifyJson
@@ -31,6 +30,18 @@ import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
 const PENDING_MS = 5 * 60 * 1000;
 const JSON_ACCEPT = { 'application/json': ['.json'] };
 const MIN_PASSPHRASE = 8;
+let bundleModulePromise = null;
+let zipModulePromise = null;
+
+function loadBundleModule() {
+    if (!bundleModulePromise) bundleModulePromise = import('../core/bundle.js');
+    return bundleModulePromise;
+}
+
+function loadZipModule() {
+    if (!zipModulePromise) zipModulePromise = import('../core/legacy-zip.js');
+    return zipModulePromise;
+}
 
 function readPassphrasePref() {
     try { return localStorage.getItem(STORAGE_KEYS.exportPassphrase); } catch (_) { return null; }
@@ -57,7 +68,7 @@ export const Ledger = {
     },
 
     exportPayload() {
-        const { ledgerName, events, budgets, plan } = getState();
+        const { ledgerName, events, budgets, plan, goals } = getState();
         const payload = {
             name: ledgerName || '',
             events,
@@ -65,6 +76,7 @@ export const Ledger = {
         };
         if (budgets && Object.keys(budgets).length) payload.budgets = budgets;
         if (plan && !planIsDefault(plan)) payload.plan = sanitizePlan(plan);
+        if (Array.isArray(goals) && goals.length) payload.goals = goals;
         return payload;
     },
 
@@ -322,6 +334,7 @@ export const Ledger = {
             const keyNote = choice.passphrase
                 ? 'You will need your passphrase to open it again.'
                 : 'not stored in this browser.';
+            const { encryptBundle } = await loadBundleModule();
             const { enc, keyFile } = await encryptBundle(
                 Ledger.exportPayload(),
                 { passphrase: choice.passphrase }
@@ -466,7 +479,7 @@ export const Ledger = {
                 return;
             }
             offerDeleteUndo(getState(), { count: countEntries(events) });
-            patch({ events: {}, budgets: {}, plan: {}, ledgerName: '', selectedKey: null, editingIndex: null });
+            patch({ events: {}, budgets: {}, plan: {}, goals: [], ledgerName: '', selectedKey: null, editingIndex: null });
             Toast.show('Calendar and device encryption key cleared.', 'success');
         });
     },
@@ -548,6 +561,7 @@ export const Ledger = {
     },
 
     async importZip(file) {
+        const { unzipBundle, entryToJson } = await loadZipModule();
         if (typeof file?.size === 'number' && file.size > ZIP_LIMITS.maxCompressedBytes) {
             Toast.show('That ZIP is too large to import safely.', 'error');
             return;
@@ -689,6 +703,7 @@ export const Ledger = {
             if (!asked?.confirmed || !asked.value) return null;
 
             try {
+                const { decryptBundle } = await loadBundleModule();
                 return await decryptBundle(enc, keyFile, { passphrase: asked.value });
             } catch (err) {
                 if (attempt === 2) {
@@ -719,6 +734,7 @@ export const Ledger = {
             }
 
             let payload;
+            const { decryptBundle } = await loadBundleModule();
             if (needsPassphrase(keyFile)) {
                 payload = await Ledger.unlockWithPassphrase(enc, keyFile);
                 if (!payload) return;
@@ -761,7 +777,8 @@ export const Ledger = {
             ledgerName: cleaned.name || Ledger.nameFromImport(srcName, cleaned),
             events: cleaned.events,
             budgets: cleaned.budgets || {},
-            plan: cleaned.plan || {}
+            plan: cleaned.plan || {},
+            goals: cleaned.goals || []
         });
         const count = countEntries(cleaned.events);
         Toast.show(`Imported ${count} item${count === 1 ? '' : 's'} (expenses and income).`, 'success');

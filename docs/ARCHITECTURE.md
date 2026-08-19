@@ -20,9 +20,9 @@ src/main.js         boot, event delegation, render subscription
 
 ## Boot
 
-1. `index.html` loads design CSS, icon/font CDNs, and the bundled `app.js`.
+1. `index.html` loads design CSS, same-origin icon/font assets, and bundled `app.js`.
 2. `main.js` reads theme and autosave prefs from `localStorage`.
-3. `loadLedger()` decrypts the IndexedDB record (if any) into `{ name, events, budgets, plan }`.
+3. `loadLedger()` decrypts the IndexedDB record (if any) into `{ name, events, budgets, plan, goals }`.
 4. `patch()` fills the store; `initPersist()` starts watching for later writes.
 5. Clicks on `[data-action]`, `[data-view]`, and `[data-tab]` are delegated from `document`.
 
@@ -35,6 +35,7 @@ src/main.js         boot, event delegation, render subscription
 | `events` | `{ "YYYY-MM-DD": Expense[] }` |
 | `budgets` | Monthly category caps |
 | `plan` | Weekly savings, leftover (Potential Savings) rules, and optional current bank savings |
+| `goals` | Ordered local savings goals and allocation priority |
 | `ledgerName` | Display / export name |
 | `currentDate` | Visible month |
 | `isDark` | Theme |
@@ -50,9 +51,9 @@ src/main.js         boot, event delegation, render subscription
 
 ## Persistence
 
-- **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events, budgets, plan }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
-- **Export** (`bundle.js` + `ledger.js` + `ledger-file.js` + `folder.js`): new portable key per save. A linked-folder save verifies the existing pair, stages and verifies a complete recovery pair, updates both destinations, then removes recovery files. Otherwise one share sheet (iPhone / Android) or dated downloads. The folder handle may be remembered in IndexedDB `meta` — that is not `key.json`. The JWK is not cached. Mutating actions share one in-flight UI lock (`ui/action-lock.js`). Unknown URLs serve `404.html`.
-- **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy zip, or confirmed plaintext. `ledger-file.js` validates, decrypts, sanitizes, and is reused on boot.
+- **Autosave** (`persist.js` + `crypto.js`): sanitize then encrypt `{ name, events, budgets, plan, goals }` (expenses and income together) with a **non-extractable** device AES-GCM key in IndexedDB. That key is not `key.json` and cannot be exported as JWK.
+- **Export** (`bundle-format.js` + lazy `bundle.js` + `ledger.js` + `ledger-file.js` + `folder.js`): new portable key per save. A linked-folder save verifies the existing pair, stages and verifies a complete recovery pair, updates both destinations, then removes recovery files. Otherwise one share sheet (iPhone / Android) or dated downloads. The folder handle may be remembered in IndexedDB `meta` — that is not `key.json`. The JWK is not cached. Mutating actions share one in-flight UI lock (`ui/action-lock.js`). Unknown URLs serve `404.html`.
+- **Import / QC**: encrypted JSON (then a key picker), the two files in either order, legacy ZIP, or confirmed plaintext. Lightweight guards live in `bundle-format.js`; `ledger-file.js` enforces limits and sanitizes; `legacy-zip.js` loads only for an old ZIP.
 
 `localStorage` never holds expenses or keys. It only stores `oe-theme`, `oe-autosave`, `hasVisited`, the expense/income sidebar face, `oe-shell-tab`, `oe-tracker-filter`, the export-passphrase choice, and a leftover `oe-dash-view` used only to migrate an old Planner/Overview pill.
 
@@ -65,6 +66,7 @@ src/main.js         boot, event delegation, render subscription
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
 | `features/sidebar.js` | Month math + statement PDF; click a group or category to search |
+| `features/goals.js` | Goal editor, priority drag, feasibility cards, and explicit planner-hold action |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 
@@ -74,15 +76,29 @@ src/main.js         boot, event delegation, render subscription
 
 The right-hand card flips between an expense face and an income face when the Tracker filter is Expenses or Income. The calendar stays one grid. Professional paints income in the same blue as the accent; Black Card keeps income white.
 
-Snapshot and sidebar charts plot one period total on a small ring and a year spark with three points: the start, the month being viewed, and the end. Anchoring on the viewed month is what keeps the headline figure and the line talking about the same period. Future-dated recurring copies still count in month totals.
+Snapshot and sidebar charts plot one period total on a small ring and retain
+monthly granularity across the year. Historical years run Jan–Dec; the current
+year stops at the latest observed or scheduled month so absent future data is
+not drawn as a zero forecast. The selected month is marked, every plotted month
+is available through one roving keyboard stop, mixed positive/negative series
+retain a zero baseline, and goal dates appear as milestone lines. The compact
+axis abbreviates money, but accessible names retain each plotted value.
+Future-dated recurring copies still count in month totals. Planner week bars
+compare actual spend with the cent-exact target allocated by
+`monthWeekBuckets()`.
 
 The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Tab** CSS (`html[data-shell]`) decides what that board shows, on every frame:
 
 - **Overview** — Potential Savings (desktop: compact strip; growth potential when current bank savings is set) + calendar. No filter bar, no monthly spending card.
 - **Tracker** — Filter + Monthly spending. No calendar.
-- **Planner** — planner form only (Quality settings and Banking info); the shared board is hidden.
+- **Planner** — safe-spend hero, encrypted savings goals, and settings (Quality settings and Banking info); the shared board is hidden.
 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
+
+`src/core/goals.js` compares each goal’s required daily/monthly pace with
+available surplus. Allocation is a priority waterfall: each current-savings or
+monthly-surplus dollar is assigned at most once. The headless `snapshot()` API
+accepts goals as its optional fourth argument and returns `goalAssessment`.
 
 ## Labels, groups, and Change All
 
@@ -111,7 +127,7 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 
 ## Receipts
 
-`receipt.js` lazy-loads bundled PP-OCRv5 and PDF.js modules. Reviewed workers,
+`receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed workers,
 models, and dictionaries are served from same-origin `vendor/`. Images are
 oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
 `saveExpense()` writes the confirmed result like a manual add.

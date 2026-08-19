@@ -9,6 +9,12 @@ Class names continue to own presentation; `data-*` attributes continue to own
 behavior; IDs continue to connect accessible names, generated content, and
 stable application contracts.
 
+Companion references: [`CODEMAP.md`](CODEMAP.md) governs frozen hooks,
+[`ARCHITECTURE.md`](ARCHITECTURE.md) explains runtime behavior, and
+[`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) teaches safe-string/security reasoning.
+`scripts/qc-frontend.mjs` is the executable specification for the semantic,
+focus, keyboard, and receipt-interface contracts described here.
+
 ## SECTION 1: DOM TREE & SEMANTIC STRUCTURAL MAP
 
 ### 1.1 Authored shell
@@ -178,7 +184,9 @@ private class query to `data-*` would add markup without reducing coupling.
   region, trapped focus, Escape dismissal, and launch-point restoration.
 - OCR review has a labelled heading, decorative icons hidden from screen
   readers, meaningful preview alternative text, Escape dismissal, focus
-  containment, and restoration.
+  containment, and restoration. The mobile day sheet adds a camera/file shortcut
+  scoped to that selected day; when OCR finds another date, review presents both
+  dates as explicit radio choices and blocks saving until one is confirmed.
 - Static and generated close icons are decorative; their parent buttons carry
   the accessible names.
 - Main-view visibility now agrees across visual CSS, DOM `hidden`, and
@@ -187,8 +195,11 @@ private class query to `data-*` would add markup without reducing coupling.
   remain rendered so the 3D flip geometry is unchanged.
 - Calendar month arrows have persistent accessible names and the changing
   month title is exposed as a polite level-two heading.
-- Selectable spark charts use a labelled group rather than an image role, so
-  their month buttons remain represented in accessibility APIs.
+- Selectable year charts use a labelled group rather than an image role. Every
+  observed or scheduled month remains in the DOM, the selected month has
+  `aria-current="date"`, and a roving tab stop supports arrow, Home, and End
+  keys without adding every month to the page tab order. A stable chart identity
+  restores that tab stop after month selection rerenders the chart.
 - Error toasts use assertive alert semantics while informational messages
   remain polite statuses; decorative toast icons are hidden.
 - Keyboard focus outlines are restored for search and text fields whose

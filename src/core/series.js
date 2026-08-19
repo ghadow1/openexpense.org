@@ -41,10 +41,6 @@ export function normalizeRepeat(value) {
     return 'monthly';
 }
 
-export function repeatMonths(value) {
-    return REPEAT[normalizeRepeat(value)].months || 0;
-}
-
 export function repeatLabel(value, short = false) {
     const rec = REPEAT[normalizeRepeat(value)];
     return short ? rec.short : rec.label;

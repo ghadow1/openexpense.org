@@ -1,9 +1,9 @@
 /**
  * OpenExpense — in-memory store
  *
- * Single source of truth for the ledger, plan, theme, and UI selection.
+ * Single source of truth for the ledger, plan, goals, theme, and UI selection.
  * Features call patch(); persist.js and the renderer subscribe().
- * Field meanings: docs/CODEMAP.md. Persistence writes name/events/budgets/plan only.
+ * Field meanings: docs/CODEMAP.md. Persistence writes name/events/budgets/plan/goals only.
  *
  * @typedef {'overview'|'tracker'|'planner'|'privacy'} ShellTab
  * @typedef {'all'|'expense'|'income'} TrackerFilter
@@ -14,6 +14,7 @@
  * @property {Record<string, object[]>} events Date-keyed ledger (`YYYY-MM-DD`).
  * @property {Record<string, number>} budgets Monthly category caps.
  * @property {object} plan Planner rules (withhold, hold, 50/30/20, weekly pace).
+ * @property {object[]} goals Ordered savings goals; array order is allocation priority.
  * @property {string} ledgerName Display / export name.
  * @property {boolean} isDark Black Card when true, Professional when false.
  * @property {boolean} autosaveEnabled Whether persist.js writes IndexedDB.
@@ -32,6 +33,7 @@ const state = {
     events: {},
     budgets: {},
     plan: {},
+    goals: [],
     ledgerName: '',
     isDark: CONFIG.defaultTheme === 'dark',
     autosaveEnabled: true,

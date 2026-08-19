@@ -51,10 +51,6 @@ export function moveIndexes(events, fromKey, indexes, toKey) {
     return next;
 }
 
-export function moveOccurrence(events, fromKey, index, toKey) {
-    return moveIndexes(events, fromKey, [index], toKey);
-}
-
 export function togglePaidAt(events, dateKey, index) {
     const list = [...dayList(events, dateKey)];
     const i = Number(index);

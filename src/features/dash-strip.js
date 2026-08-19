@@ -14,6 +14,7 @@ import {
     formatDelta,
     formatMoney,
     formatChipMoney,
+    yearSeriesEndIndex,
     yearSeriesPoints
 } from '../core/summary.js';
 import {
@@ -24,11 +25,13 @@ import {
     sanitizePlan
 } from '../core/plan.js';
 import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
+import { goalMilestones } from '../core/goals.js';
 import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { closeModal } from './modal.js';
 import { openBudgetEditor } from './sidebar.js';
 import { readFrame } from '../ui/frame.js';
+import { createGoalTrigger, renderGoalsPanel } from './goals.js';
 
 /** Wide enough to read a dial, a year line, and the split side by side. */
 const WIDE_DASH = '(min-width: 1100px)';
@@ -161,14 +164,18 @@ function yearTotalsFor(events, currentDate, kind) {
     return computeMonthlySummary(events, currentDate, kind).monthTotals;
 }
 
-function yearSpark(events, currentDate, kind, ariaLabel) {
+function yearSpark(events, currentDate, kind, ariaLabel, goals = []) {
     const year = currentDate.getFullYear();
     const totals = yearTotalsFor(events, currentDate, kind);
+    const throughIndex = yearSeriesEndIndex(totals, year, {
+        anchorIndex: currentDate.getMonth()
+    });
     return createSpark({
-        // Anchored on the month on screen so the dial figure is also a point
-        // on the line; otherwise the headline and the chart disagree.
-        points: yearSeriesPoints(totals, year, { anchorIndex: currentDate.getMonth() }),
+        points: yearSeriesPoints(totals, year, { throughIndex }),
         ariaLabel,
+        milestones: goalMilestones(goals, year),
+        selectedIndex: currentDate.getMonth(),
+        focusId: `dash-${kind}-year`,
         onSelect: (pt) => goMonth(year, pt.index)
     });
 }
@@ -442,7 +449,7 @@ function sectionKicker(text) {
     return node;
 }
 
-function pageHead({ kicker, title, description, monthLabel }) {
+function pageHead({ kicker, title, description, monthLabel, action = null }) {
     const header = document.createElement('header');
     header.className = 'planner-page-head';
     const copy = document.createElement('div');
@@ -454,7 +461,11 @@ function pageHead({ kicker, title, description, monthLabel }) {
     const month = document.createElement('span');
     month.className = 'planner-month';
     month.innerHTML = `<i class="ti ti-calendar" aria-hidden="true"></i>${monthLabel}`;
-    header.append(copy, month);
+    const controls = document.createElement('div');
+    controls.className = 'planner-page-controls';
+    controls.appendChild(month);
+    if (action) controls.appendChild(action);
+    header.append(copy, controls);
     return header;
 }
 
@@ -837,7 +848,7 @@ function planPanel(snap, plan, currentDate) {
     return form;
 }
 
-function budgetSlide(snap, events, currentDate, plan) {
+function budgetSlide(snap, events, currentDate, plan, goals = []) {
     const daysOpen = snap.daysLeft > 0;
     const value = daysOpen ? snap.dailySafe : snap.leftToSpend;
     const cap = daysOpen
@@ -845,7 +856,8 @@ function budgetSlide(snap, events, currentDate, plan) {
         : (snap.spendableIncome || snap.incomeUsed || snap.deposited);
     const weekRows = (snap.weekBuckets || []).map((week) => ({
         label: week.label,
-        value: week.amount
+        value: week.amount,
+        target: week.target
     }));
     const extras = [
         chip({
@@ -875,7 +887,9 @@ function budgetSlide(snap, events, currentDate, plan) {
         textChip({
             label: 'Days of cash',
             value: snap.runwayDays == null ? '—' : String(snap.runwayDays),
-            hint: snap.avgDailyBurn > 0 ? `${formatMoney(snap.avgDailyBurn)} daily burn` : 'No burn',
+            hint: snap.avgDailyBurn > 0
+                ? `${formatMoney(snap.avgDailyBurn)} / day from ${snap.burnDays} observed day${snap.burnDays === 1 ? '' : 's'}`
+                : 'No observed burn',
             tone: snap.runwayDays == null ? 'flat' : 'up',
             track: true
         }),
@@ -917,7 +931,7 @@ function budgetSlide(snap, events, currentDate, plan) {
                 caption: daysOpen ? `${snap.daysLeft} days left` : snap.monthLabel,
                 ratio: clampRatio(Math.max(0, value), cap)
             }),
-            spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+            spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`, goals),
             bars: createBars({
                 ariaLabel: `${snap.monthLabel} weekly pace`,
                 rows: weekRows.length
@@ -935,7 +949,7 @@ function budgetSlide(snap, events, currentDate, plan) {
     ];
 }
 
-function overviewCompact(snap, events, currentDate) {
+function overviewCompact(snap, events, currentDate, goals) {
     const dueHint = snap.dueSoonCount
         ? countHint(snap.dueSoonCount, 'bill', 'bills')
         : 'Next 7 days';
@@ -955,7 +969,7 @@ function overviewCompact(snap, events, currentDate) {
             ? 'This month’s leftover against the savings you entered.'
             : 'Deposits minus this month’s spending.',
         dial: leftoverDial(snap),
-        spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`),
+        spark: yearSpark(events, currentDate, 'overview', `${currentDate.getFullYear()} month net`, goals),
         bars: createBars({
             ariaLabel: `${snap.monthLabel} cash`,
             rows: [
@@ -1000,13 +1014,13 @@ function overviewCompact(snap, events, currentDate) {
     });
 }
 
-function renderOverview(snap, events, currentDate) {
+function renderOverview(snap, events, currentDate, goals) {
     const heroRoot = document.getElementById('overview-hero-root');
     const moreRoot = document.getElementById('overview-more-root');
     if (!heroRoot || !moreRoot) return;
 
     if (readFrame() === 'desktop') {
-        heroRoot.replaceChildren(...overviewCompact(snap, events, currentDate));
+        heroRoot.replaceChildren(...overviewCompact(snap, events, currentDate, goals));
         heroRoot.classList.add('is-ready');
         moreRoot.replaceChildren();
         moreRoot.classList.add('is-ready');
@@ -1094,17 +1108,19 @@ function formulaCard(snap) {
     return card;
 }
 
-function renderPlannerPane(snap, events, currentDate, plan) {
+function renderPlannerPane(snap, events, currentDate, plan, goals) {
     const root = document.getElementById('planner-root');
     if (!root) return;
     const slide = document.createElement('div');
     slide.className = 'planner-stack';
+    const [hero, settings] = budgetSlide(snap, events, currentDate, plan, goals);
     slide.append(pageHead({
         kicker: 'Monthly plan',
         title: 'Build a plan for your money',
         description: 'Quality settings choose what counts and how leftover is scored. Banking info is the cash you already have and the amounts you hold back.',
-        monthLabel: snap.monthLabel
-    }), ...budgetSlide(snap, events, currentDate, plan), formulaCard(snap));
+        monthLabel: snap.monthLabel,
+        action: createGoalTrigger()
+    }), hero, renderGoalsPanel({ snap, goals, plan }), settings, formulaCard(snap));
     root.replaceChildren(slide);
 }
 
@@ -1122,11 +1138,11 @@ function syncTrackerFilter() {
  * The filename `dash-strip` is historical; this is not a fifth tab.
  */
 export function renderDashStrip() {
-    const { events, currentDate, plan } = getState();
+    const { events, currentDate, plan, goals } = getState();
     const rules = sanitizePlan(plan);
-    const snap = computeNetSnapshot(events, currentDate, new Date(), rules);
-    renderOverview(snap, events, currentDate);
+    const snap = computeNetSnapshot(events, currentDate, new Date(), rules, goals);
+    renderOverview(snap, events, currentDate, goals);
     renderTrackerHead(snap);
-    renderPlannerPane(snap, events, currentDate, rules);
+    renderPlannerPane(snap, events, currentDate, rules, goals);
     syncTrackerFilter();
 }

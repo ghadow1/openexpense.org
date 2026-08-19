@@ -10,7 +10,9 @@ import {
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
-import { encryptBundle, decryptBundle, unzipBundle, ZIP_LIMITS } from '../src/core/bundle.js';
+import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
+import { ZIP_LIMITS } from '../src/core/bundle-format.js';
+import { unzipBundle } from '../src/core/legacy-zip.js';
 import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
 import { zipSync } from 'fflate';
 
@@ -128,6 +130,32 @@ test('encrypt / decrypt roundtrip reuses the same pair', async () => {
     assert.equal(opened.events['2026-06-01'][0].title, 'Rent');
 });
 
+test('encrypted roundtrip preserves goal priority and optional amounts', async () => {
+    const payload = sanitizeLedger({
+        ...sample,
+        goals: [
+            {
+                id: '11111111111111111111111111111111',
+                title: 'First',
+                targetDate: '2027-01-01',
+                targetAmount: 100,
+                createdAt: 1
+            },
+            {
+                id: '22222222222222222222222222222222',
+                title: 'Second',
+                targetDate: '2027-02-01',
+                createdAt: 2
+            }
+        ]
+    });
+    const { enc, keyFile } = await encryptBundle(payload);
+    const opened = sanitizeLedger(await decryptBundle(enc, keyFile));
+    assert.deepEqual(opened.goals.map((goal) => goal.title), ['First', 'Second']);
+    assert.equal(opened.goals[0].targetAmount, 100);
+    assert.equal(opened.goals[1].targetAmount, undefined);
+});
+
 test('wrong key or mismatched kid is refused', async () => {
     const a = await encryptBundle({ name: 'A', events: { '2026-06-01': [{ title: 'A', price: 1 }] } });
     const b = await encryptBundle({ name: 'B', events: { '2026-06-01': [{ title: 'B', price: 2 }] } });
@@ -237,6 +265,31 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         ratioWants: 30,
         ratioSave: 20
     });
+});
+
+test('sanitizeLedger keeps bounded savings goals in priority order', () => {
+    const cleaned = sanitizeLedger({
+        name: 'Goal ledger',
+        events: sample.events,
+        goals: [
+            {
+                id: '11111111111111111111111111111111',
+                title: ' Emergency   fund ',
+                targetDate: '2027-01-15',
+                targetAmount: 2500.125,
+                createdAt: 1,
+                remoteId: 'drop'
+            },
+            { title: 'Impossible date', targetDate: '2027-02-31', targetAmount: 5 }
+        ]
+    });
+    assert.deepEqual(cleaned.goals, [{
+        id: '11111111111111111111111111111111',
+        title: 'Emergency fund',
+        targetDate: '2027-01-15',
+        targetAmount: 2500.13,
+        createdAt: 1
+    }]);
 });
 
 test('readJsonFile rejects oversized and invalid files', async () => {

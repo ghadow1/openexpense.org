@@ -6,7 +6,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,23 @@ async function reachable() {
     while (queue.length) {
         const source = await readFile(join(ROOT, queue.pop()), 'utf8');
         for (const [, name] of source.matchAll(/["'`.\/]*(chunk-[A-Z0-9]+\.js)/g)) {
+            if (!seen.has(name)) {
+                seen.add(name);
+                queue.push(name);
+            }
+        }
+    }
+    return seen;
+}
+
+/** Follow only eager ESM imports; dynamic import() edges are intentionally out. */
+async function startupFiles() {
+    const seen = new Set(['app.js']);
+    const queue = ['app.js'];
+    const staticImport = /\bimport(?!\s*\()\s*(?:[^'"]*?\s+from\s+)?["']\.\/(chunk-[A-Z0-9]+\.js)["']/g;
+    while (queue.length) {
+        const source = await readFile(join(ROOT, queue.pop()), 'utf8');
+        for (const [, name] of source.matchAll(staticImport)) {
             if (!seen.has(name)) {
                 seen.add(name);
                 queue.push(name);
@@ -52,6 +69,17 @@ test('the entry points the page loads are present', async () => {
 
     const html = await readFile(join(ROOT, 'index.html'), 'utf8');
     assert.match(html, /src="app\.js"/, 'index.html should load app.js');
+});
+
+test('eager application JavaScript stays within the lite budget', async () => {
+    const startup = await startupFiles();
+    const bytes = (await Promise.all(
+        [...startup].map(async (name) => (await stat(join(ROOT, name))).size)
+    )).reduce((sum, size) => sum + size, 0);
+    assert.ok(
+        bytes <= 230 * 1024,
+        `startup JavaScript is ${(bytes / 1024).toFixed(1)} KiB; lite budget is 230 KiB`
+    );
 });
 
 test('Overview and Tracker never share the calendar and the spending register', async () => {

@@ -9,7 +9,9 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
-**18 August 2026** — Four-tab shell: Overview, Tracker, Planner, and Privacy on a bottom bar. Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks. See [`CHANGELOG.md`](CHANGELOG.md).
+**19 August 2026** — Priority savings goals on Planner: target date, optional amount, drag-to-order, and an apply-as-hold action. Charts expose exact values; year lines stop at the last real month. Receipt OCR and encrypted backup load only when you use them. See [`CHANGELOG.md`](CHANGELOG.md).
+
+**18 August 2026** — Four-tab shell: Overview, Tracker, Planner, and Privacy on a bottom bar. Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks.
 
 **17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
@@ -40,12 +42,13 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
-- **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
+- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
 - **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
+- **Priority savings goals** — set a target date and optional amount, drag goals into priority order, compare the required pace with monthly surplus, and apply the result as a planner hold. Goal data stays in the encrypted ledger.
 - **Four-tab shell** — Overview (Potential Savings + calendar on a phone; compact strip + board on desktop), Tracker (Monthly spending; calendar only on desktop), Planner (safe spend and tax rules), Privacy (help and backups).
 
 ## Repository map
@@ -56,8 +59,8 @@ src/                   # Application source (edit here)
   main.js              # Bootstrap
   config.js            # Version, preference keys, theme tokens
   app/                 # Render loop and the four-tab shell
-  core/                # Store, persist, crypto, export zip, summary, series, search
-  features/            # Calendar, day editor, search panel, ledger files, receipts, sidebar
+  core/                # Store, math, crypto, file formats, persistence, search
+  features/            # Calendar, editor, planner, ledger files, receipts, reports
   ui/                  # Buttons, theme, toasts, confirm dialog
 docs/                  # Architecture, data format, sample ledger
 index.html             # Shell: header, four tabs, welcome, day modal + SEO head
@@ -68,7 +71,13 @@ robots.txt sitemap.xml # Crawler files (sitemap rewritten on build)
 icons/                 # Graphic mark (header also shows a compact lockup)
 ```
 
-A file-by-file guide lives in [`src/README.md`](src/README.md). How data moves through the app is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The editor contract (what not to rename, tab × frame, class prefixes) is [`docs/CODEMAP.md`](docs/CODEMAP.md).
+A role-based documentation index starts at
+[`docs/README.md`](docs/README.md), and the guided classroom/contributor route
+is [`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference is
+[`src/README.md`](src/README.md), runtime data flow is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the editor contract (what
+not to rename, tab × frame, class prefixes) is
+[`docs/CODEMAP.md`](docs/CODEMAP.md).
 
 For classroom use, the
 [`Teacher's Guide`](docs/TEACHERS-GUIDE.md) derives the financial formulas,
@@ -80,6 +89,9 @@ directory map, module dependency rules, build graph, and student onboarding
 workflow. The
 [`Frontend Architecture Manual`](docs/FRONTEND-ARCHITECTURE-MANUAL.md) maps the
 semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
+The [`2026 Competitive Feature Review`](docs/COMPETITIVE-FEATURE-REVIEW-2026.md)
+compares planner and reporting patterns, records what fits the local-first
+model, and separates the next viable modules from cloud-only features.
 
 ## Data format
 
@@ -96,7 +108,9 @@ Dates are `YYYY-MM-DD` keys. Each day is an array of expenses:
 }
 ```
 
-Full field notes and the encrypted zip layout are in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in [`docs/examples/sample-ledger.json`](docs/examples/sample-ledger.json).
+Full field notes, current encrypted file pair, and legacy ZIP compatibility are
+in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in
+[`docs/examples/sample-ledger.json`](docs/examples/sample-ledger.json).
 
 ## Encryption and storage
 
@@ -107,9 +121,13 @@ Full field notes and the encrypted zip layout are in [`docs/DATA-FORMAT.md`](doc
 | Theme, autosave on/off, first-visit | `localStorage` | No — these are UI prefs only |
 | Manual backup | Encrypted `{name}.json` you save | Yes — pair with `{name}.key.json` (not cached) |
 
-Anyone who has **both** zip members can decrypt that backup. Store them separately if the ledger is sensitive.
+Anyone who has **both** JSON files can decrypt a backup without a passphrase.
+Store them separately if the ledger is sensitive. Legacy ZIP pairs remain
+importable.
 
-OCR models and fonts load from jsDelivr on first use. That traffic is engine files, not your expenses. See [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+OCR models, runtimes, fonts, and icons are served from this site's checked-in
+`vendor/` directory. OCR binaries load only after receipt capture begins. See
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
 
 ## Contributing
 

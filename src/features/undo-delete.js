@@ -16,6 +16,9 @@ let timer = null;
 export function captureUndoSlice(state) {
     return {
         events: JSON.parse(JSON.stringify(state.events || {})),
+        budgets: JSON.parse(JSON.stringify(state.budgets || {})),
+        plan: JSON.parse(JSON.stringify(state.plan || {})),
+        goals: JSON.parse(JSON.stringify(state.goals || [])),
         ledgerName: state.ledgerName || '',
         selectedKey: state.selectedKey ?? null,
         editingIndex: state.editingIndex ?? null
@@ -64,14 +67,13 @@ export function restoreDeleteUndo() {
     dismissUndo();
     patch({
         events: next.events,
+        budgets: next.budgets,
+        plan: next.plan,
+        goals: next.goals,
         ledgerName: next.ledgerName,
         selectedKey: next.selectedKey,
         editingIndex: next.editingIndex
     });
     Toast.show('Restored.', 'success');
     return true;
-}
-
-export function hasDeleteUndo() {
-    return snapshot != null;
 }

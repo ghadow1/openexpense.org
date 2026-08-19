@@ -20,5 +20,7 @@ export const FILE_LIMITS = Object.freeze({
     maxGroup: 40,
     maxSource: 24,
     maxSourceId: 80,
-    maxBudgets: 60
+    maxBudgets: 60,
+    maxGoals: 50,
+    maxGoalTitle: 80
 });

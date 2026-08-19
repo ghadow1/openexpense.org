@@ -18,6 +18,7 @@ import {
     weekBounds,
     windowTotals
 } from './plan.js';
+import { assessGoals } from './goals.js';
 
 function monthKey(y, m) {
     return `${y}-${Utils.pad(m + 1)}`;
@@ -332,64 +333,46 @@ export function formatAxisMoney(value) {
     return `${sign}$${Math.round(abs)}`;
 }
 
-/** Two or three ticks from 0 to a rounded ceiling. */
-export function axisTicks(max) {
-    const input = Number(max);
-    const n = Number.isFinite(input) ? Math.max(0, input) : 0;
-    if (n <= 0) return [0, 0, 0];
-    const raw = n / 2;
-    const mag = 10 ** Math.floor(Math.log10(raw));
-    const step = Math.ceil(raw / mag) * mag;
-    const top = step * 2;
-    return [0, step, top];
-}
-
 /**
- * Keep start, end, and one middle point. The middle is the month being viewed
- * when `anchorIndex` names one, so the figure on the dial is also a point on
- * the chart; otherwise it is the peak or valley furthest from the start.
+ * A complete Jan–Dec series for analytical charts.
+ *
+ * Earlier versions reduced a year to three points. That made a quiet February
+ * and an expensive November look like one straight trend and hid seasonality.
+ * Year charts expose every month. `anchorIndex` is retained in the signature
+ * for host compatibility; selection is now a rendering concern.
  */
-export function reduceSeries(points = [], { anchorIndex = null } = {}) {
-    const rows = (points || []).map((point, index) => ({
-        label: point?.label ?? '',
-        value: Number(point?.value) || 0,
-        index: point?.index ?? index
-    }));
-    if (rows.length <= 3) return rows;
-    const start = rows[0];
-    const end = rows[rows.length - 1];
-
-    const anchor = anchorIndex == null
-        ? null
-        : rows.find((row) => row.index === anchorIndex);
-    if (anchor && anchor.index !== start.index && anchor.index !== end.index) {
-        return [start, anchor, end];
-    }
-
-    let extreme = rows[1];
-    let score = -1;
-    for (let i = 1; i < rows.length - 1; i += 1) {
-        const mag = Math.abs(rows[i].value - start.value);
-        if (mag > score) {
-            score = mag;
-            extreme = rows[i];
-        }
-    }
-    if (extreme.index === start.index || extreme.index === end.index || score <= 0) {
-        return [start, end];
-    }
-    return [start, extreme, end];
-}
-
-/** Jan–Dec labels, then start / viewed month (or peak) / end. */
-export function yearSeriesPoints(monthTotals = [], year = 2000, { anchorIndex = null } = {}) {
+export function yearSeriesPoints(monthTotals = [], year = 2000, {
+    anchorIndex: _anchorIndex = null,
+    throughIndex = 11
+} = {}) {
     const y = Number(year) || 2000;
-    const points = Array.from({ length: 12 }, (_, index) => ({
+    const end = Math.max(0, Math.min(11, Number.isInteger(throughIndex) ? throughIndex : 11));
+    return Array.from({ length: end + 1 }, (_, index) => ({
         label: new Date(y, index, 1).toLocaleString('en-US', { month: 'short' }),
         value: Number(monthTotals[index]) || 0,
         index
     }));
-    return reduceSeries(points, { anchorIndex });
+}
+
+/**
+ * Last month a year chart should draw. Historical years are complete; the
+ * current year stops at today unless later scheduled activity exists. This
+ * avoids drawing missing future months as a forecast of zero.
+ */
+export function yearSeriesEndIndex(monthTotals = [], year = 2000, {
+    asOf = new Date(),
+    anchorIndex = 0
+} = {}) {
+    const viewedYear = Number(year) || 2000;
+    const today = asOf instanceof Date && !Number.isNaN(asOf.getTime()) ? asOf : new Date();
+    let calendarEnd = Math.max(0, Math.min(11, Number(anchorIndex) || 0));
+    if (viewedYear < today.getFullYear()) calendarEnd = 11;
+    else if (viewedYear === today.getFullYear()) calendarEnd = Math.max(calendarEnd, today.getMonth());
+    let dataEnd = -1;
+    for (let index = 0; index < 12; index += 1) {
+        if (Number(monthTotals[index]) !== 0) dataEnd = index;
+    }
+    return Math.max(calendarEnd, dataEnd);
 }
 
 function dateKeyOf(date) {
@@ -504,7 +487,7 @@ function averageActiveNets(incomeTotals, spendTotals, throughMonth = 11) {
  * withhold tax and hold savings; the default plan leaves every existing
  * figure identical. Does not persist.
  */
-export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan) {
+export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan, goals = []) {
     const rules = sanitizePlan(plan);
     const spend = computeMonthlySummary(events, currentDate, 'expense', asOf);
     const income = computeMonthlySummary(events, currentDate, 'income', asOf);
@@ -543,9 +526,16 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
     // Optional bank amount is display-only. Leftover math stays the cash line.
     const currentSavings = rules.currentSavings;
     const growthPct = growthPotentialPct(leftToSpend, currentSavings);
+    // Existing holds are still available for goals; adding a goal hold should
+    // move dollars within the waterfall, not make feasibility collapse.
+    const goalAssessment = assessGoals(goals, {
+        currentSavings,
+        monthlySurplus: Math.max(0, leftToSpend + planner.savingsHold),
+        asOf
+    });
     // A month that outruns its deposits is covered by the reserve behind it.
     const savingsAfterMonth = addMoney(savings.net, leftToSpend);
-    const runwayCash = addMoney(savings.net, Math.max(0, leftToSpend));
+    const runwayCash = Math.max(0, savingsAfterMonth);
 
     const week = weekBounds(asOf);
     const weekWindow = windowTotals(events, week.start, week.end, rules);
@@ -567,6 +557,7 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         leftToSpend,
         currentSavings,
         growthPct,
+        goalAssessment,
         drawsOnSavings: leftToSpend < 0,
         projectedIncome: income.total,
         incomeDue: income.pending,
@@ -603,6 +594,8 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan)
         dailySafe: planner.dailySafe,
         weeklySafe: planner.weeklySafe,
         avgDailyBurn: planner.avgDailyBurn,
+        burnSpend: planner.burnSpend,
+        burnDays: planner.burnDays,
         runwayCash,
         runwayDays: runwayDays(runwayCash, planner.avgDailyBurn),
         ratioNeedsSpent: planner.ratioNeedsSpent,

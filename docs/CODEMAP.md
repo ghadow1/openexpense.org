@@ -4,7 +4,11 @@ This is the contract for changing OpenExpense without breaking the live site. Th
 
 **Do not change the on-screen layout, tab order, or class names to “clean them up.”** The HTML/CSS class prefixes below are the public UI vocabulary. Rename JavaScript internals if a name is wrong; leave DOM ids, `data-*` hooks, and CSS classes alone unless the change is the feature.
 
-How data moves: [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list: [`../src/README.md`](../src/README.md). Ledger JSON: [`DATA-FORMAT.md`](DATA-FORMAT.md).
+Documentation routes: [`README.md`](README.md). Newcomer lessons:
+[`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
+[`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
+[`../src/README.md`](../src/README.md). Ledger JSON:
+[`DATA-FORMAT.md`](DATA-FORMAT.md).
 
 ## What you may rename
 
@@ -58,6 +62,8 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `#overview-more-root` | `features/dash-strip.js` | Extra Overview cards (often empty) |
 | `#planner-root` | `features/dash-strip.js` | Planner workspace |
 | `[data-plan-pane]` | `features/dash-strip.js` | Quality settings / Banking info |
+| `.planner-goal-add` | `features/goals.js` | Dark navy square goal-creation trigger |
+| `[data-goal-id]` | `features/goals.js` | Ordered goal card and drag-priority identity |
 | `#tracker-head-root` | `features/dash-strip.js` | Tracker page title on phone/tablet |
 | `#cal-col` | `features/calendar.js` | Month grid |
 | `#sidebar` | `features/sidebar.js` | Monthly spending / income register |
@@ -71,7 +77,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | Prefix | Surface | File that paints it |
 | --- | --- | --- |
 | `ov-` | Overview snapshot (Potential Savings, kickers) | `dash-strip.js` |
-| `planner-` | Planner workspace | `dash-strip.js` |
+| `planner-` | Planner workspace and goals | `dash-strip.js`, `goals.js` |
 | `tracker-` | Tracker toolbar and page head | `index.html`, `dash-strip.js` |
 | `dash-` | Compact desktop strip, chips, plan fields | `dash-strip.js` |
 | `cal-` | Month grid and day cells | `calendar.js` |
@@ -88,13 +94,14 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 ## Store fields
 
-`src/core/store.js` is the only in-memory source of truth. `patch(partial)` merges and notifies. Persistence writes `{ name, events, budgets, plan }` only.
+`src/core/store.js` is the only in-memory source of truth. `patch(partial)` merges and notifies. Persistence writes `{ name, events, budgets, plan, goals }` only.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `events` | `{ [YYYY-MM-DD]: Entry[] }` | Ledger |
 | `budgets` | `{ [category]: number }` | Monthly caps |
 | `plan` | Plan object | Withhold / hold / 50-30-20 / weekly pace |
+| `goals` | Goal[] | Savings targets ordered by allocation priority |
 | `ledgerName` | string | Display and export name |
 | `currentDate` | `Date` | Visible month |
 | `isDark` | boolean | `true` = Black Card |
@@ -131,6 +138,10 @@ Adding a store field? Add it to every `RENDER_DEPS` surface that reads it, or th
 
 Potential Savings (`leftToSpend`) is `deposited − month spending`, plus planner withhold/hold **only when the user set them**. Defaults keep the original cash line. `currentSavings` is optional bank input for the Overview growth meter and never enters leftover. Change `src/core/plan.js` and `computeNetSnapshot` together, and add a case in `scripts/qc-plan.mjs` / `qc-expense-income.mjs`.
 
+Goal feasibility is a separate allocation view over that cash line. Current
+savings and monthly surplus flow through `goals` once in array order. Do not
+assess every goal against the full pool independently; that double-counts cash.
+
 Week rails count in-month days where spend > 0 **and** spend > `dailySafe`. Two over days = half red. Three or more = full red. No green income rails.
 
 ## Tests to run
@@ -146,6 +157,7 @@ npm run build     # after any src/ edit; commit app.js + chunk-*.js
 | `qc-frame.mjs` | Phone / tablet / desktop snaps |
 | `qc-build-output.mjs` | Overview hides `#sidebar` on phone; Tracker hides `#cal-col` |
 | `qc-plan.mjs` / `qc-expense-income.mjs` | Leftover and cash math |
+| `qc-goals.mjs` | Goal normalization, date math, priority allocation, feasibility |
 | `qc-ledger-file.mjs` | Encrypt, sanitize, key wipe |
 | `qc-render-deps.mjs` | Filter / face / plan keys repaint the right surfaces |
 

@@ -63,10 +63,14 @@ openexpense.org/
 │   ├── ARCHITECTURAL-MANUAL.md
 │   ├── ARCHITECTURE.md
 │   ├── CODEMAP.md
+│   ├── COMPETITIVE-FEATURE-REVIEW-2026.md
 │   ├── DATA-FORMAT.md
 │   ├── DEPENDENCIES.md
 │   ├── EMBED.md
+│   ├── FRONTEND-ARCHITECTURE-MANUAL.md
 │   ├── INCIDENT-RESPONSE.md
+│   ├── LEARNING-PATH.md
+│   ├── README.md
 │   ├── SECURITY-AUDIT-2026-08-17.md
 │   ├── SECURITY-HEADERS.md
 │   ├── SECURITY-MATHEMATICS-AUDIT-2026-08-19.md
@@ -87,6 +91,8 @@ openexpense.org/
 │   ├── qc-envelope.mjs
 │   ├── qc-expense-income.mjs
 │   ├── qc-frame.mjs
+│   ├── qc-frontend.mjs
+│   ├── qc-goals.mjs
 │   ├── qc-groups.mjs
 │   ├── qc-labeling.mjs
 │   ├── qc-ledger-file.mjs
@@ -102,6 +108,7 @@ openexpense.org/
 │   │   ├── render.js
 │   │   └── views.js
 │   ├── core/
+│   │   ├── bundle-format.js
 │   │   ├── bundle.js
 │   │   ├── categories.js
 │   │   ├── crypto.js
@@ -109,14 +116,17 @@ openexpense.org/
 │   │   ├── day-entries.js
 │   │   ├── envelope.js
 │   │   ├── folder.js
+│   │   ├── goals.js
 │   │   ├── groups.js
 │   │   ├── labeling.js
 │   │   ├── ledger-file.js
+│   │   ├── legacy-zip.js
 │   │   ├── limits.js
 │   │   ├── pdf-frame.js
 │   │   ├── pdf-theme.js
 │   │   ├── persist.js
 │   │   ├── plan.js
+│   │   ├── receipt-date.js
 │   │   ├── routes.js
 │   │   ├── search.js
 │   │   ├── series.js
@@ -137,9 +147,11 @@ openexpense.org/
 │   │   ├── csv-export.js
 │   │   ├── dash-strip.js
 │   │   ├── export-buttons.js
+│   │   ├── goals.js
 │   │   ├── ledger.js
 │   │   ├── modal.js
 │   │   ├── receipt-parse.js
+│   │   ├── receipt-picker.js
 │   │   ├── receipt.js
 │   │   ├── search-panel.js
 │   │   ├── sidebar.js
@@ -150,6 +162,7 @@ openexpense.org/
 │   │   ├── components.js
 │   │   ├── confirm.js
 │   │   ├── dial-chart.js
+│   │   ├── dialog-focus.js
 │   │   ├── frame.js
 │   │   ├── group-field.js
 │   │   ├── pointer-drag.js
@@ -246,6 +259,8 @@ Build and executable specifications.
 - `qc-envelope.mjs`: cryptographic dimensions, AAD, key commitment, and KDF.
 - `qc-expense-income.mjs`: monthly summaries, snapshots, recurrence, and cents.
 - `qc-frame.mjs`: phone/tablet/desktop frame selection.
+- `qc-frontend.mjs`: semantic DOM, focus, keyboard, and receipt UI contracts.
+- `qc-goals.mjs`: goal sanitation, priority allocation, pace, and milestones.
 - `qc-groups.mjs`: group normalization and bulk mutations.
 - `qc-labeling.mjs`: Change All twin matching.
 - `qc-ledger-file.mjs`: import classification, limits, and sanitation.
@@ -273,6 +288,7 @@ UI, app-shell, or engine modules.
 - `database.js`: IndexedDB topology and primitive transactions.
 - `utils.js`: date keys, exact cents, escaping, filenames, and browser helpers.
 - `plan.js`: planner waterfall, ratios, safe spend, runway, and week targets.
+- `goals.js`: ordered target allocation and feasibility mathematics.
 - `summary.js`: month/year aggregation and the shared account snapshot.
 - `series.js`: stable recurring identity, cadence, seed/update/delete.
 - `labeling.js`: title-and-price twins and confirmed Change All writes.
@@ -280,15 +296,18 @@ UI, app-shell, or engine modules.
 - `groups.js`: user-defined group normalization, lookup, and rollups.
 - `search.js`: pure search tokenizer, parser, predicates, and result totals.
 - `day-entries.js`: immutable day-list mutations.
+- `receipt-date.js`: detected-versus-selected receipt date resolution.
 - `routes.js`: static public-path classification.
 - `crypto.js`: device-bound AES-GCM record encryption.
 - `envelope.js`: portable v2 HKDF/AES-GCM envelope and passphrase wrap.
-- `bundle.js`: encrypted ledger/key pair and legacy ZIP support.
+- `bundle-format.js`: portable-backup markers and dependency-free type guards.
+- `bundle.js`: current encrypted ledger/key pair operations.
+- `legacy-zip.js`: lazy compatibility codec for older ZIP backups.
 - `ledger-file.js`: file classification, validation, and allowlist sanitation.
 - `persist.js`: queued encrypted IndexedDB autosave and atomic purge.
 - `folder.js`: linked export-folder handle and safe pair replacement.
 - `pdf-frame.js`: defensive jsPDF drawing primitives.
-- `pdf-theme.js`: PDF palette and branded drawing helpers.
+- `pdf-theme.js`: PDF palette mapped from application themes.
 - `summary-pdf.js`: monthly statement document composition.
 
 `limits.js` exists separately so categories and groups can normalize lengths
@@ -304,8 +323,10 @@ not own canonical ledger mathematics.
 - `modal.js`: day editor, save/edit/delete, recurrence, groups, Change All.
 - `sidebar.js`: expense/income monthly register and breakdowns.
 - `dash-strip.js`: Overview, Tracker heading/filter, and Planner panes.
+- `goals.js`: savings-goal editor, priority reorder, and planner-hold action.
 - `search-panel.js`: search sheet and result interaction.
-- `receipt.js`: bounded image/PDF loading and local OCR review.
+- `receipt-picker.js`: synchronous camera/file chooser entry point.
+- `receipt.js`: lazy bounded image/PDF loading and local OCR review.
 - `receipt-parse.js`: pure OCR text normalization and field suggestions.
 - `ledger.js`: import/export/clear/autosave file workflows.
 - `export-buttons.js`: Export versus linked-folder Save presentation.
@@ -319,6 +340,7 @@ Reusable presentation mechanics without financial business rules.
 - `components.js`: generic button and input construction.
 - `action-lock.js`: one in-flight UI guard and busy-state presentation.
 - `confirm.js`: accessible confirmation/choice dialogs.
+- `dialog-focus.js`: focus containment, background isolation, and restoration.
 - `toast.js`: temporary status messages.
 - `theme.js`: design-token application.
 - `frame.js`: responsive frame stamping.
@@ -403,9 +425,14 @@ layers. `scripts/qc-architecture.mjs` enforces these rules and rejects cycles.
 
 External packages enter at narrow adapters:
 
-- `fflate` in `core/bundle.js`;
+- `fflate` in lazy `core/legacy-zip.js`;
 - `jspdf` in `core/summary-pdf.js`;
 - OCR, ONNX, and PDF.js through lazy imports in `features/receipt.js`.
+
+The receipt picker is kept in `features/receipt-picker.js` so the native chooser
+opens synchronously from the user's click. Only after a file is selected does
+`main.js` import the OCR/review feature. Architecture QC pins these boundaries
+so optional codecs cannot drift back into startup unnoticed.
 
 ### 2.2 State lifecycle
 

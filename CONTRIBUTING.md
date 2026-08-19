@@ -10,7 +10,8 @@ Please keep it that way. New features should work with the ledger already on the
 
 ## Before you start
 
-1. Read [`CHANGELOG.md`](CHANGELOG.md) (user-facing notes), [`docs/CODEMAP.md`](docs/CODEMAP.md) (editor contract), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/ARCHITECTURAL-MANUAL.md`](docs/ARCHITECTURAL-MANUAL.md), and [`src/README.md`](src/README.md).
+1. Choose the relevant route in [`docs/README.md`](docs/README.md), then read
+   [`docs/CODEMAP.md`](docs/CODEMAP.md) before changing frozen contracts.
 2. Use a secure context (`localhost` or `https`). `file://` will fail encryption and some APIs.
 3. Do not commit a real ledger, receipts, or key files.
 
@@ -18,7 +19,7 @@ Please keep it that way. New features should work with the ledger already on the
 npm install
 npm run serve          # http://localhost:8765
 npm run build          # after any src/ change
-npm test               # ledger file QC (encrypt, sanitize, key wipe)
+npm test               # architecture, math, security, files, UI, and build QC
 ```
 
 ## Ground rules
@@ -27,7 +28,7 @@ npm test               # ledger file QC (encrypt, sanitize, key wipe)
 - **No new pages or routes.** The product has four tabs on two existing mains: Overview / Tracker / Planner in `#view-app`, and Privacy & Help in `#view-docs`. Wire new UI into those shells.
 - **Do not edit `app.js` or `chunk-*.js` by hand.** Change `src/`, then `npm run build`.
 - **Leave live DOM ids and CSS class prefixes alone** unless the change requires it: `#view-app`, `#view-docs`, `#cal-col`, `#sidebar`, `#modal`, `[data-action]`, `[data-view]`, `[data-shell]`, `[data-tracker-filter]`. See [`docs/CODEMAP.md`](docs/CODEMAP.md).
-- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.
+- **Encryption stays local.** Autosave uses `src/core/crypto.js` + `persist.js`. Export uses `src/core/bundle.js`; cheap format guards live in `bundle-format.js`, and legacy ZIP compatibility is isolated in `legacy-zip.js`. File QC lives in `src/core/ledger-file.js`. Never store a portable `key.json` in the browser.
 - **Match the existing style.** Vanilla ES modules, short module headers, design-system CSS classes instead of one-off inline colors.
 
 ## Suggested workflow
