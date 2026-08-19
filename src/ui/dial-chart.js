@@ -5,7 +5,7 @@
  * money on the visual axes. Full-year trends retain all twelve months so a
  * seasonal spike or reversal is never replaced by a misleading straight line.
  */
-import { formatAxisMoney } from '../core/summary.js';
+import { formatAxisMoney, formatMoney } from '../core/summary.js';
 
 const TAU = Math.PI * 2;
 
@@ -119,7 +119,7 @@ export function createSpark({
         return wrap;
     }
     const accessibleSeries = rows
-        .map((row) => `${row.label} ${formatAxisMoney(row.value)}`)
+        .map((row) => `${row.label} ${formatMoney(row.value)}`)
         .join(', ');
     wrap.setAttribute('aria-label', typeof onSelect === 'function'
         ? `${ariaLabel}. Use left and right arrow keys to choose a month.`
@@ -231,7 +231,7 @@ export function createSpark({
             hit.className = 'oe-spark-hit';
             hit.style.left = `${((pt.x - hitWidth / 2) / width) * 100}%`;
             hit.style.width = `${(hitWidth / width) * 100}%`;
-            hit.setAttribute('aria-label', `${pt.label}: ${formatAxisMoney(pt.value)}`);
+            hit.setAttribute('aria-label', `${pt.label}: ${formatMoney(pt.value)}`);
             if (pt.index === selectedIndex) hit.setAttribute('aria-current', 'date');
             hit.tabIndex = i === activePosition ? 0 : -1;
             hit.addEventListener('click', () => onSelect(pt, i));
@@ -278,7 +278,7 @@ export function createBars({ rows = [], ariaLabel = 'Breakdown' } = {}) {
     wrap.setAttribute('aria-label', `${ariaLabel}: ${live
         .map((row) => {
             const target = Number(row.target);
-            return `${row.label} ${formatAxisMoney(row.value)}${Number.isFinite(target) ? ` of ${formatAxisMoney(target)}` : ''}`;
+            return `${row.label} ${formatMoney(row.value)}${Number.isFinite(target) ? ` of ${formatMoney(target)}` : ''}`;
         })
         .join(', ')}`);
 
@@ -306,7 +306,7 @@ export function createBars({ rows = [], ariaLabel = 'Breakdown' } = {}) {
             const marker = document.createElement('span');
             marker.className = 'oe-bar-target';
             marker.style.left = `${Math.min(100, (target / max) * 100)}%`;
-            marker.title = `Target ${formatAxisMoney(target)}`;
+            marker.title = `Target ${formatMoney(target)}`;
             track.appendChild(marker);
         }
 
