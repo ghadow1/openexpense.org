@@ -9,7 +9,9 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
-**18 August 2026** — Four-tab shell: Overview, Tracker, Planner, and Privacy on a bottom bar. Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks. See [`CHANGELOG.md`](CHANGELOG.md).
+**19 August 2026** — Priority savings goals on Planner: target date, optional amount, drag-to-order, and an apply-as-hold action. Charts expose exact values; year lines stop at the last real month. Receipt OCR and encrypted backup load only when you use them. See [`CHANGELOG.md`](CHANGELOG.md).
+
+**18 August 2026** — Four-tab shell: Overview, Tracker, Planner, and Privacy on a bottom bar. Search keys (`group:`, `tag:` / `cat:`), category tags you can type, and day-sheet groups. A name or amount edit stays on that row unless another entry shares both — then **Change all** asks.
 
 **17 August 2026** — **2.2.0** social cards and home-screen icon match the live navy header. Snapshot chips show current funds and projected income. Linked-folder **Save**, branded 404, income tracking, and recurring cadence.
 
