@@ -311,9 +311,15 @@
       <div class="ledger-stage">
         <div class="tracker-toolbar">
           <div class="tracker-filter" role="tablist" aria-label="Transaction filter">
-            <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-selected="true" title="All transactions">All</button>
-            <button type="button" class="tracker-filter-btn" data-tracker-filter="expense" aria-selected="false" title="Expenses only">Expenses</button>
-            <button type="button" class="tracker-filter-btn" data-tracker-filter="income" aria-selected="false" title="Income only">Income</button>
+            <button type="button" class="tracker-filter-btn is-active" data-tracker-filter="all" aria-selected="true" title="All transactions">
+              <i class="ti ti-layout-grid" aria-hidden="true"></i><span>All</span>
+            </button>
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="expense" aria-selected="false" title="Expenses only">
+              <i class="ti ti-receipt" aria-hidden="true"></i><span>Expenses</span>
+            </button>
+            <button type="button" class="tracker-filter-btn" data-tracker-filter="income" aria-selected="false" title="Income only">
+              <i class="ti ti-coin" aria-hidden="true"></i><span>Income</span>
+            </button>
           </div>
           <div class="dash-actions" role="toolbar" aria-label="Quick actions">
             <button type="button" class="dash-act dash-act--add" data-action="quick-add-today" data-lockable aria-label="Add entry" title="Add entry">

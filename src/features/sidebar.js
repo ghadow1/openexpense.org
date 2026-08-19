@@ -637,24 +637,6 @@ function ensureSidebarShell(sidebar) {
     sidebar.replaceChildren();
     sidebar.classList.add('has-flip');
 
-    const switcher = el('div', 'ledger-switch');
-    switcher.setAttribute('role', 'group');
-    switcher.setAttribute('aria-label', 'Show expenses or income');
-    switcher.innerHTML = `
-        <button type="button" class="ledger-switch-btn" data-face="expense">
-            <i class="ti ti-receipt" aria-hidden="true"></i><span>Expenses</span>
-        </button>
-        <button type="button" class="ledger-switch-btn" data-face="income">
-            <i class="ti ti-coin" aria-hidden="true"></i><span>Income</span>
-        </button>
-        <span class="ledger-switch-coin" aria-hidden="true"><i class="ti ti-coin"></i></span>
-    `;
-    switcher.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('[data-face]');
-        if (btn) setLedgerFace(btn.dataset.face);
-    });
-    sidebar.appendChild(switcher);
-
     const flip = el('div', 'sidebar-flip');
     const inner = el('div', 'sidebar-flip-inner');
     expenseFace = el('div', 'sidebar-face sidebar-face--expense');
@@ -668,13 +650,6 @@ function syncFlip(sidebar) {
     const face = getState().ledgerFace === 'income' ? 'income' : 'expense';
     sidebar.classList.remove('is-both');
     sidebar.classList.toggle('is-income', face === 'income');
-    const switcher = sidebar.querySelector('.ledger-switch');
-    if (switcher) switcher.hidden = false;
-    sidebar.querySelectorAll('.ledger-switch-btn').forEach((btn) => {
-        const on = btn.dataset.face === face;
-        btn.classList.toggle('is-active', on);
-        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
 }
 
 export function renderSidebar(changedKeys) {

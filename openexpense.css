@@ -871,42 +871,111 @@ html[data-frame="tablet"] .tracker-board {
 
 .tracker-toolbar {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
+    min-width: 0;
 }
 
 .tracker-filter {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     flex: 1 1 auto;
     min-width: 0;
-    padding: 3px;
-    gap: 2px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--radius-full);
     background: var(--surface2);
+    border: 1px solid var(--border);
 }
 
 .tracker-filter-btn {
     appearance: none;
-    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     min-width: 0;
+    min-height: 36px;
+    padding: 0 8px;
     border: 0;
+    border-radius: var(--radius-full);
     background: transparent;
     color: var(--text2);
     font: inherit;
     font-size: 12px;
-    font-weight: 750;
-    padding: 8px 6px;
-    border-radius: var(--radius-md);
+    font-weight: 650;
     cursor: pointer;
+    transition:
+        background var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out),
+        box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.tracker-filter-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tracker-filter-btn i {
+    flex: 0 0 auto;
+    font-size: 14px;
+    line-height: 1;
 }
 
 .tracker-filter-btn.is-active {
     background: var(--surface);
     color: var(--text-strong);
-    box-shadow: 0 0 0 1px var(--text-strong);
+    box-shadow: var(--shadow-sm);
+}
+
+.tracker-filter-btn.is-active[data-tracker-filter="income"] {
+    background: var(--income-soft);
+    color: var(--income-text);
+}
+
+.tracker-toolbar .dash-actions {
+    flex: 0 0 auto;
+    gap: 6px;
+}
+
+.tracker-toolbar .dash-act {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--header) 40%, var(--border));
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: none;
+}
+
+.tracker-toolbar .dash-act--add {
+    background: var(--header);
+    border-color: var(--header);
+    color: var(--header-text);
+}
+
+.tracker-toolbar .dash-act--add:hover {
+    background: color-mix(in srgb, var(--header) 88%, var(--accent));
+    border-color: color-mix(in srgb, var(--header) 88%, var(--accent));
+    color: var(--header-text);
+}
+
+.tracker-toolbar .dash-act:not(.dash-act--add):hover {
+    background: var(--surface);
+    border-color: var(--border-strong);
+    color: var(--text-strong);
+}
+
+html[data-frame="phone"] .tracker-filter-btn span {
+    display: none;
+}
+
+html[data-frame="phone"] .tracker-filter-btn {
+    padding: 0 6px;
 }
 
 .tracker-board {
@@ -2581,66 +2650,6 @@ html.is-action-busy [data-lockable] {
     gap: 14px;
 }
 
-.ledger-switch {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    align-items: center;
-    gap: 6px;
-    padding: 4px;
-    border-radius: var(--radius-full);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-}
-
-.ledger-switch-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 36px;
-    border: 0;
-    border-radius: var(--radius-full);
-    background: transparent;
-    color: var(--text2);
-    font-size: 12px;
-    font-weight: 650;
-    cursor: pointer;
-    transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
-}
-
-.ledger-switch-btn.is-active {
-    background: var(--surface);
-    color: var(--text-strong);
-    box-shadow: var(--shadow-sm);
-}
-
-.sidebar.is-income .ledger-switch-btn[data-face="income"].is-active {
-    background: var(--income-soft);
-    color: var(--income-text);
-}
-
-.ledger-switch-coin {
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--radius-sm);
-    border: 1px solid color-mix(in srgb, var(--header) 40%, var(--border));
-    background: var(--header);
-    color: var(--header-text);
-    font-size: 14px;
-    transform: rotateY(0deg);
-    transition: transform 0.65s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-
-.sidebar.is-income .ledger-switch-coin {
-    transform: rotateY(180deg);
-    background: var(--income);
-    border-color: var(--income);
-    color: var(--on-accent);
-}
-
 .sidebar-flip {
     perspective: 1400px;
     perspective-origin: 50% 28%;
@@ -2669,8 +2678,7 @@ html.is-action-busy [data-lockable] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .sidebar-flip-inner,
-    .ledger-switch-coin {
+    .sidebar-flip-inner {
         transition: none;
     }
 }
