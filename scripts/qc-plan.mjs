@@ -21,7 +21,6 @@ import {
     monthDaySpend,
     monthReserve,
     monthWeekBuckets,
-    overBudgetRows,
     trackCalendarWeeks,
     percentOf,
     planIsDefault,
@@ -365,10 +364,10 @@ test('over-budget rows follow counted spend and planner spendable', () => {
     assert.equal(daily[4], 500);
     assert.equal(daily[11], 900);
 
-    const logged = overBudgetRows(events, date, {}, 2000);
+    const logged = trackCalendarWeeks(events, date, {}, 2000);
     assert.deepEqual(logged.filter((week) => week.over).map((week) => week.row), [1, 2]);
 
-    const paidOnly = overBudgetRows(events, date, { spendBasis: 'paid' }, 2000);
+    const paidOnly = trackCalendarWeeks(events, date, { spendBasis: 'paid' }, 2000);
     assert.deepEqual(paidOnly.filter((week) => week.over).map((week) => week.row), [1]);
     assert.equal(paidOnly[2].amount, 0);
     assert.equal(paidOnly[2].over, false);

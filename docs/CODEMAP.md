@@ -4,7 +4,8 @@ This is the contract for changing OpenExpense without breaking the live site. Th
 
 **Do not change the on-screen layout, tab order, or class names to “clean them up.”** The HTML/CSS class prefixes below are the public UI vocabulary. Rename JavaScript internals if a name is wrong; leave DOM ids, `data-*` hooks, and CSS classes alone unless the change is the feature.
 
-Newcomer lessons: [`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
+Documentation routes: [`README.md`](README.md). Newcomer lessons:
+[`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
 [`../src/README.md`](../src/README.md). Ledger JSON:
 [`DATA-FORMAT.md`](DATA-FORMAT.md).

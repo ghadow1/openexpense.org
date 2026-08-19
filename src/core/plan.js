@@ -423,10 +423,6 @@ export function trackCalendarWeeks(events, currentDate, plan, spendableIncome, e
     );
 }
 
-export function overBudgetRows(events, currentDate, plan, spendableIncome) {
-    return trackCalendarWeeks(events, currentDate, plan, spendableIncome);
-}
-
 export function monthWeekBuckets(dailyTotals = [], daysInMonth, spendableIncome, firstWeekday = 0) {
     const length = Number(daysInMonth) || 0;
     const lead = Math.max(0, Math.min(6, Number(firstWeekday) || 0));

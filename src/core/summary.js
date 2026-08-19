@@ -333,63 +333,13 @@ export function formatAxisMoney(value) {
     return `${sign}$${Math.round(abs)}`;
 }
 
-/** Two or three ticks from 0 to a rounded ceiling. */
-export function axisTicks(max) {
-    const input = Number(max);
-    const n = Number.isFinite(input) ? Math.max(0, input) : 0;
-    if (n <= 0) return [0, 0, 0];
-    const raw = n / 2;
-    const mag = 10 ** Math.floor(Math.log10(raw));
-    const step = Math.ceil(raw / mag) * mag;
-    const top = step * 2;
-    return [0, step, top];
-}
-
-/**
- * Keep start, end, and one middle point. The middle is the month being viewed
- * when `anchorIndex` names one, so the figure on the dial is also a point on
- * the chart; otherwise it is the peak or valley furthest from the start.
- */
-export function reduceSeries(points = [], { anchorIndex = null } = {}) {
-    const rows = (points || []).map((point, index) => ({
-        label: point?.label ?? '',
-        value: Number(point?.value) || 0,
-        index: point?.index ?? index
-    }));
-    if (rows.length <= 3) return rows;
-    const start = rows[0];
-    const end = rows[rows.length - 1];
-
-    const anchor = anchorIndex == null
-        ? null
-        : rows.find((row) => row.index === anchorIndex);
-    if (anchor && anchor.index !== start.index && anchor.index !== end.index) {
-        return [start, anchor, end];
-    }
-
-    let extreme = rows[1];
-    let score = -1;
-    for (let i = 1; i < rows.length - 1; i += 1) {
-        const mag = Math.abs(rows[i].value - start.value);
-        if (mag > score) {
-            score = mag;
-            extreme = rows[i];
-        }
-    }
-    if (extreme.index === start.index || extreme.index === end.index || score <= 0) {
-        return [start, end];
-    }
-    return [start, extreme, end];
-}
-
 /**
  * A complete Jan–Dec series for analytical charts.
  *
  * Earlier versions reduced a year to three points. That made a quiet February
  * and an expensive November look like one straight trend and hid seasonality.
- * Keep `reduceSeries()` for deliberately tiny summaries, but year charts must
- * expose every month. `anchorIndex` is retained in the signature for host
- * compatibility; selection is now a rendering concern.
+ * Year charts expose every month. `anchorIndex` is retained in the signature
+ * for host compatibility; selection is now a rendering concern.
  */
 export function yearSeriesPoints(monthTotals = [], year = 2000, {
     anchorIndex: _anchorIndex = null,

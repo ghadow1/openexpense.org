@@ -1,8 +1,8 @@
 /**
  * OpenExpense — on-device receipt scan
  *
- * Lazy-loads PP-OCRv5 and pdf.js from jsDelivr, enhances the image, then
- * hands text to receipt-parse.js. Nothing is uploaded.
+ * Lazy-loads bundled PP-OCRv6 Tiny and PDF.js, then uses same-origin models
+ * and workers to process the image. Nothing is uploaded.
  */
 import { Utils } from '../core/utils.js';
 import { patch } from '../core/store.js';

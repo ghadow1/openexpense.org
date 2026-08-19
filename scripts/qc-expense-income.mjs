@@ -13,8 +13,6 @@ import {
     dayNetBadge,
     formatChipMoney,
     formatAxisMoney,
-    axisTicks,
-    reduceSeries,
     yearSeriesEndIndex,
     yearSeriesPoints
 } from '../src/core/summary.js';
@@ -95,33 +93,13 @@ test('axis labels use k and m', () => {
     assert.equal(formatAxisMoney(999999), '$1m');
     assert.equal(formatAxisMoney(1200000), '$1.2m');
     assert.equal(formatAxisMoney(-5000), '-$5k');
-    assert.deepEqual(axisTicks(Infinity), [0, 0, 0]);
 });
 
-test('compact reduction remains available while year charts retain all months', () => {
-    const points = [
-        { label: 'Jan', value: 100, index: 0 },
-        { label: 'Feb', value: 110, index: 1 },
-        { label: 'Mar', value: 400, index: 2 },
-        { label: 'Apr', value: 120, index: 3 },
-        { label: 'May', value: 90, index: 4 },
-        { label: 'Jun', value: 95, index: 5 },
-        { label: 'Jul', value: 80, index: 6 },
-        { label: 'Aug', value: 85, index: 7 },
-        { label: 'Sep', value: 88, index: 8 },
-        { label: 'Oct', value: 92, index: 9 },
-        { label: 'Nov', value: 94, index: 10 },
-        { label: 'Dec', value: 130, index: 11 }
-    ];
-    const slim = reduceSeries(points);
-    assert.deepEqual(slim.map((row) => row.label), ['Jan', 'Mar', 'Dec']);
-    assert.equal(slim.length, 3);
-
+test('year charts retain all months', () => {
     const flat = yearSeriesPoints([10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 2026);
     assert.equal(flat.length, 12);
     assert.equal(flat[0].label, 'Jan');
     assert.equal(flat[11].label, 'Dec');
-    assert.deepEqual(axisTicks(10000), [0, 5000, 10000]);
 });
 
 test('the viewed month and every seasonal value stay on the year chart', () => {
@@ -448,10 +426,10 @@ test('monthly summary includes a full-month daily breakdown', () => {
 });
 
 test('PDF text sanitizer keeps latin and drops diamond markers', async () => {
-    const { safePdfText } = await import('../src/core/pdf-theme.js');
-    assert.equal(safePdfText('August ◆'), 'August');
-    assert.equal(safePdfText('Paid — pending'), 'Paid - pending');
-    assert.equal(safePdfText('Coffee ×2'), 'Coffee x2');
+    const { pdfSafeText } = await import('../src/core/pdf-frame.js');
+    assert.equal(pdfSafeText('August ◆'), 'August');
+    assert.equal(pdfSafeText('Paid — pending'), 'Paid - pending');
+    assert.equal(pdfSafeText('Coffee ×2'), 'Coffee x2');
 });
 
 test('statement PDF builds for the viewed month', async () => {

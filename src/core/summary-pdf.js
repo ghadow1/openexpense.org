@@ -12,7 +12,7 @@
  */
 import { jsPDF } from 'jspdf';
 import { Utils } from './utils.js';
-import { getPdfTheme, loadPdfFonts } from './pdf-theme.js';
+import { getPdfTheme } from './pdf-theme.js';
 import {
     PDF_BOTTOM,
     PDF_CONTENT_W,
@@ -202,8 +202,7 @@ export async function exportMonthlySummaryPdf({ summary, ledgerName, isDark, com
     const monthName = MONTHS[monthIndex] || 'January';
     const theme = getPdfTheme(Boolean(isDark), kind);
     const tone = statementTone(theme);
-    const fontReady = await loadPdfFonts();
-    const font = fontReady ? theme.font : theme.fontFallback;
+    const font = theme.fontFallback;
     const name = pdfSafeText(ledgerName) || 'Untitled ledger';
     const rows = sortedEntries(summary);
 

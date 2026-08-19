@@ -42,10 +42,6 @@ async function permissionOk(handle) {
     }
 }
 
-export function peekSavedFolder() {
-    return cachedHandle || null;
-}
-
 export async function getSavedFolder() {
     if (cachedHandle !== undefined) {
         if (!cachedHandle) return null;

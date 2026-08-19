@@ -1,6 +1,8 @@
 # Source map
 
 Edit these files. Then run `npm run build` so GitHub Pages gets a new `app.js`.
+This is the canonical module index; the repository-level documentation map is
+[`../docs/README.md`](../docs/README.md).
 
 Each module starts with a short header describing what it owns. Before you rename anything, read [`../docs/CODEMAP.md`](../docs/CODEMAP.md) — DOM ids, `data-*` hooks, and CSS class prefixes are frozen.
 

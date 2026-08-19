@@ -9,6 +9,12 @@ Class names continue to own presentation; `data-*` attributes continue to own
 behavior; IDs continue to connect accessible names, generated content, and
 stable application contracts.
 
+Companion references: [`CODEMAP.md`](CODEMAP.md) governs frozen hooks,
+[`ARCHITECTURE.md`](ARCHITECTURE.md) explains runtime behavior, and
+[`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) teaches safe-string/security reasoning.
+`scripts/qc-frontend.mjs` is the executable specification for the semantic,
+focus, keyboard, and receipt-interface contracts described here.
+
 ## SECTION 1: DOM TREE & SEMANTIC STRUCTURAL MAP
 
 ### 1.1 Authored shell

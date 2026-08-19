@@ -10,7 +10,8 @@ Please keep it that way. New features should work with the ledger already on the
 
 ## Before you start
 
-1. Read [`CHANGELOG.md`](CHANGELOG.md) (user-facing notes), [`docs/CODEMAP.md`](docs/CODEMAP.md) (editor contract), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/ARCHITECTURAL-MANUAL.md`](docs/ARCHITECTURAL-MANUAL.md), and [`src/README.md`](src/README.md).
+1. Choose the relevant route in [`docs/README.md`](docs/README.md), then read
+   [`docs/CODEMAP.md`](docs/CODEMAP.md) before changing frozen contracts.
 2. Use a secure context (`localhost` or `https`). `file://` will fail encryption and some APIs.
 3. Do not commit a real ledger, receipts, or key files.
 
@@ -18,7 +19,7 @@ Please keep it that way. New features should work with the ledger already on the
 npm install
 npm run serve          # http://localhost:8765
 npm run build          # after any src/ change
-npm test               # ledger file QC (encrypt, sanitize, key wipe)
+npm test               # architecture, math, security, files, UI, and build QC
 ```
 
 ## Ground rules

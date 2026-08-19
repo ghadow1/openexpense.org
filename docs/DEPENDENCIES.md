@@ -7,8 +7,8 @@ OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtim
 | Package | Why |
 | --- | --- |
 | [esbuild](https://esbuild.github.io/) | Dev-time bundler (`npm run build`) |
-| [fflate](https://github.com/101arrowz/fflate) | Export/import zip |
-| [jspdf](https://github.com/parallax/jsPDF) | Brochure monthly PDF |
+| [fflate](https://github.com/101arrowz/fflate) | Lazy compatibility import for legacy ZIP backups |
+| [jspdf](https://github.com/parallax/jsPDF) | Local monthly statement PDF |
 | [ppu-paddle-ocr](https://www.npmjs.com/package/ppu-paddle-ocr) | On-device OCR, lazy bundled |
 | [onnxruntime-web](https://www.npmjs.com/package/onnxruntime-web) | Local OCR inference runtime |
 | [pdfjs-dist](https://www.npmjs.com/package/pdfjs-dist) | Embedded PDF text and page raster |

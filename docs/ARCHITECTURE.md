@@ -20,7 +20,7 @@ src/main.js         boot, event delegation, render subscription
 
 ## Boot
 
-1. `index.html` loads design CSS, icon/font CDNs, and the bundled `app.js`.
+1. `index.html` loads design CSS, same-origin icon/font assets, and bundled `app.js`.
 2. `main.js` reads theme and autosave prefs from `localStorage`.
 3. `loadLedger()` decrypts the IndexedDB record (if any) into `{ name, events, budgets, plan, goals }`.
 4. `patch()` fills the store; `initPersist()` starts watching for later writes.
@@ -127,7 +127,7 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 
 ## Receipts
 
-`receipt.js` lazy-loads bundled PP-OCRv5 and PDF.js modules. Reviewed workers,
+`receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed workers,
 models, and dictionaries are served from same-origin `vendor/`. Images are
 oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
 `saveExpense()` writes the confirmed result like a manual add.

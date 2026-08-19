@@ -148,31 +148,6 @@ export function fillPortion(doc, x, y, w, h, share, fill, track, radius = 0) {
     return fillBox(doc, x, y, pw, h, fill, radius);
 }
 
-/**
- * Horizontal mix bar. Each share is clamped so no slice is thinner than
- * jsPDF can round - leftover width is absorbed by the last slice or skipped.
- */
-export function fillMixBar(doc, x, y, w, h, slices, radius = 0) {
-    if (!canDrawBox(w, h) || !Array.isArray(slices) || !slices.length) return false;
-    const total = slices.reduce((sum, slice) => sum + Math.max(0, pdfNum(slice.share)), 0);
-    if (total <= 0) {
-        return fillBox(doc, x, y, w, h, slices[0]?.color || '#e5e7eb', radius);
-    }
-    let cursor = x;
-    let remaining = w;
-    slices.forEach((slice, index) => {
-        const last = index === slices.length - 1;
-        const share = Math.max(0, pdfNum(slice.share)) / total;
-        let sliceW = last ? remaining : w * share;
-        if (sliceW < 0.6) return;
-        if (!last && sliceW > remaining - 0.6) sliceW = remaining;
-        fillBox(doc, cursor, y, sliceW, h, slice.color, last || index === 0 ? radius : 0);
-        cursor += sliceW;
-        remaining -= sliceW;
-    });
-    return true;
-}
-
 export function writePdfText(doc, text, x, y, options = {}) {
     if (!pdfFinite(x) || !pdfFinite(y)) return;
     const value = pdfSafeText(text);
@@ -221,11 +196,4 @@ export function wrapPdfLines(doc, text, maxWidth, maxLines = 4) {
     const last = kept[limit - 1] || '';
     kept[limit - 1] = last.length > 3 ? `${last.slice(0, Math.max(1, last.length - 1))}...` : '...';
     return kept;
-}
-
-export function ensurePdfPage(doc, y, needed, addPageFn) {
-    if (y + needed <= PDF_BOTTOM) return y;
-    if (typeof addPageFn === 'function') addPageFn();
-    else doc.addPage();
-    return PDF_MARGIN + 28;
 }

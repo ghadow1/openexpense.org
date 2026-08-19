@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureUndoSlice, hasDeleteUndo } from '../src/features/undo-delete.js';
+import { captureUndoSlice } from '../src/features/undo-delete.js';
 
 test('undo snapshot clones events so later edits cannot rewrite it', () => {
     const state = {
@@ -28,8 +28,4 @@ test('undo snapshot clones events so later edits cannot rewrite it', () => {
     assert.equal(snap.ledgerName, 'QC household');
     assert.equal(snap.selectedKey, '2026-08-17');
     assert.equal(snap.editingIndex, 0);
-});
-
-test('undo snapshot is not offered until a delete runs', () => {
-    assert.equal(hasDeleteUndo(), false);
 });

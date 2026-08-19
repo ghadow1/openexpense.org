@@ -40,7 +40,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
-- **Receipt scanning** — PP-OCRv5 and PDF text run in the browser. Images never leave the device.
+- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
 - **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
@@ -69,8 +69,9 @@ robots.txt sitemap.xml # Crawler files (sitemap rewritten on build)
 icons/                 # Graphic mark (header also shows a compact lockup)
 ```
 
-A guided classroom/contributor route starts at
-[`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference is
+A role-based documentation index starts at
+[`docs/README.md`](docs/README.md), and the guided classroom/contributor route
+is [`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference is
 [`src/README.md`](src/README.md), runtime data flow is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the editor contract (what
 not to rename, tab × frame, class prefixes) is
@@ -118,9 +119,13 @@ in [`docs/DATA-FORMAT.md`](docs/DATA-FORMAT.md). A fictional import file is in
 | Theme, autosave on/off, first-visit | `localStorage` | No — these are UI prefs only |
 | Manual backup | Encrypted `{name}.json` you save | Yes — pair with `{name}.key.json` (not cached) |
 
-Anyone who has **both** zip members can decrypt that backup. Store them separately if the ledger is sensitive.
+Anyone who has **both** JSON files can decrypt a backup without a passphrase.
+Store them separately if the ledger is sensitive. Legacy ZIP pairs remain
+importable.
 
-OCR models and fonts load from jsDelivr on first use. That traffic is engine files, not your expenses. See [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+OCR models, runtimes, fonts, and icons are served from this site's checked-in
+`vendor/` directory. OCR binaries load only after receipt capture begins. See
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
 
 ## Contributing
 

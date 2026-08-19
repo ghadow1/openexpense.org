@@ -77,7 +77,3 @@ export function restoreDeleteUndo() {
     Toast.show('Restored.', 'success');
     return true;
 }
-
-export function hasDeleteUndo() {
-    return snapshot != null;
-}
