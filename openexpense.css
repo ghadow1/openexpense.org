@@ -878,7 +878,13 @@ html[data-frame="tablet"] .tracker-board {
 }
 
 /* display:contents can swallow display:none on children in Safari.
-   Overview and Tracker hide pieces of this board, so keep a real box. */
+   Overview and Tracker hide pieces of this board, so keep a real box.
+   .tracker-board still carries align-items:start from its two-column GRID
+   (do not stretch calendar and register to the same height). In this flex
+   column that start is the cross axis, so #cal-col shrinks to the week rail
+   and the month grid collapses. Stretch plus an explicit width keep the
+   calendar on the full track; container-type:inline-size then has a definite
+   size instead of collapsing to min-content. */
 html[data-frame="desktop"][data-shell="overview"] .ledger-stage,
 html[data-frame="desktop"][data-shell="overview"] .tracker-board,
 html[data-frame="desktop"][data-shell="tracker"] .ledger-stage,
@@ -889,7 +895,9 @@ html[data-frame="tablet"][data-shell="tracker"] .ledger-stage,
 html[data-frame="tablet"][data-shell="tracker"] .tracker-board {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     min-width: 0;
+    width: 100%;
 }
 
 html[data-frame="desktop"] #pane-overview-hero { grid-area: hero; }
@@ -3454,6 +3462,7 @@ html.is-action-busy [data-lockable] {
 
 .cal-main {
     min-width: 0;
+    width: 100%;
     container-type: inline-size;
     container-name: cal;
 }
@@ -3619,11 +3628,14 @@ html.is-action-busy [data-lockable] {
 .cal-shell {
     --cal-rail: 16px;
     --cal-gap: 0px;
+    width: 100%;
+    min-width: 0;
 }
 
 .grid-head {
     display: grid;
     grid-template-columns: var(--cal-rail) repeat(7, minmax(0, 1fr));
+    width: 100%;
     gap: 6px;
     margin-bottom: 8px;
     padding: 0 4px;
@@ -3654,6 +3666,7 @@ html.is-action-busy [data-lockable] {
 .cal-week {
     display: grid;
     grid-template-columns: var(--cal-rail) repeat(7, minmax(0, 1fr));
+    width: 100%;
     column-gap: var(--cal-gap);
     grid-auto-rows: minmax(var(--cal-row), auto);
     min-width: 0;

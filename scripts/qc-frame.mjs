@@ -43,3 +43,22 @@ test('only desktop overview paints the compact strip beside the calendar', async
     assert.match(src, /readFrame\(\) === 'desktop'/, 'phone and tablet keep Left to spend plus the calendar');
     assert.match(src, /function renderTrackerHead/, 'Tracker gets its own mobile page head');
 });
+
+test('desktop Overview flex board stretches the calendar across the column', async () => {
+    const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
+    assert.match(
+        css,
+        /\.tracker-board \{[\s\S]*?align-items:\s*start;/,
+        'the two-column board still uses start so calendar and register do not share one height'
+    );
+    assert.match(
+        css,
+        /html\[data-frame="desktop"\]\[data-shell="overview"\] \.tracker-board,[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*stretch;[\s\S]*?width:\s*100%;/,
+        'Overview/Tracker flex columns must override that start or #cal-col pinches to the week rail'
+    );
+    assert.match(
+        css,
+        /\.cal-main \{[\s\S]*?width:\s*100%;[\s\S]*?container-type:\s*inline-size;/,
+        'the calendar column needs a definite width so inline-size containment does not collapse'
+    );
+});
