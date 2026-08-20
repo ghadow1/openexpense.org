@@ -2,16 +2,24 @@
  * OpenExpense — planner savings goals
  *
  * Goal metadata stays inside the encrypted ledger. This module owns the modal,
- * ordered goal cards, priority drag behavior, and the explicit action that
- * copies the calculated monthly pace into the planner savings hold.
+ * ordered goal cards, priority drag behavior, horizon presets, pace toggles,
+ * and the explicit action that copies this month's required hold into the
+ * planner savings hold.
  */
 import { getState, patch } from '../core/store.js';
 import {
+    GOAL_HORIZONS,
+    GOAL_PACE_VIEWS,
     GOAL_STATES,
     assessGoals,
     createGoalId,
+    finishDateAtMonthlyPace,
+    goalPaceAmount,
+    goalPaceLabel,
+    requiredPaceForAmount,
     sanitizeGoal,
-    sanitizeGoals
+    sanitizeGoals,
+    targetDateForHorizon
 } from '../core/goals.js';
 import { fixedHoldForTarget, sanitizePlan } from '../core/plan.js';
 import { Utils } from '../core/utils.js';
@@ -23,6 +31,26 @@ import { Toast } from '../ui/toast.js';
 
 let goalBackdrop = null;
 let goalKeyHandler = null;
+let lastPanelArgs = null;
+
+const goalView = {
+    pace: GOAL_PACE_VIEWS.MONTH,
+    projections: true
+};
+
+const HORIZON_OPTIONS = [
+    { id: GOAL_HORIZONS.WEEKLY, label: 'Week', hint: '7 days' },
+    { id: GOAL_HORIZONS.MONTHLY, label: 'Month', hint: 'This month-end' },
+    { id: GOAL_HORIZONS.YEARLY, label: 'Year', hint: 'Same date next year' },
+    { id: GOAL_HORIZONS.CUSTOM, label: 'Custom', hint: 'Pick a date' }
+];
+
+const PACE_OPTIONS = [
+    { id: GOAL_PACE_VIEWS.DAY, label: 'Day' },
+    { id: GOAL_PACE_VIEWS.WEEK, label: 'Week' },
+    { id: GOAL_PACE_VIEWS.MONTH, label: 'Month' },
+    { id: GOAL_PACE_VIEWS.YEAR, label: 'Year' }
+];
 
 function todayKey() {
     const now = new Date();
@@ -34,6 +62,32 @@ function dateLabel(key) {
     const date = new Date(year, (month || 1) - 1, day || 1);
     if (Number.isNaN(date.getTime())) return key;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function remainingCopy(goal) {
+    const days = Number(goal.daysRemaining) || 0;
+    if (days <= 0) return goal.state === GOAL_STATES.COMPLETE ? 'Due today' : 'Past due';
+    if (days === 1) return '1 day left';
+    if (days < 14) return `${days} days left`;
+    const weeks = goal.weeksRemaining;
+    if (weeks < 8) {
+        const count = weeks >= 10 ? Math.round(weeks) : Math.round(weeks * 10) / 10;
+        return `${count} week${count === 1 ? '' : 's'} left`;
+    }
+    const months = goal.monthsRemaining;
+    if (months < 18) {
+        const count = months >= 10 ? Math.round(months) : Math.round(months * 10) / 10;
+        return `${count} month${count === 1 ? '' : 's'} left`;
+    }
+    const years = Math.round((goal.yearsRemaining || 0) * 10) / 10;
+    return `${years} year${years === 1 ? '' : 's'} left`;
+}
+
+function horizonCopy(horizon) {
+    if (horizon === GOAL_HORIZONS.WEEKLY) return 'Weekly';
+    if (horizon === GOAL_HORIZONS.MONTHLY) return 'Monthly';
+    if (horizon === GOAL_HORIZONS.YEARLY) return 'Yearly';
+    return 'Custom';
 }
 
 function closeGoalDialog() {
@@ -50,7 +104,7 @@ function closeGoalDialog() {
     unlockBodyScroll();
 }
 
-function field(label, input) {
+function field(label, input, hint) {
     const group = document.createElement('div');
     group.className = 'goal-field';
     const fieldLabel = document.createElement('label');
@@ -58,6 +112,14 @@ function field(label, input) {
     fieldLabel.htmlFor = input.id;
     fieldLabel.textContent = label;
     group.append(fieldLabel, input);
+    if (hint) {
+        const note = document.createElement('p');
+        note.className = 'goal-field-hint';
+        note.id = `${input.id}-hint`;
+        note.textContent = hint;
+        input.setAttribute('aria-describedby', note.id);
+        group.appendChild(note);
+    }
     return group;
 }
 
@@ -70,10 +132,81 @@ function input(id, type, value = '') {
     return element;
 }
 
+function refreshGoalsPanel() {
+    const host = document.querySelector('.planner-goals');
+    if (!host || !lastPanelArgs) return;
+    const { goals, plan } = getState();
+    host.replaceWith(renderGoalsPanel({
+        ...lastPanelArgs,
+        goals,
+        plan: sanitizePlan(plan)
+    }));
+}
+
+function setGoalView(partial) {
+    Object.assign(goalView, partial);
+    refreshGoalsPanel();
+}
+
+function segmentGroup({ name, legend, options, value, onChange }) {
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'goal-seg';
+    const caption = document.createElement('legend');
+    caption.className = 'goal-seg-legend';
+    caption.textContent = legend;
+    const row = document.createElement('div');
+    row.className = 'goal-seg-row';
+    row.setAttribute('role', 'radiogroup');
+    row.setAttribute('aria-label', legend);
+    options.forEach((option) => {
+        const label = document.createElement('label');
+        label.className = `goal-seg-option${option.id === value ? ' is-on' : ''}`;
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = name;
+        radio.value = option.id;
+        radio.checked = option.id === value;
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+            onChange(option.id);
+        });
+        const copy = document.createElement('span');
+        copy.className = 'goal-seg-copy';
+        const title = document.createElement('strong');
+        title.textContent = option.label;
+        copy.appendChild(title);
+        if (option.hint) {
+            const hint = document.createElement('small');
+            hint.textContent = option.hint;
+            copy.appendChild(hint);
+        }
+        label.append(radio, copy);
+        row.appendChild(label);
+    });
+    fieldset.append(caption, row);
+    return fieldset;
+}
+
+function switchRow({ id, checked, label, hint, onChange }) {
+    const wrap = document.createElement('label');
+    wrap.className = 'goal-switch';
+    wrap.htmlFor = id;
+    const box = document.createElement('input');
+    box.id = id;
+    box.type = 'checkbox';
+    box.checked = checked;
+    box.addEventListener('change', () => onChange(box.checked));
+    const copy = document.createElement('span');
+    copy.innerHTML = `<strong>${Utils.escapeHtml(label)}</strong>${hint ? `<small>${Utils.escapeHtml(hint)}</small>` : ''}`;
+    wrap.append(box, copy);
+    return wrap;
+}
+
 export function openGoalDialog(existing = null) {
     closeGoalDialog();
     const goal = existing ? sanitizeGoal(existing) : null;
     const editing = !!goal;
+    let horizon = goal?.horizon || (editing ? GOAL_HORIZONS.CUSTOM : GOAL_HORIZONS.MONTHLY);
 
     const backdrop = document.createElement('div');
     backdrop.className = 'backdrop open goal-backdrop';
@@ -106,7 +239,11 @@ export function openGoalDialog(existing = null) {
     title.maxLength = 80;
     title.autocomplete = 'off';
     title.placeholder = 'Emergency fund, new laptop…';
-    const targetDate = input('goal-target-date', 'date', goal?.targetDate || '');
+    const targetDate = input(
+        'goal-target-date',
+        'date',
+        goal?.targetDate || targetDateForHorizon(horizon)
+    );
     targetDate.required = true;
     targetDate.min = todayKey();
     const targetAmount = input(
@@ -119,6 +256,23 @@ export function openGoalDialog(existing = null) {
     targetAmount.step = '0.01';
     targetAmount.inputMode = 'decimal';
     targetAmount.placeholder = 'Optional';
+    const alreadySaved = input(
+        'goal-already-saved',
+        'number',
+        goal?.alreadySaved ? String(goal.alreadySaved) : ''
+    );
+    alreadySaved.min = '0';
+    alreadySaved.max = '1000000000';
+    alreadySaved.step = '0.01';
+    alreadySaved.inputMode = 'decimal';
+    alreadySaved.placeholder = '0.00';
+    const note = document.createElement('textarea');
+    note.id = 'goal-note';
+    note.className = 'text-input text-input--area';
+    note.maxLength = 200;
+    note.rows = 2;
+    note.placeholder = 'Why this matters, or where the money lives…';
+    note.value = goal?.note || '';
 
     const amountLabel = document.createElement('span');
     amountLabel.textContent = 'Target amount';
@@ -129,16 +283,84 @@ export function openGoalDialog(existing = null) {
     const amountGroup = field('', targetAmount);
     amountGroup.querySelector('label').replaceChildren(amountLabel);
 
-    const note = document.createElement('p');
-    note.className = 'goal-form-note';
-    note.id = 'goal-form-note';
-    note.textContent = 'Goals use your current bank savings and monthly surplus in priority order. Drag cards later to change that order.';
+    const preview = document.createElement('p');
+    preview.className = 'goal-form-preview';
+    preview.id = 'goal-form-preview';
+    preview.setAttribute('aria-live', 'polite');
+
+    const help = document.createElement('p');
+    help.className = 'goal-form-note';
+    help.id = 'goal-form-note';
+    help.textContent = 'Week, month, and year set a deadline. The required pace is the amount still needed divided by time left — not a daily rate stretched across a full month.';
     targetAmount.setAttribute('aria-describedby', 'goal-form-note');
     const error = document.createElement('p');
     error.className = 'confirm-field-error';
     error.id = 'goal-form-error';
     error.setAttribute('role', 'alert');
     error.hidden = true;
+
+    let includeBank = goal?.includeBankSavings !== false;
+    const bankToggle = switchRow({
+        id: 'goal-include-bank',
+        checked: includeBank,
+        label: 'Use current bank savings first',
+        hint: 'Shared savings are earmarked in priority order. Turn this off to fund the goal only from new surplus.',
+        onChange: (checked) => {
+            includeBank = checked;
+            updatePreview();
+        }
+    });
+
+    const dateField = field('Target date', targetDate, 'Week, month, and year fill this date. Change it to switch to a custom deadline.');
+    const applyHorizonDate = (nextHorizon, { fillDate = true } = {}) => {
+        horizon = nextHorizon;
+        if (fillDate && nextHorizon !== GOAL_HORIZONS.CUSTOM) {
+            targetDate.value = targetDateForHorizon(nextHorizon);
+        }
+        form.querySelectorAll('input[name="goal-horizon"]').forEach((radio) => {
+            radio.checked = radio.value === horizon;
+            radio.closest('.goal-seg-option')?.classList.toggle('is-on', radio.checked);
+        });
+        updatePreview();
+    };
+
+    const length = segmentGroup({
+        name: 'goal-horizon',
+        legend: 'Goal length',
+        options: HORIZON_OPTIONS,
+        value: horizon,
+        onChange: applyHorizonDate
+    });
+
+    const updatePreview = () => {
+        const amountText = targetAmount.value.trim();
+        const amount = amountText ? Number(amountText) : 0;
+        const savedText = alreadySaved.value.trim();
+        const saved = savedText ? Number(savedText) : 0;
+        if (!(amount > 0) || !targetDate.value) {
+            preview.textContent = 'Add an amount and a date to see the required day, week, month, and year pace.';
+            return;
+        }
+        const remaining = Math.max(0, amount - (Number.isFinite(saved) && saved > 0 ? saved : 0));
+        const days = Math.max(
+            0,
+            Math.round(
+                (Date.parse(`${targetDate.value}T00:00:00`) - Date.parse(`${todayKey()}T00:00:00`)) / 86400000
+            )
+        );
+        const pace = requiredPaceForAmount(remaining, days);
+        preview.textContent = remaining <= 0
+            ? 'Already funded. No additional hold is required.'
+            : `${Utils.formatMoney(pace.daily)} / day · ${Utils.formatMoney(pace.weekly)} / week · ${Utils.formatMoney(pace.monthly)} this month · ${Utils.formatMoney(pace.yearly)} / year.`;
+    };
+    [targetAmount, alreadySaved].forEach((element) => {
+        element.addEventListener('input', updatePreview);
+    });
+    targetDate.addEventListener('input', () => {
+        if (horizon !== GOAL_HORIZONS.CUSTOM) applyHorizonDate(GOAL_HORIZONS.CUSTOM, { fillDate: false });
+        else updatePreview();
+    });
+    updatePreview();
 
     const actions = document.createElement('div');
     actions.className = 'modal-actions goal-dialog-actions';
@@ -174,28 +396,38 @@ export function openGoalDialog(existing = null) {
 
     form.append(
         field('Goal title', title),
-        field('Target date', targetDate),
+        length,
+        dateField,
         amountGroup,
-        note,
+        field('Already set aside', alreadySaved, 'Money already reserved for this goal. It is not taken from the shared bank amount.'),
+        field('Note', note),
+        bankToggle,
+        preview,
+        help,
         error,
         actions
     );
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         error.hidden = true;
-        [title, targetDate, targetAmount].forEach((element) => {
+        [title, targetDate, targetAmount, alreadySaved].forEach((element) => {
             element.removeAttribute('aria-invalid');
             if (element.getAttribute('aria-describedby') === error.id) {
                 element.removeAttribute('aria-describedby');
             }
         });
-        targetAmount.setAttribute('aria-describedby', note.id);
+        targetAmount.setAttribute('aria-describedby', help.id);
         const amountText = targetAmount.value.trim();
+        const savedText = alreadySaved.value.trim();
         const candidate = sanitizeGoal({
             id: goal?.id || createGoalId(),
             title: title.value,
             targetDate: targetDate.value,
             targetAmount: amountText ? Number(amountText) : null,
+            alreadySaved: savedText ? Number(savedText) : null,
+            note: note.value,
+            horizon,
+            includeBankSavings: includeBank,
             createdAt: goal?.createdAt || Date.now()
         });
         let problem = '';
@@ -212,6 +444,9 @@ export function openGoalDialog(existing = null) {
         } else if (amountText && (!(Number(amountText) > 0) || Number(amountText) > 1e9)) {
             problem = 'Enter a target amount between $0.01 and $1 billion, or leave it blank.';
             invalid = targetAmount;
+        } else if (savedText && (!(Number(savedText) >= 0) || Number(savedText) > 1e9)) {
+            problem = 'Already set aside must be between $0 and $1 billion, or blank.';
+            invalid = alreadySaved;
         } else if (!candidate) {
             problem = 'Check the goal details and try again.';
             invalid = title;
@@ -274,7 +509,10 @@ export function createGoalTrigger() {
 
 function stateCopy(goal) {
     if (goal.state === GOAL_STATES.NO_AMOUNT) return 'No price set';
-    if (goal.state === GOAL_STATES.ACHIEVABLE) return 'Achievable';
+    if (goal.state === GOAL_STATES.COMPLETE) return 'Complete';
+    if (goal.state === GOAL_STATES.AHEAD) return 'Ahead';
+    if (goal.state === GOAL_STATES.ACHIEVABLE) return 'On track';
+    if (goal.state === GOAL_STATES.BEHIND) return 'Behind';
     return 'Unachievable';
 }
 
@@ -337,25 +575,54 @@ function goalCard(goal, index, count) {
 
     const meta = document.createElement('span');
     meta.className = 'goal-meta';
-    meta.textContent = `${dateLabel(goal.targetDate)} · ${goal.daysRemaining} day${goal.daysRemaining === 1 ? '' : 's'} left`;
+    meta.textContent = `${horizonCopy(goal.horizon)} · ${dateLabel(goal.targetDate)} · ${remainingCopy(goal)}`;
+
     const figures = document.createElement('span');
     figures.className = 'goal-figures';
     if (goal.state === GOAL_STATES.NO_AMOUNT) {
         figures.textContent = 'Add an amount to calculate a required savings pace.';
-    } else if (goal.state === GOAL_STATES.ACHIEVABLE) {
-        figures.textContent = `${Utils.formatMoney(goal.monthlyAllocation)} / month allocated · target ${Utils.formatMoney(goal.targetAmount)}`;
     } else {
-        figures.textContent = `${Utils.formatMoney(goal.requiredMonthly)} / month needed · ${Utils.formatMoney(goal.shortfall)} projected short`;
+        const funded = `${Utils.formatMoney(goal.currentAllocation)} of ${Utils.formatMoney(goal.targetAmount)}`;
+        const percent = `${Math.round(goal.progress * 100)}%`;
+        const pace = `${Utils.formatMoney(goalPaceAmount(goal, goalView.pace))} / ${goalPaceLabel(goalView.pace)} to stay on pace`;
+        figures.textContent = `${funded} (${percent}) · ${pace}`;
     }
     body.append(top, meta, figures);
 
     if (goal.targetAmount) {
         const track = document.createElement('span');
         track.className = 'goal-progress';
+        track.setAttribute('role', 'progressbar');
+        track.setAttribute('aria-valuemin', '0');
+        track.setAttribute('aria-valuemax', '100');
+        track.setAttribute('aria-valuenow', String(Math.round(goal.progress * 100)));
+        track.setAttribute('aria-label', `${goal.title} ${Math.round(goal.progress * 100)} percent funded`);
         const fill = document.createElement('span');
         fill.style.width = `${Math.round(goal.progress * 100)}%`;
         track.appendChild(fill);
         body.appendChild(track);
+    }
+
+    if (goalView.projections && goal.targetAmount) {
+        const projection = document.createElement('span');
+        projection.className = 'goal-projection';
+        if (goal.state === GOAL_STATES.COMPLETE) {
+            projection.textContent = 'Funded. Nothing more needs to be held for this goal.';
+        } else if (goal.projectedDate && goal.shortfall <= 0) {
+            projection.textContent = `On pace to finish ${dateLabel(goal.projectedDate)} · ${Utils.formatMoney(goal.projectedAmount)} projected.`;
+        } else if (goal.projectedDate) {
+            projection.textContent = `${Utils.formatMoney(goal.shortfall)} short at the current surplus · projected ${Utils.formatMoney(goal.projectedAmount)} by ${dateLabel(goal.targetDate)}.`;
+        } else {
+            projection.textContent = `${Utils.formatMoney(goal.shortfall)} short if no surplus is held. Add leftover or a monthly hold to build a finish date.`;
+        }
+        body.appendChild(projection);
+    }
+
+    if (goal.note) {
+        const note = document.createElement('span');
+        note.className = 'goal-note';
+        note.textContent = goal.note;
+        body.appendChild(note);
     }
     card.append(handle, body);
 
@@ -384,7 +651,72 @@ function goalCard(goal, index, count) {
     return card;
 }
 
+function toolsBar() {
+    const bar = document.createElement('div');
+    bar.className = 'planner-goal-tools';
+    const pace = segmentGroup({
+        name: 'goal-pace-view',
+        legend: 'Show required pace as',
+        options: PACE_OPTIONS,
+        value: goalView.pace,
+        onChange: (value) => setGoalView({ pace: value })
+    });
+    const projections = switchRow({
+        id: 'goal-show-projections',
+        checked: goalView.projections,
+        label: 'Show projections',
+        hint: 'Finish date and shortfall at the current surplus.',
+        onChange: (checked) => setGoalView({ projections: checked })
+    });
+    bar.append(pace, projections);
+    return bar;
+}
+
+function paceLab(assessment) {
+    const priced = assessment.goals.filter((goal) => goal.targetAmount && goal.state !== GOAL_STATES.COMPLETE);
+    const remaining = priced.reduce((sum, goal) => (
+        sum + Math.max(0, Utils.toCents(goal.targetAmount) - Utils.toCents(goal.currentAllocation))
+    ), 0);
+    const lab = document.createElement('div');
+    lab.className = 'planner-goal-lab';
+    const heading = document.createElement('h4');
+    heading.textContent = 'Pace lab';
+    const detail = document.createElement('p');
+    detail.className = 'goal-field-hint';
+    detail.textContent = 'See when leftover would finish every open goal if that monthly amount continued. This does not change the ledger.';
+    const amount = input(
+        'goal-pace-lab',
+        'number',
+        assessment.totalRequiredMonthly > 0 ? String(assessment.totalRequiredMonthly) : ''
+    );
+    amount.min = '0';
+    amount.step = '0.01';
+    amount.inputMode = 'decimal';
+    amount.placeholder = 'Monthly amount';
+    const result = document.createElement('p');
+    result.className = 'goal-lab-result';
+    result.setAttribute('aria-live', 'polite');
+    const update = () => {
+        const monthly = Number(amount.value);
+        if (!(monthly > 0) || remaining <= 0) {
+            result.textContent = remaining <= 0
+                ? 'No open priced goals to project.'
+                : 'Enter a monthly amount to project a finish date.';
+            return;
+        }
+        const finish = finishDateAtMonthlyPace(Utils.fromCents(remaining), monthly);
+        result.textContent = finish.date
+            ? `${Utils.formatMoney(Utils.fromCents(remaining))} left finishes around ${dateLabel(finish.date)} at ${Utils.formatMoney(monthly)} / month.`
+            : 'Enter a monthly amount to project a finish date.';
+    };
+    amount.addEventListener('input', update);
+    update();
+    lab.append(heading, detail, field('If you hold this much each month', amount), result);
+    return lab;
+}
+
 export function renderGoalsPanel({ snap, goals, plan }) {
+    lastPanelArgs = { snap, goals, plan };
     const monthlySurplus = Math.max(0, Number(snap.leftToSpend) + Number(snap.savingsHold));
     const assessment = snap.goalAssessment || assessGoals(goals, {
         currentSavings: plan.currentSavings,
@@ -400,8 +732,8 @@ export function renderGoalsPanel({ snap, goals, plan }) {
     heading.textContent = 'Savings goals';
     const detail = document.createElement('p');
     detail.textContent = assessment.goals.length
-        ? 'Priority runs top to bottom. Current savings and monthly surplus are allocated once.'
-        : 'Add a target, deadline, and optional amount to test it against your plan.';
+        ? 'Priority runs top to bottom. Bank savings and monthly surplus are allocated once. The monthly hold is this month’s share of what is still needed.'
+        : 'Pick a week, month, year, or custom date. An optional amount is tested against leftover and the savings you already hold.';
     copy.append(heading, detail);
     const add = document.createElement('button');
     add.type = 'button';
@@ -415,11 +747,13 @@ export function renderGoalsPanel({ snap, goals, plan }) {
         const empty = document.createElement('button');
         empty.type = 'button';
         empty.className = 'planner-goal-empty';
-        empty.innerHTML = '<i class="ti ti-target-arrow" aria-hidden="true"></i><span><strong>Set your first goal</strong><small>Plan an emergency fund, purchase, trip, or other target.</small></span>';
+        empty.innerHTML = '<i class="ti ti-target-arrow" aria-hidden="true"></i><span><strong>Set your first goal</strong><small>Plan an emergency fund, purchase, trip, or other target for a week, month, year, or custom date.</small></span>';
         empty.addEventListener('click', () => openGoalDialog());
         section.appendChild(empty);
         return section;
     }
+
+    section.appendChild(toolsBar());
 
     const list = document.createElement('div');
     list.className = 'planner-goal-list';
@@ -433,20 +767,30 @@ export function renderGoalsPanel({ snap, goals, plan }) {
         const advice = document.createElement('div');
         advice.className = 'planner-goal-advice';
         const days = Math.max(1, Number(snap.daysLeft) || 30);
-        const goalDaily = assessment.totalRequiredMonthly / (365.25 / 12);
+        const goalDaily = assessment.totalRequiredDaily;
         const recommendedDaily = Math.max(0, (monthlySurplus - assessment.totalRequiredMonthly) / days);
         const recommendedWeekly = recommendedDaily * Math.min(7, days);
-        if (assessment.goals.some((goal) => goal.state === GOAL_STATES.UNACHIEVABLE)) {
+        if (assessment.goals.some((goal) => (
+            goal.state === GOAL_STATES.UNACHIEVABLE || goal.state === GOAL_STATES.BEHIND
+        ))) {
             advice.classList.add('has-risk');
         }
         const text = document.createElement('p');
-        text.innerHTML = `<strong>${Utils.formatMoney(assessment.totalRequiredMonthly)} / month required</strong><span>${Utils.formatMoney(goalDaily)} / day toward goals · recommended spending cap ${Utils.formatMoney(recommendedDaily)} / day or ${Utils.formatMoney(recommendedWeekly)} / week.</span>`;
+        const unit = goalPaceLabel(goalView.pace);
+        const requiredForView = goalView.pace === GOAL_PACE_VIEWS.DAY
+            ? assessment.totalRequiredDaily
+            : goalView.pace === GOAL_PACE_VIEWS.WEEK
+                ? assessment.totalRequiredWeekly
+                : goalView.pace === GOAL_PACE_VIEWS.YEAR
+                    ? assessment.totalRequiredYearly
+                    : assessment.totalRequiredMonthly;
+        text.innerHTML = `<strong>${Utils.formatMoney(assessment.totalRequiredMonthly)} this month to stay on pace</strong><span>${Utils.formatMoney(requiredForView)} / ${unit} across open goals · ${Utils.formatMoney(goalDaily)} / day toward goals · recommended spending cap ${Utils.formatMoney(recommendedDaily)} / day or ${Utils.formatMoney(recommendedWeekly)} / week after the hold.</span>`;
         const allocate = document.createElement('button');
         allocate.type = 'button';
         allocate.className = 'btn-secondary';
         allocate.disabled = !(assessment.totalRequiredMonthly > 0);
         allocate.textContent = assessment.totalRequiredMonthly > 0
-            ? `Hold ${Utils.formatMoney(assessment.totalRequiredMonthly)} monthly`
+            ? `Hold ${Utils.formatMoney(assessment.totalRequiredMonthly)} this month`
             : 'No monthly hold needed';
         allocate.addEventListener('click', async () => {
             const fixedHold = fixedHoldForTarget(
@@ -456,7 +800,7 @@ export function renderGoalsPanel({ snap, goals, plan }) {
             );
             const result = await confirmDialog({
                 title: 'Use this goal hold?',
-                message: `Set fixed monthly savings to ${Utils.formatMoney(fixedHold)} so all active holds cover at least ${Utils.formatMoney(assessment.totalRequiredMonthly)}? This updates the planner waterfall; it does not move bank funds.`,
+                message: `Set fixed monthly savings to ${Utils.formatMoney(fixedHold)} so all active holds cover at least ${Utils.formatMoney(assessment.totalRequiredMonthly)} this month? This updates the planner waterfall; it does not move bank funds.`,
                 confirmText: 'Use goal hold'
             });
             if (!result.confirmed) return;
@@ -470,6 +814,7 @@ export function renderGoalsPanel({ snap, goals, plan }) {
         });
         advice.append(text, allocate);
         section.appendChild(advice);
+        section.appendChild(paceLab(assessment));
     }
     return section;
 }

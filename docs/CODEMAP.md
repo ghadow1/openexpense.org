@@ -157,7 +157,7 @@ npm run build     # after any src/ edit; commit app.js + chunk-*.js
 | `qc-frame.mjs` | Phone / tablet / desktop snaps |
 | `qc-build-output.mjs` | Overview hides `#sidebar` on phone; Tracker hides `#cal-col` |
 | `qc-plan.mjs` / `qc-expense-income.mjs` | Leftover and cash math |
-| `qc-goals.mjs` | Goal normalization, date math, priority allocation, feasibility |
+| `qc-goals.mjs` | Goal normalization, length presets, pace math, priority allocation, feasibility |
 | `qc-ledger-file.mjs` | Encrypt, sanitize, key wipe |
 | `qc-render-deps.mjs` | Filter / face / plan keys repaint the right surfaces |
 

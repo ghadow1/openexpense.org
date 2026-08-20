@@ -2348,7 +2348,9 @@ html.is-action-busy [data-lockable] {
     }
 
     .planner-goals-head,
-    .planner-goal-advice {
+    .planner-goal-advice,
+    .planner-goal-tools,
+    .planner-goal-lab {
         align-items: flex-start;
         flex-direction: column;
     }
@@ -2453,7 +2455,8 @@ html.is-action-busy [data-lockable] {
 }
 
 .planner-goals-head,
-.planner-goal-advice {
+.planner-goal-advice,
+.planner-goal-tools {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2549,9 +2552,16 @@ html.is-action-busy [data-lockable] {
     color: #5f6872;
 }
 
-.planner-goal-card.is-achievable {
+.planner-goal-card.is-achievable,
+.planner-goal-card.is-ahead,
+.planner-goal-card.is-complete {
     border-color: color-mix(in srgb, #34495e 42%, var(--border));
     background: color-mix(in srgb, #34495e 8%, var(--surface));
+}
+
+.planner-goal-card.is-behind {
+    border-color: color-mix(in srgb, #6b4f2a 38%, var(--border));
+    background: color-mix(in srgb, #6b4f2a 10%, var(--surface));
 }
 
 .planner-goal-card.is-unachievable {
@@ -2621,8 +2631,14 @@ html.is-action-busy [data-lockable] {
     font-weight: 750;
 }
 
-.is-achievable .goal-state {
+.is-achievable .goal-state,
+.is-ahead .goal-state,
+.is-complete .goal-state {
     color: #34495e;
+}
+
+.is-behind .goal-state {
+    color: #6b4f2a;
 }
 
 .is-unachievable .goal-state {
@@ -2630,10 +2646,21 @@ html.is-action-busy [data-lockable] {
 }
 
 .goal-meta,
-.goal-figures {
+.goal-figures,
+.goal-projection,
+.goal-note {
     color: var(--text2);
     font-size: var(--fs-2xs);
     line-height: 1.35;
+}
+
+.goal-projection,
+.goal-note {
+    display: block;
+}
+
+.goal-note {
+    font-style: italic;
 }
 
 .goal-progress {
@@ -2654,6 +2681,139 @@ html.is-action-busy [data-lockable] {
 
 .is-unachievable .goal-progress > span {
     background: #7b2020;
+}
+
+.is-behind .goal-progress > span {
+    background: #6b4f2a;
+}
+
+.is-complete .goal-progress > span,
+.is-ahead .goal-progress > span {
+    background: #34495e;
+}
+
+.planner-goal-tools {
+    align-items: flex-end;
+    padding-bottom: 4px;
+}
+
+.planner-goal-lab {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.planner-goal-lab h4 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--fs-sm);
+}
+
+.goal-lab-result,
+.goal-form-preview,
+.goal-field-hint {
+    margin: 0;
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.45;
+}
+
+.goal-form-preview {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+}
+
+.goal-seg {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.goal-seg-legend {
+    margin: 0 0 6px;
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+}
+
+.goal-seg-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.goal-seg-option {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.goal-seg-option.is-on,
+.goal-seg-option:focus-within {
+    background: var(--surface);
+    color: var(--text-strong);
+    box-shadow: 0 0 0 1px var(--text-strong);
+}
+
+.goal-seg-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.goal-seg-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.goal-seg-copy small {
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.goal-switch {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text);
+    font-size: var(--fs-xs);
+    cursor: pointer;
+}
+
+.goal-switch input {
+    margin-top: 2px;
+    accent-color: var(--accent);
+}
+
+.goal-switch span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.goal-switch small {
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .planner-goal-advice {
@@ -2680,7 +2840,10 @@ html.is-action-busy [data-lockable] {
 }
 
 .goal-dialog {
-    width: min(460px, calc(100vw - 28px));
+    display: flex;
+    flex-direction: column;
+    width: min(480px, calc(100vw - 28px));
+    max-height: min(88vh, 760px);
     padding: 0;
     overflow: hidden;
 }
@@ -2699,6 +2862,7 @@ html.is-action-busy [data-lockable] {
     flex-direction: column;
     gap: 13px;
     padding: 18px;
+    overflow: auto;
 }
 
 .goal-field {
@@ -6856,22 +7020,47 @@ textarea:focus-visible {
     color: #9a9a9a;
 }
 
-[data-theme="dark"] .planner-goal-card.is-achievable {
+[data-theme="dark"] .planner-goal-card.is-achievable,
+[data-theme="dark"] .planner-goal-card.is-ahead,
+[data-theme="dark"] .planner-goal-card.is-complete {
     border-color: #555;
     background: #151515;
 }
 
+[data-theme="dark"] .planner-goal-card.is-behind,
 [data-theme="dark"] .planner-goal-card.is-unachievable {
     border-color: #777;
     background: #101010;
 }
 
-[data-theme="dark"] .is-achievable .goal-state {
+[data-theme="dark"] .is-achievable .goal-state,
+[data-theme="dark"] .is-ahead .goal-state,
+[data-theme="dark"] .is-complete .goal-state {
     color: #bbb;
 }
 
+[data-theme="dark"] .is-behind .goal-state,
 [data-theme="dark"] .is-unachievable .goal-state {
     color: #ddd;
+}
+
+[data-theme="dark"] .is-behind .goal-progress > span,
+[data-theme="dark"] .is-unachievable .goal-progress > span,
+[data-theme="dark"] .is-complete .goal-progress > span,
+[data-theme="dark"] .is-ahead .goal-progress > span {
+    background: #888;
+}
+
+[data-theme="dark"] .goal-seg-option,
+[data-theme="dark"] .goal-form-preview {
+    background: #111;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .goal-seg-option.is-on {
+    background: #000;
+    color: #fff;
+    box-shadow: 0 0 0 1px #fff;
 }
 
 [data-theme="dark"] .planner-goal-empty > .ti {
