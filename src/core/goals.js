@@ -181,6 +181,22 @@ export function assessGoals(rawGoals, {
     };
 }
 
+const AT_RISK_STATES = new Set([
+    GOAL_STATES.UNACHIEVABLE,
+    'behind'
+]);
+
+/** Priced goals that current surplus cannot finish on time. */
+export function atRiskGoals(assessment) {
+    return (assessment?.goals || []).filter((goal) => (
+        Number(goal.targetAmount) > 0
+        && (
+            AT_RISK_STATES.has(goal.state)
+            || Number(goal.shortfall) > 0
+        )
+    ));
+}
+
 export function goalMilestones(rawGoals, year) {
     return sanitizeGoals(rawGoals)
         .filter((goal) => Number(goal.targetDate.slice(0, 4)) === Number(year))

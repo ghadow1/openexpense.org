@@ -648,6 +648,55 @@ textarea,
     gap: 12px;
 }
 
+.ov-goal-alert {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    margin: 0;
+    padding: 11px 12px;
+    border: 1px solid color-mix(in srgb, #800000 38%, var(--border));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, rgba(128, 0, 0, 0.35) 28%, var(--surface));
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ov-goal-alert-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ov-goal-alert-top strong {
+    overflow: hidden;
+    color: var(--text-strong);
+    font-size: var(--fs-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ov-goal-alert-state {
+    flex: 0 0 auto;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-full);
+    color: #7b2020;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.ov-goal-alert-meta,
+.ov-goal-alert-figures {
+    color: var(--text2);
+    font-size: var(--fs-2xs);
+    line-height: 1.35;
+}
+
 .ov-kpi {
     margin: 0;
     color: var(--text-strong);
@@ -714,9 +763,14 @@ html[data-frame="tablet"][data-shell="overview"] #pane-overview-hero {
     order: 1;
 }
 
+html[data-frame="phone"][data-shell="overview"] #pane-overview-more,
+html[data-frame="tablet"][data-shell="overview"] #pane-overview-more {
+    order: 2;
+}
+
 html[data-frame="phone"][data-shell="overview"] .ledger-stage,
 html[data-frame="tablet"][data-shell="overview"] #cal-col {
-    order: 2;
+    order: 3;
 }
 
 html[data-shell="overview"] #view-app,
@@ -6861,9 +6915,14 @@ textarea:focus-visible {
     background: #151515;
 }
 
-[data-theme="dark"] .planner-goal-card.is-unachievable {
+[data-theme="dark"] .planner-goal-card.is-unachievable,
+[data-theme="dark"] .ov-goal-alert {
     border-color: #777;
     background: #101010;
+}
+
+[data-theme="dark"] .ov-goal-alert-state {
+    color: #ddd;
 }
 
 [data-theme="dark"] .is-achievable .goal-state {

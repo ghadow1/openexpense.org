@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     GOAL_STATES,
     assessGoals,
+    atRiskGoals,
     goalDaysRemaining,
     goalMilestones,
     sanitizeGoal,
@@ -67,6 +68,21 @@ test('feasibility allocates savings and surplus once in priority order', () => {
     assert.equal(assessed.goals[1].state, GOAL_STATES.UNACHIEVABLE);
     assert.equal(assessed.totalAllocatedMonthly, 400);
     assert.equal(assessed.unallocatedMonthlySurplus, 0);
+});
+
+test('at-risk goals are priced targets the current surplus cannot finish', () => {
+    const assessed = assessGoals([
+        { id: GOAL_A, title: 'Covered', targetDate: '2026-09-18', targetAmount: 100, createdAt: 1 },
+        { id: GOAL_B, title: 'Short', targetDate: '2026-09-18', targetAmount: 500, createdAt: 2 },
+        { id: '33333333333333333333333333333333', title: 'Note', targetDate: '2026-09-18', createdAt: 3 }
+    ], {
+        currentSavings: 100,
+        monthlySurplus: 0,
+        asOf: new Date(2026, 7, 19)
+    });
+    const risky = atRiskGoals(assessed);
+    assert.equal(risky.length, 1);
+    assert.equal(risky[0].title, 'Short');
 });
 
 test('amount-free goals stay neutral and do not consume allocation', () => {

@@ -59,7 +59,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `#view-app` | `app/views.js` | Overview, Tracker, Planner |
 | `#view-docs` | `app/views.js` | Privacy & Help |
 | `#overview-hero-root` | `features/dash-strip.js` | Potential Savings / compact strip |
-| `#overview-more-root` | `features/dash-strip.js` | Extra Overview cards (often empty) |
+| `#overview-more-root` | `features/dash-strip.js` | Off-track goal warning on phone/tablet; empty otherwise |
 | `#planner-root` | `features/dash-strip.js` | Planner workspace |
 | `[data-plan-pane]` | `features/dash-strip.js` | Quality settings / Banking info |
 | `.planner-goal-add` | `features/goals.js` | Dark navy square goal-creation trigger |
