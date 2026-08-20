@@ -66,6 +66,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `[data-goal-id]` | `features/goals.js` | Ordered goal card and drag-priority identity |
 | `#tracker-head-root` | `features/dash-strip.js` | Tracker page title on phone/tablet |
 | `#cal-col` | `features/calendar.js` | Month grid |
+| `.cal-week-net` | `features/calendar.js` | Rotated week net on the left rail |
 | `#sidebar` | `features/sidebar.js` | Monthly spending / income register |
 | `#modal` | `features/modal.js` | Day editor |
 | `.dock-tab[data-view]` | `app/views.js` | Bottom tabs |

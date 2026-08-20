@@ -3617,7 +3617,7 @@ html.is-action-busy [data-lockable] {
    Calendar grid
    ========================================================================== */
 .cal-shell {
-    --cal-rail: 4px;
+    --cal-rail: 16px;
     --cal-gap: 0px;
 }
 
@@ -3660,23 +3660,61 @@ html.is-action-busy [data-lockable] {
 }
 
 .cal-week-rail {
+    position: relative;
+    display: grid;
+    place-items: center;
     width: var(--cal-rail);
     align-self: stretch;
-    margin: 4px 0;
-    border-radius: 1px;
+    margin: 2px 0;
+    overflow: hidden;
     background: transparent;
 }
 
-.cal-week.is-over-week .cal-week-rail {
+.cal-week-rail-bar {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 50%;
+    width: 3px;
+    transform: translateX(-50%);
+    border-radius: 1px;
+    background: transparent;
+    pointer-events: none;
+}
+
+.cal-week.is-over-week .cal-week-rail-bar {
     background: var(--danger-text);
 }
 
-.cal-week.is-warn-week .cal-week-rail {
+.cal-week.is-warn-week .cal-week-rail-bar {
     background: linear-gradient(
         180deg,
         var(--danger-text) 0 50%,
         var(--text-muted) 50% 100%
     );
+}
+
+.cal-week-net {
+    position: relative;
+    z-index: 1;
+    padding: 3px 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    color: var(--text2);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-week-net.is-up {
+    color: var(--income);
+}
+
+.cal-week-net.is-down {
+    color: var(--text2);
 }
 
 .cal-shell[data-density="tablet"] .cal-grid {
@@ -7249,12 +7287,21 @@ textarea:focus-visible {
     background: #000;
 }
 
-[data-theme="dark"] .cal-week.is-over-week .cal-week-rail {
+[data-theme="dark"] .cal-week.is-over-week .cal-week-rail-bar {
     background: #a3a3a3;
 }
 
-[data-theme="dark"] .cal-week.is-warn-week .cal-week-rail {
+[data-theme="dark"] .cal-week.is-warn-week .cal-week-rail-bar {
     background: linear-gradient(180deg, #a3a3a3 0 50%, #525252 50% 100%);
+}
+
+[data-theme="dark"] .cal-week-net {
+    background: color-mix(in srgb, #000 88%, transparent);
+    color: #aaa;
+}
+
+[data-theme="dark"] .cal-week-net.is-up {
+    color: #fff;
 }
 
 [data-theme="dark"] .cal-day-num.is-today {
