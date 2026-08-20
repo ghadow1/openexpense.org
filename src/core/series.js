@@ -6,6 +6,7 @@
  * quarterly. Used by the day editor and calendar pills.
  */
 import { Utils } from './utils.js';
+import { FILE_LIMITS } from './limits.js';
 
 export const REPEAT = {
     weekly: { id: 'weekly', days: 7, label: 'Weekly', short: 'Weekly' },
@@ -149,19 +150,31 @@ function seriesEntry(updated, paid, previous = null) {
     return row;
 }
 
+function countEventRows(events) {
+    let total = 0;
+    for (const list of Object.values(events || {})) {
+        if (Array.isArray(list)) total += list.length;
+    }
+    return total;
+}
+
 /** Add about a year of future copies from startKey. Existing matches are left alone. */
 export function seedRecurringCopies(events, baseEvent, startKey) {
     const nextEvents = { ...events };
     const cadence = normalizeRepeat(baseEvent.repeat);
     const copies = seriesCopyCount(cadence);
+    let total = countEventRows(nextEvents);
 
     for (let i = 1; i <= copies; i++) {
+        if (total >= FILE_LIMITS.maxEntries) break;
         const nextKey = nextOccurrenceKey(startKey, cadence, i);
         const list = nextEvents[nextKey] ? [...nextEvents[nextKey]] : [];
+        if (list.length >= FILE_LIMITS.maxPerDay) continue;
         const exists = list.some((entry) => isSameSeries(baseEvent, entry));
         if (!exists) {
             list.push({ ...baseEvent, paid: false, repeat: cadence });
             nextEvents[nextKey] = list;
+            total += 1;
         }
     }
 

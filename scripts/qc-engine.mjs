@@ -11,6 +11,8 @@ import { createSession } from '../src/engine/session.js';
 import { sanitizeEntry } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
 import { parseReceipt } from '../src/features/receipt-parse.js';
+import { normalizeParentOrigin } from '../src/engine/bridge.js';
+import { readFile } from 'node:fs/promises';
 
 test('categorizer maps messy merchant strings', () => {
     assert.equal(categorize({ merchant: "SQ *TRADER JOE'S #123" }).category, 'Groceries');
@@ -123,6 +125,29 @@ test('sanitize keeps host fields and drops unknown ones', () => {
 test('embed.html is a public path', () => {
     assert.equal(shouldShowNotFound('/embed.html'), false);
     assert.equal(shouldShowNotFound('/engine.js'), false);
+});
+
+test('parent origins are https or local http, never wildcards', () => {
+    assert.equal(normalizeParentOrigin('https://bank.example'), 'https://bank.example');
+    assert.equal(normalizeParentOrigin('https://bank.example/app?x=1'), 'https://bank.example');
+    assert.equal(normalizeParentOrigin('http://localhost:3000'), 'http://localhost:3000');
+    assert.equal(normalizeParentOrigin('http://127.0.0.1'), 'http://127.0.0.1');
+    assert.equal(normalizeParentOrigin('http://evil.example'), '');
+    assert.equal(normalizeParentOrigin('*'), '');
+    assert.equal(normalizeParentOrigin('null'), '');
+    assert.equal(normalizeParentOrigin('https://user:pass@bank.example'), '');
+    assert.equal(normalizeParentOrigin('javascript:alert(1)'), '');
+});
+
+test('404 and embed pages carry the home CSP', async () => {
+    const csp = /http-equiv="Content-Security-Policy"/;
+    const home = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+    const missing = await readFile(new URL('../404.html', import.meta.url), 'utf8');
+    const embed = await readFile(new URL('../embed.html', import.meta.url), 'utf8');
+    assert.match(home, csp);
+    assert.match(missing, csp);
+    assert.match(embed, csp);
+    assert.match(missing, /href="\/icons\/icon\.svg"/);
 });
 
 test('receipt dates reject calendar rollovers', () => {

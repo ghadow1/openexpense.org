@@ -1,6 +1,10 @@
 # Required production security headers
 
-The HTML meta policy provides partial defense in depth. Configure these as HTTP response headers at the hosting/CDN layer:
+The HTML meta policy provides partial defense in depth. Configure these as HTTP response headers at the hosting/CDN layer.
+
+GitHub Pages cannot set arbitrary response headers (including `frame-ancestors`). `X-Frame-Options: DENY` / `frame-ancestors 'none'` on **every** path would also block the documented `/embed.html` iframe. If you add a reverse proxy, keep the default wallet unframed and allow embedding only for `/embed.html` (and `/?embed=1`) from known bank origins.
+
+Default wallet (not for the embed path):
 
 ```text
 Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests

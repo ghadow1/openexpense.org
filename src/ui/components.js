@@ -4,6 +4,16 @@
  * Buttons and text inputs that use design-system classes (ui-btn, text-input)
  * so light/dark tokens restyle them without inline colors.
  */
+const ICON_NAME = /^[a-z0-9-]+$/;
+
+function appendIcon(node, name) {
+    if (!ICON_NAME.test(String(name || ''))) return;
+    const icon = document.createElement('i');
+    icon.className = `ti ti-${name}`;
+    icon.setAttribute('aria-hidden', 'true');
+    node.appendChild(icon);
+}
+
 export const UI = {
     // Buttons and inputs use design-system classes so light/dark tokens restyle
     // them automatically, including when nodes are cached in the DOM.
@@ -18,8 +28,12 @@ export const UI = {
         btn.className = classes.join(' ');
 
         if (opts.icon) {
-            const showLabel = !!label && !opts.iconOnly;
-            btn.innerHTML = `<i class="ti ti-${opts.icon}" aria-hidden="true"></i>${showLabel ? `<span>${label}</span>` : ''}`;
+            appendIcon(btn, opts.icon);
+            if (label && !opts.iconOnly) {
+                const text = document.createElement('span');
+                text.textContent = label;
+                btn.appendChild(text);
+            }
             if (opts.iconOnly && label) {
                 btn.setAttribute('aria-label', label);
                 btn.title = label;

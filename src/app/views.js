@@ -95,7 +95,7 @@ export function switchView(viewName) {
     persistShellTab(tab);
     if (getState().shellTab !== tab) patch({ shellTab: tab });
     applyShell(tab);
-    if (tab !== 'privacy') render();
+    if (tab !== 'privacy') render({ shellTab: true });
     window.scrollTo(0, 0);
 }
 

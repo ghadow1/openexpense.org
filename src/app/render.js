@@ -10,6 +10,7 @@ import { renderSidebar } from '../features/sidebar.js';
 import { renderDashStrip } from '../features/dash-strip.js';
 import { getState } from '../core/store.js';
 import { Ledger } from '../features/ledger.js';
+import { readFrame } from '../ui/frame.js';
 
 let themeToggleBtn = null;
 let autosaveToggleBtn = null;
@@ -18,9 +19,35 @@ function createHeaderIconBtn(icon, onClick) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'header-icon-btn';
-    btn.innerHTML = `<i class="ti ti-${icon}" aria-hidden="true"></i>`;
+    const mark = document.createElement('i');
+    mark.className = `ti ti-${icon}`;
+    mark.setAttribute('aria-hidden', 'true');
+    btn.appendChild(mark);
     btn.onclick = onClick;
     return btn;
+}
+
+function activeShell() {
+    return getState().shellTab || 'overview';
+}
+
+function calendarOnScreen() {
+    const tab = activeShell();
+    if (tab !== 'overview' && tab !== 'tracker') return false;
+    if (readFrame() === 'phone' && tab === 'tracker') return false;
+    return true;
+}
+
+function sidebarOnScreen() {
+    const tab = activeShell();
+    if (tab !== 'overview' && tab !== 'tracker') return false;
+    if (readFrame() === 'phone' && tab === 'overview') return false;
+    return true;
+}
+
+function dashOnScreen() {
+    const tab = activeShell();
+    return tab === 'overview' || tab === 'tracker' || tab === 'planner';
 }
 
 /**
@@ -34,10 +61,10 @@ export const RENDER_DEPS = {
     privacyStatus: ['storageEncrypted', 'autosaveEnabled'],
     fileStatus: ['ledgerName', 'events'],
     ledgerNameInput: ['ledgerName'],
-    calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter'],
+    calendar: ['isDark', 'currentDate', 'events', 'plan', 'trackerFilter', 'shellTab'],
     // "dash" is the Overview + Planner + Tracker-head paint in dash-strip.js.
-    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'goals', 'trackerFilter'],
-    sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter']
+    dash: ['isDark', 'currentDate', 'events', 'budgets', 'plan', 'goals', 'trackerFilter', 'shellTab'],
+    sidebar: ['isDark', 'currentDate', 'events', 'ledgerFace', 'budgets', 'plan', 'trackerFilter', 'shellTab']
 };
 
 /** A null or empty patch means "redraw everything". */
@@ -54,9 +81,9 @@ export function render(changedKeys) {
     if (shouldRender('privacyStatus', keys)) updatePrivacyStatus();
     if (shouldRender('fileStatus', keys)) updateFileStatus();
     if (shouldRender('ledgerNameInput', keys)) syncLedgerNameInput();
-    if (shouldRender('calendar', keys)) renderCalendar(keys);
-    if (shouldRender('dash', keys)) renderDashStrip(); // Overview, Tracker head, Planner
-    if (shouldRender('sidebar', keys)) renderSidebar(keys);
+    if (shouldRender('calendar', keys) && calendarOnScreen()) renderCalendar(keys);
+    if (shouldRender('dash', keys) && dashOnScreen()) renderDashStrip();
+    if (shouldRender('sidebar', keys) && sidebarOnScreen()) renderSidebar(keys);
 }
 
 function updatePrivacyStatus() {
@@ -135,7 +162,11 @@ function updateThemeToggle() {
         toggleSlot.appendChild(themeToggleBtn);
     }
 
-    themeToggleBtn.innerHTML = `<i class="ti ti-${face.nextIcon}" aria-hidden="true"></i>`;
+    themeToggleBtn.replaceChildren();
+    const nextIcon = document.createElement('i');
+    nextIcon.className = `ti ti-${face.nextIcon}`;
+    nextIcon.setAttribute('aria-hidden', 'true');
+    themeToggleBtn.appendChild(nextIcon);
     themeToggleBtn.setAttribute('aria-label', `Switch to ${face.nextLabel} theme`);
     themeToggleBtn.title = `${face.label} theme · tap for ${face.nextLabel}`;
     themeToggleBtn.onclick = () => setTheme(!getState().isDark);
@@ -153,7 +184,11 @@ function updateAutosaveToggle() {
     }
 
     autosaveToggleBtn.classList.toggle('is-active', autosaveEnabled);
-    autosaveToggleBtn.innerHTML = `<i class="ti ti-device-floppy autosave-icon" aria-hidden="true"></i>`;
+    autosaveToggleBtn.replaceChildren();
+    const floppy = document.createElement('i');
+    floppy.className = 'ti ti-device-floppy autosave-icon';
+    floppy.setAttribute('aria-hidden', 'true');
+    autosaveToggleBtn.appendChild(floppy);
     autosaveToggleBtn.setAttribute('aria-label', autosaveEnabled ? 'Autosave on' : 'Autosave off');
     autosaveToggleBtn.setAttribute('aria-pressed', autosaveEnabled ? 'true' : 'false');
     autosaveToggleBtn.title = autosaveEnabled

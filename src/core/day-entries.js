@@ -6,7 +6,8 @@
  * unknown keys out of the file.
  */
 import { Utils } from './utils.js';
-import { isValidDateKey } from './ledger-file.js';
+import { countEntries, isValidDateKey } from './ledger-file.js';
+import { FILE_LIMITS } from './limits.js';
 import { normalizeGroup } from './groups.js';
 
 function cloneEntry(entry) {
@@ -42,12 +43,14 @@ export function moveIndexes(events, fromKey, indexes, toKey) {
     }
 
     const moved = wanted.map((i) => from[i]);
+    const dest = dayList(events, toKey);
+    if (dest.length + moved.length > FILE_LIMITS.maxPerDay) return events;
     for (let i = wanted.length - 1; i >= 0; i -= 1) from.splice(wanted[i], 1);
 
     const next = { ...events };
     if (from.length) next[fromKey] = from;
     else delete next[fromKey];
-    next[toKey] = [...dayList(next, toKey), ...moved];
+    next[toKey] = [...dest, ...moved];
     return next;
 }
 
@@ -66,6 +69,8 @@ export function duplicateAt(events, dateKey, index) {
     const list = [...dayList(events, dateKey)];
     const i = Number(index);
     if (!list[i]) return events;
+    if (list.length >= FILE_LIMITS.maxPerDay) return events;
+    if (countEntries(events) >= FILE_LIMITS.maxEntries) return events;
     const copy = cloneEntry(list[i]);
     copy.recurring = false;
     delete copy.repeat;

@@ -54,6 +54,13 @@ test('a theme swap reaches everything that paints colour', () => {
     }
 });
 
+test('a shell-tab change reaches the calendar, dash, and sidebar', () => {
+    assert.equal(shouldRender('calendar', ['shellTab']), true);
+    assert.equal(shouldRender('dash', ['shellTab']), true);
+    assert.equal(shouldRender('sidebar', ['shellTab']), true);
+    assert.equal(shouldRender('privacyStatus', ['shellTab']), false);
+});
+
 test('changing month repaints the calendar, dash, and sidebar', () => {
     assert.equal(shouldRender('calendar', ['currentDate']), true);
     assert.equal(shouldRender('dash', ['currentDate']), true);

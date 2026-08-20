@@ -23,7 +23,7 @@
  * @property {number|null} editingIndex Row index in that day, or null.
  * @property {LedgerFace} ledgerFace Which monthly-register face is showing.
  * @property {TrackerFilter} trackerFilter Calendar + toolbar filter.
- * @property {ShellTab} shellTab Active bottom tab.
+ * @property {ShellTab} shellTab Active primary tab.
  */
 import { CONFIG, THEMES } from '../config.js';
 

@@ -1,7 +1,8 @@
 /**
  * OpenExpense — parent-frame message bridge
  *
- * Off unless embed mode or allowOrigin() is called. Origin must match.
+ * Cross-origin postMessage is embed-only. The default wallet never binds,
+ * even if allowOrigin() is called. Parent origin must be https (or local http).
  */
 const HELLO = 'oe:hello';
 const GET = 'oe:get';
@@ -19,11 +20,35 @@ export function isEmbedMode() {
     }
 }
 
-function allowedOrigin(explicit) {
-    if (explicit && explicit !== '*') return explicit;
+/**
+ * Accept a host origin string. Paths, queries, and fragments are dropped.
+ * Wildcards, credentials, and non-https remote schemes are rejected.
+ */
+export function normalizeParentOrigin(value) {
+    if (value == null) return '';
+    const raw = String(value).trim();
+    if (!raw || raw === '*' || raw.toLowerCase() === 'null') return '';
+    let url;
     try {
-        const fromQuery = new URLSearchParams(location.search).get('origin');
-        if (fromQuery && fromQuery !== '*') return fromQuery;
+        url = new URL(raw);
+    } catch {
+        return '';
+    }
+    if (url.username || url.password) return '';
+    if (!url.origin || url.origin === 'null') return '';
+    const host = String(url.hostname || '');
+    if (!host || host.includes('*')) return '';
+    const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    if (url.protocol === 'https:') return url.origin;
+    if (url.protocol === 'http:' && local) return url.origin;
+    return '';
+}
+
+function allowedOrigin(explicit) {
+    const fromExplicit = normalizeParentOrigin(explicit);
+    if (fromExplicit) return fromExplicit;
+    try {
+        return normalizeParentOrigin(new URLSearchParams(location.search).get('origin'));
     } catch (_) { }
     return '';
 }
@@ -35,6 +60,7 @@ function reply(source, origin, payload) {
 
 export function bindHostBridge(api, origin) {
     if (window.__oeBridgeBound) return;
+    if (!isEmbedMode()) return;
     const allow = allowedOrigin(origin);
     if (!allow) return;
     window.__oeBridgeBound = true;

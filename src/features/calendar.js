@@ -16,6 +16,7 @@ import { monthDaySpend } from '../core/plan.js';
 import { UI } from '../ui/components.js';
 import { openModal } from './modal.js';
 import { moveIndexes } from '../core/day-entries.js';
+import { entryCapacityError } from '../core/ledger-file.js';
 import { dismissUndo } from './undo-delete.js';
 import { Toast } from '../ui/toast.js';
 import { clearDropMarks, dayCellFromPoint, makeGhost, placeGhost } from '../ui/pointer-drag.js';
@@ -78,6 +79,11 @@ function bindCalendarEntryDrag(grid) {
             skipPillOpen = true;
             if (!destKey || destKey === fromKey) return;
             const { events } = getState();
+            const blocked = entryCapacityError(events, destKey, indexes.length);
+            if (blocked) {
+                Toast.show(blocked, 'error');
+                return;
+            }
             const next = moveIndexes(events, fromKey, indexes, destKey);
             if (next === events) return;
             dismissUndo();
@@ -498,11 +504,11 @@ export function bindResponsiveCalendar() {
     boundResize = true;
 
     const col = document.getElementById('cal-col');
-    window.addEventListener('resize', refreshCalendarDensity);
-
     if (col && typeof ResizeObserver !== 'undefined') {
         const observer = new ResizeObserver(() => refreshCalendarDensity());
         observer.observe(col);
+    } else {
+        window.addEventListener('resize', refreshCalendarDensity);
     }
 
     lastDensity = getCalendarDensity(col);

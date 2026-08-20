@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#002244">
   <title>Page not found — OpenExpense</title>
   <meta name="description" content="This address is not a page on OpenExpense. The encrypted local expense ledger lives on the home page.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="canonical" href="https://www.openexpense.org/">
-  <link rel="icon" href="https://www.openexpense.org/icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <style>
     :root {
       --navy: #002244;
@@ -93,7 +95,7 @@
 </head>
 <body>
   <header class="bar">
-    <img src="https://www.openexpense.org/icons/icon.svg" width="36" height="36" alt="">
+    <img src="/icons/icon.svg" width="36" height="36" alt="">
     <div>
       <strong>OpenExpense</strong>
       <span>Local encrypted wallet</span>

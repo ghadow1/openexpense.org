@@ -388,3 +388,22 @@ export function countEntries(events) {
         sum + (Array.isArray(list) ? list.length : 0)
     ), 0);
 }
+
+/**
+ * User-facing reason a live add would exceed import/autosave caps.
+ * `extra` is how many new rows the write would place on `dateKey`.
+ */
+export function entryCapacityError(events, dateKey, extra = 1) {
+    const add = Math.max(0, Number(extra) || 0);
+    if (!add) return '';
+    if (isValidDateKey(dateKey)) {
+        const perDay = Array.isArray(events?.[dateKey]) ? events[dateKey].length : 0;
+        if (perDay + add > FILE_LIMITS.maxPerDay) {
+            return `This day already has ${FILE_LIMITS.maxPerDay} entries.`;
+        }
+    }
+    if (countEntries(events) + add > FILE_LIMITS.maxEntries) {
+        return `This ledger already has ${FILE_LIMITS.maxEntries} entries.`;
+    }
+    return '';
+}

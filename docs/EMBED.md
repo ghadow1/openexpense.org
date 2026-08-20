@@ -46,6 +46,10 @@ OpenExpense.allowOrigin('https://bank.example')
 Every write is sanitized with the same allowlist as import/autosave.
 `getSnapshot()` returns `goalAssessment` when ordered goals are present.
 
+`allowOrigin` only enables the cross-origin `postMessage` bridge in **embed mode** (`embed.html` or `?embed=1`). On the default wallet it is a no-op, so a parent frame cannot read or write the visitor’s IndexedDB ledger. Same-origin `get` / `set` / `importTransactions` still work after boot.
+
+Parent origins must be `https:` (or `http:` on `localhost` / `127.0.0.1` / `::1`). Wildcards, credentials, and other schemes are rejected. A path on the origin URL is ignored (`https://bank.example/app` becomes `https://bank.example`).
+
 ## 3. iframe
 
 ```html
@@ -60,7 +64,7 @@ iframe.contentWindow.postMessage({
 }, 'https://www.openexpense.org');
 ```
 
-The iframe only accepts `channel: 'openexpense'` from the `origin` query (or `allowOrigin`). It does not load the visitor’s IndexedDB ledger and does not autosave unless the user turns autosave on.
+The iframe only accepts `channel: 'openexpense'` from a validated `origin` query (or `allowOrigin` in embed mode). It does not load the visitor’s IndexedDB ledger and does not autosave unless the user turns autosave on.
 
 | type | payload | reply |
 | --- | --- | --- |

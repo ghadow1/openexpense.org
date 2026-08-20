@@ -15,7 +15,7 @@ import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
-import { isValidDateKey, sanitizeEntry } from '../core/ledger-file.js';
+import { isValidDateKey, sanitizeEntry, countEntries, entryCapacityError } from '../core/ledger-file.js';
 import {
     REPEAT,
     countSeriesOccurrences,
@@ -33,7 +33,6 @@ import {
     addDaysToKey
 } from '../core/series.js';
 import { dismissUndo, offerDeleteUndo } from './undo-delete.js';
-import { countEntries } from '../core/ledger-file.js';
 import {
     assignGroupToIndexes,
     clearGroupAt,
@@ -607,8 +606,14 @@ export function saveExpense({ dateKey, title, price, note, recurring = false, pa
     const newEv = sanitizeEntry(entryCandidate);
     if (!newEv) return false;
 
-    dismissUndo();
     const { events } = getState();
+    const blocked = entryCapacityError(events, dateKey);
+    if (blocked) {
+        Toast.show(blocked, 'error');
+        return false;
+    }
+
+    dismissUndo();
     const nextEvents = { ...events };
     if (!nextEvents[dateKey]) nextEvents[dateKey] = [];
     else nextEvents[dateKey] = [...nextEvents[dateKey]];
@@ -794,6 +799,11 @@ function quickTogglePaid(index) {
 
 function quickDuplicate(index) {
     const { events, selectedKey } = getState();
+    const blocked = entryCapacityError(events, selectedKey);
+    if (blocked) {
+        Toast.show(blocked, 'error');
+        return;
+    }
     const item = events[selectedKey]?.[index];
     applyLedgerEvents(duplicateAt(events, selectedKey, index));
     refreshEventList();
@@ -929,28 +939,36 @@ async function saveEdit(i) {
     const original = events[selectedKey]?.[i];
     if (!original) return;
 
-    const updatedEv = {
-        title, note: document.getElementById(`edit-note-${i}`).value.trim(),
-        price: price ? parseFloat(price) : null, recurring: isRecurring,
+    const parsedPrice = String(price || '').trim() !== ''
+        ? parseFloat(String(price).replace(/[^0-9.]/g, ''))
+        : null;
+    const draft = {
+        title,
+        note: document.getElementById(`edit-note-${i}`).value.trim(),
+        price: parsedPrice != null && !Number.isNaN(parsedPrice) ? parsedPrice : null,
+        recurring: isRecurring,
         paid: document.getElementById(`edit-paid-${i}`).checked,
         kind: readKind(`edit-kind-${i}`)
     };
-    if (updatedEv.kind === 'expense') delete updatedEv.kind;
+    if (draft.kind === 'expense') delete draft.kind;
     if (isRecurring) {
-        updatedEv.repeat = readRepeat(`edit-repeat-${i}`);
-        updatedEv.seriesId = original.seriesId || createSeriesId();
+        draft.repeat = readRepeat(`edit-repeat-${i}`);
+        draft.seriesId = original.seriesId || createSeriesId();
     }
-    else delete updatedEv.repeat;
+    else delete draft.repeat;
 
     const picked = editPickers.get(i)?.getValue() ?? '';
-    if (picked) updatedEv.category = picked;
-    else delete updatedEv.category;
+    if (picked) draft.category = picked;
+    else delete draft.category;
 
     // Read even when empty: clearing the field has to be able to remove a group,
     // which an if-truthy guard would silently ignore.
     const pickedGroup = editGroupFields.get(i)?.getValue() ?? '';
-    if (pickedGroup) updatedEv.group = pickedGroup;
-    else delete updatedEv.group;
+    if (pickedGroup) draft.group = pickedGroup;
+    else delete draft.group;
+
+    const updatedEv = sanitizeEntry(draft);
+    if (!updatedEv) return;
 
     const destKey = isValidDateKey(dateInput) ? dateInput : selectedKey;
     const dateChanged = destKey !== selectedKey;
@@ -1031,6 +1049,14 @@ async function saveEdit(i) {
             });
             if (!result?.confirmed) return;
             applyGroupToAll = result.choice === 'all';
+        }
+    }
+
+    if (destKey !== selectedKey) {
+        const blocked = entryCapacityError(events, destKey);
+        if (blocked) {
+            Toast.show(blocked, 'error');
+            return;
         }
     }
 

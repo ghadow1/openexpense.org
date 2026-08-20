@@ -82,7 +82,7 @@
         "operatingSystem": "Any (mobile and desktop browsers)",
         "browserRequirements": "Requires JavaScript and a secure context (HTTPS).",
         "softwareVersion": "2.2.0",
-        "dateModified": "2026-08-17",
+        "dateModified": "2026-08-20",
         "isAccessibleForFree": true,
         "license": "https://opensource.org/licenses/MIT",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -566,15 +566,17 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Four-tab shell</h3>
                   <p>
-                    The bottom bar is <strong>Overview</strong>, <strong>Tracker</strong>,
-                    <strong>Planner</strong>, and <strong>Privacy</strong>. The calendar and month
-                    register stay on the main view under every app tab.
-                    Overview adds the cash snapshot above that board: potential savings, daily safe spend,
-                    deposited vs expected, paid vs pending, and the year income and spending lines.
-                    Tracker is the same board with All / Expenses / Income in focus.
-                    Planner holds tax withhold, savings holds, 50/30/20, and daily safe spend above
-                    the same calendar.
-                    Privacy is this help plus backup, import, and clear.
+                    The four tabs are <strong>Overview</strong>, <strong>Tracker</strong>,
+                    <strong>Planner</strong>, and <strong>Privacy</strong>. On a phone they sit
+                    on a bottom bar. On a tablet or computer they sit in the header so the
+                    ledger can use the full screen.
+                    On a phone, Overview is Potential Savings plus the month calendar, and
+                    Tracker is the filter plus the monthly spending register.
+                    On a tablet or computer, Overview and Tracker keep the calendar and
+                    register side by side; Overview also stretches Potential Savings across
+                    the top. Planner hides that board and holds tax withhold, savings holds,
+                    50/30/20, and daily safe spend. Privacy is this help plus backup, import,
+                    and clear.
                   </p>
                   <p>
                     Account math is unchanged:
@@ -727,7 +729,7 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">Receipt scanning</h3>
                   <p>
-                    Tap <strong>Scan</strong> on the calendar toolbar or the floating scan button. Paper receipts,
+                    Tap <strong>Scan</strong> on the Tracker toolbar or on a day sheet. Paper receipts,
                     PDF invoices, emailed bills, and screenshots all work. On first use, the app downloads a local
                     OCR engine (~5 MB) and caches it in your browser — processing never leaves your device. The
                     reader enhances low-light photos and prefers labeled totals so tax lines are less likely to
@@ -865,16 +867,27 @@
 
               <div class="docs-prose">
                 <section class="docs-chapter">
+                  <h3 class="docs-section-title">20 August 2026 — Full-width tablet and desktop board</h3>
+                  <p>
+                    Phone tabs stay on the bottom bar. On a tablet or computer the four tabs
+                    move into the header. Overview and Tracker then show the month calendar
+                    beside the monthly register, and Overview stretches Potential Savings
+                    across both columns. Planner still hides that board.
+                  </p>
+                </section>
+
+                <section class="docs-chapter">
                   <h3 class="docs-section-title">18 August 2026 — Four-tab shell</h3>
                   <p>
                     The app is now <strong>Overview</strong>, <strong>Tracker</strong>,
-                    <strong>Planner</strong>, and <strong>Privacy</strong> on a bottom bar.
-                    The calendar stays on the main view. Overview is the snapshot above that
-                    board. Tracker is All / Expenses / Income on the same calendar.
-                    Planner holds safe-to-spend, tax withhold, savings holds, and 50/30/20
-                    above the same board.
-                    Privacy keeps help plus backup, import, and clear. The old stacked
-                    Expenses | Privacy and Overview | Income | Expenses | Planner rows are gone.
+                    <strong>Planner</strong>, and <strong>Privacy</strong>.
+                    On a phone the tabs sit on a bottom bar: Overview is the snapshot plus
+                    calendar, Tracker is All / Expenses / Income plus the monthly register,
+                    and Planner holds safe-to-spend without that board.
+                    Later tablet and desktop builds put the tabs in the header and show
+                    calendar and register together. Privacy keeps help plus backup, import,
+                    and clear. The old stacked Expenses | Privacy and Overview | Income |
+                    Expenses | Planner rows are gone.
                   </p>
                 </section>
 
@@ -1071,9 +1084,9 @@
                 <section class="docs-chapter">
                   <h3 class="docs-section-title">17 August 2026 — Sticky app chrome</h3>
                   <p>
-                    The navy header stays on screen while you scroll. Expenses and Privacy &amp; Help live in
-                    that bar. On a phone they wrap onto a second row instead of a bottom tab bar. Page gutters
-                    scale with the viewport.
+                    The navy header stays on screen while you scroll. Later builds moved
+                    phone tabs to a bottom bar and put tablet and desktop tabs in that header.
+                    Page gutters scale with the viewport.
                   </p>
                 </section>
 

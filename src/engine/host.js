@@ -61,6 +61,7 @@ export function createHostApi() {
         flagAnomalies: (events) => flagAnomalies(events || getState().events),
         budgetStatus: (opts) => budgetStatus(getState().events, opts),
         allowOrigin(origin) {
+            // postMessage stays embed-only; this is a no-op on the default wallet.
             bindHostBridge(createHostApi(), origin);
         }
     };

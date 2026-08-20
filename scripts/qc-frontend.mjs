@@ -71,6 +71,13 @@ test('visual state and accessibility state stay synchronized', async () => {
     assert.match(sidebar, /incomeFace\.setAttribute\('aria-hidden'/);
 });
 
+test('generated buttons do not interpolate labels as HTML', async () => {
+    const source = await read('src/ui/components.js');
+    assert.match(source, /textContent = label/);
+    assert.doesNotMatch(source, /innerHTML = `<i class="ti ti-\$\{opts\.icon\}"/);
+    assert.match(source, /ICON_NAME = \/\^\[a-z0-9-\]\+\$\//);
+});
+
 test('generated controls expose names and compatible roles', async () => {
     const [calendar, charts, toasts, focus, goals] = await Promise.all([
         read('src/features/calendar.js'),

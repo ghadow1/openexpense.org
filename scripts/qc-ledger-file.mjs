@@ -6,14 +6,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     sanitizeLedger, sanitizeEntry, sanitizePlan, validateEncFile, validateKeyFile,
-    kidsMatch, wipeKeyFile, classifyJson, countEntries, exportFilenames,
+    kidsMatch, wipeKeyFile, classifyJson, countEntries, entryCapacityError, exportFilenames,
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
 import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
 import { ZIP_LIMITS } from '../src/core/bundle-format.js';
 import { unzipBundle } from '../src/core/legacy-zip.js';
-import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel } from '../src/core/series.js';
+import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel, seedRecurringCopies } from '../src/core/series.js';
 import { zipSync } from 'fflate';
 
 const sample = {
@@ -307,4 +307,30 @@ test('readJsonFile rejects oversized and invalid files', async () => {
     const parsed = await readJsonFile(okFile);
     assert.equal(parsed.ok, true);
     assert.equal(parsed.obj.format, 'x');
+});
+
+test('live capacity errors match import caps', () => {
+    assert.equal(entryCapacityError({}, '2026-08-17'), '');
+    const fullDay = {
+        '2026-08-17': Array.from({ length: FILE_LIMITS.maxPerDay }, (_, i) => ({ title: `E${i}`, price: 1 }))
+    };
+    assert.match(entryCapacityError(fullDay, '2026-08-17'), /250 entries/);
+    assert.equal(entryCapacityError(fullDay, '2026-08-18'), '');
+});
+
+test('recurring seed stops at the per-day cap', () => {
+    const start = '2026-08-17';
+    const events = {
+        '2026-08-24': Array.from({ length: FILE_LIMITS.maxPerDay }, (_, i) => ({ title: `E${i}`, price: 1 }))
+    };
+    const next = seedRecurringCopies(events, {
+        title: 'Rent',
+        price: 10,
+        recurring: true,
+        repeat: 'weekly',
+        seriesId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    }, start);
+    assert.equal(next['2026-08-24'].length, FILE_LIMITS.maxPerDay);
+    assert.equal(next['2026-08-24'].some((row) => row.title === 'Rent'), false);
+    assert.equal(next['2026-08-31'][0].title, 'Rent');
 });

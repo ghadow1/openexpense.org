@@ -29,6 +29,7 @@ OCR/PDF executable code and model/runtime assets are served from the application
 | Corrupt ciphertext is mistaken for no ledger | Distinct load failure pauses autosave and preserves the record |
 | Clear leaves recoverable local ciphertext | Ciphertext and device key deleted in one transaction before success |
 | Crafted JSON/ZIP exhausts memory or pollutes objects | File, entry, expansion, field, date, and text limits; forbidden prototype keys |
+| Hostile parent frame reads the live wallet via postMessage | Bridge binds only in embed mode; parent origin must be https or local http; wildcards rejected |
 | Partial two-file folder update destroys usable backup | Verified recovery pair staged before overwrite |
 | Unrelated files are overwritten by filename collision | Existing destination must validate as a matching OpenExpense pair |
 | Receipt/PDF causes resource exhaustion | File, page, line, and extracted-text caps |

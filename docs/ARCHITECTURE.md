@@ -87,11 +87,13 @@ Future-dated recurring copies still count in month totals. Planner week bars
 compare actual spend with the cent-exact target allocated by
 `monthWeekBuckets()`.
 
-The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Tab** CSS (`html[data-shell]`) decides what that board shows, on every frame:
+The four primary tabs live in `.app-dock`. `#view-app` holds Overview, Tracker, and Planner. Privacy is `#view-docs`. The calendar and monthly spending register live in a shared `.ledger-stage` (not a `[data-shell]` pane). **Phone** CSS (`html[data-frame="phone"][data-shell]`) decides what that board shows; tablet and desktop flatten `#cal-col` and `#sidebar` so they share the screen:
 
-- **Overview** — Potential Savings (desktop: compact strip; growth potential when current bank savings is set) + calendar. No filter bar, no monthly spending card.
-- **Tracker** — Filter + Monthly spending. No calendar.
-- **Planner** — safe-spend hero, encrypted savings goals, and settings (Quality settings and Banking info); the shared board is hidden.
+- **Overview** — Potential Savings (desktop: compact strip across both columns; growth potential when current bank savings is set). Phone: calendar, no filter bar, no monthly spending card. Tablet/desktop: calendar + filter/actions + monthly register.
+- **Tracker** — All / Expenses / Income filter + monthly spending. Phone: no calendar. Tablet/desktop: the same two-pane board as Overview, without the snapshot strip.
+- **Planner** — safe-spend hero, encrypted savings goals, and settings (Quality settings and Banking info); the shared board is hidden on every frame.
+
+On a phone the dock is a bottom bar. On tablet and desktop it sits in the header.
 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 

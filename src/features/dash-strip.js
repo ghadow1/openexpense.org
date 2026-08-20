@@ -1224,11 +1224,23 @@ function syncTrackerFilter() {
  * The filename `dash-strip` is historical; this is not a fifth tab.
  */
 export function renderDashStrip() {
+    const tab = getState().shellTab;
+    if (tab === 'privacy') {
+        syncTrackerFilter();
+        return;
+    }
+
+    syncTrackerFilter();
+
     const { events, currentDate, plan, goals } = getState();
     const rules = sanitizePlan(plan);
-    const snap = computeNetSnapshot(events, currentDate, new Date(), rules, goals);
-    renderOverview(snap, events, currentDate, goals);
-    renderTrackerHead(snap);
-    renderPlannerPane(snap, events, currentDate, rules, goals);
-    syncTrackerFilter();
+    const needsSnapshot = tab === 'overview' || tab === 'planner'
+        || (tab === 'tracker' && readFrame() !== 'desktop');
+    const snap = needsSnapshot
+        ? computeNetSnapshot(events, currentDate, new Date(), rules, goals)
+        : null;
+
+    if (tab === 'overview') renderOverview(snap, events, currentDate, goals);
+    else if (tab === 'tracker') renderTrackerHead(snap || { monthLabel: '' });
+    else if (tab === 'planner') renderPlannerPane(snap, events, currentDate, rules, goals);
 }

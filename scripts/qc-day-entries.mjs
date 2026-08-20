@@ -19,6 +19,7 @@ import {
     suggestTitles,
     togglePaidAt
 } from '../src/core/day-entries.js';
+import { FILE_LIMITS } from '../src/core/limits.js';
 
 const coffee = { title: 'Coffee', price: 5, paid: true };
 const rent = {
@@ -137,6 +138,16 @@ test('ungrouping clears only the group', () => {
     const both = clearGroupAtIndexes(one, '2026-08-17', [1]);
     assert.equal(both['2026-08-17'][1].group, undefined);
     assert.equal(both['2026-08-17'][1].price, 90);
+});
+
+test('duplicateAt and moveIndexes refuse a full destination day', () => {
+    const date = '2026-08-17';
+    const full = {
+        [date]: Array.from({ length: FILE_LIMITS.maxPerDay }, (_, i) => ({ title: `E${i}`, price: 1 })),
+        '2026-08-18': [{ title: 'Coffee', price: 5 }]
+    };
+    assert.equal(duplicateAt(full, date, 0), full);
+    assert.equal(moveIndexes(full, '2026-08-18', [0], date), full);
 });
 
 test('day rows keep the amount off the action toolbar', async () => {

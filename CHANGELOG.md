@@ -6,6 +6,14 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-20 — Full-width tablet and desktop board
+
+Phone layout is unchanged. On a tablet or computer the four tabs sit in the header instead of a bottom bar, Overview and Tracker show the month calendar beside the monthly register, and Overview stretches Potential Savings across both columns. Planner still hides that board.
+
+## 2026-08-20 — Embed origin checks and live entry limits
+
+The parent-frame message bridge binds only in embed mode, and `?origin=` must be a real `https:` origin (or local `http:`). Live adds, duplicates, edits, and recurring copies now follow the same per-day and ledger caps as import. 404 and embed pages carry the same CSP as the home page.
+
 ## 2026-08-19 — Priority savings goals and modern charts
 
 Planner now keeps an ordered list of savings goals in the encrypted ledger. Set a target date and optional amount, drag cards into priority, and compare the required monthly pace with leftover surplus. Apply the result as a planner hold. Monthly and weekly charts show exact values to assistive tech, and year charts no longer invent a zero forecast after the last real month. Receipt review, OCR, and backup code load only when you use them, so the first page of JavaScript is smaller.
@@ -104,7 +112,7 @@ Editing a name or amount no longer rewrites every look-alike on its own. A **Cha
 
 ## 2026-08-17 — Product brochure
 
-A six-page A4 landscape marketing brochure lives in `docs/brochure/`. Print `openexpense-brochure.html` or open `openexpense-brochure.pdf`. Navy tokens, Inter, and live product copy. No change to the app UI.
+A six-page A4 landscape marketing brochure lives in `docs/brochure/`. Print `openexpense-brochure.html` to PDF if you need a file. Navy tokens, Inter, and live product copy. No change to the app UI.
 
 ## 2026-08-17 — Embeddable host engine
 
