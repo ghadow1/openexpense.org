@@ -752,15 +752,14 @@ html[data-frame="desktop"] #pane-tracker-head {
     display: none !important;
 }
 
-/* Phone keeps one surface per tab: Overview is snapshot + calendar,
-   Tracker is filter + monthly spending. Desktop and tablet share the
-   calendar and register so a wide screen is a two-pane board. */
-html[data-frame="phone"][data-shell="overview"] .tracker-toolbar,
-html[data-frame="phone"][data-shell="overview"] #sidebar {
+/* Overview is snapshot + calendar. Tracker is filter + monthly spending.
+   Same split on every frame; desktop/tablet just give each surface more width. */
+html[data-shell="overview"] .tracker-toolbar,
+html[data-shell="overview"] #sidebar {
     display: none !important;
 }
 
-html[data-frame="phone"][data-shell="tracker"] #cal-col {
+html[data-shell="tracker"] #cal-col {
     display: none !important;
 }
 
@@ -839,15 +838,16 @@ html[data-frame="tablet"] #view-app > #ledger-name-input {
     display: none;
 }
 
-/* Desktop: compact strip across the top, calendar left, register right. */
+/* Desktop: one primary surface per tab, full width. */
 html[data-frame="desktop"] #view-app {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-        "hero side"
-        "planner side"
-        "tools side"
-        "cal side";
+        "hero"
+        "planner"
+        "tools"
+        "cal"
+        "side";
     gap: clamp(16px, 2vw, 24px);
     align-items: start;
     width: 100%;
@@ -855,15 +855,14 @@ html[data-frame="desktop"] #view-app {
 
 html[data-frame="desktop"][data-shell="overview"] #view-app {
     grid-template-areas:
-        "hero hero"
-        "tools side"
-        "cal side";
+        "hero"
+        "cal";
 }
 
 html[data-frame="desktop"][data-shell="tracker"] #view-app {
     grid-template-areas:
-        "tools side"
-        "cal side";
+        "tools"
+        "side";
 }
 
 html[data-frame="desktop"][data-shell="planner"] #view-app {
@@ -877,7 +876,7 @@ html[data-frame="tablet"] .tracker-board {
     /*
      * Layout lock: these wrappers remain in the DOM for phone grid ownership
      * and delegated JS hooks. Desktop/tablet flatten them so #cal-col,
-     * #sidebar, and .tracker-toolbar participate in #view-app's track map.
+     * #sidebar, and .tracker-toolbar can each occupy the full #view-app column.
      */
     display: contents;
 }
@@ -902,7 +901,7 @@ html[data-frame="phone"] .ledger-stage {
     margin-top: 0;
 }
 
-/* Tablet portrait stays one column. Landscape (980+) borrows the desktop areas. */
+/* Tablet portrait stays one column. Landscape uses the same tab split as desktop. */
 html[data-frame="tablet"] .tracker-board {
     grid-template-columns: 1fr;
 }
@@ -910,12 +909,13 @@ html[data-frame="tablet"] .tracker-board {
 @media (min-width: 980px) {
     html[data-frame="tablet"] #view-app {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
-            "hero side"
-            "planner side"
-            "tools side"
-            "cal side";
+            "hero"
+            "planner"
+            "tools"
+            "cal"
+            "side";
         gap: 16px;
         align-items: start;
         width: 100%;
@@ -923,15 +923,14 @@ html[data-frame="tablet"] .tracker-board {
 
     html[data-frame="tablet"][data-shell="overview"] #view-app {
         grid-template-areas:
-            "hero hero"
-            "tools side"
-            "cal side";
+            "hero"
+            "cal";
     }
 
     html[data-frame="tablet"][data-shell="tracker"] #view-app {
         grid-template-areas:
-            "tools side"
-            "cal side";
+            "tools"
+            "side";
     }
 
     html[data-frame="tablet"][data-shell="planner"] #view-app {

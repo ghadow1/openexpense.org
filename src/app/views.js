@@ -4,9 +4,8 @@
  * Four primary tabs: Overview, Tracker, Planner, and Privacy.
  * Privacy is the existing docs pane. Overview keeps Potential Savings
  * (or the desktop compact strip). Tracker keeps the All / Expenses /
- * Income filter. Phone hides the register on Overview and the calendar
- * on Tracker. Wider frames show calendar and register together.
- * Hide rules live on `html[data-frame][data-shell]`.
+ * Income filter. Overview hides the register; Tracker hides the calendar.
+ * Hide rules live on `html[data-shell]`.
  */
 import { STORAGE_KEYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -39,9 +38,10 @@ export function persistShellTab(tab) {
  * Stamp `html[data-shell]`, swap `#view-app` / `#view-docs`, and hide
  * `[data-shell]` panes that are not this tab.
  *
- * `.ledger-stage` is not a pane. Frame CSS shows or hides `#cal-col`,
- * `#sidebar`, and `.tracker-toolbar` inside that shared board on phones.
- * Desktop and tablet flatten the board so those nodes share the screen.
+ * `.ledger-stage` is not a pane. CSS shows or hides `#cal-col`,
+ * `#sidebar`, and `.tracker-toolbar` inside that shared board.
+ * Desktop and tablet flatten the wrappers so the visible node can
+ * use the full `#view-app` column.
  *
  * @param {string} tab
  */

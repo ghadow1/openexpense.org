@@ -45,12 +45,12 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 | Tab | Phone | Tablet and desktop |
 | --- | --- | --- |
-| **Overview** | Potential Savings + month calendar. Hide `.tracker-toolbar` and `#sidebar`. | Compact strip across the top, then calendar + filter/actions on the left and the monthly register on the right. |
-| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. | Same two-pane board as Overview, without the snapshot strip. |
+| **Overview** | Potential Savings + month calendar. Hide `.tracker-toolbar` and `#sidebar`. | Compact strip + full-width calendar. Same hides. |
+| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. | Same, full width. |
 | **Planner** | Planner form only (`.ledger-stage` is `display: none`) | Same |
 | **Privacy** | `#view-docs` (help, backup, import, clear) | Same |
 
-`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. **Phone** CSS (`html[data-frame="phone"][data-shell]`) shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar`. Wider frames flatten those nodes into `#view-app` so the calendar and register share the screen. A phone-stamped desktop is how the two pages collapse back into one column.
+`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. CSS (`html[data-shell]`) shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar` on **every** frame. Wider frames flatten those nodes into `#view-app` so the visible surface can use the full column. A phone-stamped desktop is how the two pages collapse back into one stacked column.
 
 Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On tablet and desktop it sits in `.site-header-inner` (brand, tabs, status, actions).
 
@@ -158,7 +158,7 @@ npm run build     # after any src/ edit; commit app.js + chunk-*.js
 | --- | --- |
 | `qc-theme.mjs` | Dark theme stays greyscale |
 | `qc-frame.mjs` | Phone / tablet / desktop snaps |
-| `qc-build-output.mjs` | Overview hides `#sidebar` on phone; Tracker hides `#cal-col` |
+| `qc-build-output.mjs` | Overview hides `#sidebar`; Tracker hides `#cal-col` |
 | `qc-plan.mjs` / `qc-expense-income.mjs` | Leftover and cash math |
 | `qc-goals.mjs` | Goal normalization, length presets, pace math, priority allocation, feasibility |
 | `qc-ledger-file.mjs` | Encrypt, sanitize, key wipe |

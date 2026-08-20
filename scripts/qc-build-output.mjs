@@ -82,36 +82,41 @@ test('eager application JavaScript stays within the lite budget', async () => {
     );
 });
 
-test('phone Overview and Tracker split the board; desktop shares it', async () => {
+test('phone Overview and Tracker split the board; desktop keeps that split full width', async () => {
     const html = await readFile(join(ROOT, 'index.html'), 'utf8');
     assert.match(html, /id="overview-hero-root"/, 'Left to spend needs its own root');
     assert.match(html, /id="tracker-head-root"/, 'Tracker needs its own page head on mobile');
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
-        /html\[data-frame="phone"\]\[data-shell="overview"\] #sidebar/,
-        'phone Overview must hide monthly spending'
+        /html\[data-shell="overview"\] #sidebar/,
+        'Overview must hide monthly spending'
     );
     assert.match(
         css,
-        /html\[data-frame="phone"\]\[data-shell="overview"\] \.tracker-toolbar/,
-        'phone Overview must hide the All / Expenses / Income bar'
+        /html\[data-shell="overview"\] \.tracker-toolbar/,
+        'Overview must hide the All / Expenses / Income bar'
     );
     assert.match(
         css,
-        /html\[data-frame="phone"\]\[data-shell="tracker"\] #cal-col/,
-        'phone Tracker must hide the calendar'
+        /html\[data-shell="tracker"\] #cal-col/,
+        'Tracker must hide the calendar'
     );
-    assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the two-column board');
+    assert.match(css, /html\[data-frame="desktop"\] #view-app/, 'desktop must snap to the full-width board');
     assert.match(
         css,
-        /html\[data-frame="desktop"\] #view-app \{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(/,
-        'desktop keeps a calendar column and a register column'
+        /html\[data-frame="desktop"\] #view-app \{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\);/,
+        'desktop Overview and Tracker each use one full-width column'
     );
     assert.match(
         css,
-        /html\[data-frame="desktop"\]\[data-shell="overview"\] #view-app \{[\s\S]*?"hero hero"/,
-        'desktop Overview stretches Potential Savings across both columns'
+        /html\[data-frame="desktop"\]\[data-shell="overview"\] #view-app \{[\s\S]*?"hero"[\s\S]*?"cal"/,
+        'desktop Overview stacks Potential Savings above the calendar'
+    );
+    assert.doesNotMatch(
+        css,
+        /html\[data-frame="desktop"\]\[data-shell="tracker"\] #view-app \{[^}]*"cal"/,
+        'desktop Tracker must not place the calendar'
     );
     assert.match(css, /html\[data-frame="tablet"\]/, 'tablet must have its own frame');
 });

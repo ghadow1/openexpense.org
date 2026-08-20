@@ -49,12 +49,12 @@ test('only desktop overview paints the compact strip beside the calendar', async
     assert.match(src, /function renderTrackerHead/, 'Tracker gets its own mobile page head');
 });
 
-test('desktop flattens the board into a two-column calendar and register', async () => {
+test('desktop flattens the board so each tab can use the full column', async () => {
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
         /\.tracker-board \{[\s\S]*?align-items:\s*start;/,
-        'the two-column board still uses start so calendar and register do not share one height'
+        'the board still uses start so calendar and register do not share one height'
     );
     assert.match(
         css,

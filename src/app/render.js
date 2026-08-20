@@ -10,7 +10,6 @@ import { renderSidebar } from '../features/sidebar.js';
 import { renderDashStrip } from '../features/dash-strip.js';
 import { getState } from '../core/store.js';
 import { Ledger } from '../features/ledger.js';
-import { readFrame } from '../ui/frame.js';
 
 let themeToggleBtn = null;
 let autosaveToggleBtn = null;
@@ -32,17 +31,11 @@ function activeShell() {
 }
 
 function calendarOnScreen() {
-    const tab = activeShell();
-    if (tab !== 'overview' && tab !== 'tracker') return false;
-    if (readFrame() === 'phone' && tab === 'tracker') return false;
-    return true;
+    return activeShell() === 'overview';
 }
 
 function sidebarOnScreen() {
-    const tab = activeShell();
-    if (tab !== 'overview' && tab !== 'tracker') return false;
-    if (readFrame() === 'phone' && tab === 'overview') return false;
-    return true;
+    return activeShell() === 'tracker';
 }
 
 function dashOnScreen() {

@@ -8,7 +8,7 @@ These notes describe what is on `main` (the site at [openexpense.org](https://ww
 
 ## 2026-08-20 — Full-width tablet and desktop board
 
-Phone layout is unchanged. On a tablet or computer the four tabs sit in the header instead of a bottom bar, Overview and Tracker show the month calendar beside the monthly register, and Overview stretches Potential Savings across both columns. Planner still hides that board.
+Phone layout is unchanged. On a tablet or computer the four tabs sit in the header instead of a bottom bar. Overview is Potential Savings plus a full-width calendar. Tracker is the filter plus the monthly spending register. Planner still hides that board.
 
 ## 2026-08-20 — Embed origin checks and live entry limits
 

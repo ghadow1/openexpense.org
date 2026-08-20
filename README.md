@@ -9,7 +9,7 @@ OpenExpense is a static GitHub Pages app. There is no backend, no account, and n
 
 ## What’s new
 
-**20 August 2026** — Tablet and desktop use the full screen: header tabs, calendar beside the monthly register, and Potential Savings across both columns. Phone layout is unchanged.
+**20 August 2026** — Tablet and desktop use the full screen with header tabs. Overview is Potential Savings plus a full-width calendar; Tracker is the monthly register. Phone layout is unchanged.
 
 **19 August 2026** — Priority savings goals on Planner: target date, optional amount, drag-to-order, and an apply-as-hold action. Charts expose exact values; year lines stop at the last real month. Receipt OCR and encrypted backup load only when you use them. See [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -51,7 +51,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Search** — `/` or Ctrl/Cmd+K. Keys: `group:`, `grp:`, `cat:`, `tag:`, `category:`, `is:unpaid`, `>50`, `2026-08`. A space after the colon is part of the name.
 - **Monthly statement PDF** — invoice-style register generated locally with jsPDF. Nothing is uploaded.
 - **Priority savings goals** — set a target date and optional amount, drag goals into priority order, compare the required pace with monthly surplus, and apply the result as a planner hold. Goal data stays in the encrypted ledger.
-- **Four-tab shell** — Overview (phone: Potential Savings + calendar; tablet/desktop: compact strip + calendar + monthly register), Tracker (phone: Monthly spending; tablet/desktop: filter + calendar + register), Planner (safe spend and tax rules), Privacy (help and backups). On a phone the tabs sit at the bottom; on a tablet or computer they sit in the header.
+- **Four-tab shell** — Overview (Potential Savings + calendar), Tracker (filter + monthly spending), Planner (safe spend and tax rules), Privacy (help and backups). On a phone the tabs sit at the bottom; on a tablet or computer they sit in the header.
 
 ## Repository map
 
