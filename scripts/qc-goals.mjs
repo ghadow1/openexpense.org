@@ -57,10 +57,11 @@ test('goals keep first unique ids and support optional amounts', () => {
     assert.equal(goals[0].horizon, undefined);
 });
 
-test('day math uses calendar dates without DST drift', () => {
-    assert.equal(goalDaysRemaining('2026-09-18', new Date(2026, 7, 19)), 30);
-    assert.equal(goalDaysRemaining('2026-08-19', new Date(2026, 7, 19)), 0);
+test('day math uses inclusive calendar dates without DST drift', () => {
+    assert.equal(goalDaysRemaining('2026-09-18', new Date(2026, 7, 19)), 31);
+    assert.equal(goalDaysRemaining('2026-08-19', new Date(2026, 7, 19)), 1);
     assert.equal(goalDaysRemaining('2026-08-18', new Date(2026, 7, 19)), 0);
+    assert.equal(goalDaysRemaining('2026-08-31', new Date(2026, 7, 20)), 12);
 });
 
 test('length presets fill a week, this month-end, or next year', () => {
@@ -72,12 +73,15 @@ test('length presets fill a week, this month-end, or next year', () => {
 });
 
 test('required pace is remaining divided by time left, not a daily rate stretched to 30.44 days', () => {
-    const pace = requiredPaceForAmount(2500, 11, new Date(2026, 7, 20));
-    assert.equal(pace.daily, 227.27);
-    assert.equal(pace.weekly, 1590.91);
+    const pace = requiredPaceForAmount(2500, 12, new Date(2026, 7, 20));
+    assert.equal(pace.daily, 208.33);
+    assert.equal(pace.weekly, 1458.33);
     assert.equal(pace.monthly, 2500);
     assert.ok(pace.monthly < 6917);
-    assert.equal(pace.yearly, 83011.36);
+    assert.equal(pace.yearly, 2500);
+    const week = requiredPaceForAmount(250, 5, new Date(2026, 7, 20));
+    assert.equal(week.weekly, 250);
+    assert.ok(week.weekly <= 250);
 });
 
 test('feasibility allocates savings and surplus once in priority order', () => {
@@ -162,7 +166,7 @@ test('already-saved cash is earmarked before the shared bank amount', () => {
         asOf: new Date(2026, 7, 20)
     });
     assert.equal(result.goals[0].currentAllocation, 250);
-    assert.equal(result.goals[0].requiredDaily, 13.64);
+    assert.equal(result.goals[0].requiredDaily, 12.5);
     assert.equal(result.goals[0].requiredMonthly, 150);
     assert.equal(result.unallocatedCurrentSavings, 0);
 });
@@ -184,7 +188,27 @@ test('goals can skip the shared bank pool', () => {
     });
     assert.equal(result.goals[0].currentAllocation, 0);
     assert.equal(result.unallocatedCurrentSavings, 200);
-    assert.equal(result.goals[0].state, GOAL_STATES.UNACHIEVABLE);
+    assert.equal(result.goals[0].state, GOAL_STATES.BEHIND);
+});
+
+test('a $250 end-of-month goal holds $250 this month, not an annualized $691.77', () => {
+    const result = assessGoals([
+        { id: GOAL_A, title: '2500 Savings', targetDate: '2026-08-31', targetAmount: 250, createdAt: 1 }
+    ], {
+        currentSavings: 0,
+        monthlySurplus: 0,
+        asOf: new Date(2026, 7, 20)
+    });
+    assert.equal(result.goals[0].daysRemaining, 12);
+    assert.equal(result.goals[0].requiredDaily, 20.83);
+    assert.equal(result.goals[0].requiredWeekly, 145.83);
+    assert.equal(result.goals[0].requiredMonthly, 250);
+    assert.equal(result.goals[0].requiredYearly, 250);
+    assert.equal(result.totalRequiredMonthly, 250);
+    assert.ok(result.goals[0].requiredMonthly < 691.77);
+    assert.ok(result.goals[0].requiredYearly < 8301);
+    assert.equal(result.goals[0].shortfall, 250);
+    assert.equal(result.goals[0].state, GOAL_STATES.BEHIND);
 });
 
 test('a short-horizon goal holds the remaining amount this month', () => {
@@ -195,12 +219,25 @@ test('a short-horizon goal holds the remaining amount this month', () => {
         monthlySurplus: 0,
         asOf: new Date(2026, 7, 20)
     });
-    assert.equal(result.goals[0].daysRemaining, 11);
-    assert.equal(result.goals[0].requiredDaily, 227.27);
+    assert.equal(result.goals[0].daysRemaining, 12);
+    assert.equal(result.goals[0].requiredDaily, 208.33);
     assert.equal(result.goals[0].requiredMonthly, 2500);
+    assert.equal(result.goals[0].requiredYearly, 2500);
     assert.equal(result.totalRequiredMonthly, 2500);
     assert.equal(result.goals[0].shortfall, 2500);
-    assert.equal(result.goals[0].state, GOAL_STATES.UNACHIEVABLE);
+    assert.equal(result.goals[0].state, GOAL_STATES.BEHIND);
+});
+
+test('an open goal is unachievable only after the date has passed', () => {
+    const past = assessGoals([
+        { id: GOAL_A, title: 'Missed', targetDate: '2026-08-19', targetAmount: 250, createdAt: 1 }
+    ], {
+        currentSavings: 0,
+        monthlySurplus: 100,
+        asOf: new Date(2026, 7, 20)
+    });
+    assert.equal(past.goals[0].daysRemaining, 0);
+    assert.equal(past.goals[0].state, GOAL_STATES.UNACHIEVABLE);
 });
 
 test('pace lab projects a finish date from a monthly contribution', () => {

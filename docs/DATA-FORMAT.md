@@ -120,17 +120,21 @@ to bottom. For each priced goal:
 
 `remaining = max(0, target − already saved − allocated bank savings)`
 
+Days remaining count today through the target date (the same inclusive clock
+as leftover “days left”). A past date is 0.
+
 `required daily = remaining ÷ max(1, days remaining)`
 
-`required weekly = required daily × 7`
+`required this week = remaining × min(1, 7 ÷ days remaining)`
 
 `required this month = remaining × min(1, days in this month ÷ days remaining)`
 
-`required yearly = required daily × 365.25`
+`required this year = remaining × min(1, days in this year ÷ days remaining)`
 
-The monthly hold is this month’s on-pace share, not a daily rate stretched
-across 30.44 days. A $2,500 goal due in 11 days needs $2,500 this month
-($227.27 / day), not $6,917.62 / month.
+A period hold never exceeds the amount still needed. A $250 goal due at
+month-end on August 20 needs $250 this month ($20.83 / day over 12 days), not
+$691.77 / month and not $8,301 / year. The same $2,500 target needs $2,500
+this month, not $6,917.62.
 
 The projected amount is current allocation plus this month’s allocated surplus
 when the deadline is still in this month, or that monthly allocation continued
@@ -138,7 +142,8 @@ at the same calendar-month rate when the deadline is later. This follows the
 CFPB savings-plan method of dividing the amount needed by the time remaining
 and comparing that pace with budget surplus. Reordering goals changes priority;
 it does not move money at a bank. States are no amount, complete, ahead, on
-track (`achievable`), behind, and unachievable.
+track (`achievable`), behind (still time, surplus is short), and unachievable
+(the date has passed and the target is still open).
 
 Research basis:
 
