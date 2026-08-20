@@ -84,6 +84,9 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(calendar, /monthTitle\.setAttribute\('aria-live', 'polite'\)/);
     assert.match(calendar, /if \(!current\) return \{ over: new Set\(\), warn: new Set\(\), overDays: new Set\(\) \}/);
     assert.match(calendar, /daily\.slice\(0, today\.getDate\(\)\)/);
+    assert.match(calendar, /className = 'cal-week-rail'/);
+    assert.match(calendar, /cal-week-rail-bar/);
+    assert.match(calendar, /cal-week-net/);
     assert.match(charts, /typeof onSelect === 'function' \? 'group' : 'img'/);
     assert.match(charts, /aria-current', 'date'/);
     assert.match(charts, /event\.key === 'ArrowRight'/);

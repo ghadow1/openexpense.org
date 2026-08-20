@@ -319,7 +319,7 @@ keeps policy ownership explicit.
 User-facing product surfaces. Features may consume `core/` and `ui/`; they do
 not own canonical ledger mathematics.
 
-- `calendar.js`: month grid, day net, week rails, drag-to-day.
+- `calendar.js`: month grid, day net, week rails with a rotated week net, drag-to-day.
 - `modal.js`: day editor, save/edit/delete, recurrence, groups, Change All.
 - `sidebar.js`: expense/income monthly register and breakdowns.
 - `dash-strip.js`: Overview, Tracker heading/filter, and Planner panes.

@@ -409,6 +409,16 @@ test('calendar day badge uses net up or down', () => {
     assert.equal(even.amount, 0);
 });
 
+test('calendar week rail compiles the week net from its days', () => {
+    const week = dayNetBadge([
+        entry({ title: 'Coffee', price: 5 }),
+        entry({ title: 'Paycheck', price: 800, kind: 'income' }),
+        entry({ title: 'Rent', price: 1450 })
+    ]);
+    assert.equal(week.direction, 'down');
+    assert.equal(week.amount, 655);
+});
+
 test('monthly summary includes a full-month daily breakdown', () => {
     const date = new Date(2026, 7, 17);
     const spend = computeMonthlySummary(ledger.events, date, 'expense');

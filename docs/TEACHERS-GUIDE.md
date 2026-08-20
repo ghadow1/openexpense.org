@@ -544,7 +544,8 @@ confirmation.
 
 ### 4.6 Rendering modules
 
-- `calendar.js`: month geometry, day net, grouped pills, week rails, drag move;
+- `calendar.js`: month geometry, day net, grouped pills, week rails with a
+  rotated week net, drag move;
 - `dash-strip.js`: Overview snapshot and Planner controls;
 - `goals.js`: goal editor, priority reorder, feasibility display, hold action;
 - `sidebar.js`: month summaries, categories, groups, budgets, entries, PDF;

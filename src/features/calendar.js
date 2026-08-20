@@ -4,7 +4,8 @@
  * Renders the day grid, collapses same-title pills, opens the day editor,
  * and lets a chip drag onto another day to move those copies. Sunday–Saturday
  * rows get a thin rail from over-daily-safe days (2 = half red, 3+ = full red).
- * In-budget weeks stay unmarked. Day squares stay the surface colour.
+ * A small rotated week net sits on that rail. In-budget weeks stay unmarked.
+ * Day squares stay the surface colour.
  */
 import { DAYS } from '../config.js';
 import { getState, patch } from '../core/store.js';
@@ -298,6 +299,50 @@ function visibleDayEvents(rows, filter) {
     return rows;
 }
 
+function weekRowEvents(row, firstDay, y, m, daysInMonth, events) {
+    const rows = [];
+    const start = row * 7;
+    const end = start + 7;
+    const filter = getState().trackerFilter;
+    for (let i = start; i < end; i++) {
+        if (i < firstDay) continue;
+        const day = i - firstDay + 1;
+        if (day > daysInMonth) continue;
+        rows.push(...visibleDayEvents(events[Utils.dateKey(y, m, day)] || [], filter));
+    }
+    return rows;
+}
+
+function paintWeekRail(week, { over, warn, badge }) {
+    const rail = document.createElement('span');
+    rail.className = 'cal-week-rail';
+    const bar = document.createElement('span');
+    bar.className = 'cal-week-rail-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    if (over) bar.title = 'Three or more days over the daily budget';
+    else if (warn) bar.title = 'Two days over the daily budget';
+    rail.appendChild(bar);
+
+    if (badge) {
+        const up = badge.direction === 'up';
+        const down = badge.direction === 'down';
+        const label = up ? 'net up' : down ? 'net down' : 'net even';
+        const net = document.createElement('span');
+        net.className = `cal-week-net${up ? ' is-up' : ''}${down ? ' is-down' : ''}`;
+        net.textContent = formatDayTotal(badge.amount);
+        net.title = badge.expense > 0 && badge.income > 0
+            ? `Week net ${up ? '+' : down ? '-' : ''}${Utils.formatMoney(badge.amount)} · spent ${Utils.formatMoney(badge.expense)} · income ${Utils.formatMoney(badge.income)}`
+            : (up
+                ? `Week net +${Utils.formatMoney(badge.amount)}`
+                : (down ? `Week net -${Utils.formatMoney(badge.amount)}` : 'Week net even'));
+        net.setAttribute('aria-label', `${Utils.formatMoney(badge.amount)} ${label} this week`);
+        rail.appendChild(net);
+    } else {
+        rail.setAttribute('aria-hidden', 'true');
+    }
+    week.appendChild(rail);
+}
+
 function paintDayCell(cell, i, firstDay, y, m, today, events, hints) {
     cell.className = 'cal-day';
     cell.replaceChildren();
@@ -391,12 +436,11 @@ function renderGrid(y, m, events, plan) {
         if (over) week.classList.add('is-over-week');
         if (warn) week.classList.add('is-warn-week');
 
-        const rail = document.createElement('span');
-        rail.className = 'cal-week-rail';
-        rail.setAttribute('aria-hidden', 'true');
-        if (over) rail.title = 'Three or more days over the daily budget';
-        else if (warn) rail.title = 'Two days over the daily budget';
-        week.appendChild(rail);
+        paintWeekRail(week, {
+            over,
+            warn,
+            badge: dayNetBadge(weekRowEvents(row, firstDay, y, m, daysInMonth, events))
+        });
 
         const start = row * 7;
         const end = Math.min(start + 7, totalCells);
