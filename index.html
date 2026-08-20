@@ -1255,21 +1255,19 @@
     <div id="mbox" class="modal-shell modal-editor" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
       <div class="sheet-grab" aria-hidden="true"><span></span></div>
       <div class="modal-header">
-        <div class="modal-header-copy">
-          <p class="modal-kicker">OpenExpense.org</p>
-          <div class="modal-day-nav">
-            <button type="button" class="modal-day-shift" data-action="day-prev" aria-label="Previous day" title="Previous day">
-              <i class="ti ti-chevron-left" aria-hidden="true"></i>
-            </button>
-            <h2 class="modal-title" id="modal-date-title">Date</h2>
-            <button type="button" class="modal-day-shift" data-action="day-next" aria-label="Next day" title="Next day">
-              <i class="ti ti-chevron-right" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
+        <p class="modal-kicker">OpenExpense.org</p>
         <button class="close-modal" type="button" data-action="close-modal" aria-label="Close dialog">
           <i class="ti ti-x" aria-hidden="true"></i>
         </button>
+        <div class="modal-day-nav">
+          <button type="button" class="modal-day-shift" data-action="day-prev" aria-label="Previous day" title="Previous day">
+            <i class="ti ti-chevron-left" aria-hidden="true"></i>
+          </button>
+          <h2 class="modal-title" id="modal-date-title">Date</h2>
+          <button type="button" class="modal-day-shift" data-action="day-next" aria-label="Next day" title="Next day">
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
 
       <div id="day-insights" class="day-insights" hidden></div>
@@ -1295,7 +1293,7 @@
         </div>
 
         <div class="modal-panel">
-          <h3 class="panel-title">Add entry</h3>
+          <h3 class="panel-title panel-title--compose">Add entry</h3>
           <div id="form-container">
           </div>
         </div>
