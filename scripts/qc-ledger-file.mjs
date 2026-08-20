@@ -240,7 +240,8 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         currentSavings: 0,
         ratioNeeds: 50,
         ratioWants: 30,
-        ratioSave: 20
+        ratioSave: 20,
+        goalIncome: 'horizon'
     });
 
     const defaultPlan = sanitizeLedger({
@@ -263,7 +264,8 @@ test('sanitizeLedger keeps a non-default plan and drops the default', () => {
         currentSavings: 0,
         ratioNeeds: 50,
         ratioWants: 30,
-        ratioSave: 20
+        ratioSave: 20,
+        goalIncome: 'horizon'
     });
 });
 

@@ -11,6 +11,7 @@ import {
     computePlanner,
     describePlan,
     growthPotentialPct,
+    horizonIncomeItems,
     incomeUsed,
     runwayDays,
     sanitizePlan,
@@ -531,6 +532,7 @@ export function computeNetSnapshot(events, currentDate, asOf = new Date(), plan,
     const goalAssessment = assessGoals(goals, {
         currentSavings,
         monthlySurplus: Math.max(0, leftToSpend + planner.savingsHold),
+        upcomingIncome: horizonIncomeItems(events, asOf, currentDate, rules),
         asOf
     });
     // A month that outruns its deposits is covered by the reserve behind it.

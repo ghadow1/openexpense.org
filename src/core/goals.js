@@ -10,6 +10,7 @@
  */
 import { Utils } from './utils.js';
 import { FILE_LIMITS } from './limits.js';
+import { takeIncomeThrough } from './plan.js';
 
 export const GOAL_STATES = Object.freeze({
     NO_AMOUNT: 'no-amount',
@@ -216,6 +217,7 @@ function emptyAssessment(goal, daysRemaining) {
         requiredThisMonth: 0,
         requiredYearly: 0,
         monthlyAllocation: 0,
+        incomingAllocation: 0,
         projectedAmount: 0,
         shortfall: 0,
         progress: 0,
@@ -298,21 +300,30 @@ export function requiredPaceForAmount(remainingAmount, daysRemaining, asOf = new
  * @param {object} inputs
  * @param {number} inputs.currentSavings Existing bank savings available to earmark.
  * @param {number} inputs.monthlySurplus Income remaining after counted expenses.
+ * @param {{date: string, cents: number}[]} [inputs.upcomingIncome]
+ *   Pay still on the calendar that leftover has not counted. Filtered per
+ *   goal date. Tracker expense/income filters never hide these rows.
  * @param {Date} [inputs.asOf]
  */
 export function assessGoals(rawGoals, {
     currentSavings = 0,
     monthlySurplus = 0,
+    upcomingIncome = [],
     asOf = new Date()
 } = {}) {
     const goals = sanitizeGoals(rawGoals);
     let savingsCents = Math.max(0, Utils.toCents(currentSavings));
     let monthlyCents = Math.max(0, Utils.toCents(monthlySurplus));
+    const incomingPool = (upcomingIncome || []).map((item) => ({
+        date: String(item?.date || ''),
+        cents: Math.max(0, Math.round(Number(item?.cents) || 0))
+    }));
     let totalRequiredMonthlyCents = 0;
     let totalRequiredDailyCents = 0;
     let totalRequiredWeeklyCents = 0;
     let totalRequiredYearlyCents = 0;
     let totalAllocatedMonthlyCents = 0;
+    let totalIncomingCents = 0;
     const daysInMonth = calendarDaysInMonth(asOf);
     const daysInYear = calendarDaysInYear(asOf);
 
@@ -331,11 +342,16 @@ export function assessGoals(rawGoals, {
         if (bankEligible) savingsCents -= fromBankCents;
         const currentAllocationCents = seededCents + fromBankCents;
         const remainingCents = Math.max(0, targetCents - currentAllocationCents);
+        const incomingCents = daysRemaining > 0
+            ? takeIncomeThrough(incomingPool, goal.targetDate, remainingCents)
+            : 0;
+        totalIncomingCents += incomingCents;
+        const afterIncomingCents = Math.max(0, remainingCents - incomingCents);
         const paceDays = Math.max(1, daysRemaining);
-        const requiredDailyCents = remainingCents / paceDays;
-        const requiredWeeklyCents = periodShare(remainingCents, DAYS_PER_WEEK, paceDays);
-        const requiredYearlyCents = periodShare(remainingCents, daysInYear, paceDays);
-        const requiredThisMonthCents = periodShare(remainingCents, daysInMonth, paceDays);
+        const requiredDailyCents = afterIncomingCents / paceDays;
+        const requiredWeeklyCents = periodShare(afterIncomingCents, DAYS_PER_WEEK, paceDays);
+        const requiredYearlyCents = periodShare(afterIncomingCents, daysInYear, paceDays);
+        const requiredThisMonthCents = periodShare(afterIncomingCents, daysInMonth, paceDays);
         const requiredThisMonthCeil = Math.ceil(requiredThisMonthCents);
         const monthlyAllocationCents = daysRemaining > 0
             ? Math.min(monthlyCents, requiredThisMonthCeil)
@@ -352,7 +368,7 @@ export function assessGoals(rawGoals, {
             : Math.round(monthlyAllocationCents * paceDays / daysInMonth);
         const projectedCents = Math.min(
             targetCents,
-            currentAllocationCents + Math.max(0, projectedFromPace)
+            currentAllocationCents + incomingCents + Math.max(0, projectedFromPace)
         );
         const shortfallCents = Math.max(0, targetCents - projectedCents);
         const expectedProgress = expectedLinearProgress(goal, daysRemaining);
@@ -365,7 +381,7 @@ export function assessGoals(rawGoals, {
             expectedProgress
         });
         const finish = finishDateAtMonthlyPace(
-            Utils.fromCents(remainingCents),
+            Utils.fromCents(afterIncomingCents),
             Utils.fromCents(monthlyAllocationCents),
             asOf
         );
@@ -385,13 +401,16 @@ export function assessGoals(rawGoals, {
             requiredThisMonth: money(requiredThisMonthCeil),
             requiredYearly: money(requiredYearlyCents),
             monthlyAllocation: money(monthlyAllocationCents),
+            incomingAllocation: money(incomingCents),
             projectedAmount: money(projectedCents),
             shortfall: money(shortfallCents),
             progress: targetCents > 0 ? Math.min(1, currentAllocationCents / targetCents) : 0,
             expectedProgress,
             projectedDate: remainingCents <= 0
                 ? dateKeyFromLocal(localDate(asOf))
-                : finish.date,
+                : afterIncomingCents <= 0
+                    ? goal.targetDate
+                    : finish.date,
             leftoverAfterGoal: money(monthlyCents)
         };
     });
@@ -403,6 +422,7 @@ export function assessGoals(rawGoals, {
         totalRequiredWeekly: money(totalRequiredWeeklyCents),
         totalRequiredYearly: money(totalRequiredYearlyCents),
         totalAllocatedMonthly: money(totalAllocatedMonthlyCents),
+        totalIncomingAllocated: money(totalIncomingCents),
         unallocatedMonthlySurplus: money(monthlyCents),
         unallocatedCurrentSavings: money(savingsCents)
     };

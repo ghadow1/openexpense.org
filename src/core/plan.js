@@ -31,7 +31,13 @@ export const PLAN_DEFAULTS = Object.freeze({
     currentSavings: 0,
     ratioNeeds: 50,
     ratioWants: 30,
-    ratioSave: 20
+    ratioSave: 20,
+    goalIncome: 'horizon'
+});
+
+export const GOAL_INCOME = Object.freeze({
+    HORIZON: 'horizon',
+    SURPLUS: 'surplus'
 });
 
 /**
@@ -127,6 +133,7 @@ export function sanitizePlan(raw) {
         savingsPct: Math.min(100, clampPct(src.savingsPct, 100)),
         savingsFixed: Number.isFinite(fixed) && fixed > 0 ? Utils.fromCents(Utils.toCents(fixed)) : 0,
         currentSavings: Number.isFinite(bank) && bank > 0 ? Utils.fromCents(Utils.toCents(bank)) : 0,
+        goalIncome: src.goalIncome === GOAL_INCOME.SURPLUS ? GOAL_INCOME.SURPLUS : GOAL_INCOME.HORIZON,
         ...sanitizeRatios(src)
     };
 }
@@ -144,7 +151,8 @@ export function planIsDefault(plan) {
         && p.currentSavings === PLAN_DEFAULTS.currentSavings
         && p.ratioNeeds === PLAN_DEFAULTS.ratioNeeds
         && p.ratioWants === PLAN_DEFAULTS.ratioWants
-        && p.ratioSave === PLAN_DEFAULTS.ratioSave;
+        && p.ratioSave === PLAN_DEFAULTS.ratioSave
+        && p.goalIncome === PLAN_DEFAULTS.goalIncome;
 }
 
 export function spendUsed(spend, plan) {
@@ -217,6 +225,69 @@ export function windowTotals(events, start, end, plan) {
         incomeUsed: usedIncome,
         net: subMoney(usedIncome, usedSpend)
     };
+}
+
+function dateKeyFrom(value) {
+    const date = value instanceof Date && !Number.isNaN(value.getTime())
+        ? value
+        : new Date();
+    return Utils.dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * Calendar income that leftover has not already counted: unpaid deposits on
+ * a deposited-cash plan, plus any pay after the viewed month. Tracker
+ * expense/income filters never hide these rows. Tax and savings % follow
+ * the planner rules so a check is not treated as fully free cash.
+ */
+export function horizonIncomeItems(events, asOf, currentDate, plan) {
+    const p = sanitizePlan(plan);
+    if (p.goalIncome === GOAL_INCOME.SURPLUS) return [];
+    const start = dateKeyFrom(asOf);
+    const view = currentDate instanceof Date && !Number.isNaN(currentDate.getTime())
+        ? currentDate
+        : asOf instanceof Date && !Number.isNaN(asOf.getTime())
+            ? asOf
+            : new Date();
+    const monthStart = Utils.dateKey(view.getFullYear(), view.getMonth(), 1);
+    const monthEnd = Utils.dateKey(
+        view.getFullYear(),
+        view.getMonth(),
+        new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate()
+    );
+    const items = [];
+    Object.keys(events || {}).sort().forEach((date) => {
+        if (date < start) return;
+        (events[date] || []).forEach((entry) => {
+            if (Utils.entryKind(entry) !== 'income') return;
+            const cents = Utils.toCents(Utils.getPrice(entry));
+            if (cents <= 0) return;
+            const inViewedMonth = date >= monthStart && date <= monthEnd;
+            const alreadyInLeftover = inViewedMonth && (
+                p.incomeBasis === 'scheduled' || !!entry.paid
+            );
+            if (alreadyInLeftover) return;
+            const afterTax = cents - Utils.toCents(percentOf(Utils.fromCents(cents), p.taxWithholdPct));
+            const afterSave = afterTax - Utils.toCents(percentOf(Utils.fromCents(afterTax), p.savingsPct));
+            if (afterSave > 0) items.push({ date, cents: afterSave });
+        });
+    });
+    return items;
+}
+
+/** Take dated incoming cents on or before throughDate, mutating the list. */
+export function takeIncomeThrough(items, throughDate, needCents) {
+    const need = Math.max(0, Math.round(Number(needCents) || 0));
+    const limit = String(throughDate || '');
+    let taken = 0;
+    for (const item of items || []) {
+        if (taken >= need) break;
+        if (!item || item.date > limit || item.cents <= 0) continue;
+        const use = Math.min(item.cents, need - taken);
+        item.cents -= use;
+        taken += use;
+    }
+    return taken;
 }
 
 /**
@@ -607,6 +678,11 @@ export function describePlan(plan) {
     if (p.taxWithholdPct > 0) parts.push(`${p.taxWithholdPct}% withheld`);
     if (p.savingsFixed > 0 || p.savingsPct > 0 || (p.weeklySavings > 0 && p.reserveSavings)) {
         parts.push('after the savings hold');
+    }
+    if (p.goalIncome === GOAL_INCOME.SURPLUS) {
+        parts.push('goals use leftover only');
+    } else {
+        parts.push('goals count upcoming pay');
     }
     return parts.join(', ');
 }
