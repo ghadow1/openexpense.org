@@ -25,7 +25,7 @@ import {
     sanitizePlan
 } from '../core/plan.js';
 import { createBars, createDial, createSpark } from '../ui/dial-chart.js';
-import { goalMilestones } from '../core/goals.js';
+import { assessGoals, atRiskGoals, goalMilestones } from '../core/goals.js';
 import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { closeModal } from './modal.js';
@@ -1014,13 +1014,76 @@ function overviewCompact(snap, events, currentDate, goals) {
     });
 }
 
+function dateLabel(key) {
+    const [year, month, day] = String(key || '').split('-').map(Number);
+    const date = new Date(year, (month || 1) - 1, day || 1);
+    if (Number.isNaN(date.getTime())) return key;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function renderGoalWarning(snap, goals) {
+    const assessment = snap.goalAssessment || assessGoals(goals, {
+        currentSavings: snap.currentSavings,
+        monthlySurplus: Math.max(0, Number(snap.leftToSpend) + Number(snap.savingsHold || 0)),
+        asOf: new Date()
+    });
+    const risky = atRiskGoals(assessment);
+    if (!risky.length) return null;
+
+    const primary = risky[0];
+    const extra = risky.length - 1;
+    const shortfall = risky.reduce((sum, goal) => sum + Number(goal.shortfall || 0), 0);
+    const badge = extra > 0
+        ? 'Off track'
+        : (primary.state === 'behind' ? 'Behind' : 'Unachievable');
+    const alert = document.createElement('button');
+    alert.type = 'button';
+    alert.className = 'ov-goal-alert';
+    alert.dataset.view = 'planner';
+    alert.setAttribute(
+        'aria-label',
+        extra > 0
+            ? `${risky.length} savings goals are off track. Open Planner.`
+            : `${primary.title} is ${badge.toLowerCase()}. Open Planner.`
+    );
+
+    const top = document.createElement('span');
+    top.className = 'ov-goal-alert-top';
+    const title = document.createElement('strong');
+    title.textContent = extra > 0 ? `${risky.length} savings goals off track` : primary.title;
+    const state = document.createElement('span');
+    state.className = 'ov-goal-alert-state';
+    state.textContent = badge;
+    top.append(title, state);
+
+    const meta = document.createElement('span');
+    meta.className = 'ov-goal-alert-meta';
+    const days = Number(primary.daysRemaining) || 0;
+    meta.textContent = extra > 0
+        ? `${primary.title} and ${extra} more`
+        : `${dateLabel(primary.targetDate)} · ${days} day${days === 1 ? '' : 's'} left`;
+
+    const figures = document.createElement('span');
+    figures.className = 'ov-goal-alert-figures';
+    figures.textContent = extra > 0
+        ? `${formatMoney(shortfall)} projected short · open Planner`
+        : `${formatMoney(primary.requiredMonthly)} / month needed · ${formatMoney(primary.shortfall)} short`;
+
+    alert.append(top, meta, figures);
+    return alert;
+}
+
 function renderOverview(snap, events, currentDate, goals) {
     const heroRoot = document.getElementById('overview-hero-root');
     const moreRoot = document.getElementById('overview-more-root');
     if (!heroRoot || !moreRoot) return;
+    const warning = renderGoalWarning(snap, goals);
 
     if (readFrame() === 'desktop') {
-        heroRoot.replaceChildren(...overviewCompact(snap, events, currentDate, goals));
+        heroRoot.replaceChildren(
+            ...(warning ? [warning] : []),
+            ...overviewCompact(snap, events, currentDate, goals)
+        );
         heroRoot.classList.add('is-ready');
         moreRoot.replaceChildren();
         moreRoot.classList.add('is-ready');
@@ -1067,7 +1130,7 @@ function renderOverview(snap, events, currentDate, goals) {
         monthLabel: snap.monthLabel
     }), hero);
     heroRoot.classList.add('is-ready');
-    moreRoot.replaceChildren();
+    moreRoot.replaceChildren(...(warning ? [warning] : []));
     moreRoot.classList.add('is-ready');
 }
 
