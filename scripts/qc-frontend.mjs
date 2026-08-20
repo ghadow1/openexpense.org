@@ -98,6 +98,9 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(focus, /restoreIsolation/);
     assert.match(goals, /className = 'planner-goal-add'/);
     assert.match(goals, /aria-label', 'Add savings goal'/);
+    assert.doesNotMatch(goals, /planner-goal-inline-add/);
+    assert.match(goals, /goal-seg--equal/);
+    assert.match(goals, /goal-switch--bar/);
     assert.match(goals, /aria-modal', 'true'/);
     assert.match(goals, /activateDialogFocus/);
     assert.match(goals, /goal-drag-handle/);

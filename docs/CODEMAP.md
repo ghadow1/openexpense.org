@@ -62,7 +62,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `#overview-more-root` | `features/dash-strip.js` | Off-track goal warning on phone/tablet; empty otherwise |
 | `#planner-root` | `features/dash-strip.js` | Planner workspace |
 | `[data-plan-pane]` | `features/dash-strip.js` | Quality settings / Banking info |
-| `.planner-goal-add` | `features/goals.js` | Dark navy square goal-creation trigger |
+| `.planner-goal-add` | `features/goals.js` | Only Planner add-goal control; matches the month chip height |
 | `[data-goal-id]` | `features/goals.js` | Ordered goal card and drag-priority identity |
 | `#tracker-head-root` | `features/dash-strip.js` | Tracker page title on phone/tablet |
 | `#cal-col` | `features/calendar.js` | Month grid |

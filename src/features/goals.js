@@ -148,9 +148,9 @@ function setGoalView(partial) {
     refreshGoalsPanel();
 }
 
-function segmentGroup({ name, legend, options, value, onChange }) {
+function segmentGroup({ name, legend, options, value, onChange, variant = '' }) {
     const fieldset = document.createElement('fieldset');
-    fieldset.className = 'goal-seg';
+    fieldset.className = variant ? `goal-seg ${variant}` : 'goal-seg';
     const caption = document.createElement('legend');
     caption.className = 'goal-seg-legend';
     caption.textContent = legend;
@@ -187,9 +187,9 @@ function segmentGroup({ name, legend, options, value, onChange }) {
     return fieldset;
 }
 
-function switchRow({ id, checked, label, hint, onChange }) {
+function switchRow({ id, checked, label, hint, onChange, variant = '' }) {
     const wrap = document.createElement('label');
-    wrap.className = 'goal-switch';
+    wrap.className = variant ? `goal-switch ${variant}` : 'goal-switch';
     wrap.htmlFor = id;
     const box = document.createElement('input');
     box.id = id;
@@ -329,7 +329,8 @@ export function openGoalDialog(existing = null) {
         legend: 'Goal length',
         options: HORIZON_OPTIONS,
         value: horizon,
-        onChange: applyHorizonDate
+        onChange: applyHorizonDate,
+        variant: 'goal-seg--tiles'
     });
 
     const updatePreview = () => {
@@ -663,14 +664,16 @@ function toolsBar() {
         legend: 'Show required pace as',
         options: PACE_OPTIONS,
         value: goalView.pace,
-        onChange: (value) => setGoalView({ pace: value })
+        onChange: (value) => setGoalView({ pace: value }),
+        variant: 'goal-seg--equal'
     });
     const projections = switchRow({
         id: 'goal-show-projections',
         checked: goalView.projections,
         label: 'Show projections',
         hint: 'Finish date and shortfall at the current surplus.',
-        onChange: (checked) => setGoalView({ projections: checked })
+        onChange: (checked) => setGoalView({ projections: checked }),
+        variant: 'goal-switch--bar'
     });
     bar.append(pace, projections);
     return bar;
@@ -739,12 +742,7 @@ export function renderGoalsPanel({ snap, goals, plan }) {
         ? 'Priority runs top to bottom. Bank savings and monthly surplus are allocated once. The monthly hold is this month’s share of what is still needed.'
         : 'Pick a week, month, year, or custom date. An optional amount is tested against leftover and the savings you already hold.';
     copy.append(heading, detail);
-    const add = document.createElement('button');
-    add.type = 'button';
-    add.className = 'planner-goal-inline-add';
-    add.textContent = 'Add goal';
-    add.addEventListener('click', () => openGoalDialog());
-    header.append(copy, add);
+    header.appendChild(copy);
     section.appendChild(header);
 
     if (!assessment.goals.length) {

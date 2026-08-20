@@ -1981,12 +1981,14 @@ html.is-action-busy [data-lockable] {
 .planner-month {
     display: inline-flex;
     align-items: center;
+    box-sizing: border-box;
     gap: 7px;
     flex: 0 0 auto;
-    min-height: 34px;
-    padding: 0 11px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text-strong);
     font-size: var(--fs-xs);
@@ -2403,7 +2405,6 @@ html.is-action-busy [data-lockable] {
 
     .planner-goals-head,
     .planner-goal-advice,
-    .planner-goal-tools,
     .planner-goal-lab {
         align-items: flex-start;
         flex-direction: column;
@@ -2433,6 +2434,12 @@ html.is-action-busy [data-lockable] {
     .planner-form-actions-secondary {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 761px) {
+    .goal-seg--tiles .goal-seg-row {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
@@ -2471,9 +2478,10 @@ html.is-action-busy [data-lockable] {
     appearance: none;
     display: grid;
     place-items: center;
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
     padding: 0;
     border: 1px solid #153e67;
     border-radius: var(--radius-sm);
@@ -2509,8 +2517,7 @@ html.is-action-busy [data-lockable] {
 }
 
 .planner-goals-head,
-.planner-goal-advice,
-.planner-goal-tools {
+.planner-goal-advice {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2528,20 +2535,6 @@ html.is-action-busy [data-lockable] {
     color: var(--text2);
     font-size: var(--fs-xs);
     line-height: 1.4;
-}
-
-.planner-goal-inline-add {
-    appearance: none;
-    flex: 0 0 auto;
-    padding: 7px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface2);
-    color: var(--text-strong);
-    font: inherit;
-    font-size: var(--fs-xs);
-    font-weight: 700;
-    cursor: pointer;
 }
 
 .planner-goal-empty {
@@ -2747,8 +2740,11 @@ html.is-action-busy [data-lockable] {
 }
 
 .planner-goal-tools {
-    align-items: flex-end;
-    padding-bottom: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
 }
 
 .planner-goal-lab {
@@ -2802,6 +2798,23 @@ html.is-action-busy [data-lockable] {
     gap: 6px;
 }
 
+.goal-seg--equal,
+.goal-seg--tiles {
+    width: 100%;
+}
+
+.goal-seg--equal .goal-seg-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+}
+
+.goal-seg--tiles .goal-seg-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+}
+
 .goal-seg-option {
     display: inline-flex;
     align-items: flex-start;
@@ -2814,6 +2827,23 @@ html.is-action-busy [data-lockable] {
     font-size: var(--fs-xs);
     font-weight: 650;
     cursor: pointer;
+}
+
+.goal-seg--equal .goal-seg-option,
+.goal-seg--tiles .goal-seg-option {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 6px;
+    text-align: center;
+}
+
+.goal-seg--equal .goal-seg-copy,
+.goal-seg--tiles .goal-seg-copy {
+    align-items: center;
 }
 
 .goal-seg-option.is-on,
@@ -2852,9 +2882,27 @@ html.is-action-busy [data-lockable] {
     cursor: pointer;
 }
 
+.goal-switch--bar {
+    box-sizing: border-box;
+    align-items: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+}
+
 .goal-switch input {
     margin-top: 2px;
     accent-color: var(--accent);
+}
+
+.goal-switch--bar input {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
 }
 
 .goal-switch span {
@@ -7145,7 +7193,8 @@ textarea:focus-visible {
 }
 
 [data-theme="dark"] .goal-seg-option,
-[data-theme="dark"] .goal-form-preview {
+[data-theme="dark"] .goal-form-preview,
+[data-theme="dark"] .goal-switch--bar {
     background: #111;
     border-color: rgba(255, 255, 255, 0.18);
 }
