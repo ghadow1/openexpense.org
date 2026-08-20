@@ -1067,7 +1067,7 @@ function renderGoalWarning(snap, goals) {
     figures.className = 'ov-goal-alert-figures';
     figures.textContent = extra > 0
         ? `${formatMoney(shortfall)} projected short · open Planner`
-        : `${formatMoney(primary.requiredMonthly)} / month needed · ${formatMoney(primary.shortfall)} short`;
+        : `${formatMoney(primary.requiredMonthly)} this month · ${formatMoney(primary.shortfall)} short`;
 
     alert.append(top, meta, figures);
     return alert;

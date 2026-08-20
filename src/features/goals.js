@@ -584,7 +584,11 @@ function goalCard(goal, index, count) {
     } else {
         const funded = `${Utils.formatMoney(goal.currentAllocation)} of ${Utils.formatMoney(goal.targetAmount)}`;
         const percent = `${Math.round(goal.progress * 100)}%`;
-        const pace = `${Utils.formatMoney(goalPaceAmount(goal, goalView.pace))} / ${goalPaceLabel(goalView.pace)} to stay on pace`;
+        const unit = goalPaceLabel(goalView.pace);
+        const amount = Utils.formatMoney(goalPaceAmount(goal, goalView.pace));
+        const pace = unit.startsWith('this ')
+            ? `${amount} ${unit} to stay on pace`
+            : `${amount} / ${unit} to stay on pace`;
         figures.textContent = `${funded} (${percent}) · ${pace}`;
     }
     body.append(top, meta, figures);
@@ -784,7 +788,10 @@ export function renderGoalsPanel({ snap, goals, plan }) {
                 : goalView.pace === GOAL_PACE_VIEWS.YEAR
                     ? assessment.totalRequiredYearly
                     : assessment.totalRequiredMonthly;
-        text.innerHTML = `<strong>${Utils.formatMoney(assessment.totalRequiredMonthly)} this month to stay on pace</strong><span>${Utils.formatMoney(requiredForView)} / ${unit} across open goals · ${Utils.formatMoney(goalDaily)} / day toward goals · recommended spending cap ${Utils.formatMoney(recommendedDaily)} / day or ${Utils.formatMoney(recommendedWeekly)} / week after the hold.</span>`;
+        const requiredBit = unit.startsWith('this ')
+            ? `${Utils.formatMoney(requiredForView)} ${unit}`
+            : `${Utils.formatMoney(requiredForView)} / ${unit}`;
+        text.innerHTML = `<strong>${Utils.formatMoney(assessment.totalRequiredMonthly)} this month to stay on pace</strong><span>${requiredBit} across open goals · ${Utils.formatMoney(goalDaily)} / day toward goals · recommended spending cap ${Utils.formatMoney(recommendedDaily)} / day or ${Utils.formatMoney(recommendedWeekly)} / week after the hold.</span>`;
         const allocate = document.createElement('button');
         allocate.type = 'button';
         allocate.className = 'btn-secondary';
