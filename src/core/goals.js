@@ -4,20 +4,41 @@
  * Goals are ordered by priority. Current savings and monthly surplus flow
  * through that order once, so two goals cannot both claim the same dollars.
  * Required pace follows CFPB savings-plan guidance: amount still needed ÷
- * time remaining.
+ * time remaining. The monthly hold is this month's on-pace share, not an
+ * annualized daily rate.
  */
 import { Utils } from './utils.js';
 import { FILE_LIMITS } from './limits.js';
 
 export const GOAL_STATES = Object.freeze({
     NO_AMOUNT: 'no-amount',
+    COMPLETE: 'complete',
+    AHEAD: 'ahead',
     ACHIEVABLE: 'achievable',
+    BEHIND: 'behind',
     UNACHIEVABLE: 'unachievable'
+});
+
+export const GOAL_HORIZONS = Object.freeze({
+    WEEKLY: 'weekly',
+    MONTHLY: 'monthly',
+    YEARLY: 'yearly',
+    CUSTOM: 'custom'
+});
+
+export const GOAL_PACE_VIEWS = Object.freeze({
+    DAY: 'day',
+    WEEK: 'week',
+    MONTH: 'month',
+    YEAR: 'year'
 });
 
 const GOAL_ID = /^[a-f0-9]{32}$/;
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const AVERAGE_DAYS_PER_MONTH = 365.25 / 12;
+const AVERAGE_DAYS_PER_YEAR = 365.25;
+const MAX_GOAL_NOTE = 200;
+const HORIZON_IDS = new Set(Object.values(GOAL_HORIZONS));
 
 function validDateKey(value) {
     const key = String(value || '');
@@ -34,6 +55,33 @@ function normalizeGoalId(value) {
     return GOAL_ID.test(id) ? id : '';
 }
 
+function localDate(asOf = new Date()) {
+    const date = asOf instanceof Date && !Number.isNaN(asOf.getTime())
+        ? asOf
+        : new Date();
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function dateKeyFromLocal(date) {
+    return Utils.dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function calendarDaysInMonth(asOf = new Date()) {
+    const date = localDate(asOf);
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+export function daysLeftInMonth(asOf = new Date()) {
+    const date = localDate(asOf);
+    return calendarDaysInMonth(date) - date.getDate() + 1;
+}
+
+export function addCalendarDays(asOf, days) {
+    const date = localDate(asOf);
+    date.setDate(date.getDate() + Number(days || 0));
+    return dateKeyFromLocal(date);
+}
+
 export function createGoalId() {
     const bytes = new Uint8Array(16);
     if (globalThis.crypto?.getRandomValues) {
@@ -44,6 +92,39 @@ export function createGoalId() {
     return Array.from({ length: 4 }, () => (
         Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0')
     )).join('');
+}
+
+export function normalizeGoalHorizon(value) {
+    const key = String(value || '').trim().toLowerCase();
+    return HORIZON_IDS.has(key) ? key : '';
+}
+
+/**
+ * Last day of this month when enough time remains; otherwise the next
+ * month-end, next week, or the same calendar day next year.
+ */
+export function targetDateForHorizon(horizon, asOf = new Date()) {
+    const date = localDate(asOf);
+    const id = normalizeGoalHorizon(horizon) || GOAL_HORIZONS.CUSTOM;
+    if (id === GOAL_HORIZONS.WEEKLY) {
+        date.setDate(date.getDate() + 7);
+        return dateKeyFromLocal(date);
+    }
+    if (id === GOAL_HORIZONS.MONTHLY) {
+        const lastThis = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        const end = lastThis.getDate() - date.getDate() >= 2
+            ? lastThis
+            : new Date(date.getFullYear(), date.getMonth() + 2, 0);
+        return dateKeyFromLocal(end);
+    }
+    if (id === GOAL_HORIZONS.YEARLY) {
+        const next = new Date(date.getFullYear() + 1, date.getMonth(), date.getDate());
+        if (next.getMonth() !== date.getMonth()) {
+            return dateKeyFromLocal(new Date(date.getFullYear() + 1, date.getMonth() + 1, 0));
+        }
+        return dateKeyFromLocal(next);
+    }
+    return dateKeyFromLocal(date);
 }
 
 export function sanitizeGoal(raw) {
@@ -63,6 +144,15 @@ export function sanitizeGoal(raw) {
     }
     const createdAt = Number(raw.createdAt);
     goal.createdAt = Number.isFinite(createdAt) && createdAt > 0 ? Math.floor(createdAt) : Date.now();
+    const horizon = normalizeGoalHorizon(raw.horizon);
+    if (horizon) goal.horizon = horizon;
+    const note = String(raw.note || '').replace(/\s+/g, ' ').trim().slice(0, MAX_GOAL_NOTE);
+    if (note) goal.note = note;
+    const alreadySaved = Number(raw.alreadySaved);
+    if (Number.isFinite(alreadySaved) && alreadySaved > 0 && alreadySaved <= FILE_LIMITS.maxPrice) {
+        goal.alreadySaved = Utils.fromCents(Utils.toCents(alreadySaved));
+    }
+    if (raw.includeBankSavings === false) goal.includeBankSavings = false;
     return goal;
 }
 
@@ -100,6 +190,92 @@ function money(value) {
     return Utils.fromCents(Math.max(0, Math.round(value)));
 }
 
+function emptyAssessment(goal, daysRemaining) {
+    return {
+        ...goal,
+        horizon: goal.horizon || GOAL_HORIZONS.CUSTOM,
+        state: GOAL_STATES.NO_AMOUNT,
+        daysRemaining,
+        weeksRemaining: daysRemaining / 7,
+        monthsRemaining: daysRemaining / AVERAGE_DAYS_PER_MONTH,
+        yearsRemaining: daysRemaining / AVERAGE_DAYS_PER_YEAR,
+        currentAllocation: 0,
+        requiredDaily: 0,
+        requiredWeekly: 0,
+        requiredMonthly: 0,
+        requiredThisMonth: 0,
+        requiredYearly: 0,
+        monthlyAllocation: 0,
+        projectedAmount: 0,
+        shortfall: 0,
+        progress: 0,
+        expectedProgress: 0,
+        projectedDate: '',
+        leftoverAfterGoal: 0
+    };
+}
+
+function expectedLinearProgress(goal, daysRemaining) {
+    const created = Number(goal.createdAt);
+    if (!Number.isFinite(created) || created <= 0) return 0;
+    const span = goalDaysRemaining(goal.targetDate, new Date(created));
+    if (span <= 0) return daysRemaining <= 0 ? 1 : 0;
+    const elapsed = Math.max(0, span - daysRemaining);
+    return Math.min(1, elapsed / span);
+}
+
+function classifyGoal({
+    remainingCents,
+    projectedCents,
+    targetCents,
+    currentAllocationCents,
+    monthlyAllocationCents,
+    expectedProgress
+}) {
+    if (targetCents <= 0) return GOAL_STATES.NO_AMOUNT;
+    if (remainingCents <= 0 || currentAllocationCents >= targetCents) return GOAL_STATES.COMPLETE;
+    if (projectedCents >= targetCents) {
+        const fundedShare = targetCents > 0 ? currentAllocationCents / targetCents : 0;
+        return fundedShare > expectedProgress + 0.05
+            ? GOAL_STATES.AHEAD
+            : GOAL_STATES.ACHIEVABLE;
+    }
+    return monthlyAllocationCents > 0 ? GOAL_STATES.BEHIND : GOAL_STATES.UNACHIEVABLE;
+}
+
+/**
+ * Date a leftover amount is finished if a monthly contribution continues.
+ * Uses the viewed month's length so the lab matches the hold math.
+ */
+export function finishDateAtMonthlyPace(remainingAmount, monthlyAmount, asOf = new Date()) {
+    const remaining = Math.max(0, Utils.toCents(remainingAmount));
+    const monthly = Math.max(0, Utils.toCents(monthlyAmount));
+    if (remaining <= 0) {
+        return { date: dateKeyFromLocal(localDate(asOf)), months: 0, days: 0 };
+    }
+    if (monthly <= 0) return { date: '', months: null, days: null };
+    const daysInMonth = calendarDaysInMonth(asOf);
+    const days = Math.ceil(remaining * daysInMonth / monthly);
+    return {
+        date: addCalendarDays(asOf, days),
+        months: remaining / monthly,
+        days
+    };
+}
+
+export function requiredPaceForAmount(remainingAmount, daysRemaining, asOf = new Date()) {
+    const remaining = Math.max(0, Utils.toCents(remainingAmount));
+    const paceDays = Math.max(1, Number(daysRemaining) || 0);
+    const daysInMonth = calendarDaysInMonth(asOf);
+    const requiredDaily = remaining / paceDays;
+    return {
+        daily: money(requiredDaily),
+        weekly: money(requiredDaily * 7),
+        monthly: money(remaining * Math.min(1, daysInMonth / paceDays)),
+        yearly: money(requiredDaily * AVERAGE_DAYS_PER_YEAR)
+    };
+}
+
 /**
  * Allocate savings and monthly surplus in goal order.
  *
@@ -118,67 +294,116 @@ export function assessGoals(rawGoals, {
     let savingsCents = Math.max(0, Utils.toCents(currentSavings));
     let monthlyCents = Math.max(0, Utils.toCents(monthlySurplus));
     let totalRequiredMonthlyCents = 0;
+    let totalRequiredDailyCents = 0;
+    let totalRequiredWeeklyCents = 0;
+    let totalRequiredYearlyCents = 0;
     let totalAllocatedMonthlyCents = 0;
+    const daysInMonth = calendarDaysInMonth(asOf);
 
     const rows = goals.map((goal) => {
-        const targetCents = Utils.toCents(goal.targetAmount);
         const daysRemaining = goalDaysRemaining(goal.targetDate, asOf);
+        const targetCents = Utils.toCents(goal.targetAmount);
         if (targetCents <= 0) {
-            return {
-                ...goal,
-                state: GOAL_STATES.NO_AMOUNT,
-                daysRemaining,
-                currentAllocation: 0,
-                requiredDaily: 0,
-                requiredMonthly: 0,
-                monthlyAllocation: 0,
-                projectedAmount: 0,
-                shortfall: 0,
-                progress: 0
-            };
+            return emptyAssessment(goal, daysRemaining);
         }
 
-        const currentAllocationCents = Math.min(savingsCents, targetCents);
-        savingsCents -= currentAllocationCents;
+        const seededCents = Math.min(targetCents, Utils.toCents(goal.alreadySaved));
+        const bankEligible = goal.includeBankSavings !== false;
+        const fromBankCents = bankEligible
+            ? Math.min(savingsCents, Math.max(0, targetCents - seededCents))
+            : 0;
+        if (bankEligible) savingsCents -= fromBankCents;
+        const currentAllocationCents = seededCents + fromBankCents;
         const remainingCents = Math.max(0, targetCents - currentAllocationCents);
         const paceDays = Math.max(1, daysRemaining);
         const requiredDailyCents = remainingCents / paceDays;
-        const requiredMonthlyCents = requiredDailyCents * AVERAGE_DAYS_PER_MONTH;
+        const requiredWeeklyCents = requiredDailyCents * 7;
+        const requiredYearlyCents = requiredDailyCents * AVERAGE_DAYS_PER_YEAR;
+        const requiredThisMonthCents = remainingCents * Math.min(1, daysInMonth / paceDays);
+        const requiredThisMonthCeil = Math.ceil(requiredThisMonthCents);
         const monthlyAllocationCents = daysRemaining > 0
-            ? Math.min(monthlyCents, Math.ceil(requiredMonthlyCents))
+            ? Math.min(monthlyCents, requiredThisMonthCeil)
             : 0;
         monthlyCents -= monthlyAllocationCents;
-        totalRequiredMonthlyCents += Math.ceil(requiredMonthlyCents);
+        totalRequiredMonthlyCents += requiredThisMonthCeil;
+        totalRequiredDailyCents += requiredDailyCents;
+        totalRequiredWeeklyCents += requiredWeeklyCents;
+        totalRequiredYearlyCents += requiredYearlyCents;
         totalAllocatedMonthlyCents += monthlyAllocationCents;
 
-        const monthsRemaining = daysRemaining / AVERAGE_DAYS_PER_MONTH;
+        const projectedFromPace = paceDays <= daysInMonth
+            ? monthlyAllocationCents
+            : Math.round(monthlyAllocationCents * paceDays / daysInMonth);
         const projectedCents = Math.min(
             targetCents,
-            currentAllocationCents + Math.round(monthlyAllocationCents * monthsRemaining)
+            currentAllocationCents + Math.max(0, projectedFromPace)
         );
         const shortfallCents = Math.max(0, targetCents - projectedCents);
-        const achievable = projectedCents >= targetCents;
+        const expectedProgress = expectedLinearProgress(goal, daysRemaining);
+        const state = classifyGoal({
+            remainingCents,
+            projectedCents,
+            targetCents,
+            currentAllocationCents,
+            monthlyAllocationCents,
+            expectedProgress
+        });
+        const finish = finishDateAtMonthlyPace(
+            Utils.fromCents(remainingCents),
+            Utils.fromCents(monthlyAllocationCents),
+            asOf
+        );
+
         return {
             ...goal,
-            state: achievable ? GOAL_STATES.ACHIEVABLE : GOAL_STATES.UNACHIEVABLE,
+            horizon: goal.horizon || GOAL_HORIZONS.CUSTOM,
+            state,
             daysRemaining,
+            weeksRemaining: daysRemaining / 7,
+            monthsRemaining: daysRemaining / AVERAGE_DAYS_PER_MONTH,
+            yearsRemaining: daysRemaining / AVERAGE_DAYS_PER_YEAR,
             currentAllocation: money(currentAllocationCents),
             requiredDaily: money(requiredDailyCents),
-            requiredMonthly: money(Math.ceil(requiredMonthlyCents)),
+            requiredWeekly: money(requiredWeeklyCents),
+            requiredMonthly: money(requiredThisMonthCeil),
+            requiredThisMonth: money(requiredThisMonthCeil),
+            requiredYearly: money(requiredYearlyCents),
             monthlyAllocation: money(monthlyAllocationCents),
             projectedAmount: money(projectedCents),
             shortfall: money(shortfallCents),
-            progress: targetCents > 0 ? Math.min(1, currentAllocationCents / targetCents) : 0
+            progress: targetCents > 0 ? Math.min(1, currentAllocationCents / targetCents) : 0,
+            expectedProgress,
+            projectedDate: remainingCents <= 0
+                ? dateKeyFromLocal(localDate(asOf))
+                : finish.date,
+            leftoverAfterGoal: money(monthlyCents)
         };
     });
 
     return {
         goals: rows,
         totalRequiredMonthly: money(totalRequiredMonthlyCents),
+        totalRequiredDaily: money(totalRequiredDailyCents),
+        totalRequiredWeekly: money(totalRequiredWeeklyCents),
+        totalRequiredYearly: money(totalRequiredYearlyCents),
         totalAllocatedMonthly: money(totalAllocatedMonthlyCents),
         unallocatedMonthlySurplus: money(monthlyCents),
         unallocatedCurrentSavings: money(savingsCents)
     };
+}
+
+export function goalPaceAmount(goal, pace = GOAL_PACE_VIEWS.MONTH) {
+    if (pace === GOAL_PACE_VIEWS.DAY) return Number(goal.requiredDaily) || 0;
+    if (pace === GOAL_PACE_VIEWS.WEEK) return Number(goal.requiredWeekly) || 0;
+    if (pace === GOAL_PACE_VIEWS.YEAR) return Number(goal.requiredYearly) || 0;
+    return Number(goal.requiredMonthly) || 0;
+}
+
+export function goalPaceLabel(pace = GOAL_PACE_VIEWS.MONTH) {
+    if (pace === GOAL_PACE_VIEWS.DAY) return 'day';
+    if (pace === GOAL_PACE_VIEWS.WEEK) return 'week';
+    if (pace === GOAL_PACE_VIEWS.YEAR) return 'year';
+    return 'month';
 }
 
 export function goalMilestones(rawGoals, year) {

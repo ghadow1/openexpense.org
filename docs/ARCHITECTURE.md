@@ -66,7 +66,7 @@ src/main.js         boot, event delegation, render subscription
 | `features/modal.js` | Day editor; Change All; group / ungroup; recurring delete |
 | `features/search-panel.js` | Ledger search (`group:`, `tag:` / `cat:`, amounts, `is:`) |
 | `features/sidebar.js` | Month math + statement PDF; click a group or category to search |
-| `features/goals.js` | Goal editor, priority drag, feasibility cards, and explicit planner-hold action |
+| `features/goals.js` | Goal editor, length presets, pace toggles, priority drag, feasibility cards, and explicit planner-hold action |
 | `features/receipt.js` | On-device OCR / PDF, then `receipt-parse.js` |
 | `app/render.js` | When to repaint, plus the “You own your data” / “File loaded” chips |
 
@@ -95,10 +95,12 @@ The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. 
 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 
-`src/core/goals.js` compares each goal’s required daily/monthly pace with
-available surplus. Allocation is a priority waterfall: each current-savings or
-monthly-surplus dollar is assigned at most once. The headless `snapshot()` API
-accepts goals as its optional fourth argument and returns `goalAssessment`.
+`src/core/goals.js` compares each goal’s required daily, weekly, monthly, and
+yearly pace with available surplus. The monthly hold is this month’s share of
+the amount still needed, not an annualized daily rate. Allocation is a priority
+waterfall: each current-savings or monthly-surplus dollar is assigned at most
+once. The headless `snapshot()` API accepts goals as its optional fourth
+argument and returns `goalAssessment`.
 
 ## Labels, groups, and Change All
 

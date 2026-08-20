@@ -348,18 +348,23 @@ C_i=\min(S_i,T_i),\qquad S_{i+1}=S_i-C_i,\qquad
 R_i=\max(0,T_i-C_i).
 \]
 
-With \(D_i=\max(1,\text{days remaining})\), the required pace is:
+With \(D_i=\max(1,\text{days remaining})\) and \(N\) the number of days in
+the observation month, the required pace is:
 
 \[
 q_i=\frac{R_i}{D_i},\qquad
-m_i=\left\lceil q_i\cdot 30.4375\right\rceil.
+m_i=\left\lceil R_i\cdot\min\!\left(1,\frac{N}{D_i}\right)\right\rceil.
 \]
 
-Monthly surplus is then assigned in priority order:
+\(m_i\) is this month’s on-pace hold, not a daily rate stretched across
+30.4375 days. Monthly surplus is then assigned in priority order:
 
 \[
 A_i=\min(M_i,m_i),\qquad M_{i+1}=M_i-A_i.
 \]
+
+Projection uses \(A_i\) when the deadline is still in this month, or
+\(A_i\cdot D_i/N\) when the deadline is later.
 
 Because both pools shrink after each assignment, one dollar cannot fund two
 goals. Goals without a target amount remain valid planning notes but consume no

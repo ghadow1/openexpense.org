@@ -44,7 +44,10 @@ This is the shape stored inside encrypted IndexedDB and inside a decrypted expor
       "title": "Emergency fund",
       "targetDate": "2027-01-15",
       "targetAmount": 2500,
-      "createdAt": 1780000000000
+      "createdAt": 1780000000000,
+      "horizon": "custom",
+      "note": "Keep this in the high-yield account",
+      "alreadySaved": 400
     }
   ],
   "savedAt": 1780000000000
@@ -107,19 +110,35 @@ Derived figures (not stored):
 | `targetDate` | yes | Real `YYYY-MM-DD` calendar date. |
 | `targetAmount` | no | Positive amount rounded to cents. Missing means “No amount set” and disables feasibility scoring. |
 | `createdAt` | yes | Local Unix timestamp used for stable metadata; priority remains the array order. |
+| `horizon` | no | `weekly`, `monthly`, `yearly`, or `custom`. Length presets fill `targetDate`; older ledgers without this field are treated as custom. |
+| `note` | no | Optional planning note, maximum 200 characters. |
+| `alreadySaved` | no | Dollars already reserved for this goal. Counted before the shared bank amount and never taken from another goal. |
+| `includeBankSavings` | no | Default true. `false` skips the shared `currentSavings` pool so only this goal’s `alreadySaved` and new surplus fund it. |
 
 Current savings and available monthly surplus flow through goals once from top
 to bottom. For each priced goal:
 
-`required daily = max(0, target − allocated current savings) ÷ max(1, days remaining)`
+`remaining = max(0, target − already saved − allocated bank savings)`
 
-`required monthly = required daily × (365.25 ÷ 12)`
+`required daily = remaining ÷ max(1, days remaining)`
 
-The projected amount is current allocation plus that goal’s allocated monthly
-surplus over the remaining time. This follows the CFPB savings-plan method of
-dividing the amount needed by the available weeks/months and comparing that
-pace with budget surplus. Reordering goals changes priority; it does not move
-money at a bank.
+`required weekly = required daily × 7`
+
+`required this month = remaining × min(1, days in this month ÷ days remaining)`
+
+`required yearly = required daily × 365.25`
+
+The monthly hold is this month’s on-pace share, not a daily rate stretched
+across 30.44 days. A $2,500 goal due in 11 days needs $2,500 this month
+($227.27 / day), not $6,917.62 / month.
+
+The projected amount is current allocation plus this month’s allocated surplus
+when the deadline is still in this month, or that monthly allocation continued
+at the same calendar-month rate when the deadline is later. This follows the
+CFPB savings-plan method of dividing the amount needed by the time remaining
+and comparing that pace with budget surplus. Reordering goals changes priority;
+it does not move money at a bank. States are no amount, complete, ahead, on
+track (`achievable`), behind, and unachievable.
 
 Research basis:
 
