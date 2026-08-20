@@ -88,6 +88,7 @@ The 50/30/20 (or custom) ratios score after-tax income. They do not withhold a s
 | `ratioNeeds` | `50` | Percent of after-tax income treated as needs. Default is Warren & Tyagi, *All Your Worth* (2005), as taught by the CFPB 50/30/20 rule. Needs labels: Housing, Utilities, Health, Transit, Groceries. |
 | `ratioWants` | `30` | Wants labels: Dining, Coffee, Entertainment, Shopping, Travel, Subscriptions. |
 | `ratioSave` | `20` | Save cap is the scoreboard for the savings hold, not a second deduction. Ratios that do not add to 100 are scaled; leftover points go to save. |
+| `goalIncome` | `"horizon"` | `"horizon"` counts upcoming calendar pay that leftover has not already included (unpaid deposits, plus pay after this month) through each goal date. Tax and savings percent still apply. `"surplus"` is leftover + hold only. The Tracker expense/income filter never hides these checks. |
 
 Derived figures (not stored):
 
@@ -115,8 +116,8 @@ Derived figures (not stored):
 | `alreadySaved` | no | Dollars already reserved for this goal. Counted before the shared bank amount and never taken from another goal. |
 | `includeBankSavings` | no | Default true. `false` skips the shared `currentSavings` pool so only this goal’s `alreadySaved` and new surplus fund it. |
 
-Current savings and available monthly surplus flow through goals once from top
-to bottom. For each priced goal:
+Current savings, leftover surplus, and upcoming pay (when `goalIncome` is
+`horizon`) flow through goals once from top to bottom. For each priced goal:
 
 `remaining = max(0, target − already saved − allocated bank savings)`
 
@@ -131,19 +132,21 @@ as leftover “days left”). A past date is 0.
 
 `required this year = remaining × min(1, days in this year ÷ days remaining)`
 
-A period hold never exceeds the amount still needed. A $250 goal due at
-month-end on August 20 needs $250 this month ($20.83 / day over 12 days), not
-$691.77 / month and not $8,301 / year. The same $2,500 target needs $2,500
-this month, not $6,917.62.
+A period hold never exceeds the amount still needed. Upcoming pay that lands
+on or before the goal date is subtracted first, so two $480.50 checks before
+month-end cover a $250 goal and the hold is $0. Without incoming pay, a $250
+goal due at month-end on August 20 needs $250 this month ($20.83 / day over
+12 days), not $691.77 / month.
 
-The projected amount is current allocation plus this month’s allocated surplus
-when the deadline is still in this month, or that monthly allocation continued
-at the same calendar-month rate when the deadline is later. This follows the
-CFPB savings-plan method of dividing the amount needed by the time remaining
-and comparing that pace with budget surplus. Reordering goals changes priority;
-it does not move money at a bank. States are no amount, complete, ahead, on
-track (`achievable`), behind (still time, surplus is short), and unachievable
-(the date has passed and the target is still open).
+The projected amount is current allocation plus incoming pay through the
+deadline plus this month’s allocated surplus (or that surplus continued at
+the same calendar-month rate when the deadline is later). This follows the
+CFPB savings-plan method of dividing the amount still needed by the time
+remaining and comparing that pace with leftover and scheduled pay. Reordering
+goals changes priority; it does not move money at a bank. States are no
+amount, complete, ahead, on track (`achievable`), behind (still time, surplus
+and incoming pay are short), and unachievable (the date has passed and the
+target is still open).
 
 Research basis:
 
@@ -231,7 +234,7 @@ The same QC path (`src/core/ledger-file.js`) runs on encrypted import, plaintext
 - Key commitment match, then a successful AES-GCM decrypt over the authenticated header
 - Sanitized `events` map: real calendar dates, known entry fields, `kind` expense or income, entry/day caps
 - Sanitized `budgets` map: non-empty labels, positive finite amounts, prototype keys refused, count capped
-- Sanitized `plan`: weekly savings rounded to cents, `spendBasis` `logged` or `paid`, `incomeBasis` `deposited` or `scheduled`; omitted when it matches the default cash line
+- Sanitized `plan`: weekly savings rounded to cents, `spendBasis` `logged` or `paid`, `incomeBasis` `deposited` or `scheduled`, `goalIncome` `horizon` or `surplus`; omitted when it matches the default cash line
 - Sanitized `goals`: valid ids/dates, bounded titles and amounts, unique ids, count capped at 50
 - Prototype-pollution keys (`__proto__`, `constructor`, `prototype`) are dropped
 

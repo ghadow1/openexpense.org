@@ -63,6 +63,7 @@ test('visual state and accessibility state stay synchronized', async () => {
     assert.match(dashboard, /setAttribute\('aria-pressed'/);
     assert.match(dashboard, /className = 'ov-goal-alert'/);
     assert.match(dashboard, /dataset.view = 'planner'/);
+    assert.match(dashboard, /dash-plan-goals/);
     assert.match(views, /appView\.hidden = privacy/);
     assert.match(views, /docsView\.hidden = !privacy/);
     assert.match(views, /skipLink\.href = privacy/);

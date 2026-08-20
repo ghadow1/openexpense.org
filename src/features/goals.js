@@ -21,7 +21,7 @@ import {
     sanitizeGoals,
     targetDateForHorizon
 } from '../core/goals.js';
-import { fixedHoldForTarget, sanitizePlan } from '../core/plan.js';
+import { fixedHoldForTarget, horizonIncomeItems, sanitizePlan } from '../core/plan.js';
 import { Utils } from '../core/utils.js';
 import { activateDialogFocus, deactivateDialogFocus } from '../ui/dialog-focus.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
@@ -613,8 +613,12 @@ function goalCard(goal, index, count) {
         projection.className = 'goal-projection';
         if (goal.state === GOAL_STATES.COMPLETE) {
             projection.textContent = 'Funded. Nothing more needs to be held for this goal.';
+        } else if (goal.incomingAllocation > 0 && goal.shortfall <= 0) {
+            projection.textContent = `Upcoming pay of ${Utils.formatMoney(goal.incomingAllocation)} before ${dateLabel(goal.targetDate)} covers this goal.`;
         } else if (goal.projectedDate && goal.shortfall <= 0) {
             projection.textContent = `On pace to finish ${dateLabel(goal.projectedDate)} · ${Utils.formatMoney(goal.projectedAmount)} projected.`;
+        } else if (goal.incomingAllocation > 0) {
+            projection.textContent = `${Utils.formatMoney(goal.shortfall)} short after ${Utils.formatMoney(goal.incomingAllocation)} incoming · projected ${Utils.formatMoney(goal.projectedAmount)} by ${dateLabel(goal.targetDate)}.`;
         } else if (goal.projectedDate) {
             projection.textContent = `${Utils.formatMoney(goal.shortfall)} short at the current surplus · projected ${Utils.formatMoney(goal.projectedAmount)} by ${dateLabel(goal.targetDate)}.`;
         } else {
@@ -725,9 +729,11 @@ function paceLab(assessment) {
 export function renderGoalsPanel({ snap, goals, plan }) {
     lastPanelArgs = { snap, goals, plan };
     const monthlySurplus = Math.max(0, Number(snap.leftToSpend) + Number(snap.savingsHold));
+    const { events, currentDate } = getState();
     const assessment = snap.goalAssessment || assessGoals(goals, {
         currentSavings: plan.currentSavings,
         monthlySurplus,
+        upcomingIncome: horizonIncomeItems(events, new Date(), currentDate, plan),
         asOf: new Date()
     });
     const section = document.createElement('section');
@@ -739,8 +745,8 @@ export function renderGoalsPanel({ snap, goals, plan }) {
     heading.textContent = 'Savings goals';
     const detail = document.createElement('p');
     detail.textContent = assessment.goals.length
-        ? 'Priority runs top to bottom. Bank savings and monthly surplus are allocated once. The monthly hold is this month’s share of what is still needed.'
-        : 'Pick a week, month, year, or custom date. An optional amount is tested against leftover and the savings you already hold.';
+        ? 'Priority runs top to bottom. Bank savings, leftover, and upcoming pay before each deadline are allocated once. Quality settings choose leftover-only if you want the stricter test.'
+        : 'Pick a week, month, year, or custom date. Upcoming checks count toward the goal even when leftover uses deposited cash only.';
     copy.append(heading, detail);
     header.appendChild(copy);
     section.appendChild(header);

@@ -211,6 +211,26 @@ test('a $250 end-of-month goal holds $250 this month, not an annualized $691.77'
     assert.equal(result.goals[0].state, GOAL_STATES.BEHIND);
 });
 
+test('upcoming checks before the deadline cover a $250 goal instead of marking it behind', () => {
+    const result = assessGoals([
+        { id: GOAL_A, title: '2500 Savings', targetDate: '2026-08-31', targetAmount: 250, createdAt: 1 }
+    ], {
+        currentSavings: 0,
+        monthlySurplus: 0,
+        upcomingIncome: [
+            { date: '2026-08-25', cents: 40000 },
+            { date: '2026-08-28', cents: 56100 }
+        ],
+        asOf: new Date(2026, 7, 20)
+    });
+    assert.equal(result.goals[0].incomingAllocation, 250);
+    assert.equal(result.goals[0].requiredMonthly, 0);
+    assert.equal(result.goals[0].shortfall, 0);
+    assert.equal(result.goals[0].state, GOAL_STATES.ACHIEVABLE);
+    assert.equal(result.totalIncomingAllocated, 250);
+    assert.equal(atRiskGoals(result).length, 0);
+});
+
 test('a short-horizon goal holds the remaining amount this month', () => {
     const result = assessGoals([
         { id: GOAL_A, title: '2500 Savings', targetDate: '2026-08-31', targetAmount: 2500, createdAt: 1 }

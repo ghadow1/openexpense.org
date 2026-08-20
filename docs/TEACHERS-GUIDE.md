@@ -357,9 +357,9 @@ m_i=\left\lceil R_i\cdot\min\!\left(1,\frac{N}{D_i}\right)\right\rceil.
 \]
 
 Week and year holds use the same cap with 7 and the calendar-year length.
-\(m_i\) never exceeds \(R_i\). A $250 end-of-month goal is a $250 hold, not
-an annualized $691.77 / month. Monthly surplus is then assigned in priority
-order:
+\(m_i\) never exceeds \(R_i\) after upcoming pay through the goal date is
+applied. A $250 end-of-month goal covered by $961 in scheduled checks needs
+a $0 hold. Monthly surplus is then assigned in priority order:
 
 \[
 A_i=\min(M_i,m_i),\qquad M_{i+1}=M_i-A_i.

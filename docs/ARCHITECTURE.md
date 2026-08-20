@@ -96,13 +96,14 @@ The bottom bar has four tabs. `#view-app` holds Overview, Tracker, and Planner. 
 Defaults keep the original cash line: deposited income minus every logged bill, with nothing withheld. Planner leftover ÷ remaining days lives in `src/core/plan.js` (`computePlanner`). The sidebar keeps its totals, paid vs pending, and stat grid on screen — only the long lists (categories, groups, budgets, merchants, entries) fold.
 
 `src/core/goals.js` compares each goal’s required daily, weekly, monthly, and
-yearly pace with available surplus. Week, month, and year holds are the share
-due in that period, capped at the amount still needed — never a daily rate
-stretched across 30.44 or 365.25 days. A goal is unachievable only after its
-date has passed; $0 leftover before then is behind. Allocation is a priority
-waterfall: each current-savings or monthly-surplus dollar is assigned at most
-once. The headless `snapshot()` API accepts goals as its optional fourth
-argument and returns `goalAssessment`.
+yearly pace with leftover surplus and upcoming calendar pay through the goal
+date. Planner Quality settings can switch goals to leftover-only. Week, month,
+and year holds are the share still needed after that incoming pay, capped at
+the remaining amount. A goal is unachievable only after its date has passed.
+Allocation is a priority waterfall: each bank, leftover, or upcoming-pay
+dollar is assigned at most once. The Tracker filter never hides those checks.
+The headless `snapshot()` API accepts goals as its optional fourth argument
+and returns `goalAssessment`.
 
 ## Labels, groups, and Change All
 

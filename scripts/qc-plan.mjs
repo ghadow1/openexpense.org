@@ -14,6 +14,8 @@ import {
     computePlanner,
     dailySafeSpend,
     describePlan,
+    horizonIncomeItems,
+    takeIncomeThrough,
     fixedHoldForTarget,
     growthPotentialPct,
     incomeUsed,
@@ -67,6 +69,7 @@ test('sanitizePlan keeps only known rule values', () => {
     assert.equal(clean.savingsFixed, 200);
     assert.equal(clean.currentSavings, 10000.13);
     assert.equal(clean.ratioNeeds, 50);
+    assert.equal(clean.goalIncome, 'horizon');
     assert.equal(clean.extra, undefined);
 });
 
@@ -117,8 +120,11 @@ test('windowTotals applies the same bases inside a date range', () => {
 
 test('describePlan names the active rules', () => {
     assert.match(describePlan({}), /deposited income minus all logged bills/);
+    assert.match(describePlan({}), /goals count upcoming pay/);
     assert.match(describePlan({ spendBasis: 'paid', incomeBasis: 'scheduled' }), /scheduled income minus paid bills/);
     assert.match(describePlan({ taxWithholdPct: 15.3 }), /15\.3% withheld/);
+    assert.match(describePlan({ goalIncome: 'surplus' }), /goals use leftover only/);
+    assert.equal(planIsDefault({ goalIncome: 'surplus' }), false);
 });
 
 test('percentOf and leftover stay on whole cents', () => {
@@ -481,4 +487,23 @@ test('turning the weekly reserve off leaves fixed and percent holds in place', (
     assert.equal(out.reserveOn, false);
     assert.equal(out.savingsHold, 50);
     assert.equal(out.leftToSpend, 550);
+});
+
+test('horizon income counts unpaid checks leftover has not already included', () => {
+    const events = {
+        '2026-08-10': [{ title: 'Landed', kind: 'income', price: 200, paid: true }],
+        '2026-08-25': [{ title: 'Check A', kind: 'income', price: 400, paid: false }],
+        '2026-08-28': [{ title: 'Check B', kind: 'income', price: 561, paid: false }],
+        '2026-08-26': [{ title: 'Coffee', price: 6 }]
+    };
+    const asOf = new Date(2026, 7, 20);
+    const month = new Date(2026, 7, 1);
+    const items = horizonIncomeItems(events, asOf, month, { incomeBasis: 'deposited' });
+    assert.equal(items.reduce((sum, item) => sum + item.cents, 0), 96100);
+    const scheduled = horizonIncomeItems(events, asOf, month, { incomeBasis: 'scheduled' });
+    assert.equal(scheduled.length, 0);
+    const leftoverOnly = horizonIncomeItems(events, asOf, month, { goalIncome: 'surplus' });
+    assert.equal(leftoverOnly.length, 0);
+    const taken = takeIncomeThrough(items.map((item) => ({ ...item })), '2026-08-31', 25000);
+    assert.equal(taken, 25000);
 });

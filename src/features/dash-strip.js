@@ -20,6 +20,7 @@ import {
 import {
     PLAN_DEFAULTS,
     growthPotentialPct,
+    horizonIncomeItems,
     monthReserve,
     planIsDefault,
     sanitizePlan
@@ -290,7 +291,7 @@ function fieldRow(...children) {
 
 const QUALITY_KEYS = Object.freeze([
     'spendBasis', 'incomeBasis', 'taxWithholdPct', 'weeklyIncome',
-    'ratioNeeds', 'ratioWants', 'ratioSave'
+    'ratioNeeds', 'ratioWants', 'ratioSave', 'goalIncome'
 ]);
 const BANKING_KEYS = Object.freeze([
     'weeklySavings', 'savingsFixed', 'savingsPct', 'currentSavings', 'reserveSavings'
@@ -301,7 +302,7 @@ const PLAN_PANES = Object.freeze([
         id: 'quality',
         icon: 'adjustments',
         title: 'Quality settings',
-        description: 'What counts, tax, weekly pace, and spending targets.'
+        description: 'What counts, tax, weekly pace, goals, and spending targets.'
     },
     {
         id: 'banking',
@@ -377,6 +378,7 @@ function readPlanForm(form) {
         reserveSavings: !!form.querySelector('#dash-plan-reserve')?.checked,
         spendBasis: form.querySelector('input[name="dash-plan-spend"]:checked')?.value,
         incomeBasis: form.querySelector('input[name="dash-plan-income"]:checked')?.value,
+        goalIncome: form.querySelector('input[name="dash-plan-goals"]:checked')?.value,
         taxWithholdPct: Number(form.querySelector('#dash-plan-tax')?.value),
         savingsFixed: Number(form.querySelector('#dash-plan-fixed')?.value),
         currentSavings: Number(form.querySelector('#dash-plan-current')?.value),
@@ -412,8 +414,10 @@ function setPlanForm(form, plan) {
     if (reserve) reserve.checked = next.reserveSavings;
     const spend = form.querySelector(`input[name="dash-plan-spend"][value="${next.spendBasis}"]`);
     const income = form.querySelector(`input[name="dash-plan-income"][value="${next.incomeBasis}"]`);
+    const goals = form.querySelector(`input[name="dash-plan-goals"][value="${next.goalIncome}"]`);
     if (spend) spend.checked = true;
     if (income) income.checked = true;
+    if (goals) goals.checked = true;
 }
 
 function hint(id, text) {
@@ -569,6 +573,11 @@ function planPanel(snap, plan, currentDate) {
         choiceButton('dash-plan-income', 'deposited', 'Deposited only', plan.incomeBasis !== 'scheduled', 'Cash that has landed'),
         choiceButton('dash-plan-income', 'scheduled', 'All scheduled', plan.incomeBasis === 'scheduled', 'Include pay still due')
     );
+    const goalIncomeField = choiceField(
+        'Goal funding',
+        choiceButton('dash-plan-goals', 'horizon', 'Upcoming pay', plan.goalIncome !== 'surplus', 'Checks that land before each goal date'),
+        choiceButton('dash-plan-goals', 'surplus', 'Leftover only', plan.goalIncome === 'surplus', 'Ignore pay still on the calendar')
+    );
 
     const ratioField = document.createElement('fieldset');
     ratioField.className = 'dash-plan-row';
@@ -649,6 +658,13 @@ function planPanel(snap, plan, currentDate) {
             incomeField,
             spendField,
             hint('', 'Defaults keep deposited income minus every logged bill.')
+        ),
+        planSection(
+            'target-arrow',
+            'Goal funding',
+            'Upcoming pay still counts toward a goal even when leftover uses deposited cash only. The Tracker expense/income filter never hides those checks. Tax and savings percent still apply.',
+            goalIncomeField,
+            hint('', 'Upcoming pay is the default. Leftover only is the stricter cash-on-hand test.')
         ),
         planSection(
             'receipt-tax',
@@ -1025,6 +1041,12 @@ function renderGoalWarning(snap, goals) {
     const assessment = snap.goalAssessment || assessGoals(goals, {
         currentSavings: snap.currentSavings,
         monthlySurplus: Math.max(0, Number(snap.leftToSpend) + Number(snap.savingsHold || 0)),
+        upcomingIncome: horizonIncomeItems(
+            getState().events,
+            new Date(),
+            getState().currentDate,
+            snap.plan
+        ),
         asOf: new Date()
     });
     const risky = atRiskGoals(assessment);
