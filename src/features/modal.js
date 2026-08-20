@@ -118,7 +118,7 @@ function bindSheetGestures(modal) {
     let dy = 0;
 
     const canDragFrom = (target) => {
-        if (!window.matchMedia('(max-width: 640px)').matches) return false;
+        if (!window.matchMedia('(max-width: 720px)').matches) return false;
         return !!target.closest('.sheet-grab, .modal-header');
     };
 
@@ -627,7 +627,11 @@ export function renderModal() {
 
     const titleEl = document.getElementById('modal-date-title');
     if (titleEl) {
-        titleEl.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const compact = typeof window !== 'undefined'
+            && window.matchMedia('(max-width: 720px)').matches;
+        titleEl.textContent = dateObj.toLocaleDateString('en-US', compact
+            ? { weekday: 'short', month: 'short', day: 'numeric' }
+            : { weekday: 'long', month: 'long', day: 'numeric' });
     }
 
     refreshEventList();
