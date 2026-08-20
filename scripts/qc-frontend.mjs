@@ -95,6 +95,7 @@ test('generated controls expose names and compatible roles', async () => {
     assert.match(calendar, /className = 'cal-week-rail'/);
     assert.match(calendar, /cal-week-rail-bar/);
     assert.match(calendar, /cal-week-net/);
+    assert.match(calendar, /ArrowLeft: -1, ArrowRight: 1/);
     assert.match(charts, /typeof onSelect === 'function' \? 'group' : 'img'/);
     assert.match(charts, /aria-current', 'date'/);
     assert.match(charts, /event\.key === 'ArrowRight'/);

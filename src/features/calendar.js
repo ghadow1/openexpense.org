@@ -373,7 +373,19 @@ function paintDayCell(cell, i, firstDay, y, m, today, events, hints) {
     cell.setAttribute('tabindex', '0');
     cell.onclick = () => openModal(dateKey);
     cell.onkeydown = (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openModal(dateKey); }
+        if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            openModal(dateKey);
+            return;
+        }
+        const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[ev.key];
+        if (delta == null) return;
+        const grid = cell.closest('.cal-grid');
+        const days = grid ? [...grid.querySelectorAll('.cal-day[data-date]')] : [];
+        const next = days[days.indexOf(cell) + delta];
+        if (!next) return;
+        ev.preventDefault();
+        next.focus();
     };
 
     const dayEvents = visibleDayEvents(events[dateKey] || [], getState().trackerFilter);

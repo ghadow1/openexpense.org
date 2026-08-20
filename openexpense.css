@@ -350,6 +350,15 @@ textarea:focus:not(:focus-visible) {
     background: var(--surface2);
 }
 
+.ui-btn:disabled,
+.dash-act:disabled,
+.privacy-tool-btn:disabled,
+.header-icon-btn:disabled,
+.tracker-filter-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .ui-btn:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
@@ -511,6 +520,9 @@ html {
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+    accent-color: var(--accent);
+    caret-color: var(--accent);
 }
 
 body {
@@ -526,10 +538,21 @@ body {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
+    text-wrap: pretty;
+}
+
+::selection {
+    background: var(--accent-soft);
+    color: var(--text-strong);
+}
+
+h1, h2, h3, .docs-hero-title, .ov-kpi, .planner-page-head h2 {
+    text-wrap: balance;
 }
 
 a {
     color: var(--accent);
+    text-underline-offset: 0.18em;
 }
 
 button,
@@ -562,7 +585,7 @@ textarea,
 
 .skip-link {
     position: absolute;
-    left: 12px;
+    left: max(12px, env(safe-area-inset-left, 0px));
     top: -48px;
     z-index: 10000;
     padding: 8px 12px;
@@ -575,7 +598,9 @@ textarea,
 }
 
 .skip-link:focus {
-    top: 12px;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    outline: 2px solid var(--on-accent);
+    outline-offset: 2px;
 }
 
 .noscript-seo {
@@ -1014,6 +1039,13 @@ html[data-frame="tablet"] .tracker-board {
     color: var(--income-text);
 }
 
+@media (hover: hover) and (pointer: fine) {
+    .tracker-filter-btn:hover:not(.is-active) {
+        color: var(--text-strong);
+        background: color-mix(in srgb, var(--surface) 82%, transparent);
+    }
+}
+
 .tracker-toolbar .dash-actions {
     flex: 0 0 auto;
     align-items: stretch;
@@ -1133,6 +1165,11 @@ html[data-frame="phone"] .tracker-filter-btn {
     line-height: 1;
 }
 
+.dock-tab:focus-visible {
+    outline: 2px solid var(--header-text);
+    outline-offset: -2px;
+}
+
 .dock-tab.is-active {
     color: var(--header-text);
     background: transparent;
@@ -1250,6 +1287,17 @@ html[data-frame="tablet"] .dock-tab.is-active::before {
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    transition:
+        background var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .privacy-tool-btn:hover {
+        background: var(--surface);
+        border-color: var(--border-strong);
+    }
 }
 
 .privacy-tool-btn:focus-visible {
@@ -1507,6 +1555,11 @@ html[data-frame="tablet"] .site-header-inner {
     justify-content: center;
     font-size: var(--control-icon);
     pointer-events: none;
+}
+
+.header-icon-btn:focus-visible {
+    outline: 2px solid var(--header-text);
+    outline-offset: 2px;
 }
 
 /* Active "on" dot for the autosave toggle so the enabled state is unmistakable. */
@@ -1872,7 +1925,6 @@ html[data-frame="tablet"] .site-header-inner {
 }
 
 html.is-action-busy [data-lockable] {
-    opacity: 0.55;
     cursor: wait;
     pointer-events: none;
 }
@@ -3843,14 +3895,16 @@ html[data-frame="desktop"] .sidebar.has-flip {
     overflow: hidden;
 }
 
-.cal-day:hover {
-    background-color: var(--surface2);
-    border-color: var(--accent) !important;
-    z-index: 2;
-}
-
 .cal-day:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .cal-day:hover {
+        background-color: var(--surface2);
+        border-color: var(--accent) !important;
+        z-index: 2;
+    }
 }
 
 .cal-day-body {
@@ -4086,14 +4140,16 @@ html[data-frame="desktop"] .sidebar.has-flip {
     border-left-color: var(--income);
 }
 
-.pill.is-income:hover {
-    background: color-mix(in srgb, var(--income) 16%, var(--income-soft));
-}
+@media (hover: hover) and (pointer: fine) {
+    .pill.is-income:hover {
+        background: color-mix(in srgb, var(--income) 16%, var(--income-soft));
+    }
 
-.pill:hover {
-    opacity: 1;
-    transform: translateX(1px);
-    background: color-mix(in srgb, var(--accent) 12%, var(--pill-bg));
+    .pill:hover {
+        opacity: 1;
+        transform: translateX(1px);
+        background: color-mix(in srgb, var(--accent) 12%, var(--pill-bg));
+    }
 }
 
 .pill.is-paid {
@@ -7601,6 +7657,14 @@ textarea:focus-visible {
     color: var(--accent);
 }
 
+@media (prefers-reduced-transparency: reduce) {
+    .toast {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: var(--surface);
+    }
+}
+
 /* ==========================================================================
    Reusable inputs (shared by OCR dialog and other DOM-built forms)
    ========================================================================== */
@@ -7627,7 +7691,7 @@ textarea:focus-visible {
 .text-input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: none;
+    box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 input[type="date"].text-input,
@@ -8971,8 +9035,9 @@ body.is-embed #welcome-modal {
  */
 .search-input:focus-visible,
 .text-input:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .cat-backfill {

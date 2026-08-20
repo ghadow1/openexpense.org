@@ -6,6 +6,10 @@ The app stays offline-only. Your ledger still never leaves this browser.
 
 These notes describe what is on `main` (the site at [openexpense.org](https://www.openexpense.org)). Earlier design and grouping work landed in pull requests [#67](https://github.com/ghadow1/openexpense.org/pull/67) and [#83](https://github.com/ghadow1/openexpense.org/pull/83). The follow-up commits below (receipts, status pills, public docs) are the rest of that same update.
 
+## 2026-08-20 — Control polish
+
+Buttons, filters, and day cells keep their look and pick up quieter interaction: no sticky hover on a phone, a clearer focus ring on fields, arrow keys across the month grid, and Add placing the cursor in the title field. Busy export/import/scan controls still lock, with a disabled style that does not stack.
+
 ## 2026-08-20 — Full-width tablet and desktop board
 
 Phone layout is unchanged. On a tablet or computer the four tabs sit in the header instead of a bottom bar. Overview is Potential Savings plus a full-width calendar. Tracker is the filter plus the monthly spending register. Planner still hides that board.

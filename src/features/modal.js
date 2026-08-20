@@ -78,7 +78,7 @@ function focusField(id) {
     if (el) el.focus({ preventScroll: true });
 }
 
-export function openModal(key) {
+export function openModal(key, { focusAdd = false } = {}) {
     selectedDayIndexes.clear();
     patch({ selectedKey: key, editingIndex: null });
     Utils.hideTooltip();
@@ -89,7 +89,17 @@ export function openModal(key) {
     document.body.classList.add('modal-open');
     lockBodyScroll();
     renderModal();
-    activateDialogFocus(sheet, sheet?.querySelector('[data-action="close-modal"]'));
+    activateDialogFocus(
+        sheet,
+        focusAdd
+            ? sheet?.querySelector('#et')
+            : sheet?.querySelector('[data-action="close-modal"]')
+    );
+    if (focusAdd) {
+        requestAnimationFrame(() => {
+            sheet?.querySelector('#et')?.focus({ preventScroll: true });
+        });
+    }
 }
 
 export function closeModal() {

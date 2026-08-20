@@ -229,7 +229,7 @@ function handleDelegatedClick(e) {
             case 'quick-add-today': {
                 const now = new Date();
                 if (getState().shellTab === 'privacy') switchView('overview');
-                openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()));
+                openModal(Utils.dateKey(now.getFullYear(), now.getMonth(), now.getDate()), { focusAdd: true });
                 break;
             }
             case 'export-ledger':
