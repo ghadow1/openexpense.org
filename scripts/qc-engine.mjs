@@ -148,6 +148,9 @@ test('404 and embed pages carry the home CSP', async () => {
     assert.match(missing, csp);
     assert.match(embed, csp);
     assert.match(missing, /href="\/icons\/icon\.svg"/);
+    assert.match(missing, /<svg[\s\S]*uh-oh[\s\S]*<\/svg>/i);
+    assert.match(missing, /class="cta"[^>]*href="\/"/);
+    assert.doesNotMatch(missing, /#7dd3fc/i);
 });
 
 test('receipt dates reject calendar rollovers', () => {

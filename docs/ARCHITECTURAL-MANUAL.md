@@ -374,7 +374,7 @@ and checksum through the dependency process.
 - `openexpense.css`: complete production design system and responsive layout.
 - `app.js`, `chunk-[hash].js`: generated full-app ES modules; never hand-edit.
 - `engine.js`: generated headless ES module; never hand-edit.
-- `404.html`: static missing-path page.
+- `404.html`: static missing-path page with an inline vector graphic.
 - `embed.html`: embed entry/redirect shell.
 - `manifest.json`: install metadata.
 - `robots.txt`, `sitemap.xml`: crawler metadata.
