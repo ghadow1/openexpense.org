@@ -95,7 +95,7 @@
     --control-radius: 2px;
     --control-icon: 18px;
     --gutter: clamp(12px, 3.2vw, 24px);
-    --page: 1440px;
+    --page: 1760px;
 
     /* Motion */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -608,6 +608,13 @@ textarea,
     box-sizing: border-box;
 }
 
+html[data-frame="desktop"] .app-container,
+html[data-frame="tablet"] .app-container {
+    width: 100%;
+    max-width: var(--page);
+    padding-bottom: 32px;
+}
+
 .shell-pane[hidden] {
     display: none !important;
 }
@@ -745,16 +752,15 @@ html[data-frame="desktop"] #pane-tracker-head {
     display: none !important;
 }
 
-/* Overview owns Potential Savings + the calendar. Tracker owns the filter
-   and monthly spending. These rules are by tab, not by frame, so a
-   mis-stamped data-frame or display:contents cannot leak the two pages
-   back into one board. */
-html[data-shell="overview"] .tracker-toolbar,
-html[data-shell="overview"] #sidebar {
+/* Phone keeps one surface per tab: Overview is snapshot + calendar,
+   Tracker is filter + monthly spending. Desktop and tablet share the
+   calendar and register so a wide screen is a two-pane board. */
+html[data-frame="phone"][data-shell="overview"] .tracker-toolbar,
+html[data-frame="phone"][data-shell="overview"] #sidebar {
     display: none !important;
 }
 
-html[data-shell="tracker"] #cal-col {
+html[data-frame="phone"][data-shell="tracker"] #cal-col {
     display: none !important;
 }
 
@@ -833,10 +839,10 @@ html[data-frame="tablet"] #view-app > #ledger-name-input {
     display: none;
 }
 
-/* Desktop: compact strip + calendar in the left column, register on the right. */
+/* Desktop: compact strip across the top, calendar left, register right. */
 html[data-frame="desktop"] #view-app {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
     grid-template-areas:
         "hero side"
         "planner side"
@@ -844,21 +850,20 @@ html[data-frame="desktop"] #view-app {
         "cal side";
     gap: clamp(16px, 2vw, 24px);
     align-items: start;
+    width: 100%;
 }
 
 html[data-frame="desktop"][data-shell="overview"] #view-app {
-    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-        "hero"
-        "cal";
+        "hero hero"
+        "tools side"
+        "cal side";
 }
 
 html[data-frame="desktop"][data-shell="tracker"] #view-app {
-    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-        "head"
-        "tools"
-        "side";
+        "tools side"
+        "cal side";
 }
 
 html[data-frame="desktop"][data-shell="planner"] #view-app {
@@ -877,34 +882,19 @@ html[data-frame="tablet"] .tracker-board {
     display: contents;
 }
 
-/* display:contents can swallow display:none on children in Safari.
-   Overview and Tracker hide pieces of this board, so keep a real box.
-   .tracker-board still carries align-items:start from its two-column GRID
-   (do not stretch calendar and register to the same height). In this flex
-   column that start is the cross axis, so #cal-col shrinks to the week rail
-   and the month grid collapses. Stretch plus an explicit width keep the
-   calendar on the full track; container-type:inline-size then has a definite
-   size instead of collapsing to min-content. */
-html[data-frame="desktop"][data-shell="overview"] .ledger-stage,
-html[data-frame="desktop"][data-shell="overview"] .tracker-board,
-html[data-frame="desktop"][data-shell="tracker"] .ledger-stage,
-html[data-frame="desktop"][data-shell="tracker"] .tracker-board,
-html[data-frame="tablet"][data-shell="overview"] .ledger-stage,
-html[data-frame="tablet"][data-shell="overview"] .tracker-board,
-html[data-frame="tablet"][data-shell="tracker"] .ledger-stage,
-html[data-frame="tablet"][data-shell="tracker"] .tracker-board {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    min-width: 0;
-    width: 100%;
-}
-
 html[data-frame="desktop"] #pane-overview-hero { grid-area: hero; }
 html[data-frame="desktop"] #pane-planner { grid-area: planner; }
 html[data-frame="desktop"] .tracker-toolbar { grid-area: tools; }
 html[data-frame="desktop"] #cal-col { grid-area: cal; }
 html[data-frame="desktop"] #sidebar { grid-area: side; }
+
+html[data-frame="desktop"] #cal-col,
+html[data-frame="desktop"] #sidebar,
+html[data-frame="tablet"] #cal-col,
+html[data-frame="tablet"] #sidebar {
+    min-width: 0;
+    width: 100%;
+}
 
 html[data-frame="desktop"] .ledger-stage,
 html[data-frame="tablet"] .ledger-stage,
@@ -920,7 +910,7 @@ html[data-frame="tablet"] .tracker-board {
 @media (min-width: 980px) {
     html[data-frame="tablet"] #view-app {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
         grid-template-areas:
             "hero side"
             "planner side"
@@ -928,14 +918,20 @@ html[data-frame="tablet"] .tracker-board {
             "cal side";
         gap: 16px;
         align-items: start;
+        width: 100%;
     }
 
-    html[data-frame="tablet"][data-shell="overview"] #view-app,
+    html[data-frame="tablet"][data-shell="overview"] #view-app {
+        grid-template-areas:
+            "hero hero"
+            "tools side"
+            "cal side";
+    }
+
     html[data-frame="tablet"][data-shell="tracker"] #view-app {
-        display: flex;
-        flex-direction: column;
-        grid-template-columns: none;
-        grid-template-areas: none;
+        grid-template-areas:
+            "tools side"
+            "cal side";
     }
 
     html[data-frame="tablet"][data-shell="planner"] #view-app {
@@ -1155,6 +1151,80 @@ html[data-frame="phone"] .tracker-filter-btn {
     background: var(--accent);
 }
 
+html[data-frame="phone"] .app-dock {
+    grid-area: 1 / 1;
+    width: 100%;
+    max-width: none;
+}
+
+html[data-frame="desktop"] .app-dock,
+html[data-frame="tablet"] .app-dock {
+    position: static;
+    z-index: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 2px;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: inherit;
+}
+
+html[data-frame="desktop"] .dock-tab,
+html[data-frame="tablet"] .dock-tab {
+    flex: 0 1 auto;
+    flex-direction: row;
+    gap: 6px;
+    min-height: var(--header-control);
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+html[data-frame="desktop"] .dock-tab i,
+html[data-frame="tablet"] .dock-tab i {
+    font-size: 16px;
+}
+
+html[data-frame="desktop"] .dock-tab:hover,
+html[data-frame="tablet"] .dock-tab:hover {
+    color: var(--header-text);
+    background: color-mix(in srgb, var(--header-text) 10%, transparent);
+}
+
+html[data-frame="desktop"] .dock-tab.is-active,
+html[data-frame="tablet"] .dock-tab.is-active {
+    color: var(--header-text);
+    background: color-mix(in srgb, var(--header-text) 12%, transparent);
+}
+
+html[data-frame="desktop"] .dock-tab.is-active::before,
+html[data-frame="tablet"] .dock-tab.is-active::before {
+    top: auto;
+    bottom: 0;
+    left: 16%;
+    right: 16%;
+    border-radius: 2px 2px 0 0;
+}
+
+@media (max-width: 900px) {
+    html[data-frame="tablet"] .dock-tab {
+        width: var(--header-control);
+        min-width: var(--header-control);
+        padding: 0;
+        gap: 0;
+    }
+
+    html[data-frame="tablet"] .dock-tab span {
+        display: none;
+    }
+}
+
 .privacy-tools {
     margin-bottom: 16px;
 }
@@ -1228,6 +1298,13 @@ html[data-frame="phone"] .tracker-filter-btn {
     align-items: center;
     gap: 10px 16px;
     box-sizing: border-box;
+}
+
+html[data-frame="desktop"] .site-header-inner,
+html[data-frame="tablet"] .site-header-inner {
+    width: 100%;
+    max-width: var(--page);
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content) auto;
 }
 
 .brand {
@@ -3416,12 +3493,14 @@ html.is-action-busy [data-lockable] {
         grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
+}
 
+@media (max-width: 1099px) {
     .sidebar {
         position: static;
         top: auto;
         width: 100%;
-        max-width: 720px;
+        max-width: none;
         margin-inline: 0;
         padding: 18px;
     }
@@ -3480,12 +3559,16 @@ html.is-action-busy [data-lockable] {
     content-visibility: visible;
     contain: none;
     /* Desktop: sticky column with its own scroller. Stacked layouts
-       drop max-height in the 1200px query so the page is the only swipe. */
+       drop max-height below 1100px so the page is the only swipe. */
     overflow: auto;
     max-height: min(72vh, 720px);
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+html[data-frame="desktop"] .sidebar.has-flip {
+    max-height: min(calc(100dvh - 7rem), 900px);
 }
 
 .sidebar-flip {
@@ -8046,6 +8129,7 @@ html.oe-scroll-lock body {
 
     .brand { grid-area: brand; }
     .header-actions { grid-area: actions; }
+    .app-dock { grid-area: 1 / 1; }
     .header-status {
         grid-area: status;
         display: grid;

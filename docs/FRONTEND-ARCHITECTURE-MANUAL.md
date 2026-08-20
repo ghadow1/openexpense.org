@@ -28,6 +28,7 @@ body
 │   ├── header.site-header
 │   │   └── div.site-header-inner
 │   │       ├── div.brand
+│   │       ├── nav.app-dock[aria-label=Primary]
 │   │       ├── div.header-status[role=status]
 │   │       └── div.header-actions
 │   ├── div.app-container
@@ -50,8 +51,7 @@ body
 │   │           └── section.docs-content
 │   │               └── section.docs-pane[role=tabpanel] × 4
 │   │                   └── article.docs-book
-│   ├── footer.site-footer
-│   └── nav.app-dock[aria-label=Primary]
+│   └── footer.site-footer
 ├── div#modal.backdrop
 │   └── div#mbox.modal-editor[role=dialog][aria-modal=true]
 ├── input[type=file][hidden] × 3
@@ -113,7 +113,7 @@ boundary, a responsive flattening point, or a delegated-event boundary.
 | `.docs-container` | navigation/content grid | documentation rail | Preserve nav before content |
 | `.docs-nav` | desktop sticky flex rail; responsive tab grid | chapter navigation geometry | Preserve button children and breakpoint rules |
 | `.docs-pane` | one visible block | chapter replacement | Toggle both `.active` and `hidden` |
-| `.app-dock` | fixed four-column grid, z-index 180 | mobile primary navigation | Keep four direct buttons and safe-area spacing |
+| `.app-dock` | phone: fixed four-column grid, z-index 180; tablet/desktop: header tabs | primary navigation | Keep four direct buttons and safe-area spacing on phone |
 | `.backdrop` | fixed viewport flex layer | centering, dimming, scroll boundary | Dialog shell must remain a direct child |
 | `.modal-shell` | size, border, shadow, animation | common modal surface | Semantic roles belong here, not on backdrop |
 | `.modal-columns` | responsive two-column layout | editor/register split | Preserve panel wrappers |
@@ -139,8 +139,8 @@ the fixed dock, bottom safe areas, or sheet sizing.
 
 ```text
 document flow
-  └── sticky header / sticky docs rail
-      └── fixed application dock (z-index 180)
+  └── sticky header (tabs in the header on tablet/desktop)
+      └── fixed phone dock (z-index 180; header on wider frames)
           └── modal backdrop and shell
               └── status toast / tooltip where configured
 ```

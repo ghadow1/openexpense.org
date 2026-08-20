@@ -3,9 +3,10 @@
  *
  * Overview is Potential Savings (or a growth-potential meter when the
  * user entered current bank savings). Planner is daily safe spend plus
- * Quality settings and Banking info. Overview keeps the snapshot and
- * the calendar. Tracker keeps Expenses, Income, and Monthly spending —
- * no calendar.
+ * Quality settings and Banking info. Overview keeps the snapshot.
+ * Tracker keeps the All / Expenses / Income filter. Phone splits the
+ * calendar and monthly register across those tabs; desktop and tablet
+ * show both panes together.
  */
 import { getState, patch } from '../core/store.js';
 import {

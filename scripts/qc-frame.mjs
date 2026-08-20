@@ -27,6 +27,11 @@ test('the page stamps a frame before paint', async () => {
     assert.match(html, /dataset\.frame/, 'index.html should set data-frame before CSS layout');
     assert.match(html, /w <= 720 \? 'phone'/, 'phone snap is 720px');
     assert.match(html, /w <= 1099 \? 'tablet'/, 'tablet snap is 1099px');
+    assert.match(
+        html,
+        /class="site-header-inner"[\s\S]*class="app-dock"[\s\S]*class="header-actions"/,
+        'primary tabs belong in the header so desktop can use the full column'
+    );
 });
 
 test('overview still splits so a phone can keep Left to spend above the calendar', async () => {
@@ -44,7 +49,7 @@ test('only desktop overview paints the compact strip beside the calendar', async
     assert.match(src, /function renderTrackerHead/, 'Tracker gets its own mobile page head');
 });
 
-test('desktop Overview flex board stretches the calendar across the column', async () => {
+test('desktop flattens the board into a two-column calendar and register', async () => {
     const css = await readFile(join(ROOT, 'openexpense.css'), 'utf8');
     assert.match(
         css,
@@ -53,12 +58,17 @@ test('desktop Overview flex board stretches the calendar across the column', asy
     );
     assert.match(
         css,
-        /html\[data-frame="desktop"\]\[data-shell="overview"\] \.tracker-board,[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*stretch;[\s\S]*?width:\s*100%;/,
-        'Overview/Tracker flex columns must override that start or #cal-col pinches to the week rail'
+        /html\[data-frame="desktop"\] \.tracker-board,[\s\S]*?display:\s*contents;/,
+        'desktop must flatten .tracker-board so #cal-col and #sidebar join #view-app tracks'
     );
     assert.match(
         css,
         /\.cal-main \{[\s\S]*?width:\s*100%;[\s\S]*?container-type:\s*inline-size;/,
         'the calendar column needs a definite width so inline-size containment does not collapse'
+    );
+    assert.match(
+        css,
+        /html\[data-frame="desktop"\] \.app-dock,[\s\S]*?position:\s*static;/,
+        'desktop tabs sit in the header instead of a phone-style bottom bar'
     );
 });

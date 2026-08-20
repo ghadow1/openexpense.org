@@ -43,14 +43,16 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 
 `html` carries `data-shell` (`overview` \| `tracker` \| `planner` \| `privacy`) and `data-frame` (`phone` \| `tablet` \| `desktop`).
 
-| Tab | Every frame |
-| --- | --- |
-| **Overview** | Potential Savings (or growth potential when current bank savings is set; desktop uses the compact strip) + month calendar. Hide `.tracker-toolbar` and `#sidebar`. |
-| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. |
-| **Planner** | Planner form only (`.ledger-stage` is `display: none`) |
-| **Privacy** | `#view-docs` (help, backup, import, clear) |
+| Tab | Phone | Tablet and desktop |
+| --- | --- | --- |
+| **Overview** | Potential Savings + month calendar. Hide `.tracker-toolbar` and `#sidebar`. | Compact strip across the top, then calendar + filter/actions on the left and the monthly register on the right. |
+| **Tracker** | Filter + add/scan/search/export + Monthly spending. Hide `#cal-col`. | Same two-pane board as Overview, without the snapshot strip. |
+| **Planner** | Planner form only (`.ledger-stage` is `display: none`) | Same |
+| **Privacy** | `#view-docs` (help, backup, import, clear) | Same |
 
-`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. **Tab** CSS (`html[data-shell]`) shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar`. Do not scope those hides to `data-frame` — a wrong frame stamp is how the two pages leak back together.
+`.ledger-stage` is **not** a `[data-shell]` pane. `applyShell` only toggles `[data-shell]` sections and the two mains. **Phone** CSS (`html[data-frame="phone"][data-shell]`) shows or hides `#cal-col`, `#sidebar`, and `.tracker-toolbar`. Wider frames flatten those nodes into `#view-app` so the calendar and register share the screen. A phone-stamped desktop is how the two pages collapse back into one column.
+
+Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On tablet and desktop it sits in `.site-header-inner` (brand, tabs, status, actions).
 
 ## DOM contract (do not invent new roots)
 
@@ -69,7 +71,7 @@ app.js + chunk-*.js        esbuild output — never edit by hand
 | `.cal-week-net` | `features/calendar.js` | Rotated week net on the left rail |
 | `#sidebar` | `features/sidebar.js` | Monthly spending / income register |
 | `#modal` | `features/modal.js` | Day editor |
-| `.dock-tab[data-view]` | `app/views.js` | Bottom tabs |
+| `.dock-tab[data-view]` | `app/views.js` | Primary tabs (header on tablet/desktop, bottom bar on phone) |
 | `[data-action]` | `src/main.js` | Export, import, add, scan, search, undo |
 | `[data-tracker-filter]` | `src/main.js` | All / Expenses / Income; also sets `ledgerFace` |
 
