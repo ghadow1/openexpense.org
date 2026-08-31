@@ -34,8 +34,8 @@
   "dependencies": {
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
-    "onnxruntime-web": "^1.27.0",
+    "onnxruntime-web": "^1.29.0",
     "pdfjs-dist": "^6.2.108",
-    "ppu-paddle-ocr": "^6.4.0"
+    "ppu-paddle-ocr": "^6.4.3"
   }
 }
