@@ -1,6 +1,6 @@
 # Dependencies
 
-OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtimes and models, fonts, and icons are bundled or served from the OpenExpense origin.
+OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtimes and models, fonts, and icons are bundled or served from the OpenExpense origin. Receipt performance knobs and source tags are documented in [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## npm (bundled into `app.js` / chunks)
 
@@ -15,7 +15,7 @@ OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtim
 
 ## Vendored assets
 
-Runtime binaries, reviewed OCR models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed.
+Runtime binaries, reviewed PP-OCRv6 Tiny models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed.
 
 ## Design rule
 
