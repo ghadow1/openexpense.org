@@ -7,7 +7,8 @@ This is the contract for changing OpenExpense without breaking the live site. Th
 Documentation routes: [`README.md`](README.md). Newcomer lessons:
 [`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
-[`../src/README.md`](../src/README.md). Ledger JSON:
+[`../src/README.md`](../src/README.md). Receipt OCR tags and performance:
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md). Ledger JSON:
 [`DATA-FORMAT.md`](DATA-FORMAT.md).
 
 ## What you may rename
@@ -127,6 +128,21 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 | `dash-strip.js` | Overview + Planner module (filename kept so imports and QC stay stable) |
 | `ledgerFace` | Expense vs income **register**, not the bottom tab |
 | `dashView` storage key | Legacy pill; read only to migrate into `shellTab` |
+
+## OCR source tags
+
+Human-readable OCR labels are comments, not public APIs. Use them to mark the
+part of the scanner being changed:
+
+| Tag | Owner |
+| --- | --- |
+| `@ocr-deps` | Same-origin model, worker, WASM, and dictionary references |
+| `@ocr-engine` | Lazy runtime setup and model warm-up |
+| `@ocr-pdf` | PDF text extraction and preview rendering |
+| `@ocr-pipeline` | Image preparation, multi-pass recognition, and score checks |
+| `@ocr-parse` | Merchant, date, total, tax, and item heuristics |
+| `@platform` | Mobile/desktop browser capability choices |
+| `@perf` | Explicit resource budgets and CPU/memory trade-offs |
 
 ## Render loop
 
