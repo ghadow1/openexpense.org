@@ -8,7 +8,8 @@ Documentation routes: [`README.md`](README.md). Newcomer lessons:
 [`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
 [`../src/README.md`](../src/README.md). Ledger JSON:
-[`DATA-FORMAT.md`](DATA-FORMAT.md).
+[`DATA-FORMAT.md`](DATA-FORMAT.md). OCR source tags and platform thresholds:
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## What you may rename
 
@@ -94,6 +95,25 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 | `is-` | State only (`is-active`, `is-over-day`) | many |
 
 `html[data-frame]` and `html[data-shell]` are the layout switches. Add new frame rules next to the existing ones in `openexpense.css`; do not introduce a fourth frame without updating `src/ui/frame.js` and the inline stamp in `index.html`.
+
+## OCR source tags
+
+The receipt scanner uses readable tags in module headers and comments so
+platform work is searchable without renaming frozen DOM hooks.
+
+| Tag | Owner |
+| --- | --- |
+| `@ocr-deps` | `src/config.js`, `docs/DEPENDENCIES.md` |
+| `@ocr-engine` | `src/features/receipt.js` |
+| `@ocr-pdf` | `src/features/receipt.js` |
+| `@ocr-pipeline` | `src/features/receipt.js` |
+| `@ocr-parse` | `src/features/receipt-parse.js` |
+| `@ocr-ui` | `src/features/receipt.js` |
+| `@platform` | `src/core/utils.js`, `src/features/receipt.js` |
+| `@perf` | `src/config.js`, OCR sizing and threshold call sites |
+
+Change `OCR_CONFIG` in `src/config.js` before changing OCR asset paths, thread
+caps, canvas sizes, or confidence thresholds.
 
 ## Store fields
 

@@ -12,6 +12,7 @@ import { sanitizeEntry } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
 import { parseReceipt } from '../src/features/receipt-parse.js';
 import { normalizeParentOrigin } from '../src/engine/bridge.js';
+import { OCR_CONFIG } from '../src/config.js';
 import { readFile } from 'node:fs/promises';
 
 test('categorizer maps messy merchant strings', () => {
@@ -157,6 +158,17 @@ test('receipt dates reject calendar rollovers', () => {
     assert.equal(parseReceipt('Invoice date: 2026-02-28\nTotal $10.00').date, '2026-02-28');
     assert.equal(parseReceipt('Invoice date: 2026-02-31\nTotal $10.00').date, null);
     assert.equal(parseReceipt('Invoice date: 2028-02-29\nTotal $10.00').date, '2028-02-29');
+});
+
+test('OCR config documents platform performance tags and limits', () => {
+    assert.equal(OCR_CONFIG.assets.detection, '/vendor/ocr-models/PP-OCRv6_tiny_det.ort');
+    assert.equal(OCR_CONFIG.limits.maxFileBytes, 15 * 1024 * 1024);
+    assert.equal(OCR_CONFIG.score.lowConfidence, 0.55);
+    assert.ok(OCR_CONFIG.canvas.phoneMaxSide <= OCR_CONFIG.canvas.desktopMaxSide);
+    assert.ok(OCR_CONFIG.runtime.singleThreadCount <= OCR_CONFIG.runtime.maxDesktopThreads);
+    for (const tag of ['@ocr-deps', '@ocr-engine', '@ocr-pdf', '@ocr-pipeline', '@ocr-parse', '@ocr-ui', '@platform', '@perf']) {
+        assert.equal(typeof OCR_CONFIG.sourceTagLegend[tag], 'string');
+    }
 });
 
 test('categorize still reports a tag group for matched merchants', () => {

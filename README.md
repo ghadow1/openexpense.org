@@ -128,7 +128,9 @@ Store them separately if the ledger is sensitive. Legacy ZIP pairs remain
 importable.
 
 OCR models, runtimes, fonts, and icons are served from this site's checked-in
-`vendor/` directory. OCR binaries load only after receipt capture begins. See
+`vendor/` directory. OCR binaries load only after receipt capture begins. The
+cross-platform scanner contract and source tags are in
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md); dependency ownership is in
 [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
 
 ## Contributing
