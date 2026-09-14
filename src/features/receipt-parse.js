@@ -344,6 +344,7 @@ export function textQuality(text, lines) {
     };
 }
 
+// @ocr-parse Keep extraction deterministic; users confirm before ledger writes.
 export function parseReceipt(text, lines, confidence = 0) {
     const lineList = normalizeLines(lines && lines.length ? lines : String(text || '').split('\n'));
     const body = normalizeOcrText(text || lineList.join('\n'));

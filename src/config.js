@@ -35,6 +35,47 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+export const OCR_CONFIG = Object.freeze({
+    // @ocr-deps Same-origin runtime and model assets keep receipt pixels local.
+    assets: Object.freeze({
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    }),
+    // @perf Bounds are shared by mobile and desktop so OCR stays responsive.
+    limits: Object.freeze({
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        imageMinSide: 1200,
+        imageMaxSide: 2600,
+        enhancementMaxPixels: 1_800_000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5
+    }),
+    // @platform Camera capture and WASM settings that differ by device class.
+    runtime: Object.freeze({
+        cameraMediaMaxWidth: 900,
+        wasmThreads: 1,
+        executionProviders: Object.freeze(['wasm']),
+        preferImageBitmap: true
+    }),
+    // @ocr-engine Heuristics used to decide whether an OCR pass is good enough.
+    scoring: Object.freeze({
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8,
+        strongScore: 28,
+        strongMinLines: 4,
+        usableScore: 22,
+        usableMinLines: 3
+    })
+});
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
