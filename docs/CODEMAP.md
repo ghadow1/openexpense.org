@@ -7,7 +7,8 @@ This is the contract for changing OpenExpense without breaking the live site. Th
 Documentation routes: [`README.md`](README.md). Newcomer lessons:
 [`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
-[`../src/README.md`](../src/README.md). Ledger JSON:
+[`../src/README.md`](../src/README.md). Receipt OCR tags:
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md). Ledger JSON:
 [`DATA-FORMAT.md`](DATA-FORMAT.md).
 
 ## What you may rename

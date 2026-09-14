@@ -4,6 +4,8 @@
  * Dates, money, HTML escaping, tooltips, and filename sanitizing.
  * Used across calendar, modal, ledger, and summary views.
  */
+import { OCR_CONFIG } from '../config.js';
+
 export const Utils = {
     pad: (number) => String(number).padStart(2, '0'),
     dateKey: (year, zeroBasedMonth, dayOfMonth) => (
@@ -95,7 +97,8 @@ export const Utils = {
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
+    // @platform Phones/tablets should open the rear camera; desktop keeps the picker.
+    prefersCamera: () => window.matchMedia(`(max-width: ${OCR_CONFIG.runtime.cameraMediaMaxWidth}px), (pointer: coarse)`).matches
         || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext

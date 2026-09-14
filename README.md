@@ -129,7 +129,9 @@ importable.
 
 OCR models, runtimes, fonts, and icons are served from this site's checked-in
 `vendor/` directory. OCR binaries load only after receipt capture begins. See
-[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md). The receipt performance
+contract and searchable source tags live in
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Contributing
 
