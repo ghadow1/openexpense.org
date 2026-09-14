@@ -137,7 +137,10 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 `receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed workers,
 models, and dictionaries are served from same-origin `vendor/`. Images are
 oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
-`saveExpense()` writes the confirmed result like a manual add.
+`saveExpense()` writes the confirmed result like a manual add. Shared OCR
+assets, limits, runtime choices, and scoring thresholds live in
+`src/config.js` as `OCR_CONFIG`; searchable `@ocr-*`, `@platform`, and `@perf`
+tags are documented in [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## Build
 

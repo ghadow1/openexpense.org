@@ -51,6 +51,7 @@ const KNOWN_MERCHANTS = [
     [/square/i, 'Square']
 ];
 
+// @ocr-parse Repair common recognizer substitutions before field heuristics run.
 export function normalizeOcrText(text) {
     return String(text || '')
         .replace(/[|]/g, ' ')
@@ -345,6 +346,7 @@ export function textQuality(text, lines) {
 }
 
 export function parseReceipt(text, lines, confidence = 0) {
+    // @ocr-parse Keep the parser deterministic: it receives text only, never pixels or files.
     const lineList = normalizeLines(lines && lines.length ? lines : String(text || '').split('\n'));
     const body = normalizeOcrText(text || lineList.join('\n'));
     const kind = detectKind(body, lineList);

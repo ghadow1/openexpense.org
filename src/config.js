@@ -35,6 +35,48 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * @ocr-deps @platform @perf
+ * Receipt OCR stays on-device and same-origin. Keep runtime, model paths,
+ * canvas sizing, and retry thresholds here so mobile and desktop behavior
+ * changes deliberately instead of drifting across the feature code.
+ */
+export const OCR_CONFIG = {
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasmRoot: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        wasmThreads: 1,
+        preferImageBitmap: true,
+        pdfRenderMaxScale: 2.5
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        imageMaxSide: 2600,
+        ocrMinSide: 1200,
+        ocrMaxSide: 2600,
+        enhanceMaxPixels: 1_800_000
+    },
+    scoring: {
+        goodScore: 28,
+        goodLineCount: 4,
+        retryScore: 22,
+        retryLineCount: 3,
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
