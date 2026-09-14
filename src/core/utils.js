@@ -92,9 +92,21 @@ export const Utils = {
     },
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    isCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
-        || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
+        || (Utils.isMobile() && Utils.isCoarsePointer()),
+    isDesktopClassDevice: () => !Utils.isPhone() && !Utils.isMobile() && !Utils.isCoarsePointer(),
+    // @platform @perf Multi-threaded WASM needs cross-origin isolation. Keep
+    // phones conservative, and let isolated desktop-class browsers use the
+    // configured worker count when current platform headers support it.
+    ocrWasmThreadCount(config = {}) {
+        const baseThreads = Math.max(1, Number(config.baseWasmThreads) || 1);
+        const desktopThreads = Math.max(baseThreads, Number(config.desktopWasmThreads) || baseThreads);
+        if (!window.crossOriginIsolated || !Utils.isDesktopClassDevice()) return baseThreads;
+        const logicalCores = Math.max(1, Number(navigator.hardwareConcurrency) || baseThreads);
+        return Math.max(baseThreads, Math.min(desktopThreads, logicalCores - 1 || 1));
+    },
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'

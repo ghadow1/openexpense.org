@@ -35,6 +35,59 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * OCR and PDF receipt settings.
+ *
+ * Human-readable tags:
+ * - @ocr-deps: same-origin OCR/PDF runtime files and model assets.
+ * - @ocr-engine: WASM runtime sizing and warmup values.
+ * - @ocr-pdf: text-first PDF extraction and preview rendering budgets.
+ * - @ocr-pipeline: image decode, resize, enhancement, and retry budgets.
+ * - @ocr-parse: confidence thresholds before a result is shown for review.
+ * - @platform: mobile/desktop browser capability choices.
+ * - @perf: memory and CPU ceilings for client-side scanning.
+ */
+export const OCR_CONFIG = {
+    // @ocr-deps Keep executable OCR/PDF code and model files on this origin.
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        onnxWasm: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    // @perf Resource ceilings protect phone memory and desktop tabs alike.
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    // @ocr-pipeline Canvas budgets balance OCR clarity against browser memory.
+    canvas: {
+        inputMaxSide: 2600,
+        ocrMinSide: 1200,
+        ocrMaxSide: 2600,
+        enhanceMaxPixels: 1_800_000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        previewJpegQuality: 0.92
+    },
+    // @ocr-engine @platform Desktop-class isolated pages can use more WASM.
+    runtime: {
+        baseWasmThreads: 1,
+        desktopWasmThreads: 2,
+        warmupCanvasSize: 64
+    },
+    // @ocr-parse Scores gate when we retry enhancement before review.
+    scoring: {
+        firstPassScore: 28,
+        firstPassMinLines: 4,
+        enhancedScore: 22,
+        enhancedMinLines: 3
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
