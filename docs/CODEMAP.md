@@ -22,6 +22,7 @@ Documentation routes: [`README.md`](README.md). Newcomer lessons:
 | Element ids (`#view-app`, `#sidebar`, `#cal-col`) | **No** | Render and QC pin them |
 | `data-action`, `data-view`, `data-shell`, `data-tracker-filter` | **No** | Click delegation in `src/main.js` |
 | `localStorage` keys in `STORAGE_KEYS` | **No** | Existing browsers would forget prefs |
+| OCR code tags in `OCR_CONFIG.codeTags` | Only with docs updates | They are contributor search anchors |
 | `THEMES.dark` hex values | **No** | `scripts/qc-theme.mjs` requires greyscale |
 
 ## Layers
@@ -117,6 +118,14 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 | `shellTab` | `'overview'` \| `'tracker'` \| `'planner'` \| `'privacy'` | Bottom tab |
 
 `ledgerFace` and `trackerFilter` stay two fields: the calendar can show **all** kinds while the sidebar still shows one face.
+
+## Searchable code tags
+
+OCR and platform-performance comments use stable, human-readable tags:
+`@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`, `@ocr-parse`,
+`@ocr-ui`, `@platform`, and `@perf`. The tag legend and review checklist live
+in [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md). Keep new tags short, plain
+English, and documented before spreading them through source.
 
 ## Paint names that look historical
 

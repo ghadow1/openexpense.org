@@ -163,6 +163,7 @@ async function initApplication() {
             const file = e.target.files && e.target.files[0];
             const intendedDate = takeReceiptDateContext();
             if (file) {
+                // @ocr-pipeline @perf: scanner code stays lazy until a user chooses a receipt.
                 void import('./features/receipt.js')
                     .then(({ Receipt }) => Receipt.scan(file, { intendedDate }));
             }

@@ -12,6 +12,77 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+/**
+ * @ocr-deps @ocr-pipeline @platform @perf
+ * Receipt OCR configuration lives here so mobile/desktop resource choices are
+ * reviewable without reading the full scanner. Keep tag names human-readable:
+ * docs/OCR-PERFORMANCE.md explains where each tag is used.
+ */
+export const OCR_CONFIG = {
+    codeTags: {
+        '@ocr-deps': 'same-origin OCR, ONNX, PDF.js, WASM, and model assets',
+        '@ocr-engine': 'lazy OCR runtime initialization and warmup',
+        '@ocr-pdf': 'PDF text extraction, preview, and OCR fallback',
+        '@ocr-pipeline': 'image preparation, recognition, parsing, and review',
+        '@ocr-parse': 'merchant, date, total, tax, and item heuristics',
+        '@ocr-ui': 'scan progress, review sheet, and user confirmation',
+        '@platform': 'mobile, tablet, desktop, and browser capability branches',
+        '@perf': 'bounded memory, CPU, canvas, and startup costs'
+    },
+    dependencies: {
+        ocr: 'ppu-paddle-ocr',
+        runtime: 'onnxruntime-web',
+        pdf: 'pdfjs-dist'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasmPath: '/vendor/ort/',
+        models: {
+            detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+            recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+            dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+        }
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    runtime: {
+        mobileThreads: 1,
+        desktopThreads: 2,
+        maxThreads: 4,
+        lowMemoryGB: 4,
+        lowCoreCount: 2,
+        slowConnectionTypes: ['slow-2g', '2g']
+    },
+    image: {
+        minSide: 1200,
+        maxSide: 2600,
+        enhancementMaxPixels: 1800000,
+        binaryLightThreshold: 168,
+        binaryDarkThreshold: 96
+    },
+    pdf: {
+        previewMaxSide: 2400,
+        previewMaxScale: 2.5,
+        previewJpegQuality: 0.92,
+        extractedTextConfidence: 0.95,
+        fallbackTextConfidence: 0.9
+    },
+    scoring: {
+        goodScore: 28,
+        goodLines: 4,
+        usableScore: 22,
+        usableLines: 3,
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8
+    }
+};
+
 /** User-facing theme names. Storage still uses light / dark. */
 export const THEME_FACES = {
     light: { id: 'professional', label: 'Professional', nextLabel: 'Black Card', nextIcon: 'credit-card' },
