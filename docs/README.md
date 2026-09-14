@@ -22,6 +22,7 @@ audit evidence separate. Choose one route instead of reading every document.
 | Runtime boot, state flow, persistence, and feature interaction | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Current module-by-module ownership | [`../src/README.md`](../src/README.md) |
 | Repository layering, build system, and maintainer workflow | [`ARCHITECTURAL-MANUAL.md`](ARCHITECTURAL-MANUAL.md) |
+| Receipt OCR performance and code tags | [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) |
 | Financial mathematics and classroom exercises | [`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) |
 | Ledger and encrypted-file schemas | [`DATA-FORMAT.md`](DATA-FORMAT.md) |
 | Dependency and same-origin asset policy | [`DEPENDENCIES.md`](DEPENDENCIES.md) |

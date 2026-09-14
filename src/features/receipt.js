@@ -14,13 +14,10 @@ import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './r
 import { runLocked } from '../ui/action-lock.js';
 import { receiptDateContext } from '../core/receipt-date.js';
 import { pickReceiptFile } from './receipt-picker.js';
+import { OCR_CONFIG } from '../config.js';
 
-const RECEIPT_LIMITS = {
-    maxFileBytes: 15 * 1024 * 1024,
-    maxPdfPages: 20,
-    maxExtractedLines: 5000,
-    maxExtractedChars: 250000
-};
+const RECEIPT_LIMITS = OCR_CONFIG.limits;
+const OCR_SCORING = OCR_CONFIG.scoring;
 
 function displayDate(key) {
     const [year, month, day] = String(key || '').split('-').map(Number);
@@ -34,13 +31,13 @@ function displayDate(key) {
 }
 
 export const Receipt = {
-    // Executable OCR/PDF code and models are bundled or served from this origin.
-    PDF_WORKER: '/vendor/pdfjs/pdf.worker.min.mjs',
+    // @ocr-deps Executable OCR/PDF code and models are bundled or served from this origin.
+    PDF_WORKER: OCR_CONFIG.assets.pdfWorker,
     OCR_ASSETS: {
-        wasm: '/vendor/ort/',
-        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
-        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
-        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+        wasm: OCR_CONFIG.assets.wasmRoot,
+        detection: OCR_CONFIG.assets.detectionModel,
+        recognition: OCR_CONFIG.assets.recognitionModel,
+        dictionary: OCR_CONFIG.assets.dictionary
     },
     _service: null,
     _initPromise: null,
@@ -64,15 +61,16 @@ export const Receipt = {
         if (Receipt._service) return Receipt._service;
         if (Receipt._initPromise) return Receipt._initPromise;
 
+        // @ocr-engine Lazy-load the browser inference stack only after a scan starts.
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
             const ort = await import('onnxruntime-web');
             ort.env.wasm.wasmPaths = Receipt.OCR_ASSETS.wasm;
-            ort.env.wasm.numThreads = 1;
+            ort.env.wasm.numThreads = OCR_CONFIG.runtime.wasmThreads;
             const { PaddleOcrService } = await import('ppu-paddle-ocr/web');
             onProgress?.('Loading local OCR models…', 0.2);
             const service = new PaddleOcrService({
-                session: { executionProviders: ['wasm'] },
+                session: { executionProviders: [...OCR_CONFIG.runtime.executionProviders] },
                 model: {
                     detection: Receipt.OCR_ASSETS.detection,
                     recognition: Receipt.OCR_ASSETS.recognition,
@@ -160,10 +158,14 @@ export const Receipt = {
             }
         }
 
+        // @ocr-pdf Use native PDF text first; raster OCR is only a fallback.
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            OCR_CONFIG.runtime.pdfRenderMaxScale,
+            RECEIPT_LIMITS.ocrMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -209,18 +211,28 @@ export const Receipt = {
 
     scoreOcr(ocr) {
         const quality = textQuality(ocr.text, ocr.lines);
-        return (ocr.confidence || 0) * 40 + quality.letters * 0.15 + quality.lines * 2 + quality.money * 8;
+        return (ocr.confidence || 0) * OCR_SCORING.confidenceWeight
+            + quality.letters * OCR_SCORING.letterWeight
+            + quality.lines * OCR_SCORING.lineWeight
+            + quality.money * OCR_SCORING.moneyWeight;
     },
 
     async ocrBest(service, canvas, onProgress) {
+        // @ocr-pipeline @perf Escalate only when cheap passes do not produce usable receipt text.
         const first = await Receipt.ocrCanvas(service, canvas, onProgress);
-        if (Receipt.scoreOcr(first) >= 28 && first.lines.length >= 4) return first;
+        if (Receipt.scoreOcr(first) >= OCR_SCORING.goodScore
+            && first.lines.length >= OCR_SCORING.goodLineCount) {
+            return first;
+        }
 
         onProgress?.('Enhancing photo…', 0.68);
         const contrast = Receipt.enhanceForOcr(canvas, 'contrast');
         const second = await Receipt.ocrCanvas(service, contrast, onProgress);
         let best = Receipt.scoreOcr(second) > Receipt.scoreOcr(first) ? second : first;
-        if (Receipt.scoreOcr(best) >= 22 && best.lines.length >= 3) return best;
+        if (Receipt.scoreOcr(best) >= OCR_SCORING.retryScore
+            && best.lines.length >= OCR_SCORING.retryLineCount) {
+            return best;
+        }
 
         onProgress?.('Retrying high-contrast…', 0.82);
         const binary = Receipt.enhanceForOcr(canvas, 'binary');
@@ -233,7 +245,8 @@ export const Receipt = {
         const url = URL.createObjectURL(file);
         try {
             let source = null;
-            if (typeof createImageBitmap === 'function') {
+            // @platform createImageBitmap keeps modern desktop/mobile decoding off the main image element path.
+            if (OCR_CONFIG.runtime.preferImageBitmap && typeof createImageBitmap === 'function') {
                 try {
                     source = await createImageBitmap(file, { imageOrientation: 'from-image' });
                 } catch (_) { /* fall back to Image */ }
@@ -246,7 +259,7 @@ export const Receipt = {
                     el.src = url;
                 });
             }
-            const maxSide = 2600;
+            const maxSide = RECEIPT_LIMITS.imageMaxSide;
             let width = source.width;
             let height = source.height;
             if (width > maxSide || height > maxSide) {
@@ -270,8 +283,9 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1200;
-        const maxSide = 2600;
+        // @perf Normalize scan size so phones avoid huge canvases while desktop photos stay legible.
+        const minSide = RECEIPT_LIMITS.ocrMinSide;
+        const maxSide = RECEIPT_LIMITS.ocrMaxSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -301,7 +315,7 @@ export const Receipt = {
     },
 
     enhanceForOcr(source, mode = 'contrast') {
-        const maxPx = 1_800_000;
+        const maxPx = RECEIPT_LIMITS.enhanceMaxPixels;
         let w = source.width;
         let h = source.height;
         if (w * h > maxPx) {
