@@ -1,8 +1,9 @@
 /**
  * OpenExpense — shared constants
  *
- * Calendar labels, version string, localStorage preference keys, and the
- * light/dark token maps consumed by theme.js and the PDF exporter.
+ * Calendar labels, version string, localStorage preference keys, OCR resource
+ * tuning, and the light/dark token maps consumed by theme.js and the PDF
+ * exporter.
  */
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -97,5 +98,62 @@ export const THEMES = {
         shadowLg: 'none',
         header: '#000000',
         headerText: '#ffffff'
+    }
+};
+
+/**
+ * @ocr-deps @platform @perf
+ * Receipt scanning stays local: executable OCR/PDF code and model data are
+ * bundled or served from this origin, while the heavy modules are lazy-loaded
+ * from the receipt flow. Keep device and workload tuning here so phone,
+ * tablet, and desktop behavior can be reviewed without hunting through the
+ * pipeline implementation.
+ */
+export const OCR_CONFIG = {
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        wasmThreads: 1,
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    image: {
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxEnhancePixels: 1_800_000,
+        contrastBoost: 1.35,
+        binaryWhiteThreshold: 168,
+        binaryBlackThreshold: 96
+    },
+    pdf: {
+        maxRenderScale: 2.5,
+        maxRenderSide: 2400,
+        nativeTextConfidence: 0.95,
+        nativeTextFallbackConfidence: 0.9
+    },
+    scoring: {
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8,
+        firstPassScore: 28,
+        firstPassMinLines: 4,
+        secondPassScore: 22,
+        secondPassMinLines: 3
+    },
+    preview: {
+        jpegQuality: 0.92
     }
 };

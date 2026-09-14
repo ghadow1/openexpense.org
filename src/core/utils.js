@@ -85,6 +85,12 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    /**
+     * @platform @perf
+     * Keep capability checks tiny and synchronous. Receipt capture and file
+     * export call these from click handlers, where phones can reject delayed
+     * chooser calls even when desktop browsers are forgiving.
+     */
     isIOS: () => {
         const ua = navigator.userAgent || '';
         return /iPad|iPhone|iPod/.test(ua)
@@ -92,10 +98,12 @@ export const Utils = {
     },
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    isCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
-        || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
+        || (Utils.isMobile() && Utils.isCoarsePointer()),
+    prefersCamera: () => window.matchMedia('(max-width: 900px)').matches
+        || Utils.isCoarsePointer()
         || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext

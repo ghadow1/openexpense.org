@@ -95,6 +95,25 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 
 `html[data-frame]` and `html[data-shell]` are the layout switches. Add new frame rules next to the existing ones in `openexpense.css`; do not introduce a fourth frame without updating `src/ui/frame.js` and the inline stamp in `index.html`.
 
+## Readable source tags
+
+Use these comment tags to navigate specialized code without changing public
+DOM or CSS names:
+
+| Tag | Boundary |
+| --- | --- |
+| `@ocr-deps` | Same-origin OCR/PDF runtimes, workers, models, and dictionaries |
+| `@ocr-engine` | Lazy OCR engine initialization and warmup |
+| `@ocr-pdf` | PDF.js worker setup, native text, and bounded preview render |
+| `@ocr-pipeline` | Image decode, resize, enhancement, recognition, and fallback flow |
+| `@ocr-parse` | Receipt/invoice text heuristics |
+| `@ocr-ui` | User review UI before saving OCR suggestions |
+| `@platform` | Phone/tablet/desktop capability checks |
+| `@perf` | Startup budget, resource caps, and inference thresholds |
+
+The OCR tag guide and performance checklist live in
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
+
 ## Store fields
 
 `src/core/store.js` is the only in-memory source of truth. `patch(partial)` merges and notifies. Persistence writes `{ name, events, budgets, plan, goals }` only.
