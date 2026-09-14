@@ -97,6 +97,70 @@ export const Utils = {
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
+    /**
+     * @platform @perf
+     * Summarize optional browser hints before OCR work starts. These values are
+     * deliberately advisory: browsers may omit or fuzz them for privacy.
+     */
+    platformProfile() {
+        const nav = typeof navigator === 'undefined' ? {} : navigator;
+        const win = typeof window === 'undefined' ? null : window;
+        const coarsePointer = !!win?.matchMedia?.('(pointer: coarse)')?.matches;
+        const width = Number(win?.innerWidth || 0);
+        const connection = nav.connection || nav.mozConnection || nav.webkitConnection || {};
+        const cores = Math.max(1, Number(nav.hardwareConcurrency || 1));
+        const deviceMemory = Number(nav.deviceMemory || 0);
+        const isPhone = !!win && Utils.isPhone();
+        const isLikelyMobile = isPhone || (coarsePointer && (!width || width <= 900));
+        const effectiveType = String(connection.effectiveType || '').toLowerCase();
+
+        return {
+            cores,
+            deviceMemory,
+            effectiveType,
+            saveData: !!connection.saveData,
+            isPhone,
+            isLikelyMobile,
+            coarsePointer,
+            threadedWasm: globalThis.crossOriginIsolated === true
+                && typeof globalThis.SharedArrayBuffer === 'function'
+        };
+    },
+    /**
+     * @ocr-engine @platform @perf
+     * Pick the ONNX/WASM thread budget. Phones and constrained sessions stay at
+     * one thread; isolated desktop browsers can use a small parallel budget.
+     */
+    ocrRuntimeProfile(config) {
+        const profile = Utils.platformProfile();
+        const runtime = config?.runtime || {};
+        const slowTypes = runtime.slowConnectionTypes || [];
+        const reasons = [];
+        if (profile.isLikelyMobile) reasons.push('mobile');
+        if (profile.saveData) reasons.push('data-saver');
+        if (slowTypes.includes(profile.effectiveType)) reasons.push(profile.effectiveType);
+        if (profile.deviceMemory && profile.deviceMemory <= (runtime.lowMemoryGB || 0)) reasons.push('low-memory');
+        if (profile.cores <= (runtime.lowCoreCount || 0)) reasons.push('low-core');
+        if (!profile.threadedWasm) reasons.push('single-threaded-wasm');
+
+        const constrained = reasons.some((reason) => reason !== 'single-threaded-wasm');
+        const canUseDesktopThreads = !constrained && profile.threadedWasm;
+        const requestedThreads = canUseDesktopThreads
+            ? (runtime.desktopThreads || 1)
+            : (runtime.mobileThreads || 1);
+        const threadCap = Math.max(1, Math.min(runtime.maxThreads || 1, profile.cores));
+
+        return {
+            ...profile,
+            constrained,
+            reasons,
+            threads: Math.max(1, Math.min(requestedThreads, threadCap))
+        };
+    },
+    shouldWarmOcr(config) {
+        const profile = Utils.ocrRuntimeProfile(config);
+        return !profile.constrained && !profile.isLikelyMobile;
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isPhone()

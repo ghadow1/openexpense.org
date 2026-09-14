@@ -2,6 +2,7 @@
  * OpenExpense — receipt / invoice text parser
  *
  * Turns OCR (or PDF) lines into { merchant, date, total, tax, items, kind }.
+ * Tags: @ocr-parse @ocr-pipeline @perf.
  * Public API: normalizeOcrText, normalizeLines, textQuality, parseReceipt.
  */
 import { Utils } from '../core/utils.js';

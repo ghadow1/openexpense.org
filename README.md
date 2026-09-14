@@ -44,7 +44,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
-- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device.
+- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device, and OCR resource limits adapt to phone, tablet, and desktop capabilities.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
 - **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
@@ -80,6 +80,8 @@ is [`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference 
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the editor contract (what
 not to rename, tab × frame, class prefixes) is
 [`docs/CODEMAP.md`](docs/CODEMAP.md).
+Receipt OCR performance limits and searchable source tags are documented in
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 For classroom use, the
 [`Teacher's Guide`](docs/TEACHERS-GUIDE.md) derives the financial formulas,

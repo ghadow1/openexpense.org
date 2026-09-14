@@ -136,8 +136,16 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 
 `receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed workers,
 models, and dictionaries are served from same-origin `vendor/`. Images are
-oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
-`saveExpense()` writes the confirmed result like a manual add.
+oriented and contrast-enhanced in bounded canvases, recognized locally, then
+parsed. `OCR_CONFIG` in `src/config.js` owns model paths, file/PDF/canvas
+limits, scoring thresholds, and the source tag legend. `Utils.ocrRuntimeProfile`
+keeps phones and constrained sessions single-threaded while allowing isolated
+desktop browsers to use a small threaded-WASM budget. `saveExpense()` writes
+the confirmed result like a manual add.
+
+Human-readable tags (`@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`,
+`@ocr-parse`, `@ocr-ui`, `@platform`, `@perf`) are documented in
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## Build
 
