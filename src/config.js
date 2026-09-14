@@ -35,6 +35,47 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+// @ocr-deps @platform @perf
+// OCR stays local and lazy. Keep mobile/desktop resource tuning here so the
+// receipt pipeline can change deliberately without scattering magic numbers.
+export const OCR_CONFIG = {
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    canvas: {
+        minSide: 1200,
+        maxSide: 2600,
+        previewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        enhancementMaxPixels: 1_800_000,
+        binaryWhiteThreshold: 168,
+        binaryBlackThreshold: 96
+    },
+    runtime: {
+        // Single-threaded WASM is the most compatible choice across iOS,
+        // Android WebView, desktop Safari, and privacy-focused desktop modes.
+        wasmThreads: 1,
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line'
+    },
+    quality: {
+        firstPassScore: 28,
+        firstPassMinLines: 4,
+        enhancedScore: 22,
+        enhancedMinLines: 3
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',

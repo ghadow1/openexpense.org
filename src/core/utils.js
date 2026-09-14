@@ -92,6 +92,8 @@ export const Utils = {
     },
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    // @platform Camera/export choices depend on capability checks instead of
+    // assuming that all touch devices or desktop browsers behave the same.
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
