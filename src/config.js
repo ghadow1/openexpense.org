@@ -35,6 +35,50 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * @ocr-deps @ocr-engine @ocr-pdf @platform @perf
+ * Central receipt OCR budget for browser-only mobile and desktop scans.
+ *
+ * Keep same-origin asset paths in step with docs/DEPENDENCIES.md and
+ * docs/OCR-PERFORMANCE.md when OCR/PDF dependencies are updated.
+ */
+export const OCR_CONFIG = {
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        wasmThreads: 1,
+        recognitionStrategy: 'cross-line',
+        warmupCanvasSize: 64
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        imageMaxSide: 2600,
+        imageMinOcrSide: 1200,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        enhancementMaxPixels: 1800000
+    },
+    quality: {
+        acceptScore: 28,
+        acceptLines: 4,
+        retryScore: 22,
+        retryLines: 3
+    },
+    output: {
+        previewMime: 'image/jpeg',
+        previewQuality: 0.92
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
