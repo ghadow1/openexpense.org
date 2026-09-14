@@ -15,7 +15,7 @@ OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtim
 
 ## Vendored assets
 
-Runtime binaries, reviewed OCR models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed.
+Runtime binaries, reviewed OCR models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed. The OCR asset paths and browser performance budgets are centralized in `src/config.js` as `OCR_CONFIG` and documented in [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## Design rule
 
