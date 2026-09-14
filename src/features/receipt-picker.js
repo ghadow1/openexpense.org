@@ -1,6 +1,8 @@
 /**
  * Lightweight, synchronous receipt picker.
  *
+ * @platform @perf
+ *
  * Kept separate from OCR so opening the native camera/file chooser preserves
  * the user gesture while the heavier receipt pipeline stays out of startup.
  */
