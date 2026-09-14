@@ -34,3 +34,23 @@ test('CODEMAP documents the frozen shell and class prefixes', async () => {
     const store = await readFile(join(ROOT, 'src/core/store.js'), 'utf8');
     assert.match(store, /@typedef \{object\} AppState/);
 });
+
+test('OCR performance guide documents source tags and config ownership', async () => {
+    const [guide, config] = await Promise.all([
+        readFile(join(ROOT, 'docs/OCR-PERFORMANCE.md'), 'utf8'),
+        readFile(join(ROOT, 'src/config.js'), 'utf8')
+    ]);
+    const tags = [
+        '@ocr-deps',
+        '@ocr-engine',
+        '@ocr-pdf',
+        '@ocr-pipeline',
+        '@ocr-parse',
+        '@ocr-ui',
+        '@platform',
+        '@perf'
+    ];
+    for (const tag of tags) assert.ok(guide.includes(tag), `${tag} is missing from the OCR guide`);
+    assert.match(config, /export const OCR_CONFIG/);
+    assert.match(config, /@ocr-deps @platform @perf/);
+});

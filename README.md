@@ -94,6 +94,8 @@ semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
 The [`2026 Competitive Feature Review`](docs/COMPETITIVE-FEATURE-REVIEW-2026.md)
 compares planner and reporting patterns, records what fits the local-first
 model, and separates the next viable modules from cloud-only features.
+Receipt OCR source tags, mobile/desktop performance guardrails, and review
+checklists are in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Data format
 
@@ -129,7 +131,8 @@ importable.
 
 OCR models, runtimes, fonts, and icons are served from this site's checked-in
 `vendor/` directory. OCR binaries load only after receipt capture begins. See
-[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) and
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Contributing
 

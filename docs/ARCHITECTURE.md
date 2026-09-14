@@ -139,6 +139,13 @@ models, and dictionaries are served from same-origin `vendor/`. Images are
 oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
 `saveExpense()` writes the confirmed result like a manual add.
 
+`OCR_CONFIG` in `src/config.js` owns asset paths, runtime choices, PDF/image
+limits, canvas sizing, scoring thresholds, and preview quality. The readable
+source tags (`@ocr-deps`, `@ocr-engine`, `@ocr-pdf`, `@ocr-pipeline`,
+`@ocr-parse`, `@ocr-ui`, `@platform`, `@perf`) are documented in
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) so mobile camera capture, desktop
+PDF upload, and startup-budget reviews use the same vocabulary.
+
 ## Build
 
 ```bash
