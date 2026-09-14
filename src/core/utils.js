@@ -3,6 +3,8 @@
  *
  * Dates, money, HTML escaping, tooltips, and filename sanitizing.
  * Used across calendar, modal, ledger, and summary views.
+ *
+ * Tags: @platform @perf
  */
 export const Utils = {
     pad: (number) => String(number).padStart(2, '0'),
@@ -97,6 +99,35 @@ export const Utils = {
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
+    /**
+     * Browser capability profile for progressive enhancement.
+     * Values are hints, not identity: OCR uses them to reduce raster memory on
+     * phones and to enable threaded WASM only where the platform supports it.
+     */
+    platformProfile() {
+        const hasWindow = typeof window !== 'undefined';
+        const nav = typeof navigator !== 'undefined' ? navigator : {};
+        const coarsePointer = hasWindow
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(pointer: coarse)').matches;
+        const narrowViewport = hasWindow
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(max-width: 900px)').matches;
+        const phone = hasWindow && (Utils.isPhone() || Utils.isIOS() || Utils.isAndroid());
+        const cores = Number(nav.hardwareConcurrency || 0);
+        const memoryGB = Number(nav.deviceMemory || 0);
+
+        return {
+            kind: phone ? 'phone' : (coarsePointer || narrowViewport ? 'touch' : 'desktop'),
+            coarsePointer,
+            cores: Number.isFinite(cores) && cores > 0 ? cores : 1,
+            memoryGB: Number.isFinite(memoryGB) && memoryGB > 0 ? memoryGB : null,
+            constrained: phone || (Number.isFinite(memoryGB) && memoryGB > 0 && memoryGB <= 4)
+        };
+    },
+    canUseThreadedWasm: () => typeof SharedArrayBuffer === 'function'
+        && typeof crossOriginIsolated === 'boolean'
+        && crossOriginIsolated,
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isPhone()

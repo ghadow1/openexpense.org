@@ -3,6 +3,8 @@
  *
  * Calendar labels, version string, localStorage preference keys, and the
  * light/dark token maps consumed by theme.js and the PDF exporter.
+ *
+ * Tags: @platform @perf @ocr-deps
  */
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -97,5 +99,67 @@ export const THEMES = {
         shadowLg: 'none',
         header: '#000000',
         headerText: '#ffffff'
+    }
+};
+
+/**
+ * OCR runtime and parsing constants.
+ *
+ * @ocr-deps Same-origin executable assets: PDF.js worker, ONNX WASM, and
+ * PP-OCRv6 Tiny models. Keep these paths under /vendor/ so receipt pixels and
+ * ledger data never leave the app origin.
+ * @platform Mobile devices prefer smaller raster buffers and single-threaded
+ * WASM. Desktop browsers may opt into extra threads only when they expose the
+ * isolation primitives required by modern threaded WebAssembly.
+ * @perf The canvas and retry thresholds are intentionally centralized so OCR
+ * quality changes can be reviewed without hunting through UI code.
+ */
+export const OCR_CONFIG = {
+    sourceTagLegend: {
+        '@ocr-deps': 'Same-origin OCR/PDF dependencies and vendored model paths.',
+        '@ocr-engine': 'Model initialization, ONNX runtime setup, and OCR scoring.',
+        '@ocr-pdf': 'PDF text extraction and first-page raster preview handling.',
+        '@ocr-pipeline': 'Image/PDF preprocessing, retry order, and canvas sizing.',
+        '@ocr-parse': 'Text normalization and receipt/invoice field extraction.',
+        '@ocr-ui': 'Receipt progress, preview, correction, and save workflow.',
+        '@platform': 'Browser capability checks for phone, tablet, and desktop.',
+        '@perf': 'Memory, threading, raster, and retry thresholds.'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    runtime: {
+        maxDesktopThreads: 4,
+        minThreadedCores: 4,
+        singleThreadCount: 1
+    },
+    canvas: {
+        minSide: 1200,
+        phoneMaxSide: 2200,
+        desktopMaxSide: 2600,
+        pdfMaxSide: 2400,
+        pdfMaxScale: 2.5,
+        enhanceMaxPixelsPhone: 1_200_000,
+        enhanceMaxPixelsDesktop: 1_800_000,
+        jpegPreviewQuality: 0.92
+    },
+    score: {
+        goodOcrScore: 28,
+        goodOcrLines: 4,
+        usableOcrScore: 22,
+        usableOcrLines: 3,
+        lowConfidence: 0.55,
+        pdfTextConfidence: 0.95,
+        pdfFallbackConfidence: 0.9
     }
 };

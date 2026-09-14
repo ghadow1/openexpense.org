@@ -17,6 +17,10 @@ OpenExpense’s ledger path is local. Production executable code, OCR/PDF runtim
 
 Runtime binaries, reviewed OCR models, Inter Variable (`@fontsource-variable/inter` 5.3.0), and Tabler Icons (`@tabler/icons-webfont` 3.46.0) are committed under `vendor/`. Checksums are recorded in `vendor/SHA256SUMS`. Receipt runtimes and models load only when needed.
 
+OCR dependency paths, file limits, canvas thresholds, and runtime thread caps
+are centralized in `OCR_CONFIG` in `src/config.js`. The source-tag legend and
+cross-platform review checklist are in [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
+
 ## Design rule
 
 A new dependency must be version-locked, reviewed, documented here, pass the security workflow, and be bundled or served from the application origin. No dependency may receive ledger JSON, receipt pixels, or key material.
