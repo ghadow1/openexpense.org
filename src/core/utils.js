@@ -4,6 +4,11 @@
  * Dates, money, HTML escaping, tooltips, and filename sanitizing.
  * Used across calendar, modal, ledger, and summary views.
  */
+import { OCR_CONFIG } from '../config.js';
+
+const mediaMatches = (query) => globalThis.window?.matchMedia?.(query)?.matches || false;
+const browserNavigator = () => globalThis.navigator || {};
+
 export const Utils = {
     pad: (number) => String(number).padStart(2, '0'),
     dateKey: (year, zeroBasedMonth, dayOfMonth) => (
@@ -86,25 +91,56 @@ export const Utils = {
         });
     },
     isIOS: () => {
-        const ua = navigator.userAgent || '';
+        const nav = browserNavigator();
+        const ua = nav.userAgent || '';
         return /iPad|iPhone|iPod/.test(ua)
-            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
     },
-    isAndroid: () => /Android/i.test(navigator.userAgent || ''),
-    isMobile: () => window.matchMedia('(max-width: 640px)').matches,
-    isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
-        || /Android.+Mobile/i.test(navigator.userAgent || '')
-        || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
-    prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
+    isAndroid: () => /Android/i.test(browserNavigator().userAgent || ''),
+    isMobile: () => mediaMatches('(max-width: 640px)'),
+    isPhone: () => /iPhone|iPod/.test(browserNavigator().userAgent || '')
+        || /Android.+Mobile/i.test(browserNavigator().userAgent || '')
+        || (Utils.isMobile() && mediaMatches('(pointer: coarse)')),
+    prefersCamera: () => mediaMatches('(max-width: 900px), (pointer: coarse)')
         || Utils.isPhone(),
-    canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
-        && window.isSecureContext
+    canUseSavePicker: () => typeof globalThis.window?.showSaveFilePicker === 'function'
+        && globalThis.window.isSecureContext
         && !Utils.isPhone()
         && !Utils.isIOS(),
-    canShareFiles: (files) => typeof navigator.share === 'function'
-        && typeof navigator.canShare === 'function'
+    canShareFiles: (files) => typeof browserNavigator().share === 'function'
+        && typeof browserNavigator().canShare === 'function'
         && !!files?.length
-        && navigator.canShare({ files }),
+        && browserNavigator().canShare({ files }),
+    platformProfile() {
+        const nav = browserNavigator();
+        const phone = Utils.isPhone();
+        const coarsePointer = mediaMatches('(pointer: coarse)');
+        const desktopWidth = mediaMatches('(min-width: 1024px)');
+        const formFactor = phone ? 'phone' : (desktopWidth && !coarsePointer ? 'desktop' : 'tablet');
+        return {
+            formFactor,
+            coarsePointer,
+            cores: Math.max(1, Math.floor(Number(nav.hardwareConcurrency) || 1)),
+            memoryGB: Math.max(0, Number(nav.deviceMemory) || 0)
+        };
+    },
+    ocrRuntimeProfile() {
+        // @platform @perf Browser capabilities choose OCR sizing without UA-only forks.
+        const platform = Utils.platformProfile();
+        const threadedWasm = !!globalThis.window?.crossOriginIsolated
+            && typeof globalThis.SharedArrayBuffer === 'function'
+            && platform.cores >= OCR_CONFIG.runtime.minimumThreadedCores;
+        const maxThreads = platform.formFactor === 'desktop'
+            ? OCR_CONFIG.runtime.desktopMaxThreads
+            : OCR_CONFIG.runtime.mobileMaxThreads;
+        return {
+            ...platform,
+            wasmThreads: threadedWasm ? Math.max(1, Math.min(maxThreads, platform.cores - 1)) : 1,
+            maxImageSide: platform.formFactor === 'desktop'
+                ? OCR_CONFIG.image.maxSideDesktop
+                : OCR_CONFIG.image.maxSideMobile
+        };
+    },
     sanitizeFilename(name) {
         return String(name ?? '').trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '').replace(/\s+/g, ' ').slice(0, 80);
     },

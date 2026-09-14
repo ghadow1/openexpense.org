@@ -19,6 +19,7 @@ export function pickReceiptFile({ dateKey = null } = {}) {
     if (!input) return false;
     intendedDate = dateKey;
     input.value = '';
+    // @platform Phones and tablets go straight to the rear camera when allowed.
     if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
     else input.removeAttribute('capture');
     input.click();

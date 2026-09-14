@@ -13,6 +13,7 @@ const WEAK_TOTAL = /\b(?:amount|balance|charge|paid|due)\b/i;
 const ANTI_TOTAL = /sub\s*-?total|tax(?:es|able)?|vat|gst|hst|tip|gratuity|change|cash|tender|visa|mastercard|amex|discover|debit|credit\s*card|auth(?:orization)?|approval|surcharge|fee(?!d)|discount|savings|qty|quantity|change\s*due|payment\s*method/i;
 const SKIP_MERCHANT = /^(receipt|invoice|tax\s*invoice|statement|bill|thank\s*you|welcome|customer\s*copy|merchant\s*copy|store\s*#|terminal|cashier|www\.|http|tel|phone|fax|date|time|invoice\s*#|account|sold\s*to|bill\s*to|ship\s*to|page\s*\d)/i;
 const ADDRESS = /\b(street|st\.|blvd|boulevard|ave|avenue|floor|suite|drive|road|rd\.|lane|ln\.|p\.?\s*o\.?\s*box)\b/i;
+// @ocr-parse Known names repair common OCR variants before generic heuristics.
 const KNOWN_MERCHANTS = [
     [/zoom\s+communications?/i, 'Zoom Communications'],
     [/\bzoom[l1i]?\b/i, 'Zoom Communications'],
@@ -345,6 +346,7 @@ export function textQuality(text, lines) {
 }
 
 export function parseReceipt(text, lines, confidence = 0) {
+    // @ocr-parse Keep output predictable for the review sheet: suggest, never save.
     const lineList = normalizeLines(lines && lines.length ? lines : String(text || '').split('\n'));
     const body = normalizeOcrText(text || lineList.join('\n'));
     const kind = detectKind(body, lineList);

@@ -35,6 +35,67 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * On-device OCR contract.
+ *
+ * The tag names are human-readable anchors used by docs and QC. Keep them near
+ * the limits they explain so a mobile or desktop performance pass has one
+ * place to review before touching the receipt pipeline.
+ */
+export const OCR_CONFIG = {
+    tags: {
+        deps: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        platform: '@platform',
+        perf: '@perf'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    input: {
+        maxFileBytes: 15 * 1024 * 1024
+    },
+    pdf: {
+        maxPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        previewMaxSide: 2400,
+        previewMaxScale: 2.5,
+        previewQuality: 0.92
+    },
+    image: {
+        minSide: 1200,
+        maxSideMobile: 2200,
+        maxSideDesktop: 2600,
+        enhancementMaxPixels: 1_800_000,
+        bitmapOptions: { imageOrientation: 'from-image' }
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line',
+        mobileMaxThreads: 1,
+        desktopMaxThreads: 4,
+        minimumThreadedCores: 3
+    },
+    scoring: {
+        highConfidence: 28,
+        usableConfidence: 22,
+        firstPassMinLines: 4,
+        retryMinLines: 3,
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
