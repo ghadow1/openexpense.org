@@ -134,10 +134,17 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 
 ## Receipts
 
-`receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed workers,
-models, and dictionaries are served from same-origin `vendor/`. Images are
-oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
-`saveExpense()` writes the confirmed result like a manual add.
+`receipt.js` lazy-loads bundled PP-OCRv6 Tiny and PDF.js modules. Reviewed
+workers, models, and dictionaries are served from same-origin `vendor/`, with
+paths and scan limits centralized in `OCR_CONFIG` (`src/config.js`). Images are
+oriented and resized for the current platform, contrast-enhanced in bounded
+canvases, recognized locally, then parsed. PDF text is tried before raster OCR
+so invoices with embedded text can skip model recognition. `saveExpense()`
+writes the confirmed result like a manual add.
+
+The OCR path uses readable tags (`@ocr-engine`, `@ocr-pdf`, `@platform`,
+`@perf`, and related anchors) documented in
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md).
 
 ## Build
 
