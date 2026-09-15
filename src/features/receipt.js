@@ -14,13 +14,11 @@ import { normalizeLines, normalizeOcrText, parseReceipt, textQuality } from './r
 import { runLocked } from '../ui/action-lock.js';
 import { receiptDateContext } from '../core/receipt-date.js';
 import { pickReceiptFile } from './receipt-picker.js';
+import { OCR_CONFIG } from '../config.js';
 
-const RECEIPT_LIMITS = {
-    maxFileBytes: 15 * 1024 * 1024,
-    maxPdfPages: 20,
-    maxExtractedLines: 5000,
-    maxExtractedChars: 250000
-};
+const RECEIPT_LIMITS = OCR_CONFIG.limits;
+const RECEIPT_IMAGE = OCR_CONFIG.image;
+const RECEIPT_SCORING = OCR_CONFIG.scoring;
 
 function displayDate(key) {
     const [year, month, day] = String(key || '').split('-').map(Number);
@@ -35,13 +33,8 @@ function displayDate(key) {
 
 export const Receipt = {
     // Executable OCR/PDF code and models are bundled or served from this origin.
-    PDF_WORKER: '/vendor/pdfjs/pdf.worker.min.mjs',
-    OCR_ASSETS: {
-        wasm: '/vendor/ort/',
-        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
-        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
-        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
-    },
+    PDF_WORKER: OCR_CONFIG.pdfWorker,
+    OCR_ASSETS: OCR_CONFIG.assets,
     _service: null,
     _initPromise: null,
     _pdfjs: null,
@@ -67,8 +60,10 @@ export const Receipt = {
         Receipt._initPromise = (async () => {
             onProgress?.('Loading OCR engine…', 0.08);
             const ort = await import('onnxruntime-web');
+            // @ocr-engine The vendored WASM runtime works on iOS, Android,
+            // Chromebooks, and desktop browsers without GPU-specific paths.
             ort.env.wasm.wasmPaths = Receipt.OCR_ASSETS.wasm;
-            ort.env.wasm.numThreads = 1;
+            ort.env.wasm.numThreads = OCR_CONFIG.wasmThreads;
             const { PaddleOcrService } = await import('ppu-paddle-ocr/web');
             onProgress?.('Loading local OCR models…', 0.2);
             const service = new PaddleOcrService({
@@ -163,7 +158,12 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        // @ocr-pdf Prefer embedded PDF text when available, then render only
+        // the first page at a bounded size for image OCR and preview.
+        const scale = Math.min(
+            RECEIPT_IMAGE.pdfPreviewMaxScale,
+            RECEIPT_IMAGE.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -214,13 +214,15 @@ export const Receipt = {
 
     async ocrBest(service, canvas, onProgress) {
         const first = await Receipt.ocrCanvas(service, canvas, onProgress);
-        if (Receipt.scoreOcr(first) >= 28 && first.lines.length >= 4) return first;
+        if (Receipt.scoreOcr(first) >= RECEIPT_SCORING.firstPassMinScore
+            && first.lines.length >= RECEIPT_SCORING.firstPassMinLines) return first;
 
         onProgress?.('Enhancing photo…', 0.68);
         const contrast = Receipt.enhanceForOcr(canvas, 'contrast');
         const second = await Receipt.ocrCanvas(service, contrast, onProgress);
         let best = Receipt.scoreOcr(second) > Receipt.scoreOcr(first) ? second : first;
-        if (Receipt.scoreOcr(best) >= 22 && best.lines.length >= 3) return best;
+        if (Receipt.scoreOcr(best) >= RECEIPT_SCORING.enhancedMinScore
+            && best.lines.length >= RECEIPT_SCORING.enhancedMinLines) return best;
 
         onProgress?.('Retrying high-contrast…', 0.82);
         const binary = Receipt.enhanceForOcr(canvas, 'binary');
@@ -246,7 +248,9 @@ export const Receipt = {
                     el.src = url;
                 });
             }
-            const maxSide = 2600;
+            // @platform createImageBitmap honors EXIF orientation on modern
+            // mobile/desktop browsers; Image keeps older WebViews working.
+            const maxSide = RECEIPT_IMAGE.maxOcrSide;
             let width = source.width;
             let height = source.height;
             if (width > maxSide || height > maxSide) {
@@ -270,8 +274,8 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1200;
-        const maxSide = 2600;
+        const minSide = RECEIPT_IMAGE.minOcrSide;
+        const maxSide = RECEIPT_IMAGE.maxOcrSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -301,7 +305,7 @@ export const Receipt = {
     },
 
     enhanceForOcr(source, mode = 'contrast') {
-        const maxPx = 1_800_000;
+        const maxPx = RECEIPT_IMAGE.enhancementMaxPixels;
         let w = source.width;
         let h = source.height;
         if (w * h > maxPx) {
@@ -357,6 +361,8 @@ export const Receipt = {
     },
 
     async recognizeText(file, onProgress) {
+        // @ocr-pipeline PDFs get a native-text pass before OCR; camera images
+        // go straight to the image path and only pay for enhancement if needed.
         if (Receipt.isPdf(file)) {
             const pdf = await Receipt.pdfToCanvasAndText(file, onProgress);
             Receipt._previewUrl = pdf.previewUrl;

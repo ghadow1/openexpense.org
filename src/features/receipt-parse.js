@@ -245,6 +245,8 @@ function parseTotalFromText(text) {
 }
 
 function pickTotal(lines, text, kind) {
+    // @ocr-parse Total labels win over "largest amount" heuristics so taxes,
+    // tenders, phone numbers, and item quantities do not become expenses.
     const labeled = [];
     const weak = [];
     for (const line of lines) {

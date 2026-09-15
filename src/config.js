@@ -35,6 +35,45 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * @ocr-deps Same-origin OCR/PDF assets and cross-platform runtime budgets.
+ *
+ * These values keep receipt reading fast enough for phones while still using
+ * higher-resolution desktop scans when the browser can provide them. Update
+ * docs/OCR-PERFORMANCE.md and scripts/qc-ocr-performance.mjs with any change.
+ */
+export const OCR_CONFIG = {
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    // One WASM worker keeps mobile Safari/Chrome memory predictable; desktop
+    // still benefits from SIMD in the vendored onnxruntime build.
+    wasmThreads: 1,
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    image: {
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        enhancementMaxPixels: 1_800_000
+    },
+    scoring: {
+        firstPassMinScore: 28,
+        firstPassMinLines: 4,
+        enhancedMinScore: 22,
+        enhancedMinLines: 3
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',

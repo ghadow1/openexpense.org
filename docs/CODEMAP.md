@@ -95,6 +95,24 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 
 `html[data-frame]` and `html[data-shell]` are the layout switches. Add new frame rules next to the existing ones in `openexpense.css`; do not introduce a fourth frame without updating `src/ui/frame.js` and the inline stamp in `index.html`.
 
+## Human-readable OCR tags
+
+Receipt scanning uses short comment tags so performance-sensitive browser code
+can be found without renaming stable hooks.
+
+| Tag | Meaning |
+| --- | --- |
+| `@ocr-deps` | Same-origin OCR/PDF assets and limits in `src/config.js` |
+| `@ocr-engine` | Lazy PP-OCR / onnxruntime setup in `src/features/receipt.js` |
+| `@ocr-pdf` | PDF text extraction and bounded rendering in `src/features/receipt.js` |
+| `@ocr-pipeline` | Image decode, enhancement, scoring, and retry order |
+| `@ocr-parse` | Merchant, date, total, tax, and item parsing |
+| `@platform` | Mobile/desktop capability decisions and native picker behavior |
+| `@perf` | Documentation and QC invariants in `docs/OCR-PERFORMANCE.md` |
+
+See [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) before changing OCR budgets or
+upgrading receipt/PDF runtime dependencies.
+
 ## Store fields
 
 `src/core/store.js` is the only in-memory source of truth. `patch(partial)` merges and notifies. Persistence writes `{ name, events, budgets, plan, goals }` only.
