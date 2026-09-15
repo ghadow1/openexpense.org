@@ -12,6 +12,54 @@ export const CONFIG = {
     defaultTheme: "light"
 };
 
+// Human-readable source tags for the OCR stack. Keep these labels stable so
+// docs, QC scripts, and future code searches can point to the same concepts.
+export const OCR_TAGS = {
+    deps: '@ocr-deps',
+    engine: '@ocr-engine',
+    pdf: '@ocr-pdf',
+    pipeline: '@ocr-pipeline',
+    parse: '@ocr-parse',
+    platform: '@platform',
+    perf: '@perf'
+};
+
+export const OCR_CONFIG = {
+    // @ocr-deps: executable OCR/PDF code and models are bundled or served from
+    // this origin. Do not point receipt pixels or ledger data at a remote host.
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    // @platform @perf: mobile keeps canvas memory lower; desktop keeps more
+    // source detail for tiny receipt text. These are long-side pixel targets.
+    raster: {
+        minOcrSide: 1200,
+        maxPhotoSideMobile: 2200,
+        maxPhotoSideDesktop: 2600,
+        maxPdfPreviewSide: 2400,
+        maxPdfScale: 2.5,
+        enhancePixelsMobile: 1300000,
+        enhancePixelsDesktop: 1800000
+    },
+    runtime: {
+        modelLabel: 'PP-OCRv6 Tiny',
+        estimatedFirstLoad: '~5 MB',
+        wasmThreads: 1,
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line'
+    }
+};
+
 /** User-facing theme names. Storage still uses light / dark. */
 export const THEME_FACES = {
     light: { id: 'professional', label: 'Professional', nextLabel: 'Black Card', nextIcon: 'credit-card' },
