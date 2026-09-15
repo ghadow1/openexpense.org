@@ -90,6 +90,9 @@ export const Utils = {
         return /iPad|iPhone|iPod/.test(ua)
             || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     },
+    // @platform
+    // Browser feature gates stay here so camera, OCR, share, and save flows make
+    // the same phone/tablet/desktop decisions.
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')

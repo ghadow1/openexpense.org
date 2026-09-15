@@ -1,8 +1,9 @@
 /**
  * OpenExpense — shared constants
  *
- * Calendar labels, version string, localStorage preference keys, and the
- * light/dark token maps consumed by theme.js and the PDF exporter.
+ * Calendar labels, version string, localStorage preference keys, OCR resource
+ * budgets, and the light/dark token maps consumed by theme.js and the PDF
+ * exporter.
  */
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -33,6 +34,58 @@ export const STORAGE_KEYS = {
     // Whether exports ask for a passphrase. Only the choice is stored here,
     // never the passphrase itself.
     exportPassphrase: 'oe-export-passphrase'
+};
+
+// @ocr-deps @platform @perf
+// The receipt scanner runs entirely in the browser. Keep executable code,
+// workers, runtimes, and reviewed models on this origin so mobile and desktop
+// devices can cache them without sending receipt pixels off-device.
+export const OCR_CONFIG = {
+    tags: {
+        '@ocr-deps': 'same-origin OCR, PDF, WASM, and model resources',
+        '@ocr-engine': 'PP-OCR / ONNX Runtime initialization and warmup',
+        '@ocr-pdf': 'PDF.js text extraction and first-page raster preview',
+        '@ocr-pipeline': 'file decode, image sizing, OCR retries, and review',
+        '@ocr-parse': 'merchant, date, amount, tax, and line-item parsing',
+        '@platform': 'mobile, tablet, desktop, camera, and browser feature gates',
+        '@perf': 'memory, pixel, file, thread, and lazy-load budgets'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    image: {
+        maxInputSide: 2600,
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxEnhancementPixels: 1_800_000,
+        pdfPreviewMaxScale: 2.5,
+        pdfPreviewMaxSide: 2400,
+        previewJpegQuality: 0.92,
+        warmupPixels: 64
+    },
+    runtime: {
+        mobileThreads: 1,
+        desktopThreads: 2,
+        maxThreads: 4,
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line'
+    },
+    scoring: {
+        acceptScore: 28,
+        acceptLines: 4,
+        retryScore: 22,
+        retryLines: 3
+    }
 };
 
 export const THEMES = {
