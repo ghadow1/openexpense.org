@@ -138,6 +138,8 @@ Typing a key alone (`group:`, `tag:`) offers matching names instead of “No mat
 models, and dictionaries are served from same-origin `vendor/`. Images are
 oriented and contrast-enhanced in a canvas, recognized locally, then parsed.
 `saveExpense()` writes the confirmed result like a manual add.
+`OCR_CONFIG` centralizes the mobile/desktop budgets, asset paths, and scoring
+gates; [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) lists the searchable code tags.
 
 ## Build
 

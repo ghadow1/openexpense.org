@@ -35,6 +35,49 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+// @ocr-deps @platform @perf
+// Same-origin OCR/PDF assets and device budgets live here so mobile and
+// desktop tuning can be reviewed without hunting through the scanner flow.
+export const OCR_CONFIG = {
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        models: {
+            detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+            recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+            dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+        }
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        imageMinSide: 1200,
+        imageMaxSide: 2600,
+        enhanceMaxPixels: 1_800_000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        pdfPreviewQuality: 0.92
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line',
+        wasmThreads: {
+            mobile: 1,
+            desktop: 2,
+            max: 2
+        }
+    },
+    scoring: {
+        firstPassMinScore: 28,
+        firstPassMinLines: 4,
+        enhancedMinScore: 22,
+        enhancedMinLines: 3,
+        lowConfidenceThreshold: 0.55
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',

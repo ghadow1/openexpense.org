@@ -95,6 +95,23 @@ export const Utils = {
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
+    // @platform @perf
+    // Desktop browsers can spend more CPU on local OCR when cross-origin
+    // isolation enables WASM threads; phones stay conservative for battery.
+    devicePerformanceTier: () => {
+        const cores = Number(navigator.hardwareConcurrency || 0);
+        const memory = Number(navigator.deviceMemory || 0);
+        const coarse = window.matchMedia('(pointer: coarse)').matches;
+        if (Utils.isPhone() || cores <= 4 || (coarse && (!memory || memory <= 4))) return 'mobile';
+        return 'desktop';
+    },
+    supportsThreadedWasm: () => window.crossOriginIsolated === true
+        && typeof SharedArrayBuffer === 'function',
+    preferredWorkerCount({ mobile = 1, desktop = 2, max = 2 } = {}) {
+        const cores = Math.max(1, Number(navigator.hardwareConcurrency || 1));
+        const wanted = Utils.devicePerformanceTier() === 'desktop' ? desktop : mobile;
+        return Math.max(1, Math.min(max, wanted, cores));
+    },
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
