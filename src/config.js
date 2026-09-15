@@ -35,6 +35,62 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+// Human-readable source tags make the receipt stack easy to search without
+// renaming frozen DOM/CSS hooks. Keep docs/OCR-PERFORMANCE.md in sync.
+export const OCR_CONFIG = {
+    tags: {
+        deps: '@ocr-deps',
+        engine: '@ocr-engine',
+        pdf: '@ocr-pdf',
+        pipeline: '@ocr-pipeline',
+        parse: '@ocr-parse',
+        platform: '@platform',
+        perf: '@perf'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        models: {
+            detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+            recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+            dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+        }
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        pdfPreviewMaxScale: 2.5,
+        pdfPreviewMaxSide: 2400,
+        imageMaxSide: 2600,
+        imageMobileMaxSide: 2200,
+        ocrMinSide: 1200,
+        ocrMaxSide: 2600,
+        ocrMobileMaxSide: 2200,
+        enhancementMaxPixels: 1800000,
+        enhancementMobileMaxPixels: 1250000
+    },
+    scoring: {
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8,
+        firstPassScore: 28,
+        firstPassLines: 4,
+        retryPassScore: 22,
+        retryPassLines: 3
+    },
+    runtime: {
+        executionProvider: 'wasm',
+        recognitionStrategy: 'cross-line',
+        baseThreads: 1,
+        maxDesktopThreads: 2,
+        minDesktopCoresForThreads: 6,
+        lowMemoryDeviceGb: 4
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
