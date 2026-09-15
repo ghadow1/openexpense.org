@@ -1,8 +1,8 @@
 /**
  * OpenExpense — shared constants
  *
- * Calendar labels, version string, localStorage preference keys, and the
- * light/dark token maps consumed by theme.js and the PDF exporter.
+ * Calendar labels, version string, localStorage preference keys, OCR tuning,
+ * and the light/dark token maps consumed by theme.js and the PDF exporter.
  */
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -33,6 +33,55 @@ export const STORAGE_KEYS = {
     // Whether exports ask for a passphrase. Only the choice is stored here,
     // never the passphrase itself.
     exportPassphrase: 'oe-export-passphrase'
+};
+
+/**
+ * @ocr-deps @platform @perf
+ * Receipt OCR runs entirely in the browser. Keep assets same-origin, keep the
+ * tunables here, and update docs/OCR-PERFORMANCE.md plus QC when this changes.
+ */
+export const OCR_CONFIG = {
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasmPath: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileMegabytes: 15,
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    canvas: {
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxPdfRenderSide: 2400,
+        pdfRenderScaleCap: 2.5,
+        decodeMaxSide: {
+            phone: 2200,
+            tablet: 2400,
+            desktop: 2600
+        },
+        enhanceMaxPixels: {
+            phone: 1200000,
+            tablet: 1500000,
+            desktop: 1800000
+        }
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        defaultWasmThreads: 1,
+        maxThreadedWasmThreads: 2
+    },
+    scoring: {
+        highQualityScore: 28,
+        highQualityLines: 4,
+        usableScore: 22,
+        usableLines: 3
+    }
 };
 
 export const THEMES = {
