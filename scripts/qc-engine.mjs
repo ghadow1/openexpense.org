@@ -8,7 +8,7 @@ import { categorize } from '../src/engine/categorize.js';
 import { mapTransaction, mergeTransactions } from '../src/engine/map.js';
 import { budgetStatus, detectRecurring, flagAnomalies } from '../src/engine/insights.js';
 import { createSession } from '../src/engine/session.js';
-import { sanitizeEntry } from '../src/core/ledger-file.js';
+import { FILE_LIMITS, sanitizeEntry } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
 import { parseReceipt } from '../src/features/receipt-parse.js';
 import { normalizeParentOrigin } from '../src/engine/bridge.js';
@@ -59,6 +59,27 @@ test('mergeTransactions updates the same sourceId instead of duplicating', () =>
     }]);
     assert.equal(next['2026-08-17'].length, 1);
     assert.equal(next['2026-08-17'][0].price, 12);
+});
+
+test('mergeTransactions rejects inserts that would be truncated by ledger caps', () => {
+    const date = '2026-08-17';
+    const full = {
+        [date]: Array.from({ length: FILE_LIMITS.maxPerDay }, (_, i) => ({
+            title: `Entry ${i}`,
+            price: 1,
+            source: 'bank',
+            sourceId: `tx_${i}`
+        }))
+    };
+
+    assert.throws(
+        () => mergeTransactions(full, [{ amount: 9, merchant: 'Overflow', date, transaction_id: 'tx_new' }]),
+        /250 entries/
+    );
+
+    const updated = mergeTransactions(full, [{ amount: 12, merchant: 'Entry 0', date, transaction_id: 'tx_0' }]);
+    assert.equal(updated[date].length, FILE_LIMITS.maxPerDay);
+    assert.equal(updated[date][0].price, 12);
 });
 
 test('session set/get/import stay sanitized', () => {

@@ -389,17 +389,49 @@ export function countEntries(events) {
     ), 0);
 }
 
+function countEventDays(events) {
+    return Object.keys(events || {}).reduce((sum, dateKey) => (
+        sum + (isValidDateKey(dateKey) && Array.isArray(events[dateKey]) && events[dateKey].length ? 1 : 0)
+    ), 0);
+}
+
+export function ledgerCapacityError(events) {
+    let total = 0;
+    let days = 0;
+    for (const dateKey of Object.keys(events || {})) {
+        if (!isValidDateKey(dateKey)) continue;
+        const list = events[dateKey];
+        if (!Array.isArray(list) || !list.length) continue;
+        if (list.length > FILE_LIMITS.maxPerDay) {
+            return `This change would put more than ${FILE_LIMITS.maxPerDay} entries on ${dateKey}.`;
+        }
+        days += 1;
+        if (days > FILE_LIMITS.maxDays) {
+            return `This ledger already has ${FILE_LIMITS.maxDays} days.`;
+        }
+        total += list.length;
+        if (total > FILE_LIMITS.maxEntries) {
+            return `This ledger already has ${FILE_LIMITS.maxEntries} entries.`;
+        }
+    }
+    return '';
+}
+
 /**
  * User-facing reason a live add would exceed import/autosave caps.
  * `extra` is how many new rows the write would place on `dateKey`.
  */
-export function entryCapacityError(events, dateKey, extra = 1) {
+export function entryCapacityError(events, dateKey, extra = 1, { removedDayCount = 0 } = {}) {
     const add = Math.max(0, Number(extra) || 0);
     if (!add) return '';
+    const removedDays = Math.max(0, Number(removedDayCount) || 0);
     if (isValidDateKey(dateKey)) {
         const perDay = Array.isArray(events?.[dateKey]) ? events[dateKey].length : 0;
         if (perDay + add > FILE_LIMITS.maxPerDay) {
             return `This day already has ${FILE_LIMITS.maxPerDay} entries.`;
+        }
+        if (perDay === 0 && countEventDays(events) - removedDays + 1 > FILE_LIMITS.maxDays) {
+            return `This ledger already has ${FILE_LIMITS.maxDays} days.`;
         }
     }
     if (countEntries(events) + add > FILE_LIMITS.maxEntries) {

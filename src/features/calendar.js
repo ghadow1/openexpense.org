@@ -79,7 +79,10 @@ function bindCalendarEntryDrag(grid) {
             skipPillOpen = true;
             if (!destKey || destKey === fromKey) return;
             const { events } = getState();
-            const blocked = entryCapacityError(events, destKey, indexes.length);
+            const from = Array.isArray(events?.[fromKey]) ? events[fromKey] : [];
+            const moved = new Set((indexes || []).map(Number).filter((i) => i >= 0 && i < from.length));
+            const removedDayCount = from.length > 0 && moved.size >= from.length ? 1 : 0;
+            const blocked = entryCapacityError(events, destKey, indexes.length, { removedDayCount });
             if (blocked) {
                 Toast.show(blocked, 'error');
                 return;

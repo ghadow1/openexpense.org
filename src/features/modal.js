@@ -15,7 +15,7 @@ import { UI } from '../ui/components.js';
 import { Toast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
-import { isValidDateKey, sanitizeEntry, countEntries, entryCapacityError } from '../core/ledger-file.js';
+import { isValidDateKey, sanitizeEntry, countEntries, entryCapacityError, ledgerCapacityError } from '../core/ledger-file.js';
 import {
     REPEAT,
     countSeriesOccurrences,
@@ -1062,27 +1062,28 @@ async function saveEdit(i) {
         }
     }
 
-    if (destKey !== selectedKey) {
-        const blocked = entryCapacityError(events, destKey);
-        if (blocked) {
-            Toast.show(blocked, 'error');
-            return;
-        }
-    }
-
     let nextEvents;
+    let seriesUpdateMessage = '';
     if (original.recurring && isRecurring) {
         nextEvents = cadenceChanged
             ? rebuildSeriesFrom(events, original, destKey, updatedEv)
             : updateSeriesOccurrences(events, original, selectedKey, i, updatedEv, destKey);
         if (cadenceChanged || dateChanged) {
             const count = countSeriesOccurrences(nextEvents, updatedEv);
-            if (count > 1) Toast.show(`Updated ${count} copies of ${title}.`, 'success');
+            if (count > 1) seriesUpdateMessage = `Updated ${count} copies of ${title}.`;
         }
     } else {
         nextEvents = replaceOccurrence(events, selectedKey, i, updatedEv, destKey);
         if (isRecurring) nextEvents = seedRecurringCopies(nextEvents, updatedEv, destKey);
     }
+
+    const blocked = ledgerCapacityError(nextEvents);
+    if (blocked) {
+        Toast.show(blocked, 'error');
+        return;
+    }
+
+    if (seriesUpdateMessage) Toast.show(seriesUpdateMessage, 'success');
 
     if (applyToTwins) {
         // Re-scan after the row/series write: the edited row already has the
