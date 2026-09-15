@@ -35,6 +35,78 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * Human-readable receipt OCR contract.
+ *
+ * Tags:
+ * - @ocr-deps: same-origin executable code, workers, WASM, and model assets.
+ * - @ocr-engine: runtime settings for PP-OCR / ONNX.
+ * - @ocr-pdf: PDF text extraction and first-page preview raster limits.
+ * - @ocr-pipeline: image sizing, preview encoding, enhancement passes.
+ * - @ocr-parse: scoring gates before parser fields are trusted.
+ * - @platform / @perf: mobile-safe defaults and desktop acceleration ceilings.
+ */
+export const OCR_CONFIG = Object.freeze({
+    /** @ocr-deps executable OCR/PDF code and models stay on this origin. */
+    assets: Object.freeze({
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasmPath: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    }),
+
+    /** @platform @perf conservative defaults for phones, with opt-in desktop threads. */
+    runtime: Object.freeze({
+        executionProviders: Object.freeze(['wasm']),
+        mobileThreads: 1,
+        desktopThreads: 2
+    }),
+
+    /** @ocr-pdf @ocr-pipeline hard stops before a receipt can exhaust memory. */
+    limits: Object.freeze({
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        maxSourceSide: 2600,
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxEnhancementPixels: 1_800_000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5
+    }),
+
+    /** @ocr-parse score gates keep weak scans editable instead of auto-trusted. */
+    scoring: Object.freeze({
+        firstPassGoodScore: 28,
+        firstPassGoodLines: 4,
+        retryGoodScore: 22,
+        retryGoodLines: 3,
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8
+    }),
+
+    /** @ocr-pipeline user-facing progress points for slow mobile scans. */
+    progress: Object.freeze({
+        loadEngine: 0.08,
+        loadModels: 0.2,
+        warmReady: 0.88,
+        pdfLoad: 0.25,
+        pdfReadEnd: 0.5,
+        preview: 0.55,
+        readText: 0.55,
+        enhance: 0.68,
+        binaryRetry: 0.82
+    }),
+
+    preview: Object.freeze({
+        jpegQuality: 0.92
+    })
+});
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
