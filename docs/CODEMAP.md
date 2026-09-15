@@ -95,6 +95,24 @@ Primary tabs live in `.app-dock`. On a phone that bar is fixed to the bottom. On
 
 `html[data-frame]` and `html[data-shell]` are the layout switches. Add new frame rules next to the existing ones in `openexpense.css`; do not introduce a fourth frame without updating `src/ui/frame.js` and the inline stamp in `index.html`.
 
+## Source tags for OCR and performance
+
+Receipt reading uses short comments to mark review areas. These tags are
+human-readable only; they do not freeze helper names.
+
+| Tag | Primary owner |
+| --- | --- |
+| `@ocr-deps` | `src/config.js`, `vendor/`, `docs/DEPENDENCIES.md` |
+| `@ocr-engine` | `src/features/receipt.js` |
+| `@ocr-pdf` | PDF text extraction and preview raster in `receipt.js` |
+| `@ocr-pipeline` | Picker -> OCR -> parse -> review flow |
+| `@ocr-parse` | `src/features/receipt-parse.js` |
+| `@platform` | Browser/device capability choices |
+| `@perf` | Canvas sizing, WASM threads, and memory caps |
+
+See [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) before changing receipt models,
+runtime packages, or canvas/thread limits.
+
 ## Store fields
 
 `src/core/store.js` is the only in-memory source of truth. `patch(partial)` merges and notifies. Persistence writes `{ name, events, budgets, plan, goals }` only.

@@ -3,6 +3,7 @@
  *
  * Turns OCR (or PDF) lines into { merchant, date, total, tax, items, kind }.
  * Public API: normalizeOcrText, normalizeLines, textQuality, parseReceipt.
+ * Tags: @ocr-parse @ocr-pipeline
  */
 import { Utils } from '../core/utils.js';
 

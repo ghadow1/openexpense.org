@@ -3,6 +3,7 @@
  *
  * Kept separate from OCR so opening the native camera/file chooser preserves
  * the user gesture while the heavier receipt pipeline stays out of startup.
+ * Tags: @platform @ocr-pipeline
  */
 import { Utils } from '../core/utils.js';
 import { Toast } from '../ui/toast.js';
