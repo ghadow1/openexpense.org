@@ -85,6 +85,7 @@ export const Utils = {
             tt.textContent = '';
         });
     },
+    /** @platform Browser capability checks for phone camera, sharing, and desktop file saves. */
     isIOS: () => {
         const ua = navigator.userAgent || '';
         return /iPad|iPhone|iPod/.test(ua)

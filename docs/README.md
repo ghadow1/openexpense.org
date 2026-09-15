@@ -12,6 +12,7 @@ audit evidence separate. Choose one route instead of reading every document.
 | Learn through guided lessons | [`LEARNING-PATH.md`](LEARNING-PATH.md) | [`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) |
 | Teach secure frontend engineering | [`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) | [`SECURITY-MATHEMATICS-AUDIT-2026-08-19.md`](SECURITY-MATHEMATICS-AUDIT-2026-08-19.md) |
 | Change HTML, CSS, or accessibility | [`FRONTEND-ARCHITECTURE-MANUAL.md`](FRONTEND-ARCHITECTURE-MANUAL.md) | [`CODEMAP.md`](CODEMAP.md) |
+| Tune receipt OCR or PDF reading | [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) | [`DEPENDENCIES.md`](DEPENDENCIES.md), [`../src/README.md`](../src/README.md) |
 | Embed the headless engine | [`EMBED.md`](EMBED.md) | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 
 ## Canonical owners
@@ -25,6 +26,7 @@ audit evidence separate. Choose one route instead of reading every document.
 | Financial mathematics and classroom exercises | [`TEACHERS-GUIDE.md`](TEACHERS-GUIDE.md) |
 | Ledger and encrypted-file schemas | [`DATA-FORMAT.md`](DATA-FORMAT.md) |
 | Dependency and same-origin asset policy | [`DEPENDENCIES.md`](DEPENDENCIES.md) |
+| OCR resource limits, platform tags, and receipt performance | [`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md) |
 
 Security audits and competitive reviews are dated evidence. They explain what
 was observed at a point in time; the canonical documents above describe the
