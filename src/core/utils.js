@@ -95,6 +95,7 @@ export const Utils = {
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
+    // @platform: OCR picker and export UX use capabilities, not OS names alone.
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
