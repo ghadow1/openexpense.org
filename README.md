@@ -44,7 +44,7 @@ GitHub Pages serves the committed `app.js` and `chunk-*.js` files. There is no C
 - **Zero servers** — no API, no database you do not control, no third-party ledger calls.
 - **Encrypted local autosave** — AES-256-GCM in IndexedDB. The key is generated on this device and is non-extractable. Pause autosave from the header for an in-memory-only session.
 - **Encrypted export** — one `.json` plus a sibling `key.json` into an **OpenExpense** folder by default. Long-press Export to pick another folder. iPhone and Android share both files into Files. The portable key is not kept in the browser.
-- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device.
+- **Receipt scanning** — PP-OCRv6 Tiny and PDF text run in the browser. Images never leave the device. The scanner uses phone/tablet/desktop sizing, PDF native-text fast paths, and modern image decoding when available.
 - **Recurring series** — same-title payments group in the day editor; you can remove every copy at once. Name and amount stay on the row you edit unless another entry shares both.
 - **Category tags** — type to find or create a tag. Enter assigns a new name. Search with `cat:groceries` or `tag:dining`.
 - **Groups** — select rows or drop one onto another. Ungroup clears only the group. Search with `group:bella` or `group: Rome trip`.
@@ -94,6 +94,8 @@ semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
 The [`2026 Competitive Feature Review`](docs/COMPETITIVE-FEATURE-REVIEW-2026.md)
 compares planner and reporting patterns, records what fits the local-first
 model, and separates the next viable modules from cloud-only features.
+For receipt-specific dependency, platform, and performance notes, see
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Data format
 
@@ -129,7 +131,8 @@ importable.
 
 OCR models, runtimes, fonts, and icons are served from this site's checked-in
 `vendor/` directory. OCR binaries load only after receipt capture begins. See
-[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md).
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) and
+[`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Contributing
 
