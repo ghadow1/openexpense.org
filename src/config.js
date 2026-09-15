@@ -35,6 +35,45 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * @ocr-deps @platform @perf
+ * Central receipt-reading knobs. Keep OCR assets same-origin and tune canvas /
+ * WASM limits here so phone, tablet, and desktop behavior stays reviewable.
+ */
+export const OCR_CONFIG = {
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    image: {
+        minOcrSide: 1200,
+        maxDecodeSide: 2600,
+        maxOcrSide: 2600,
+        maxEnhancePixels: 1_800_000
+    },
+    pdf: {
+        maxPreviewSide: 2400,
+        maxPreviewScale: 2.5,
+        previewQuality: 0.92
+    },
+    runtime: {
+        executionProviders: ['wasm'],
+        phoneThreadCap: 1,
+        tabletThreadCap: 2,
+        desktopThreadCap: 2,
+        requireCrossOriginIsolationForThreads: true
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
