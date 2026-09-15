@@ -92,6 +92,8 @@ export const Utils = {
     },
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    // @platform These helpers gate native mobile/desktop APIs without storing
+    // device details. Keep them capability-first where a Web API exists.
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
         || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),

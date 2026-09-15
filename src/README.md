@@ -14,7 +14,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`engine/`](engine/) | Headless map/categorize/session plus live `window.OpenExpense` hooks |
 | [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet (navy tokens) |
 | [`../scripts/write-brand-thumbs.py`](../scripts/write-brand-thumbs.py) | Regenerates `og-image.jpg` and `apple-touch-icon.png` |
-| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |
+| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels, `OCR_CONFIG` |
 
 ## `app/` — shell
 
@@ -38,7 +38,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`core/database.js`](core/database.js) | IndexedDB connection, stores, and primitive transactions |
 | [`core/folder.js`](core/folder.js) | OpenExpense export folder handle (not key.json); overwrite names |
 | [`core/routes.js`](core/routes.js) | Homepage vs missing public paths (404) |
-| [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips |
+| [`core/utils.js`](core/utils.js) | Dates, money, escape, tooltips, platform capability helpers |
 | [`core/series.js`](core/series.js) | Recurring grouping, cadence, date / cadence shift, weekday or series delete |
 | [`core/labeling.js`](core/labeling.js) | Name+amount twins and Change All title/price writes |
 | [`core/categories.js`](core/categories.js) | Built-in tags, keyword guess, collect / suggest / canonical |
@@ -61,9 +61,9 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`features/search-panel.js`](features/search-panel.js) | Search sheet (`/` or Ctrl/Cmd+K) |
 | [`features/ledger.js`](features/ledger.js) | Import, export / linked-folder save, autosave toggle, name |
 | [`features/export-buttons.js`](features/export-buttons.js) | Export vs Save labels when a folder is linked |
-| [`features/receipt-picker.js`](features/receipt-picker.js) | Synchronous native picker; preserves phone user activation |
-| [`features/receipt.js`](features/receipt.js) | Lazy camera / file OCR and review sheet |
-| [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
+| [`features/receipt-picker.js`](features/receipt-picker.js) | Synchronous native picker; preserves phone user activation and camera hints |
+| [`features/receipt.js`](features/receipt.js) | Lazy camera / file / PDF OCR, bounded preprocessing, and review sheet |
+| [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total, tax, and item heuristics from text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
 | [`features/dash-strip.js`](features/dash-strip.js) | Overview, Tracker page head, and Planner (`renderDashStrip`) |
 | [`features/goals.js`](features/goals.js) | Goal modal, cards, drag priority, advice, and planner-hold action |
