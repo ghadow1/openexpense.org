@@ -3,8 +3,11 @@
  *
  * Lazy-loads bundled PP-OCRv6 Tiny and PDF.js, then uses same-origin models
  * and workers to process the image. Nothing is uploaded.
+ *
+ * Tags: @ocr-deps @ocr-engine @ocr-pdf @ocr-pipeline @ocr-parse @platform @perf
  */
 import { Utils } from '../core/utils.js';
+import { OCR_CONFIG } from '../config.js';
 import { patch } from '../core/store.js';
 import { Toast } from '../ui/toast.js';
 import { lockBodyScroll, unlockBodyScroll } from '../ui/scroll-lock.js';
@@ -15,12 +18,8 @@ import { runLocked } from '../ui/action-lock.js';
 import { receiptDateContext } from '../core/receipt-date.js';
 import { pickReceiptFile } from './receipt-picker.js';
 
-const RECEIPT_LIMITS = {
-    maxFileBytes: 15 * 1024 * 1024,
-    maxPdfPages: 20,
-    maxExtractedLines: 5000,
-    maxExtractedChars: 250000
-};
+const RECEIPT_LIMITS = OCR_CONFIG.limits;
+const OCR_QUALITY = OCR_CONFIG.quality;
 
 function displayDate(key) {
     const [year, month, day] = String(key || '').split('-').map(Number);
@@ -34,13 +33,13 @@ function displayDate(key) {
 }
 
 export const Receipt = {
-    // Executable OCR/PDF code and models are bundled or served from this origin.
-    PDF_WORKER: '/vendor/pdfjs/pdf.worker.min.mjs',
+    // @ocr-deps Executable OCR/PDF code and models are bundled or served from this origin.
+    PDF_WORKER: OCR_CONFIG.assets.pdfWorker,
     OCR_ASSETS: {
-        wasm: '/vendor/ort/',
-        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
-        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
-        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+        wasm: OCR_CONFIG.assets.wasm,
+        detection: OCR_CONFIG.assets.detection,
+        recognition: OCR_CONFIG.assets.recognition,
+        dictionary: OCR_CONFIG.assets.dictionary
     },
     _service: null,
     _initPromise: null,
@@ -65,28 +64,29 @@ export const Receipt = {
         if (Receipt._initPromise) return Receipt._initPromise;
 
         Receipt._initPromise = (async () => {
+            // @ocr-engine @platform @perf Keep mobile single-threaded; let cross-origin-isolated desktops use more cores.
             onProgress?.('Loading OCR engine…', 0.08);
             const ort = await import('onnxruntime-web');
             ort.env.wasm.wasmPaths = Receipt.OCR_ASSETS.wasm;
-            ort.env.wasm.numThreads = 1;
+            ort.env.wasm.numThreads = Utils.ocrThreadBudget(OCR_CONFIG.platform);
             const { PaddleOcrService } = await import('ppu-paddle-ocr/web');
             onProgress?.('Loading local OCR models…', 0.2);
             const service = new PaddleOcrService({
-                session: { executionProviders: ['wasm'] },
+                session: { executionProviders: [...OCR_CONFIG.recognition.executionProviders] },
                 model: {
                     detection: Receipt.OCR_ASSETS.detection,
                     recognition: Receipt.OCR_ASSETS.recognition,
                     charactersDictionary: Receipt.OCR_ASSETS.dictionary
                 },
-                recognition: { strategy: 'cross-line' }
+                recognition: { strategy: OCR_CONFIG.recognition.strategy }
             });
             await service.initialize();
             onProgress?.('Warming up…', 0.88);
             const warm = document.createElement('canvas');
-            warm.width = warm.height = 64;
+            warm.width = warm.height = OCR_CONFIG.recognition.warmupSize;
             const ctx = warm.getContext('2d');
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, warm.width, warm.height);
             ctx.fillStyle = '#000';
             ctx.font = '20px sans-serif';
             ctx.fillText('A', 20, 40);
@@ -140,6 +140,7 @@ export const Receipt = {
     },
 
     async pdfToCanvasAndText(file, onProgress) {
+        // @ocr-pdf @perf Prefer embedded PDF text; only rasterize when text is not enough.
         onProgress?.('Loading PDF…', 0.25);
         const pdfjs = await Receipt.loadPdfJs();
         const data = new Uint8Array(await file.arrayBuffer());
@@ -149,13 +150,15 @@ export const Receipt = {
         }
 
         const allLines = [];
+        let extractedChars = 0;
         for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
             onProgress?.(`Reading PDF page ${pageNum}…`, 0.25 + (pageNum / doc.numPages) * 0.25);
             const page = await doc.getPage(pageNum);
             const textContent = await page.getTextContent();
-            allLines.push(...Receipt.linesFromPdfTextContent(textContent));
-            if (allLines.length > RECEIPT_LIMITS.maxExtractedLines
-                || allLines.join('\n').length > RECEIPT_LIMITS.maxExtractedChars) {
+            const pageLines = Receipt.linesFromPdfTextContent(textContent);
+            for (const line of pageLines) extractedChars += line.length + 1;
+            allLines.push(...pageLines);
+            if (allLines.length > RECEIPT_LIMITS.maxExtractedLines || extractedChars > RECEIPT_LIMITS.maxExtractedChars) {
                 throw new Error('PDF_TEXT_LIMIT');
             }
         }
@@ -163,7 +166,10 @@ export const Receipt = {
         onProgress?.('Rendering preview…', 0.55);
         const page = await doc.getPage(1);
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = Math.min(2.5, 2400 / Math.max(baseViewport.width, baseViewport.height));
+        const scale = Math.min(
+            RECEIPT_LIMITS.pdfPreviewMaxScale,
+            RECEIPT_LIMITS.pdfPreviewMaxSide / Math.max(baseViewport.width, baseViewport.height)
+        );
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(viewport.width);
@@ -185,6 +191,7 @@ export const Receipt = {
     },
 
     async ocrCanvas(service, canvas, onProgress) {
+        // @ocr-engine Normal read first, flattened fallback only when region text is empty.
         onProgress?.('Reading text…', 0.55);
 
         let result = await service.recognize(canvas, { flatten: false });
@@ -214,13 +221,14 @@ export const Receipt = {
 
     async ocrBest(service, canvas, onProgress) {
         const first = await Receipt.ocrCanvas(service, canvas, onProgress);
-        if (Receipt.scoreOcr(first) >= 28 && first.lines.length >= 4) return first;
+        if (Receipt.scoreOcr(first) >= OCR_QUALITY.goodScore && first.lines.length >= OCR_QUALITY.goodLines) return first;
 
+        // @ocr-pipeline @perf Enhancement is capped to avoid memory spikes on mobile Safari.
         onProgress?.('Enhancing photo…', 0.68);
         const contrast = Receipt.enhanceForOcr(canvas, 'contrast');
         const second = await Receipt.ocrCanvas(service, contrast, onProgress);
         let best = Receipt.scoreOcr(second) > Receipt.scoreOcr(first) ? second : first;
-        if (Receipt.scoreOcr(best) >= 22 && best.lines.length >= 3) return best;
+        if (Receipt.scoreOcr(best) >= OCR_QUALITY.usableScore && best.lines.length >= OCR_QUALITY.usableLines) return best;
 
         onProgress?.('Retrying high-contrast…', 0.82);
         const binary = Receipt.enhanceForOcr(canvas, 'binary');
@@ -230,6 +238,7 @@ export const Receipt = {
     },
 
     async fileToCanvas(file) {
+        // @ocr-pipeline @platform createImageBitmap preserves orientation on modern mobile/desktop browsers.
         const url = URL.createObjectURL(file);
         try {
             let source = null;
@@ -246,7 +255,7 @@ export const Receipt = {
                     el.src = url;
                 });
             }
-            const maxSide = 2600;
+            const maxSide = RECEIPT_LIMITS.maxOcrSide;
             let width = source.width;
             let height = source.height;
             if (width > maxSide || height > maxSide) {
@@ -270,8 +279,9 @@ export const Receipt = {
     },
 
     prepareForOcr(source) {
-        const minSide = 1200;
-        const maxSide = 2600;
+        // @ocr-pipeline @perf Normalize scan dimensions before the OCR engine allocates tensors.
+        const minSide = RECEIPT_LIMITS.minOcrSide;
+        const maxSide = RECEIPT_LIMITS.maxOcrSide;
         let w = source.width;
         let h = source.height;
         const longest = Math.max(w, h);
@@ -301,7 +311,8 @@ export const Receipt = {
     },
 
     enhanceForOcr(source, mode = 'contrast') {
-        const maxPx = 1_800_000;
+        // @ocr-pipeline @perf Pixel work is bounded separately from OCR input size.
+        const maxPx = RECEIPT_LIMITS.maxEnhancementPixels;
         let w = source.width;
         let h = source.height;
         if (w * h > maxPx) {
@@ -362,6 +373,7 @@ export const Receipt = {
             Receipt._previewUrl = pdf.previewUrl;
 
             if (pdf.hasExtractedText) {
+                // @ocr-parse Native PDF text beats OCR when it already yields a reviewable receipt.
                 const parsed = parseReceipt(pdf.text, pdf.lines, 0.95);
                 if (parsed.total != null && parsed.merchant) {
                     onProgress?.('Done', 1);

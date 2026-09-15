@@ -7,7 +7,8 @@ This is the contract for changing OpenExpense without breaking the live site. Th
 Documentation routes: [`README.md`](README.md). Newcomer lessons:
 [`LEARNING-PATH.md`](LEARNING-PATH.md). How data moves:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). File-by-file source list:
-[`../src/README.md`](../src/README.md). Ledger JSON:
+[`../src/README.md`](../src/README.md). Receipt OCR tags:
+[`OCR-PERFORMANCE.md`](OCR-PERFORMANCE.md). Ledger JSON:
 [`DATA-FORMAT.md`](DATA-FORMAT.md).
 
 ## What you may rename
@@ -22,6 +23,7 @@ Documentation routes: [`README.md`](README.md). Newcomer lessons:
 | Element ids (`#view-app`, `#sidebar`, `#cal-col`) | **No** | Render and QC pin them |
 | `data-action`, `data-view`, `data-shell`, `data-tracker-filter` | **No** | Click delegation in `src/main.js` |
 | `localStorage` keys in `STORAGE_KEYS` | **No** | Existing browsers would forget prefs |
+| Receipt OCR tag comments (`@ocr-*`, `@platform`, `@perf`) | Yes | Keep them accurate when behavior moves |
 | `THEMES.dark` hex values | **No** | `scripts/qc-theme.mjs` requires greyscale |
 
 ## Layers

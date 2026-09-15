@@ -92,11 +92,26 @@ export const Utils = {
     },
     isAndroid: () => /Android/i.test(navigator.userAgent || ''),
     isMobile: () => window.matchMedia('(max-width: 640px)').matches,
+    isCoarsePointer: () => window.matchMedia('(pointer: coarse)').matches,
     isPhone: () => /iPhone|iPod/.test(navigator.userAgent || '')
         || /Android.+Mobile/i.test(navigator.userAgent || '')
-        || (Utils.isMobile() && window.matchMedia('(pointer: coarse)').matches),
+        || (Utils.isMobile() && Utils.isCoarsePointer()),
     prefersCamera: () => window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
         || Utils.isPhone(),
+    /**
+     * @platform @perf ONNX wasm threads need cross-origin isolation. GitHub
+     * Pages deployments without those headers stay single-threaded, while
+     * modern desktop installs can opt into a small worker pool safely.
+     */
+    ocrThreadBudget({ mobileMaxThreads = 1, coarsePointerMaxThreads = 1, desktopMaxThreads = 1 } = {}) {
+        const nav = globalThis.navigator || {};
+        const win = globalThis.window || {};
+        const cores = Math.max(1, Math.floor(Number(nav.hardwareConcurrency) || 1));
+        if (!win.crossOriginIsolated) return 1;
+        if (Utils.isPhone()) return Math.max(1, Math.min(cores, mobileMaxThreads));
+        if (Utils.isCoarsePointer()) return Math.max(1, Math.min(cores, coarsePointerMaxThreads));
+        return Math.max(1, Math.min(cores, desktopMaxThreads));
+    },
     canUseSavePicker: () => typeof window.showSaveFilePicker === 'function'
         && window.isSecureContext
         && !Utils.isPhone()

@@ -19,6 +19,7 @@ export function pickReceiptFile({ dateKey = null } = {}) {
     if (!input) return false;
     intendedDate = dateKey;
     input.value = '';
+    // @platform Mobile and coarse-pointer devices should open the rear camera first.
     if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
     else input.removeAttribute('capture');
     input.click();
