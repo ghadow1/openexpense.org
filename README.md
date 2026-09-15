@@ -94,6 +94,8 @@ semantic DOM, layout-lock contracts, behavior hooks, and keyboard model.
 The [`2026 Competitive Feature Review`](docs/COMPETITIVE-FEATURE-REVIEW-2026.md)
 compares planner and reporting patterns, records what fits the local-first
 model, and separates the next viable modules from cloud-only features.
+Receipt OCR performance budgets, mobile/desktop runtime choices, and readable
+source tags are documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 ## Data format
 
