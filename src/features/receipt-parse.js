@@ -5,6 +5,7 @@
  * Public API: normalizeOcrText, normalizeLines, textQuality, parseReceipt.
  */
 import { Utils } from '../core/utils.js';
+import { OCR_CONFIG } from '../config.js';
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
@@ -348,6 +349,8 @@ export function parseReceipt(text, lines, confidence = 0) {
     const lineList = normalizeLines(lines && lines.length ? lines : String(text || '').split('\n'));
     const body = normalizeOcrText(text || lineList.join('\n'));
     const kind = detectKind(body, lineList);
+    // @ocr-parse Keep parser signals explicit so the review sheet can tell
+    // users when the recognized text needs human verification.
     const total = pickTotal(lineList, body, kind);
     const merchant = parseMerchant(lineList, body);
     const items = parseItems(lineList);
@@ -363,6 +366,8 @@ export function parseReceipt(text, lines, confidence = 0) {
         items,
         rawText: body,
         confidence,
-        lowConfidence: (confidence > 0 && confidence < 0.55) || !quality.usable || total == null
+        lowConfidence: (confidence > 0 && confidence < OCR_CONFIG.confidence.lowConfidenceBelow)
+            || !quality.usable
+            || total == null
     };
 }

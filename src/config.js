@@ -35,6 +35,83 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+export const OCR_CONFIG = {
+    // @ocr-deps Same-origin runtime and model assets. These paths are part of
+    // the privacy boundary: OCR code, workers, WASM, and model data load from
+    // this site instead of a third-party CDN.
+    pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+    assets: {
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    // @ocr-pdf @perf Bound untrusted PDFs before text extraction or raster work
+    // can monopolize memory on phones, tablets, or low-power laptops.
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5,
+        previewJpegQuality: 0.92
+    },
+    // @platform @perf Profile image work by capability. Phones keep a smaller
+    // pixel budget to avoid thermal throttling; desktop-class browsers can use
+    // a larger canvas for fine receipt text.
+    platformProfiles: {
+        mobile: {
+            minImageSide: 1200,
+            maxImageSide: 2200,
+            enhancementMaxPixels: 1200000,
+            preferCameraCapture: true
+        },
+        desktop: {
+            minImageSide: 1200,
+            maxImageSide: 2600,
+            enhancementMaxPixels: 1800000,
+            preferCameraCapture: false
+        }
+    },
+    // @ocr-engine WASM threads require SharedArrayBuffer isolation. GitHub Pages
+    // is usually single-threaded, but this lets packaged desktop/webview hosts
+    // use more cores when they provide COOP/COEP.
+    runtime: {
+        maxWasmThreads: 4
+    },
+    // @ocr-pipeline OCR retries are intentionally few: the first pass handles
+    // clear images, contrast helps dim paper, and binary mode is the last resort.
+    scoring: {
+        firstPassMinScore: 28,
+        firstPassMinLines: 4,
+        retryMinScore: 22,
+        retryMinLines: 3,
+        confidenceWeight: 40,
+        letterWeight: 0.15,
+        lineWeight: 2,
+        moneyWeight: 8,
+        grayscaleRangeFloor: 18,
+        contrastBoost: 1.35,
+        binaryWhiteAt: 168,
+        binaryBlackAt: 96
+    },
+    // @ocr-parse Parser confidence below this mark shows the review warning.
+    confidence: {
+        lowConfidenceBelow: 0.55
+    },
+    // Human-readable tags used in comments and docs when touching OCR code.
+    humanTags: {
+        '@ocr-deps': 'model, worker, WASM, and same-origin dependency assets',
+        '@ocr-engine': 'runtime initialization and capability checks',
+        '@ocr-pdf': 'PDF text extraction and preview rendering',
+        '@ocr-pipeline': 'image preparation, recognition passes, and scoring',
+        '@ocr-parse': 'merchant, date, total, tax, and line-item parsing',
+        '@platform': 'phone, tablet, desktop, browser, and host capability choices',
+        '@perf': 'memory, canvas, threading, and latency budgets'
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
