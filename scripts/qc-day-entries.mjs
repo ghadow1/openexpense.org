@@ -164,3 +164,12 @@ test('day rows keep the amount off the action toolbar', async () => {
         'amount must not sit in the same wrap as the title pills'
     );
 });
+
+test('day edits reject over-cap series shifts before saving', async () => {
+    const source = await readFile(
+        join(dirname(fileURLToPath(import.meta.url)), '../src/features/modal.js'),
+        'utf8'
+    );
+    assert.match(source, /ledgerCapacityError\(nextEvents\)/);
+    assert.match(source, /if \(blocked\) \{[\s\S]*?Toast\.show\(blocked, 'error'\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?patch\(\{ events: nextEvents/);
+});

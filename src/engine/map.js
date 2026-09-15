@@ -4,7 +4,7 @@
  * Accepts a generic or Plaid-like row. Does not call any bank API.
  */
 import { Utils } from '../core/utils.js';
-import { isValidDateKey, sanitizeEntry, sanitizeLedger } from '../core/ledger-file.js';
+import { entryCapacityError, isValidDateKey, sanitizeEntry, sanitizeLedger } from '../core/ledger-file.js';
 import { categorize } from './categorize.js';
 
 function dateFrom(raw) {
@@ -71,6 +71,12 @@ function sameRow(a, b) {
         && (a.kind || 'expense') === (b.kind || 'expense');
 }
 
+function importCapacityError(message) {
+    const err = new Error(message || 'Import would exceed ledger limits.');
+    err.code = 'IMPORT_CAPACITY_EXCEEDED';
+    return err;
+}
+
 /** Merge mapped rows into an events map. Same sourceId on a day updates in place. */
 export function mergeTransactions(events, list) {
     const next = { ...(events || {}) };
@@ -78,7 +84,11 @@ export function mergeTransactions(events, list) {
         const day = Array.isArray(next[row.date]) ? [...next[row.date]] : [];
         const index = day.findIndex((item) => sameRow(item, row.entry));
         if (index >= 0) day[index] = { ...day[index], ...row.entry };
-        else day.push(row.entry);
+        else {
+            const blocked = entryCapacityError(next, row.date);
+            if (blocked) throw importCapacityError(blocked);
+            day.push(row.entry);
+        }
         next[row.date] = day;
     }
     return sanitizeLedger({ events: next })?.events || {};

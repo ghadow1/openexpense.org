@@ -44,6 +44,7 @@ OpenExpense.allowOrigin('https://bank.example')
 ```
 
 Every write is sanitized with the same allowlist as import/autosave.
+Transaction imports reject rows that would exceed ledger size caps instead of returning a partial import.
 `getSnapshot()` returns `goalAssessment` when ordered goals are present.
 
 `allowOrigin` only enables the cross-origin `postMessage` bridge in **embed mode** (`embed.html` or `?embed=1`). On the default wallet it is a no-op, so a parent frame cannot read or write the visitor’s IndexedDB ledger. Same-origin `get` / `set` / `importTransactions` still work after boot.

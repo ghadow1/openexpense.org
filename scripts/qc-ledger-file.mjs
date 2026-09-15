@@ -6,14 +6,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     sanitizeLedger, sanitizeEntry, sanitizePlan, validateEncFile, validateKeyFile,
-    kidsMatch, wipeKeyFile, classifyJson, countEntries, entryCapacityError, exportFilenames,
+    kidsMatch, wipeKeyFile, classifyJson, countEntries, entryCapacityError, ledgerCapacityError, exportFilenames,
     stableExportFilenames, matchLedgerPairNames, isValidDateKey, readJsonFile, FILE_LIMITS
 } from '../src/core/ledger-file.js';
 import { shouldShowNotFound } from '../src/core/routes.js';
 import { encryptBundle, decryptBundle } from '../src/core/bundle.js';
 import { ZIP_LIMITS } from '../src/core/bundle-format.js';
 import { unzipBundle } from '../src/core/legacy-zip.js';
-import { normalizeRepeat, nextOccurrenceKey, seriesCopyCount, repeatLabel, seedRecurringCopies } from '../src/core/series.js';
+import {
+    normalizeRepeat,
+    nextOccurrenceKey,
+    seriesCopyCount,
+    repeatLabel,
+    seedRecurringCopies,
+    updateSeriesOccurrences
+} from '../src/core/series.js';
 import { zipSync } from 'fflate';
 
 const sample = {
@@ -316,6 +323,35 @@ test('live capacity errors match import caps', () => {
     };
     assert.match(entryCapacityError(fullDay, '2026-08-17'), /250 entries/);
     assert.equal(entryCapacityError(fullDay, '2026-08-18'), '');
+
+    const maxDays = Object.fromEntries(Array.from({ length: FILE_LIMITS.maxDays }, (_, i) => {
+        const date = new Date(Date.UTC(2030, 0, i + 1)).toISOString().slice(0, 10);
+        return [date, [{ title: `D${i}`, price: 1 }]];
+    }));
+    assert.match(entryCapacityError(maxDays, '2050-01-01'), /4000 days/);
+    assert.equal(entryCapacityError(maxDays, '2050-01-01', 1, { removedDayCount: 1 }), '');
+});
+
+test('full-ledger capacity errors catch series shifts before autosave truncates', () => {
+    const seriesId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const rent = { title: 'Rent', price: 10, recurring: true, repeat: 'weekly', seriesId };
+    const events = {
+        '2026-08-02': [{ ...rent, paid: true }],
+        '2026-08-09': [{ ...rent }],
+        '2026-08-16': Array.from({ length: FILE_LIMITS.maxPerDay }, (_, i) => ({ title: `E${i}`, price: 1 }))
+    };
+    const shifted = updateSeriesOccurrences(
+        events,
+        events['2026-08-02'][0],
+        '2026-08-02',
+        0,
+        { ...rent, paid: true },
+        '2026-08-09'
+    );
+
+    assert.equal(shifted['2026-08-16'].length, FILE_LIMITS.maxPerDay + 1);
+    assert.match(ledgerCapacityError(shifted), /more than 250 entries on 2026-08-16/);
+    assert.equal(sanitizeLedger({ events: shifted }).events['2026-08-16'].length, FILE_LIMITS.maxPerDay);
 });
 
 test('recurring seed stops at the per-day cap', () => {
