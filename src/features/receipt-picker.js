@@ -19,6 +19,7 @@ export function pickReceiptFile({ dateKey = null } = {}) {
     if (!input) return false;
     intendedDate = dateKey;
     input.value = '';
+    // @platform: phone/tablet browsers need camera capture decided before click().
     if (Utils.prefersCamera()) input.setAttribute('capture', 'environment');
     else input.removeAttribute('capture');
     input.click();

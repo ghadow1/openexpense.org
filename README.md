@@ -81,6 +81,9 @@ is [`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference 
 not to rename, tab × frame, class prefixes) is
 [`docs/CODEMAP.md`](docs/CODEMAP.md).
 
+OCR receipt-reading limits, platform choices, and human-readable source tags are
+documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
+
 For classroom use, the
 [`Teacher's Guide`](docs/TEACHERS-GUIDE.md) derives the financial formulas,
 maps state to the DOM, and explains the security controls. Its companion

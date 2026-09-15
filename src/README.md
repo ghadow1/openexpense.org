@@ -14,7 +14,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`engine/`](engine/) | Headless map/categorize/session plus live `window.OpenExpense` hooks |
 | [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet (navy tokens) |
 | [`../scripts/write-brand-thumbs.py`](../scripts/write-brand-thumbs.py) | Regenerates `og-image.jpg` and `apple-touch-icon.png` |
-| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |
+| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, `OCR_CONFIG`, weekday labels |
 
 ## `app/` — shell
 
@@ -62,8 +62,8 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`features/ledger.js`](features/ledger.js) | Import, export / linked-folder save, autosave toggle, name |
 | [`features/export-buttons.js`](features/export-buttons.js) | Export vs Save labels when a folder is linked |
 | [`features/receipt-picker.js`](features/receipt-picker.js) | Synchronous native picker; preserves phone user activation |
-| [`features/receipt.js`](features/receipt.js) | Lazy camera / file OCR and review sheet |
-| [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total from text |
+| [`features/receipt.js`](features/receipt.js) | Lazy camera / file OCR, platform sizing, and review sheet |
+| [`features/receipt-parse.js`](features/receipt-parse.js) | Merchant, date, total, tax, and item suggestions from OCR/PDF text |
 | [`features/sidebar.js`](features/sidebar.js) | Expense / income summary; click group or category to search |
 | [`features/dash-strip.js`](features/dash-strip.js) | Overview, Tracker page head, and Planner (`renderDashStrip`) |
 | [`features/goals.js`](features/goals.js) | Goal modal, cards, drag priority, advice, and planner-hold action |

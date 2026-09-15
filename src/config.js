@@ -35,6 +35,54 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+// @ocr-deps @platform @perf
+// Receipt OCR runs entirely in-browser. Keep model/runtime paths, workload
+// ceilings, and canvas sizing together so mobile and desktop tuning changes
+// are reviewed as one platform contract.
+export const OCR_CONFIG = {
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000
+    },
+    runtime: {
+        // One WASM thread keeps first-run OCR predictable on phones while still
+        // using the same ONNX runtime and reviewed models on desktop browsers.
+        wasmThreads: 1,
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line'
+    },
+    image: {
+        decodeMaxSide: 2600,
+        ocrMinSide: 1200,
+        ocrMaxSide: 2600,
+        enhancementMaxPixels: 1_800_000
+    },
+    pdf: {
+        previewMaxScale: 2.5,
+        previewMaxSide: 2400,
+        previewQuality: 0.92
+    },
+    scoring: {
+        confidenceWeight: 40,
+        lettersWeight: 0.15,
+        linesWeight: 2,
+        moneyWeight: 8,
+        earlyAcceptScore: 28,
+        earlyAcceptLines: 4,
+        enhancedAcceptScore: 22,
+        enhancedAcceptLines: 3
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',

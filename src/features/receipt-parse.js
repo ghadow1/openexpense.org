@@ -51,6 +51,7 @@ const KNOWN_MERCHANTS = [
     [/square/i, 'Square']
 ];
 
+// @ocr-parse: normalize common OCR confusions before receipt heuristics run.
 export function normalizeOcrText(text) {
     return String(text || '')
         .replace(/[|]/g, ' ')
@@ -218,6 +219,7 @@ function parseDate(text, lines) {
     return (found.find((d) => d.labeled) || found[0] || {}).value || null;
 }
 
+// @ocr-parse: totals are scored heuristics, never an automatic ledger write.
 function scoreAmount(line) {
     const lower = String(line || '').toLowerCase();
     const amt = moneyOnLine(line);
