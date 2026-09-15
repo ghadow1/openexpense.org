@@ -35,6 +35,51 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * @ocr-deps @platform @perf
+ * Receipt scanning is local-first: browser APIs provide capture/decoding,
+ * same-origin assets provide OCR/PDF execution, and these limits keep phones
+ * responsive while still giving desktop browsers enough pixels to read totals.
+ */
+export const OCR_CONFIG = {
+    dependencies: {
+        engine: 'ppu-paddle-ocr',
+        runtime: 'onnxruntime-web',
+        pdf: 'pdfjs-dist',
+        model: 'PP-OCRv6 Tiny'
+    },
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasmPath: '/vendor/ort/',
+        detectionModel: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognitionModel: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxPdfPreviewSide: 2400,
+        maxPdfScale: 2.5,
+        maxEnhancePixels: 1_800_000
+    },
+    runtime: {
+        wasmThreads: 1,
+        executionProviders: ['wasm'],
+        recognitionStrategy: 'cross-line'
+    },
+    thresholds: {
+        primaryPassScore: 28,
+        primaryPassMinLines: 4,
+        enhancedPassScore: 22,
+        enhancedPassMinLines: 3,
+        lowConfidence: 0.55
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',
