@@ -35,6 +35,60 @@ export const STORAGE_KEYS = {
     exportPassphrase: 'oe-export-passphrase'
 };
 
+/**
+ * Local receipt reading knobs.
+ *
+ * Human-readable source tags:
+ * - @ocr-deps: same-origin model, worker, dictionary, and wasm asset paths.
+ * - @ocr-engine: OCR session construction, warmup, and inference strategy.
+ * - @ocr-pdf: PDF text extraction and first-page preview rendering.
+ * - @ocr-pipeline: image decode, resize, enhancement, and retry flow.
+ * - @ocr-parse: text quality and parser handoff decisions.
+ * - @platform: mobile/desktop feature choices that affect native UX.
+ * - @perf: explicit resource limits and browser performance budgets.
+ */
+export const OCR_CONFIG = {
+    /** @ocr-deps Same-origin runtime and model assets. */
+    assets: {
+        pdfWorker: '/vendor/pdfjs/pdf.worker.min.mjs',
+        wasm: '/vendor/ort/',
+        detection: '/vendor/ocr-models/PP-OCRv6_tiny_det.ort',
+        recognition: '/vendor/ocr-models/PP-OCRv6_tiny_rec.ort',
+        dictionary: '/vendor/ocr-models/ppocrv6_tiny_dict.txt'
+    },
+    /** @perf File, PDF, and canvas ceilings keep phone scans responsive. */
+    limits: {
+        maxFileBytes: 15 * 1024 * 1024,
+        maxPdfPages: 20,
+        maxExtractedLines: 5000,
+        maxExtractedChars: 250000,
+        minOcrSide: 1200,
+        maxOcrSide: 2600,
+        maxEnhancementPixels: 1_800_000,
+        pdfPreviewMaxSide: 2400,
+        pdfPreviewMaxScale: 2.5
+    },
+    /** @ocr-engine @platform Desktop can use more wasm threads when headers allow SharedArrayBuffer. */
+    platform: {
+        mobileMaxThreads: 1,
+        coarsePointerMaxThreads: 1,
+        desktopMaxThreads: 2
+    },
+    /** @ocr-engine Keep OCR strategy and warmup dimensions next to the asset pins. */
+    recognition: {
+        executionProviders: ['wasm'],
+        strategy: 'cross-line',
+        warmupSize: 64
+    },
+    /** @ocr-parse Retry thresholds balance speed against low-quality photo recovery. */
+    quality: {
+        goodScore: 28,
+        goodLines: 4,
+        usableScore: 22,
+        usableLines: 3
+    }
+};
+
 export const THEMES = {
     light: {
         bg: '#ffffff', surface: '#ffffff', surface2: '#f0f4f8',

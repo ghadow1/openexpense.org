@@ -14,7 +14,7 @@ Each module starts with a short header describing what it owns. Before you renam
 | [`engine/`](engine/) | Headless map/categorize/session plus live `window.OpenExpense` hooks |
 | [`../docs/SEO-HEAD.html`](../docs/SEO-HEAD.html) | Canonical Open Graph / JSON-LD head snippet (navy tokens) |
 | [`../scripts/write-brand-thumbs.py`](../scripts/write-brand-thumbs.py) | Regenerates `og-image.jpg` and `apple-touch-icon.png` |
-| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels |
+| [`config.js`](config.js) | Version, `STORAGE_KEYS`, `THEMES`, weekday labels, and OCR runtime budgets |
 
 ## `app/` — shell
 
@@ -92,5 +92,9 @@ Each module starts with a short header describing what it owns. Before you renam
 A module should export only what another file imports. Helpers stay file-private so the tree stays easy to scan.
 
 Do not rename `data-action` values, `data-shell` / `data-view` / `data-tracker-filter`, or element ids in `index.html` without updating `main.js` and the feature that owns them. Do not rename `engine.js` exports (`snapshot`, `categorize`, `createSession`) — hosts import those names.
+
+Receipt OCR code uses human-readable tags such as `@ocr-engine`, `@ocr-pipeline`,
+`@platform`, and `@perf` at the browser/runtime boundaries. The full legend is
+[`../docs/OCR-PERFORMANCE.md`](../docs/OCR-PERFORMANCE.md).
 
 See [`../docs/CODEMAP.md`](../docs/CODEMAP.md).

@@ -80,6 +80,8 @@ is [`docs/LEARNING-PATH.md`](docs/LEARNING-PATH.md). The file-by-file reference 
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the editor contract (what
 not to rename, tab × frame, class prefixes) is
 [`docs/CODEMAP.md`](docs/CODEMAP.md).
+Receipt OCR performance limits, dependency boundaries, and human-readable code
+tags are documented in [`docs/OCR-PERFORMANCE.md`](docs/OCR-PERFORMANCE.md).
 
 For classroom use, the
 [`Teacher's Guide`](docs/TEACHERS-GUIDE.md) derives the financial formulas,
